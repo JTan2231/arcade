@@ -80,6 +80,16 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /api/groups/{group_id}/divisions/{division_id}/members", s.handleListDivisionMembers)
 	mux.HandleFunc("POST /api/groups/{group_id}/divisions/{division_id}/recompute", s.handleRecomputeDivision)
 
+	mux.HandleFunc("GET /api/me/daily-feeds", s.handleListMeDailyFeeds)
+	mux.HandleFunc("GET /api/me/daily-feed-outputs", s.handleListMeDailyFeedOutputs)
+	mux.HandleFunc("GET /api/groups/{group_id}/daily-feeds", s.handleListGroupDailyFeeds)
+	mux.HandleFunc("POST /api/groups/{group_id}/daily-feeds", s.handleCreateGroupDailyFeed)
+	mux.HandleFunc("GET /api/groups/{group_id}/daily-feeds/{feed_id}", s.handleGetGroupDailyFeed)
+	mux.HandleFunc("PATCH /api/groups/{group_id}/daily-feeds/{feed_id}", s.handlePatchGroupDailyFeed)
+	mux.HandleFunc("DELETE /api/groups/{group_id}/daily-feeds/{feed_id}", s.handleDeleteGroupDailyFeed)
+	mux.HandleFunc("GET /api/groups/{group_id}/daily-feeds/{feed_id}/today", s.handleGetGroupDailyFeedToday)
+	mux.HandleFunc("GET /api/groups/{group_id}/daily-feeds/{feed_id}/outputs/{date}", s.handleGetGroupDailyFeedOutput)
+
 	mux.HandleFunc("GET /api/me/daily", s.handleGetMeDaily)
 	mux.HandleFunc("POST /api/me/dailies/generate", s.handleGenerateMeDaily)
 	mux.HandleFunc("GET /api/me/dailies", s.handleListMeDailies)

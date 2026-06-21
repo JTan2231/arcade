@@ -53,7 +53,8 @@ Routes are grouped by resource in `Server.Routes()`:
 - Catalog: sources and problems.
 - Groups: groups and group memberships.
 - Divisions: group-scoped divisions and division rules.
-- Dailies: daily generation, daily history, daily set lookup, and daily leaderboards.
+- Dailies: group-owned daily feed definitions and deterministic feed outputs,
+  plus legacy daily set lookup and daily-set leaderboards.
 - Submissions: manual solves and local sync markers.
 - Leaderboards: global, group, division, and daily-set views.
 
@@ -65,27 +66,36 @@ The main persisted entities are:
 - `user_sessions`: hashed session tokens for secure cookie-backed login.
 - `problem_sources`: coding platforms such as Codeforces, AtCoder, and Advent of Code.
 - `problems` and `problem_tags`: catalog entries, ratings, URLs, and tags.
+- `item_sources` and `catalog_items`: pointer catalog rows and launch resolvers
+  for group daily feeds.
 - `external_accounts`: a user's platform handles and local sync metadata.
 - `user_preferences` and `user_preference_tags`: daily generation defaults.
 - `groups` and `group_memberships`: social scopes and roles.
 - `divisions`, `division_rules`, and `division_rule_tags`: group-scoped daily selection constraints.
-- `daily_sets` and `daily_set_items`: generated practice sets and their ordered problems.
+- `group_daily_feeds`: durable group-owned daily feed definitions.
+- `daily_sets` and `daily_set_items`: legacy generated practice sets and their ordered problems.
 - `submissions`: accepted/manual solves and other verdicts.
 - `leaderboard_snapshots` and `leaderboard_snapshot_rows`: reserved for future materialized leaderboards.
 
-## Daily Generation
+## Daily Feeds
 
-Daily generation lives in `internal/app/handlers_dailies.go`.
+Daily feed management and output generation live in
+`internal/app/handlers_daily_feeds.go`.
 
-The generator combines request inputs, user preferences, and optional division defaults to choose problems:
+The current daily feed model follows `DAILY.md`:
 
-- Source defaults to the matching preference source or `codeforces`.
-- Count defaults to preference `daily_problem_count`, then `3`.
-- Difficulty defaults to target rating `1200 + target_difficulty_delta`, with a 500-point range around the target.
-- Tags default to preferred tags; blocked tags are excluded.
-- Solved problems are excluded unless the preference or request allows them.
+- Groups are the delivery and permission boundary.
+- Owners and admins manage `group_daily_feeds`.
+- Active members read only enabled feeds whose audience they match.
+- Feed outputs are computed on demand from feed rules, `catalog_items`, and
+  `item_sources`.
+- Selection is deterministic by feed, date, block, and catalog item.
+- Outputs resolve to HTTPS external actions and are not persisted.
 
-Problem candidates are ordered by distance from the target rating. If tag filtering produces no candidates, the selection retries without required tags. Generated sets are upserted by `(scope_type, scope_id, date)` and replace their items for that day.
+The generator does not use the requesting user's preferences or solved history.
+
+Legacy daily-set generation remains in `internal/app/handlers_dailies.go` for
+older `/api/me/daily`, `/api/*/dailies/generate`, and daily-set lookup routes.
 
 ## Leaderboards
 
@@ -94,7 +104,7 @@ Leaderboards are live SQL rollups over `submissions`.
 - Accepted verdicts are `accepted`, `completed`, and `manual_solve`.
 - Global leaderboards include users with at least one solve.
 - Group leaderboards include active group members.
-- Daily leaderboards score solves using `daily_set_items.points`.
+- Legacy daily-set leaderboards score solves using `daily_set_items.points`.
 - Division leaderboards currently reuse group leaderboard logic after verifying the division exists.
 
 ## Frontend Shape
@@ -104,6 +114,10 @@ The browser app in `web/static` is a single static page:
 - `index.html` defines the auth forms and main panels for identity, dailies, groups, leaderboards, problems, and accounts.
 - `app.js` owns data loading, event handlers, API calls, and DOM rendering.
 - `styles.css` defines the responsive grid and component styles.
+
+The main daily surface loads `/api/me/daily-feed-outputs` and shows source-owned
+actions for each generated catalog item. Creating a feed from the UI posts a
+group-owned feed definition to `/api/groups/{group_id}/daily-feeds`.
 
 Because assets are embedded, changes under `web/static` are compiled into the Go binary. During local development, `go run ./cmd/arcade` serves the latest files from a fresh build.
 

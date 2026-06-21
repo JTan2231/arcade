@@ -27,6 +27,7 @@ erDiagram
     problem_sources ||--o{ external_accounts : provides
     problem_sources ||--o{ problems : catalogs
     problems ||--o{ problem_tags : tagged_by
+    item_sources ||--o{ catalog_items : catalogs
 
     users ||--o{ user_preferences : configures
     problem_sources ||--o{ user_preferences : scopes
@@ -34,6 +35,7 @@ erDiagram
 
     users ||--o{ groups : creates
     groups ||--o{ group_memberships : has
+    groups ||--o{ group_daily_feeds : owns
     users ||--o{ group_memberships : joins
     groups ||--o{ divisions : contains
     users ||--o{ divisions : creates
@@ -91,6 +93,29 @@ The initial migration seeds source rows and a small Codeforces problem catalog
 with provider tags. Seed rows use `on conflict` so a fresh database can be
 created from migrations alone.
 
+## Pointer Catalog And Daily Feeds
+
+`item_sources` stores source namespaces used by the daily feed system. Unlike
+`problem_sources`, these rows also carry a resolver definition. The first
+resolver schema supports `external_url` actions from either a URL template
+filled from locator fields or a direct locator URL field.
+
+`catalog_items` stores minimal pointer metadata for feed selection and launch.
+Rows have a `(source_id, external_id)` identity, a `kind`, a display `title`, a
+source-specific `locator`, and filterable `metadata`. For Codeforces, locator
+fields are `contest_id` and `index`; metadata includes rating and provider tags.
+Catalog items must not store statements, prompts, samples, editorials, or
+solutions.
+
+`group_daily_feeds` stores the durable daily feed definition owned by a group.
+Each feed has a unique slug within its group, an enabled flag, audience JSON,
+schedule JSON, and rule JSON. The initial rule schema uses `blocks` that select
+catalog items by source, kind, rating metadata, and tag metadata.
+
+Daily feed outputs are generated on demand from `group_daily_feeds`,
+`catalog_items`, and `item_sources`. Generated outputs are not written to
+`daily_sets` or item rows.
+
 ## Preferences
 
 `user_preferences` stores daily recommendation settings. A row can be global
@@ -120,17 +145,21 @@ null.
 division. `division_rule_tags` adds required or excluded tag constraints for a
 rule.
 
-## Daily Practice
+## Legacy Daily Sets
 
-`daily_sets` is the header for generated daily assignments. The `scope_type`
-can be `user`, `group`, `division`, `group_division`, or `global`. Scope-specific
-foreign keys are optional so the row can represent different scopes, while
-uniqueness is enforced by `(scope_type, scope_id, date)` plus a partial unique
-index for null `scope_id`.
+`daily_sets` is the older header for generated daily assignments. The
+`scope_type` can be `user`, `group`, `division`, `group_division`, or `global`.
+Scope-specific foreign keys are optional so the row can represent different
+scopes, while uniqueness is enforced by `(scope_type, scope_id, date)` plus a
+partial unique index for null `scope_id`.
 
-`daily_set_items` stores the ordered problems in a daily set. Each problem can
-appear once per set, and each position can be used once per set. Item roles are
-`warmup`, `target`, `stretch`, or `bonus`.
+`daily_set_items` stores the ordered problems in an older daily set. Each
+problem can appear once per set, and each position can be used once per set.
+Item roles are `warmup`, `target`, `stretch`, or `bonus`.
+
+These tables remain in the schema for the legacy daily endpoints, manual solve
+attribution, and daily-set leaderboard code. The group daily feed model does not
+materialize outputs into these tables.
 
 ## Submissions And Solves
 

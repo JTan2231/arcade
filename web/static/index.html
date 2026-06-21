@@ -71,10 +71,14 @@
     <main id="app-layout" class="layout" hidden>
       <section class="panel daily-panel">
         <div class="panel-header">
-          <h2>Today</h2>
+          <h2>My Dailies</h2>
           <button id="refresh">Refresh</button>
         </div>
         <form id="daily-form" class="control-grid">
+          <label>
+            Name
+            <input id="daily-name" placeholder="Beginner Daily">
+          </label>
           <label>
             Source
             <select id="daily-source"></select>
@@ -91,7 +95,7 @@
             Target
             <input id="daily-target" type="number" min="800" max="2600" step="100" value="1300">
           </label>
-          <button type="submit">Generate</button>
+          <button type="submit">Create feed</button>
         </form>
         <div id="daily" class="stack"></div>
       </section>
@@ -124,7 +128,6 @@
           <select id="leaderboard-scope">
             <option value="global">Global</option>
             <option value="group">Selected group</option>
-            <option value="daily">Today</option>
           </select>
         </div>
         <div id="leaderboard" class="stack"></div>

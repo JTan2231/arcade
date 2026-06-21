@@ -150,6 +150,95 @@ type DailyItem struct {
 	CreatedAt            time.Time `json:"created_at"`
 }
 
+type DailyFeed struct {
+	ID                 string            `json:"id"`
+	GroupID            string            `json:"group_id"`
+	GroupName          *string           `json:"group_name,omitempty"`
+	Name               string            `json:"name"`
+	Slug               string            `json:"slug"`
+	Description        *string           `json:"description,omitempty"`
+	Enabled            bool              `json:"enabled"`
+	Audience           DailyFeedAudience `json:"audience"`
+	Schedule           DailyFeedSchedule `json:"schedule"`
+	RulesSchemaVersion int               `json:"rules_schema_version"`
+	Rules              DailyFeedRules    `json:"rules"`
+	CreatedByUserID    *string           `json:"created_by_user_id,omitempty"`
+	CreatedAt          time.Time         `json:"created_at"`
+	UpdatedAt          time.Time         `json:"updated_at"`
+}
+
+type DailyFeedAudience struct {
+	Type       string  `json:"type"`
+	DivisionID *string `json:"division_id,omitempty"`
+}
+
+type DailyFeedSchedule struct {
+	Cadence  string `json:"cadence"`
+	Timezone string `json:"timezone"`
+}
+
+type DailyFeedRules struct {
+	Blocks []DailyFeedRuleBlock `json:"blocks"`
+}
+
+type DailyFeedRuleBlock struct {
+	Source  string           `json:"source"`
+	Kind    string           `json:"kind"`
+	Count   int              `json:"count"`
+	Filters DailyFeedFilters `json:"filters,omitempty"`
+	Roles   []string         `json:"roles,omitempty"`
+	Points  []int            `json:"points,omitempty"`
+}
+
+type DailyFeedFilters struct {
+	Rating *DailyFeedRatingFilter `json:"rating,omitempty"`
+	Tags   *DailyFeedTagFilter    `json:"tags,omitempty"`
+}
+
+type DailyFeedRatingFilter struct {
+	Min    *int `json:"min,omitempty"`
+	Max    *int `json:"max,omitempty"`
+	Target *int `json:"target,omitempty"`
+}
+
+type DailyFeedTagFilter struct {
+	IncludeAny []string `json:"include_any,omitempty"`
+	ExcludeAny []string `json:"exclude_any,omitempty"`
+}
+
+type DailyFeedOutput struct {
+	FeedID    string                `json:"feed_id"`
+	GroupID   string                `json:"group_id"`
+	GroupName *string               `json:"group_name,omitempty"`
+	Date      string                `json:"date"`
+	Title     string                `json:"title"`
+	Items     []DailyFeedOutputItem `json:"items"`
+}
+
+type DailyFeedOutputItem struct {
+	Position int              `json:"position"`
+	Role     string           `json:"role"`
+	Points   int              `json:"points"`
+	Reason   string           `json:"reason"`
+	Item     DailyCatalogItem `json:"item"`
+	Action   DailyFeedAction  `json:"action"`
+}
+
+type DailyCatalogItem struct {
+	ID         string         `json:"id"`
+	Source     string         `json:"source"`
+	ExternalID string         `json:"external_id"`
+	Kind       string         `json:"kind"`
+	Title      string         `json:"title"`
+	Metadata   map[string]any `json:"metadata"`
+}
+
+type DailyFeedAction struct {
+	Type  string `json:"type"`
+	Label string `json:"label"`
+	URL   string `json:"url"`
+}
+
 type Submission struct {
 	ID                   string    `json:"id"`
 	UserID               string    `json:"user_id"`

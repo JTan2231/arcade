@@ -5,7 +5,7 @@ const state = {
   accounts: [],
   groups: [],
   selectedGroupId: null,
-  daily: null,
+  dailyOutputs: [],
   problems: [],
 };
 
@@ -64,7 +64,7 @@ function resetState() {
   state.accounts = [];
   state.groups = [];
   state.selectedGroupId = null;
-  state.daily = null;
+  state.dailyOutputs = [];
   state.problems = [];
 }
 
@@ -114,7 +114,7 @@ async function loadBase() {
   state.accounts = accounts;
   state.groups = groups;
   if (!state.selectedGroupId && groups.length > 0) {
-    state.selectedGroupId = groups[0].id;
+    state.selectedGroupId = (groups.find((group) => group.my_status === "active") || groups[0]).id;
   }
   renderIdentity();
   renderSources();
@@ -124,9 +124,9 @@ async function loadBase() {
 
 async function loadDaily() {
   try {
-    state.daily = await api("/api/me/daily");
+    state.dailyOutputs = await api("/api/me/daily-feed-outputs");
   } catch (error) {
-    state.daily = null;
+    state.dailyOutputs = [];
   }
   renderDaily();
 }
@@ -146,7 +146,6 @@ async function loadLeaderboard() {
   const scope = $("leaderboard-scope").value;
   let path = "/api/leaderboards";
   if (scope === "group" && state.selectedGroupId) path = `/api/groups/${state.selectedGroupId}/leaderboard`;
-  if (scope === "daily" && state.daily) path = `/api/daily-sets/${state.daily.id}/leaderboard`;
   const rows = await api(path);
   renderLeaderboard(rows);
 }
@@ -157,9 +156,8 @@ function renderIdentity() {
 }
 
 function renderSources() {
-  for (const id of ["daily-source", "problem-source", "account-source"]) {
-    optionList($(id), state.sources, "codeforces");
-  }
+  optionList($("daily-source"), state.sources.filter((source) => source.slug === "codeforces"), "codeforces");
+  for (const id of ["problem-source", "account-source"]) optionList($(id), state.sources, "codeforces");
 }
 
 function renderAccounts() {
@@ -200,25 +198,22 @@ function renderGroups() {
 }
 
 function renderDaily() {
-  const daily = state.daily;
-  if (!daily) {
-    $("daily").innerHTML = `<div class="meta">No daily generated for today</div>`;
+  const outputs = state.dailyOutputs || [];
+  if (!outputs.length) {
+    $("daily").innerHTML = `<div class="meta">No daily feeds for today</div>`;
     return;
   }
-  $("daily").innerHTML = `
+  $("daily").innerHTML = outputs.map((daily) => `
     <div class="row">
       <div class="row-top">
         <div>
-          <div class="title">${escapeHTML(daily.title || "Daily Set")}</div>
-          <div class="meta">${escapeHTML(daily.date)} · ${daily.items.length} problems</div>
+          <div class="title">${escapeHTML(daily.title || "Daily Feed")}</div>
+          <div class="meta">${escapeHTML(daily.group_name || "Group")} · ${escapeHTML(daily.date)} · ${daily.items.length} items</div>
         </div>
       </div>
     </div>
-    ${daily.items.map((item) => problemHTML(item.problem, {
-      prefix: `${item.position}. ${item.role} · ${item.points} pts`,
-      dailySetId: daily.id,
-    })).join("")}
-  `;
+    ${daily.items.map((item) => dailyFeedItemHTML(item)).join("")}
+  `).join("");
 }
 
 function renderProblems() {
@@ -253,10 +248,30 @@ function problemHTML(problem, options = {}) {
   `;
 }
 
+function dailyFeedItemHTML(entry) {
+  const item = entry.item;
+  const metadata = item.metadata || {};
+  const tags = (metadata.tags || []).map((tag) => `<span class="tag">${escapeHTML(tag)}</span>`).join("");
+  const rating = metadata.rating || "unrated";
+  return `
+    <div class="problem-row">
+      <div class="problem-top">
+        <div>
+          <div class="title">${escapeHTML(item.title)}</div>
+          <div class="meta">${entry.position}. ${escapeHTML(entry.role)} · ${entry.points} pts · ${escapeHTML(item.source)} · ${escapeHTML(item.external_id)} · ${escapeHTML(rating)}</div>
+          <div class="meta">${escapeHTML(entry.reason)}</div>
+        </div>
+        <a class="button-link secondary" href="${escapeHTML(entry.action.url)}" target="_blank" rel="noreferrer">${escapeHTML(entry.action.label || "Open")}</a>
+      </div>
+      <div class="tag-list">${tags}</div>
+    </div>
+  `;
+}
+
 async function selectGroup(id) {
   state.selectedGroupId = id;
   renderGroups();
-  await loadLeaderboard();
+  await Promise.all([loadDaily(), loadLeaderboard()]);
 }
 
 async function markSolved(problemId, dailySetId = "") {
@@ -269,7 +284,7 @@ async function markSolved(problemId, dailySetId = "") {
     }),
   });
   toast("Solve recorded");
-  await Promise.all([loadDaily(), loadProblems(), loadLeaderboard()]);
+  await Promise.all([loadProblems(), loadLeaderboard()]);
 }
 
 async function verifyAccount(id) {
@@ -363,18 +378,39 @@ function bindForms() {
 
   $("daily-form").addEventListener("submit", async (event) => {
     event.preventDefault();
-    state.daily = await api("/api/me/dailies/generate", {
+    if (!state.selectedGroupId) {
+      toast("Select a group first");
+      return;
+    }
+    const source = $("daily-source").value;
+    const sourceName = state.sources.find((candidate) => candidate.slug === source)?.name || source;
+    const target = Number($("daily-target").value || 1300);
+    const tags = tagsFromInput($("daily-tags").value);
+    const name = $("daily-name").value.trim() || `${sourceName} Daily`;
+    await api(`/api/groups/${state.selectedGroupId}/daily-feeds`, {
       method: "POST",
       body: JSON.stringify({
-        source: $("daily-source").value,
-        tags: tagsFromInput($("daily-tags").value),
-        count: Number($("daily-count").value || 3),
-        difficulty: { target_rating: Number($("daily-target").value || 1300) },
+        name,
+        audience: { type: "all_group_members" },
+        schedule: { cadence: "daily", timezone: "UTC" },
+        rules: {
+          blocks: [
+            {
+              source,
+              kind: "competitive_programming_problem",
+              count: Number($("daily-count").value || 3),
+              filters: {
+                rating: { min: target - 500, max: target + 500, target },
+                tags: { include_any: tags },
+              },
+            },
+          ],
+        },
       }),
     });
-    renderDaily();
-    await loadLeaderboard();
-    toast("Daily generated");
+    $("daily-name").value = "";
+    await loadDaily();
+    toast("Daily feed created");
   });
 
   $("group-form").addEventListener("submit", async (event) => {
