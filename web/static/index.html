@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Arcade</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <h1>Arcade</h1>
+        <p id="identity">Loading</p>
+      </div>
+      <form id="profile-form" class="inline-form">
+        <input id="display-name" name="display_name" placeholder="Display name" autocomplete="off">
+        <button type="submit">Save</button>
+      </form>
+    </header>
+
+    <main class="layout">
+      <section class="panel daily-panel">
+        <div class="panel-header">
+          <h2>Today</h2>
+          <button id="refresh">Refresh</button>
+        </div>
+        <form id="daily-form" class="control-grid">
+          <label>
+            Source
+            <select id="daily-source"></select>
+          </label>
+          <label>
+            Tags
+            <input id="daily-tags" placeholder="dp, graphs">
+          </label>
+          <label>
+            Count
+            <input id="daily-count" type="number" min="1" max="12" value="3">
+          </label>
+          <label>
+            Target
+            <input id="daily-target" type="number" min="800" max="2600" step="100" value="1300">
+          </label>
+          <button type="submit">Generate</button>
+        </form>
+        <div id="daily" class="stack"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Groups</h2>
+        </div>
+        <form id="group-form" class="control-grid">
+          <label>
+            Name
+            <input id="group-name" placeholder="Morning Dojo">
+          </label>
+          <label>
+            Visibility
+            <select id="group-visibility">
+              <option value="invite_only">Invite only</option>
+              <option value="public">Public</option>
+              <option value="private">Private</option>
+            </select>
+          </label>
+          <button type="submit">Create</button>
+        </form>
+        <div id="groups" class="stack"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Sessions</h2>
+        </div>
+        <form id="session-form" class="control-grid">
+          <label>
+            Title
+            <input id="session-title" placeholder="Saturday Virtual">
+          </label>
+          <label>
+            Minutes
+            <input id="session-duration" type="number" min="15" max="300" value="90">
+          </label>
+          <button type="submit">Create</button>
+        </form>
+        <div id="sessions" class="stack"></div>
+      </section>
+
+      <section class="panel leaderboard-panel">
+        <div class="panel-header">
+          <h2>Leaderboard</h2>
+          <select id="leaderboard-scope">
+            <option value="global">Global</option>
+            <option value="group">Selected group</option>
+            <option value="daily">Today</option>
+            <option value="session">Selected session</option>
+          </select>
+        </div>
+        <div id="leaderboard" class="stack"></div>
+      </section>
+
+      <section class="panel problems-panel">
+        <div class="panel-header">
+          <h2>Problems</h2>
+        </div>
+        <form id="problem-form" class="control-grid">
+          <label>
+            Source
+            <select id="problem-source"></select>
+          </label>
+          <label>
+            Tag
+            <input id="problem-tag" placeholder="greedy">
+          </label>
+          <label>
+            Min
+            <input id="problem-min" type="number" step="100">
+          </label>
+          <label>
+            Max
+            <input id="problem-max" type="number" step="100">
+          </label>
+          <button type="submit">Filter</button>
+        </form>
+        <div id="problems" class="problem-list"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Accounts</h2>
+        </div>
+        <form id="account-form" class="control-grid">
+          <label>
+            Source
+            <select id="account-source"></select>
+          </label>
+          <label>
+            Handle
+            <input id="account-handle" placeholder="tourist">
+          </label>
+          <button type="submit">Link</button>
+        </form>
+        <div id="accounts" class="stack"></div>
+      </section>
+    </main>
+
+    <div id="toast" role="status"></div>
+    <script src="/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,425 @@
+const state = {
+  me: null,
+  sources: [],
+  accounts: [],
+  groups: [],
+  selectedGroupId: null,
+  selectedSessionId: null,
+  daily: null,
+  sessions: [],
+  problems: [],
+};
+
+const $ = (id) => document.getElementById(id);
+
+async function api(path, options = {}) {
+  const response = await fetch(path, {
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    ...options,
+  });
+  if (response.status === 204) return null;
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.error || `Request failed: ${response.status}`);
+  return body;
+}
+
+function toast(message) {
+  const element = $("toast");
+  element.textContent = message;
+  element.classList.add("show");
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => element.classList.remove("show"), 2400);
+}
+
+function optionList(select, values, selected) {
+  select.innerHTML = values
+    .map((value) => `<option value="${escapeHTML(value.slug)}"${value.slug === selected ? " selected" : ""}>${escapeHTML(value.name)}</option>`)
+    .join("");
+}
+
+function escapeHTML(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function tagsFromInput(value) {
+  return value
+    .split(",")
+    .map((part) => part.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+async function loadBase() {
+  const [me, sources, accounts, groups] = await Promise.all([
+    api("/api/me"),
+    api("/api/sources"),
+    api("/api/me/external-accounts"),
+    api("/api/groups"),
+  ]);
+  state.me = me;
+  state.sources = sources;
+  state.accounts = accounts;
+  state.groups = groups;
+  if (!state.selectedGroupId && groups.length > 0) {
+    state.selectedGroupId = groups[0].id;
+  }
+  renderIdentity();
+  renderSources();
+  renderAccounts();
+  renderGroups();
+}
+
+async function loadDaily() {
+  try {
+    state.daily = await api("/api/me/daily");
+  } catch (error) {
+    state.daily = null;
+  }
+  renderDaily();
+}
+
+async function loadSessions() {
+  if (!state.selectedGroupId) {
+    state.sessions = [];
+  } else {
+    state.sessions = await api(`/api/groups/${state.selectedGroupId}/sessions`);
+  }
+  if (!state.selectedSessionId && state.sessions.length > 0) {
+    state.selectedSessionId = state.sessions[0].id;
+  }
+  renderSessions();
+}
+
+async function loadProblems() {
+  const source = $("problem-source").value || "codeforces";
+  const params = new URLSearchParams({ source, limit: "80" });
+  const tag = $("problem-tag").value.trim();
+  if (tag) params.set("tag", tag);
+  if ($("problem-min").value) params.set("min_rating", $("problem-min").value);
+  if ($("problem-max").value) params.set("max_rating", $("problem-max").value);
+  state.problems = await api(`/api/problems?${params}`);
+  renderProblems();
+}
+
+async function loadLeaderboard() {
+  const scope = $("leaderboard-scope").value;
+  let path = "/api/leaderboards";
+  if (scope === "group" && state.selectedGroupId) path = `/api/groups/${state.selectedGroupId}/leaderboard`;
+  if (scope === "daily" && state.daily) path = `/api/daily-sets/${state.daily.id}/leaderboard`;
+  if (scope === "session" && state.selectedSessionId) path = `/api/sessions/${state.selectedSessionId}/leaderboard`;
+  const rows = await api(path);
+  renderLeaderboard(rows);
+}
+
+function renderIdentity() {
+  $("identity").textContent = `${state.me.display_name} @${state.me.username}`;
+  $("display-name").value = state.me.display_name;
+}
+
+function renderSources() {
+  for (const id of ["daily-source", "problem-source", "account-source"]) {
+    optionList($(id), state.sources, "codeforces");
+  }
+}
+
+function renderAccounts() {
+  $("accounts").innerHTML = state.accounts.length
+    ? state.accounts.map((account) => `
+      <div class="row">
+        <div class="row-top">
+          <div>
+            <div class="title">${escapeHTML(account.external_handle)}</div>
+            <div class="meta">${escapeHTML(account.source_name)} · ${escapeHTML(account.sync_status)}</div>
+          </div>
+          <div class="actions">
+            <button class="secondary" onclick="verifyAccount('${account.id}')">Verify</button>
+            <button class="secondary" onclick="syncAccount('${account.id}')">Sync</button>
+          </div>
+        </div>
+      </div>
+    `).join("")
+    : `<div class="meta">No linked accounts</div>`;
+}
+
+function renderGroups() {
+  $("groups").innerHTML = state.groups.length
+    ? state.groups.map((group) => `
+      <div class="row">
+        <div class="row-top">
+          <div>
+            <div class="title">${escapeHTML(group.name)}</div>
+            <div class="meta">${escapeHTML(group.visibility)} · ${escapeHTML(group.my_role || "viewer")}</div>
+          </div>
+          <button class="${group.id === state.selectedGroupId ? "" : "secondary"}" onclick="selectGroup('${group.id}')">
+            ${group.id === state.selectedGroupId ? "Selected" : "Select"}
+          </button>
+        </div>
+      </div>
+    `).join("")
+    : `<div class="meta">No groups yet</div>`;
+}
+
+function renderDaily() {
+  const daily = state.daily;
+  if (!daily) {
+    $("daily").innerHTML = `<div class="meta">No daily generated for today</div>`;
+    return;
+  }
+  $("daily").innerHTML = `
+    <div class="row">
+      <div class="row-top">
+        <div>
+          <div class="title">${escapeHTML(daily.title || "Daily Set")}</div>
+          <div class="meta">${escapeHTML(daily.date)} · ${daily.items.length} problems</div>
+        </div>
+        <button class="secondary" onclick="startDailySession()">Start session</button>
+      </div>
+    </div>
+    ${daily.items.map((item) => problemHTML(item.problem, {
+      prefix: `${item.position}. ${item.role} · ${item.points} pts`,
+      dailySetId: daily.id,
+    })).join("")}
+  `;
+}
+
+function renderSessions() {
+  $("sessions").innerHTML = state.selectedGroupId
+    ? state.sessions.map((session) => `
+      <div class="row">
+        <div class="row-top">
+          <div>
+            <div class="title">${escapeHTML(session.title)}</div>
+            <div class="meta">${escapeHTML(session.status)} · ${escapeHTML(session.mode)} · ${session.duration_minutes || "?"} min</div>
+          </div>
+          <div class="actions">
+            <button class="${session.id === state.selectedSessionId ? "" : "secondary"}" onclick="selectSession('${session.id}')">${session.id === state.selectedSessionId ? "Selected" : "Select"}</button>
+            <button class="secondary" onclick="sessionAction('${session.id}', 'join')">Join</button>
+            <button class="secondary" onclick="sessionAction('${session.id}', 'start')">Start</button>
+            <button class="secondary" onclick="sessionAction('${session.id}', 'finish')">Finish</button>
+          </div>
+        </div>
+      </div>
+    `).join("") || `<div class="meta">No sessions for the selected group</div>`
+    : `<div class="meta">Select or create a group</div>`;
+}
+
+function renderProblems() {
+  $("problems").innerHTML = state.problems.map((problem) => problemHTML(problem)).join("");
+}
+
+function renderLeaderboard(rows) {
+  $("leaderboard").innerHTML = rows.length
+    ? rows.map((row) => `
+      <div class="leaderboard-row">
+        <div><strong>#${row.rank}</strong> ${escapeHTML(row.display_name)}</div>
+        <div class="meta">${row.points} pts · ${row.solves} solves${row.penalty_seconds ? ` · ${Math.round(row.penalty_seconds / 60)} min` : ""}</div>
+      </div>
+    `).join("")
+    : `<div class="meta">No rows yet</div>`;
+}
+
+function problemHTML(problem, options = {}) {
+  const tags = (problem.tags || []).map((tag) => `<span class="tag">${escapeHTML(tag)}</span>`).join("");
+  const status = problem.solved_by_me ? `<span class="status">Solved</span>` : "";
+  const sessionId = state.selectedSessionId ? `, '${state.selectedSessionId}'` : "";
+  return `
+    <div class="problem-row">
+      <div class="problem-top">
+        <div>
+          <div class="title"><a href="${escapeHTML(problem.url)}" target="_blank" rel="noreferrer">${escapeHTML(problem.title)}</a></div>
+          <div class="meta">${escapeHTML(options.prefix || problem.source_slug)} · ${problem.rating || "unrated"} · ${escapeHTML(problem.external_id)} ${status}</div>
+        </div>
+        <button class="secondary" onclick="markSolved('${problem.id}', '${options.dailySetId || ""}'${sessionId})">Solve</button>
+      </div>
+      <div class="tag-list">${tags}</div>
+    </div>
+  `;
+}
+
+async function selectGroup(id) {
+  state.selectedGroupId = id;
+  state.selectedSessionId = null;
+  renderGroups();
+  await loadSessions();
+  await loadLeaderboard();
+}
+
+async function selectSession(id) {
+  state.selectedSessionId = id;
+  renderSessions();
+  $("leaderboard-scope").value = "session";
+  await loadLeaderboard();
+}
+
+async function markSolved(problemId, dailySetId = "", sessionId = "") {
+  await api("/api/submissions/manual", {
+    method: "POST",
+    body: JSON.stringify({
+      problem_id: problemId,
+      verdict: "manual_solve",
+      daily_set_id: dailySetId || undefined,
+      session_id: sessionId || undefined,
+    }),
+  });
+  toast("Solve recorded");
+  await Promise.all([loadDaily(), loadProblems(), loadLeaderboard()]);
+}
+
+async function startDailySession() {
+  if (!state.daily) return;
+  const payload = {
+    title: `${state.daily.title || "Daily"} Session`,
+    daily_set_id: state.daily.id,
+    duration_minutes: Number($("session-duration").value || 90),
+    scoring_rule: "daily_standard",
+  };
+  const session = state.selectedGroupId
+    ? await api(`/api/groups/${state.selectedGroupId}/sessions`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      })
+    : await api(`/api/daily-sets/${state.daily.id}/start-session`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+  state.selectedSessionId = session.id;
+  toast("Session created");
+  await loadSessions();
+}
+
+async function sessionAction(id, action) {
+  await api(`/api/sessions/${id}/${action}`, { method: "POST", body: "{}" });
+  toast(`Session ${action}`);
+  await loadSessions();
+  await loadLeaderboard();
+}
+
+async function verifyAccount(id) {
+  await api(`/api/me/external-accounts/${id}/verify`, { method: "POST", body: "{}" });
+  state.accounts = await api("/api/me/external-accounts");
+  renderAccounts();
+}
+
+async function syncAccount(id) {
+  await api(`/api/me/external-accounts/${id}/sync`, { method: "POST", body: "{}" });
+  state.accounts = await api("/api/me/external-accounts");
+  renderAccounts();
+}
+
+function bindForms() {
+  $("refresh").addEventListener("click", async () => {
+    await Promise.all([loadBase(), loadDaily(), loadSessions(), loadProblems(), loadLeaderboard()]);
+    toast("Refreshed");
+  });
+
+  $("profile-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    state.me = await api("/api/me", {
+      method: "PATCH",
+      body: JSON.stringify({ display_name: $("display-name").value }),
+    });
+    renderIdentity();
+    toast("Profile saved");
+  });
+
+  $("daily-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    state.daily = await api("/api/me/dailies/generate", {
+      method: "POST",
+      body: JSON.stringify({
+        source: $("daily-source").value,
+        tags: tagsFromInput($("daily-tags").value),
+        count: Number($("daily-count").value || 3),
+        difficulty: { target_rating: Number($("daily-target").value || 1300) },
+      }),
+    });
+    renderDaily();
+    await loadLeaderboard();
+    toast("Daily generated");
+  });
+
+  $("group-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const group = await api("/api/groups", {
+      method: "POST",
+      body: JSON.stringify({
+        name: $("group-name").value,
+        visibility: $("group-visibility").value,
+      }),
+    });
+    state.selectedGroupId = group.id;
+    $("group-name").value = "";
+    await loadBase();
+    await loadSessions();
+    toast("Group created");
+  });
+
+  $("session-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!state.selectedGroupId) {
+      toast("Select a group first");
+      return;
+    }
+    const session = await api(`/api/groups/${state.selectedGroupId}/sessions`, {
+      method: "POST",
+      body: JSON.stringify({
+        title: $("session-title").value || "Practice Session",
+        daily_set_id: state.daily?.id,
+        duration_minutes: Number($("session-duration").value || 90),
+        scoring_rule: state.daily ? "daily_standard" : "contest_standard",
+      }),
+    });
+    state.selectedSessionId = session.id;
+    $("session-title").value = "";
+    await loadSessions();
+    toast("Session created");
+  });
+
+  $("problem-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await loadProblems();
+  });
+
+  $("account-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await api("/api/me/external-accounts", {
+      method: "POST",
+      body: JSON.stringify({
+        source: $("account-source").value,
+        external_handle: $("account-handle").value,
+      }),
+    });
+    $("account-handle").value = "";
+    state.accounts = await api("/api/me/external-accounts");
+    renderAccounts();
+    toast("Account linked");
+  });
+
+  $("leaderboard-scope").addEventListener("change", loadLeaderboard);
+}
+
+async function boot() {
+  bindForms();
+  try {
+    await loadBase();
+    await loadDaily();
+    await loadSessions();
+    await loadProblems();
+    await loadLeaderboard();
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+window.selectGroup = selectGroup;
+window.selectSession = selectSession;
+window.markSolved = markSolved;
+window.startDailySession = startDailySession;
+window.sessionAction = sessionAction;
+window.verifyAccount = verifyAccount;
+window.syncAccount = syncAccount;
+
+boot();

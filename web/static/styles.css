@@ -1,0 +1,274 @@
+:root {
+  color-scheme: light;
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --ink: #1f2933;
+  --muted: #637083;
+  --line: #d8dee8;
+  --accent: #0f766e;
+  --accent-strong: #0b5d56;
+  --warn: #b45309;
+  --good: #047857;
+  --shadow: 0 1px 2px rgba(20, 28, 38, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.4;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: white;
+  min-height: 36px;
+  border-radius: 6px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+button.secondary {
+  border-color: var(--line);
+  background: white;
+  color: var(--ink);
+}
+
+button.warn {
+  border-color: var(--warn);
+  background: var(--warn);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: white;
+  color: var(--ink);
+  padding: 6px 8px;
+}
+
+label {
+  color: var(--muted);
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 24px;
+  background: #263238;
+  color: white;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: 0;
+}
+
+.app-header p {
+  margin: 2px 0 0;
+  color: #d8e1e8;
+}
+
+.inline-form {
+  display: flex;
+  gap: 8px;
+  align-items: end;
+  min-width: min(420px, 100%);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 16px;
+  padding: 16px;
+}
+
+.panel {
+  grid-column: span 4;
+  min-width: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 14px;
+}
+
+.daily-panel,
+.leaderboard-panel,
+.problems-panel {
+  grid-column: span 6;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.panel h2 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+
+.control-grid button {
+  align-self: end;
+}
+
+.stack {
+  display: grid;
+  gap: 8px;
+}
+
+.row,
+.problem-row,
+.leaderboard-row {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #fbfcfe;
+}
+
+.row-top,
+.problem-top,
+.leaderboard-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.title {
+  font-weight: 700;
+}
+
+.meta {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.tag {
+  background: #e8f2f1;
+  color: #155e58;
+  border: 1px solid #b9dbd7;
+  border-radius: 999px;
+  padding: 2px 7px;
+  font-size: 12px;
+}
+
+.status {
+  color: var(--good);
+  font-weight: 700;
+}
+
+.problem-list {
+  display: grid;
+  gap: 8px;
+  max-height: 620px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+#toast {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  max-width: min(420px, calc(100vw - 32px));
+  background: #111827;
+  color: white;
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: 160ms ease;
+  pointer-events: none;
+}
+
+#toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 1040px) {
+  .panel,
+  .daily-panel,
+  .leaderboard-panel,
+  .problems-panel {
+    grid-column: span 12;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-header {
+    display: grid;
+    padding: 14px;
+  }
+
+  .layout {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .control-grid,
+  .inline-form {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .row-top,
+  .problem-top,
+  .leaderboard-row {
+    align-items: flex-start;
+    display: grid;
+  }
+}
