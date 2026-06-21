@@ -138,7 +138,7 @@ func (s *Server) handleSyncSourceSubmissions(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, http.StatusAccepted, map[string]any{
 		"source": r.PathValue("source_slug"),
 		"status": "synced",
-		"note":   "external provider import is not connected in the local MVP",
+		"note":   "external provider import is not connected in the local build",
 	})
 }
 

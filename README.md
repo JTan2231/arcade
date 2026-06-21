@@ -1,6 +1,6 @@
 # Arcade
 
-Arcade is a Go/Postgres MVP for the practice workflow described in `MODEL.md`.
+Arcade is a Go/Postgres app for practice workflows.
 The Go server runs migrations on startup, exposes JSON APIs under `/api`, and
 serves a static HTML/CSS/JavaScript app from `/`.
 
@@ -32,6 +32,6 @@ ARCADE_DEV_DISPLAY_NAME="Local Player"
 
 - Postgres migrations live in `internal/migrations`.
 - Static assets live in `web/static` and are embedded into the Go binary.
-- The local MVP uses one development user and no auth layer.
+- The local build uses one development user and no auth layer.
 - Leaderboards are live derived views from submissions; snapshot tables exist
   for later materialization.

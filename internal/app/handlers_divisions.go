@@ -228,7 +228,7 @@ func (s *Server) handleRecomputeDivision(w http.ResponseWriter, r *http.Request)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"division":     division,
 		"materialized": false,
-		"reason":       "user_divisions is intentionally deferred in the MVP cut",
+		"reason":       "user_divisions materialization is not connected in the local build",
 	})
 }
 

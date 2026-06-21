@@ -382,7 +382,7 @@ func (s *Server) generateDaily(ctx context.Context, scope dailyScope, req genera
 			generation_reason,
 			generator_version
 		)
-		values ($1, $2, $3, $4, $5, current_date, $6, $7, 'mvp-v1')
+		values ($1, $2, $3, $4, $5, current_date, $6, $7, 'local-v1')
 		on conflict (scope_type, scope_id, date) do update set
 			group_id = excluded.group_id,
 			division_id = excluded.division_id,
