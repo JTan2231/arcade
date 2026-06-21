@@ -62,8 +62,11 @@ func stringPtr(value string) *string {
 	return &value
 }
 
-func intPtr(value int) *int {
-	return &value
+func nullableInt(value *int) any {
+	if value == nil {
+		return nil
+	}
+	return *value
 }
 
 func parseOptionalInt(raw string) (*int, error) {

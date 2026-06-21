@@ -31,22 +31,6 @@ create table problem_sources (
 	updated_at timestamptz not null default now()
 );
 
-create table scoring_rules (
-	id uuid primary key default gen_random_uuid(),
-	name text not null,
-	slug text unique not null,
-	description text,
-	rule_type text not null check (rule_type in ('contest', 'daily', 'streak')),
-	accepted_points integer not null default 1,
-	use_daily_item_points boolean not null default false,
-	wrong_submission_penalty_minutes integer not null default 0,
-	all_solved_bonus_points integer not null default 0,
-	rank_primary text not null check (rank_primary in ('points_desc', 'solves_desc', 'rating_gain_desc', 'streak_desc')),
-	rank_secondary text check (rank_secondary in ('penalty_asc', 'finished_at_asc', 'none')),
-	created_at timestamptz not null default now(),
-	updated_at timestamptz not null default now()
-);
-
 create table external_accounts (
 	id uuid primary key default gen_random_uuid(),
 	user_id uuid not null references users(id) on delete cascade,
@@ -209,34 +193,6 @@ create table daily_set_items (
 	unique (daily_set_id, position)
 );
 
-create table virtual_sessions (
-	id uuid primary key default gen_random_uuid(),
-	group_id uuid references groups(id) on delete cascade,
-	host_user_id uuid not null references users(id),
-	source_id uuid references problem_sources(id),
-	daily_set_id uuid references daily_sets(id),
-	external_contest_id text,
-	title text not null,
-	mode text not null check (mode in ('virtual_contest', 'practice_set', 'aoc_replay')),
-	status text not null check (status in ('scheduled', 'live', 'finished', 'cancelled')),
-	starts_at timestamptz,
-	duration_minutes integer,
-	scoring_rule_id uuid references scoring_rules(id),
-	created_at timestamptz not null default now(),
-	updated_at timestamptz not null default now()
-);
-
-create table session_participants (
-	id uuid primary key default gen_random_uuid(),
-	session_id uuid not null references virtual_sessions(id) on delete cascade,
-	user_id uuid not null references users(id) on delete cascade,
-	status text not null check (status in ('joined', 'active', 'finished', 'abandoned')),
-	joined_at timestamptz not null default now(),
-	started_at timestamptz,
-	finished_at timestamptz,
-	unique (session_id, user_id)
-);
-
 create table submissions (
 	id uuid primary key default gen_random_uuid(),
 	user_id uuid not null references users(id) on delete cascade,
@@ -244,7 +200,6 @@ create table submissions (
 	source_id uuid not null references problem_sources(id),
 	external_submission_id text,
 	external_account_id uuid references external_accounts(id),
-	session_id uuid references virtual_sessions(id) on delete set null,
 	daily_set_id uuid references daily_sets(id) on delete set null,
 	verdict text not null check (verdict in ('accepted', 'wrong_answer', 'time_limit_exceeded', 'memory_limit_exceeded', 'runtime_error', 'compile_error', 'partial', 'completed', 'manual_solve')),
 	language text,
@@ -257,11 +212,10 @@ create table submissions (
 
 create table leaderboard_snapshots (
 	id uuid primary key default gen_random_uuid(),
-	scope_type text not null check (scope_type in ('global', 'group', 'session', 'daily', 'division')),
+	scope_type text not null check (scope_type in ('global', 'group', 'daily', 'division')),
 	scope_id uuid,
-	period text not null check (period in ('all_time', 'yearly', 'monthly', 'weekly', 'daily', 'session')),
+	period text not null check (period in ('all_time', 'yearly', 'monthly', 'weekly', 'daily')),
 	metric text not null check (metric in ('points', 'solves', 'rating_gain', 'streak')),
-	scoring_rule_id uuid references scoring_rules(id),
 	computed_at timestamptz not null,
 	unique (scope_type, scope_id, period, metric, computed_at)
 );
@@ -278,10 +232,8 @@ create table leaderboard_snapshot_rows (
 	display_name text not null,
 	points numeric not null default 0,
 	solves integer not null default 0,
-	penalty_seconds integer,
 	rating_gain numeric,
 	streak_count integer,
-	tie_breaker_value numeric,
 	created_at timestamptz not null default now(),
 	unique (snapshot_id, rank),
 	unique (snapshot_id, user_id)
@@ -294,9 +246,7 @@ create index problems_source_rating_idx on problems (source_id, rating);
 create index problem_tags_tag_idx on problem_tags (tag);
 create index daily_sets_user_date_idx on daily_sets (user_id, date desc);
 create index daily_sets_group_date_idx on daily_sets (group_id, date desc);
-create index virtual_sessions_group_status_idx on virtual_sessions (group_id, status);
 create index submissions_user_submitted_idx on submissions (user_id, submitted_at desc);
-create index submissions_session_idx on submissions (session_id);
 create index submissions_daily_set_idx on submissions (daily_set_id);
 
 create trigger users_set_updated_at
@@ -305,10 +255,6 @@ for each row execute function set_updated_at();
 
 create trigger problem_sources_set_updated_at
 before update on problem_sources
-for each row execute function set_updated_at();
-
-create trigger scoring_rules_set_updated_at
-before update on scoring_rules
 for each row execute function set_updated_at();
 
 create trigger external_accounts_set_updated_at
@@ -339,10 +285,6 @@ create trigger division_rules_set_updated_at
 before update on division_rules
 for each row execute function set_updated_at();
 
-create trigger virtual_sessions_set_updated_at
-before update on virtual_sessions
-for each row execute function set_updated_at();
-
 insert into problem_sources (slug, name, base_url, supports_submissions, supports_problem_ratings, supports_tags)
 values
 	('codeforces', 'Codeforces', 'https://codeforces.com', true, true, true),
@@ -354,32 +296,6 @@ on conflict (slug) do update set
 	supports_submissions = excluded.supports_submissions,
 	supports_problem_ratings = excluded.supports_problem_ratings,
 	supports_tags = excluded.supports_tags;
-
-insert into scoring_rules (
-	name,
-	slug,
-	description,
-	rule_type,
-	accepted_points,
-	use_daily_item_points,
-	wrong_submission_penalty_minutes,
-	all_solved_bonus_points,
-	rank_primary,
-	rank_secondary
-)
-values
-	('Contest Standard', 'contest_standard', 'Solve count first, then penalty.', 'contest', 1, false, 20, 0, 'solves_desc', 'penalty_asc'),
-	('Daily Standard', 'daily_standard', 'Daily item points with a small all-solved bonus.', 'daily', 1, true, 0, 2, 'points_desc', 'finished_at_asc')
-on conflict (slug) do update set
-	name = excluded.name,
-	description = excluded.description,
-	rule_type = excluded.rule_type,
-	accepted_points = excluded.accepted_points,
-	use_daily_item_points = excluded.use_daily_item_points,
-	wrong_submission_penalty_minutes = excluded.wrong_submission_penalty_minutes,
-	all_solved_bonus_points = excluded.all_solved_bonus_points,
-	rank_primary = excluded.rank_primary,
-	rank_secondary = excluded.rank_secondary;
 
 with rows (external_id, title, url, contest_id, problem_index, rating, difficulty_label) as (
 	values

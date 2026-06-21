@@ -39,15 +39,6 @@ func (s *Server) handleDivisionLeaderboard(w http.ResponseWriter, r *http.Reques
 	writeJSON(w, http.StatusOK, rows)
 }
 
-func (s *Server) handleSessionLeaderboard(w http.ResponseWriter, r *http.Request) {
-	rows, err := s.sessionLeaderboard(r.Context(), r.PathValue("session_id"))
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, rows)
-}
-
 func (s *Server) handleDailySetLeaderboard(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.dailySetLeaderboard(r.Context(), r.PathValue("daily_set_id"))
 	if err != nil {
@@ -75,7 +66,6 @@ func (s *Server) globalLeaderboard(ctx context.Context) ([]LeaderboardRow, error
 				eu.display_name,
 				coalesce(count(a.problem_id), 0)::numeric as points,
 				coalesce(count(a.problem_id), 0)::integer as solves,
-				null::integer as penalty_seconds,
 				max(a.first_solved_at) as last_solved_at
 			from eligible_users eu
 			left join accepted a on a.user_id = eu.id
@@ -87,10 +77,8 @@ func (s *Server) globalLeaderboard(ctx context.Context) ([]LeaderboardRow, error
 			display_name,
 			points,
 			solves,
-			penalty_seconds,
 			last_solved_at,
-			null::integer as streak_count,
-			null::numeric as tie_breaker_value
+			null::integer as streak_count
 		from rollup
 		where solves > 0
 		order by rank
@@ -124,7 +112,6 @@ func (s *Server) groupLeaderboard(ctx context.Context, groupID string) ([]Leader
 				eu.display_name,
 				coalesce(count(a.problem_id), 0)::numeric as points,
 				coalesce(count(a.problem_id), 0)::integer as solves,
-				null::integer as penalty_seconds,
 				max(a.first_solved_at) as last_solved_at
 			from eligible_users eu
 			left join accepted a on a.user_id = eu.id
@@ -136,79 +123,11 @@ func (s *Server) groupLeaderboard(ctx context.Context, groupID string) ([]Leader
 			display_name,
 			points,
 			solves,
-			penalty_seconds,
 			last_solved_at,
-			null::integer as streak_count,
-			null::numeric as tie_breaker_value
+			null::integer as streak_count
 		from rollup
 		order by rank
 	`, groupID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	return scanLeaderboardRows(rows)
-}
-
-func (s *Server) sessionLeaderboard(ctx context.Context, sessionID string) ([]LeaderboardRow, error) {
-	rows, err := s.db.Query(ctx, `
-		with session_context as (
-			select
-				vs.id,
-				vs.daily_set_id,
-				vs.starts_at,
-				coalesce(sr.accepted_points, 1) as accepted_points,
-				coalesce(sr.use_daily_item_points, false) as use_daily_item_points
-			from virtual_sessions vs
-			left join scoring_rules sr on sr.id = vs.scoring_rule_id
-			where vs.id = $1
-		),
-		eligible_users as (
-			select u.id, u.display_name
-			from session_participants sp
-			join users u on u.id = sp.user_id
-			where sp.session_id = $1 and sp.status <> 'abandoned'
-		),
-		accepted as (
-			select s.user_id, s.problem_id, min(s.submitted_at) as first_solved_at
-			from submissions s
-			where s.session_id = $1
-			  and s.verdict in ('accepted', 'completed', 'manual_solve')
-			group by s.user_id, s.problem_id
-		),
-		rollup as (
-			select
-				eu.id::text as user_id,
-				eu.display_name,
-				coalesce(sum(case
-					when sc.use_daily_item_points then coalesce(dsi.points, sc.accepted_points)
-					else sc.accepted_points
-				end) filter (where a.problem_id is not null), 0)::numeric as points,
-				coalesce(count(a.problem_id), 0)::integer as solves,
-				case
-					when max(a.first_solved_at) is null or max(sc.starts_at) is null then null
-					else extract(epoch from max(a.first_solved_at) - max(sc.starts_at))::integer
-				end as penalty_seconds,
-				max(a.first_solved_at) as last_solved_at
-			from eligible_users eu
-			cross join session_context sc
-			left join accepted a on a.user_id = eu.id
-			left join daily_set_items dsi on dsi.daily_set_id = sc.daily_set_id and dsi.problem_id = a.problem_id
-			group by eu.id, eu.display_name
-		)
-		select
-			row_number() over (order by points desc, solves desc, penalty_seconds asc nulls last, display_name) as rank,
-			user_id,
-			display_name,
-			points,
-			solves,
-			penalty_seconds,
-			last_solved_at,
-			null::integer as streak_count,
-			penalty_seconds::numeric as tie_breaker_value
-		from rollup
-		order by rank
-	`, sessionID)
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +160,6 @@ func (s *Server) dailySetLeaderboard(ctx context.Context, dailySetID string) ([]
 				eu.display_name,
 				coalesce(sum(coalesce(dsi.points, 1)) filter (where a.problem_id is not null), 0)::numeric as points,
 				coalesce(count(a.problem_id), 0)::integer as solves,
-				null::integer as penalty_seconds,
 				max(a.first_solved_at) as last_solved_at
 			from eligible_users eu
 			left join accepted a on a.user_id = eu.id
@@ -254,10 +172,8 @@ func (s *Server) dailySetLeaderboard(ctx context.Context, dailySetID string) ([]
 			display_name,
 			points,
 			solves,
-			penalty_seconds,
 			last_solved_at,
-			null::integer as streak_count,
-			null::numeric as tie_breaker_value
+			null::integer as streak_count
 		from rollup
 		order by rank
 	`, dailySetID, s.currentUser.ID)
@@ -272,29 +188,21 @@ func scanLeaderboardRows(rows pgx.Rows) ([]LeaderboardRow, error) {
 	leaderboard := []LeaderboardRow{}
 	for rows.Next() {
 		var row LeaderboardRow
-		var penaltySeconds sql.NullInt64
 		var lastSolvedAt sql.NullTime
 		var streakCount sql.NullInt64
-		var tieBreakerValue sql.NullFloat64
 		if err := rows.Scan(
 			&row.Rank,
 			&row.UserID,
 			&row.DisplayName,
 			&row.Points,
 			&row.Solves,
-			&penaltySeconds,
 			&lastSolvedAt,
 			&streakCount,
-			&tieBreakerValue,
 		); err != nil {
 			return nil, err
 		}
-		row.PenaltySeconds = nullIntPtr(penaltySeconds)
 		row.LastSolvedAt = nullTimePtr(lastSolvedAt)
 		row.StreakCount = nullIntPtr(streakCount)
-		if tieBreakerValue.Valid {
-			row.TieBreakerValue = &tieBreakerValue.Float64
-		}
 		leaderboard = append(leaderboard, row)
 	}
 	return leaderboard, rows.Err()

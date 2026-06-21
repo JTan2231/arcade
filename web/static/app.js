@@ -4,9 +4,7 @@ const state = {
   accounts: [],
   groups: [],
   selectedGroupId: null,
-  selectedSessionId: null,
   daily: null,
-  sessions: [],
   problems: [],
 };
 
@@ -81,18 +79,6 @@ async function loadDaily() {
   renderDaily();
 }
 
-async function loadSessions() {
-  if (!state.selectedGroupId) {
-    state.sessions = [];
-  } else {
-    state.sessions = await api(`/api/groups/${state.selectedGroupId}/sessions`);
-  }
-  if (!state.selectedSessionId && state.sessions.length > 0) {
-    state.selectedSessionId = state.sessions[0].id;
-  }
-  renderSessions();
-}
-
 async function loadProblems() {
   const source = $("problem-source").value || "codeforces";
   const params = new URLSearchParams({ source, limit: "80" });
@@ -109,7 +95,6 @@ async function loadLeaderboard() {
   let path = "/api/leaderboards";
   if (scope === "group" && state.selectedGroupId) path = `/api/groups/${state.selectedGroupId}/leaderboard`;
   if (scope === "daily" && state.daily) path = `/api/daily-sets/${state.daily.id}/leaderboard`;
-  if (scope === "session" && state.selectedSessionId) path = `/api/sessions/${state.selectedSessionId}/leaderboard`;
   const rows = await api(path);
   renderLeaderboard(rows);
 }
@@ -175,7 +160,6 @@ function renderDaily() {
           <div class="title">${escapeHTML(daily.title || "Daily Set")}</div>
           <div class="meta">${escapeHTML(daily.date)} · ${daily.items.length} problems</div>
         </div>
-        <button class="secondary" onclick="startDailySession()">Start session</button>
       </div>
     </div>
     ${daily.items.map((item) => problemHTML(item.problem, {
@@ -183,27 +167,6 @@ function renderDaily() {
       dailySetId: daily.id,
     })).join("")}
   `;
-}
-
-function renderSessions() {
-  $("sessions").innerHTML = state.selectedGroupId
-    ? state.sessions.map((session) => `
-      <div class="row">
-        <div class="row-top">
-          <div>
-            <div class="title">${escapeHTML(session.title)}</div>
-            <div class="meta">${escapeHTML(session.status)} · ${escapeHTML(session.mode)} · ${session.duration_minutes || "?"} min</div>
-          </div>
-          <div class="actions">
-            <button class="${session.id === state.selectedSessionId ? "" : "secondary"}" onclick="selectSession('${session.id}')">${session.id === state.selectedSessionId ? "Selected" : "Select"}</button>
-            <button class="secondary" onclick="sessionAction('${session.id}', 'join')">Join</button>
-            <button class="secondary" onclick="sessionAction('${session.id}', 'start')">Start</button>
-            <button class="secondary" onclick="sessionAction('${session.id}', 'finish')">Finish</button>
-          </div>
-        </div>
-      </div>
-    `).join("") || `<div class="meta">No sessions for the selected group</div>`
-    : `<div class="meta">Select or create a group</div>`;
 }
 
 function renderProblems() {
@@ -215,7 +178,7 @@ function renderLeaderboard(rows) {
     ? rows.map((row) => `
       <div class="leaderboard-row">
         <div><strong>#${row.rank}</strong> ${escapeHTML(row.display_name)}</div>
-        <div class="meta">${row.points} pts · ${row.solves} solves${row.penalty_seconds ? ` · ${Math.round(row.penalty_seconds / 60)} min` : ""}</div>
+        <div class="meta">${row.points} pts · ${row.solves} solves</div>
       </div>
     `).join("")
     : `<div class="meta">No rows yet</div>`;
@@ -224,7 +187,6 @@ function renderLeaderboard(rows) {
 function problemHTML(problem, options = {}) {
   const tags = (problem.tags || []).map((tag) => `<span class="tag">${escapeHTML(tag)}</span>`).join("");
   const status = problem.solved_by_me ? `<span class="status">Solved</span>` : "";
-  const sessionId = state.selectedSessionId ? `, '${state.selectedSessionId}'` : "";
   return `
     <div class="problem-row">
       <div class="problem-top">
@@ -232,7 +194,7 @@ function problemHTML(problem, options = {}) {
           <div class="title"><a href="${escapeHTML(problem.url)}" target="_blank" rel="noreferrer">${escapeHTML(problem.title)}</a></div>
           <div class="meta">${escapeHTML(options.prefix || problem.source_slug)} · ${problem.rating || "unrated"} · ${escapeHTML(problem.external_id)} ${status}</div>
         </div>
-        <button class="secondary" onclick="markSolved('${problem.id}', '${options.dailySetId || ""}'${sessionId})">Solve</button>
+        <button class="secondary" onclick="markSolved('${problem.id}', '${options.dailySetId || ""}')">Solve</button>
       </div>
       <div class="tag-list">${tags}</div>
     </div>
@@ -241,60 +203,21 @@ function problemHTML(problem, options = {}) {
 
 async function selectGroup(id) {
   state.selectedGroupId = id;
-  state.selectedSessionId = null;
   renderGroups();
-  await loadSessions();
   await loadLeaderboard();
 }
 
-async function selectSession(id) {
-  state.selectedSessionId = id;
-  renderSessions();
-  $("leaderboard-scope").value = "session";
-  await loadLeaderboard();
-}
-
-async function markSolved(problemId, dailySetId = "", sessionId = "") {
+async function markSolved(problemId, dailySetId = "") {
   await api("/api/submissions/manual", {
     method: "POST",
     body: JSON.stringify({
       problem_id: problemId,
       verdict: "manual_solve",
       daily_set_id: dailySetId || undefined,
-      session_id: sessionId || undefined,
     }),
   });
   toast("Solve recorded");
   await Promise.all([loadDaily(), loadProblems(), loadLeaderboard()]);
-}
-
-async function startDailySession() {
-  if (!state.daily) return;
-  const payload = {
-    title: `${state.daily.title || "Daily"} Session`,
-    daily_set_id: state.daily.id,
-    duration_minutes: Number($("session-duration").value || 90),
-    scoring_rule: "daily_standard",
-  };
-  const session = state.selectedGroupId
-    ? await api(`/api/groups/${state.selectedGroupId}/sessions`, {
-        method: "POST",
-        body: JSON.stringify(payload),
-      })
-    : await api(`/api/daily-sets/${state.daily.id}/start-session`, {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-  state.selectedSessionId = session.id;
-  toast("Session created");
-  await loadSessions();
-}
-
-async function sessionAction(id, action) {
-  await api(`/api/sessions/${id}/${action}`, { method: "POST", body: "{}" });
-  toast(`Session ${action}`);
-  await loadSessions();
-  await loadLeaderboard();
 }
 
 async function verifyAccount(id) {
@@ -311,7 +234,7 @@ async function syncAccount(id) {
 
 function bindForms() {
   $("refresh").addEventListener("click", async () => {
-    await Promise.all([loadBase(), loadDaily(), loadSessions(), loadProblems(), loadLeaderboard()]);
+    await Promise.all([loadBase(), loadDaily(), loadProblems(), loadLeaderboard()]);
     toast("Refreshed");
   });
 
@@ -353,29 +276,7 @@ function bindForms() {
     state.selectedGroupId = group.id;
     $("group-name").value = "";
     await loadBase();
-    await loadSessions();
     toast("Group created");
-  });
-
-  $("session-form").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if (!state.selectedGroupId) {
-      toast("Select a group first");
-      return;
-    }
-    const session = await api(`/api/groups/${state.selectedGroupId}/sessions`, {
-      method: "POST",
-      body: JSON.stringify({
-        title: $("session-title").value || "Practice Session",
-        daily_set_id: state.daily?.id,
-        duration_minutes: Number($("session-duration").value || 90),
-        scoring_rule: state.daily ? "daily_standard" : "contest_standard",
-      }),
-    });
-    state.selectedSessionId = session.id;
-    $("session-title").value = "";
-    await loadSessions();
-    toast("Session created");
   });
 
   $("problem-form").addEventListener("submit", async (event) => {
@@ -406,7 +307,6 @@ async function boot() {
   try {
     await loadBase();
     await loadDaily();
-    await loadSessions();
     await loadProblems();
     await loadLeaderboard();
   } catch (error) {
@@ -415,10 +315,7 @@ async function boot() {
 }
 
 window.selectGroup = selectGroup;
-window.selectSession = selectSession;
 window.markSolved = markSolved;
-window.startDailySession = startDailySession;
-window.sessionAction = sessionAction;
 window.verifyAccount = verifyAccount;
 window.syncAccount = syncAccount;
 

@@ -15,7 +15,6 @@ func (s *Server) handleManualSubmission(w http.ResponseWriter, r *http.Request) 
 		ProblemID   string     `json:"problem_id"`
 		Verdict     string     `json:"verdict"`
 		SubmittedAt *time.Time `json:"submitted_at"`
-		SessionID   *string    `json:"session_id"`
 		DailySetID  *string    `json:"daily_set_id"`
 		Language    *string    `json:"language"`
 		RuntimeMS   *int       `json:"runtime_ms"`
@@ -46,20 +45,12 @@ func (s *Server) handleManualSubmission(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if req.SessionID != nil && req.DailySetID == nil {
-		var dailySetID sql.NullString
-		if err := s.db.QueryRow(r.Context(), `select daily_set_id::text from virtual_sessions where id = $1`, *req.SessionID).Scan(&dailySetID); err == nil {
-			req.DailySetID = nullStringPtr(dailySetID)
-		}
-	}
-
 	var submissionID string
 	err := s.db.QueryRow(r.Context(), `
 		insert into submissions (
 			user_id,
 			problem_id,
 			source_id,
-			session_id,
 			daily_set_id,
 			verdict,
 			language,
@@ -67,9 +58,9 @@ func (s *Server) handleManualSubmission(w http.ResponseWriter, r *http.Request) 
 			runtime_ms,
 			memory_bytes
 		)
-		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		returning id::text
-	`, s.currentUser.ID, req.ProblemID, sourceID, req.SessionID, req.DailySetID, req.Verdict, req.Language, submittedAt, nullableInt(req.RuntimeMS), nullableInt(req.MemoryBytes)).Scan(&submissionID)
+	`, s.currentUser.ID, req.ProblemID, sourceID, req.DailySetID, req.Verdict, req.Language, submittedAt, nullableInt(req.RuntimeMS), nullableInt(req.MemoryBytes)).Scan(&submissionID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -94,24 +85,6 @@ func (s *Server) handleMeSubmissions(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleMeSolves(w http.ResponseWriter, r *http.Request) {
 	submissions, err := s.listSubmissions(r.Context(), "s.user_id = $1 and s.verdict in ('accepted', 'completed', 'manual_solve')", s.currentUser.ID)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, submissions)
-}
-
-func (s *Server) handleSessionSubmissions(w http.ResponseWriter, r *http.Request) {
-	submissions, err := s.listSubmissions(r.Context(), "s.session_id = $1", r.PathValue("session_id"))
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, submissions)
-}
-
-func (s *Server) handleSessionSolves(w http.ResponseWriter, r *http.Request) {
-	submissions, err := s.listSubmissions(r.Context(), "s.session_id = $1 and s.verdict in ('accepted', 'completed', 'manual_solve')", r.PathValue("session_id"))
 	if err != nil {
 		handleError(w, err)
 		return
@@ -184,7 +157,6 @@ func submissionSelect() string {
 			ps.slug,
 			s.external_submission_id,
 			s.external_account_id::text,
-			s.session_id::text,
 			s.daily_set_id::text,
 			s.verdict,
 			s.language,
@@ -203,7 +175,6 @@ func scanSubmission(row pgx.Row) (Submission, error) {
 	var submission Submission
 	var externalSubmissionID sql.NullString
 	var externalAccountID sql.NullString
-	var sessionID sql.NullString
 	var dailySetID sql.NullString
 	var language sql.NullString
 	var runtimeMS sql.NullInt64
@@ -218,7 +189,6 @@ func scanSubmission(row pgx.Row) (Submission, error) {
 		&submission.SourceSlug,
 		&externalSubmissionID,
 		&externalAccountID,
-		&sessionID,
 		&dailySetID,
 		&submission.Verdict,
 		&language,
@@ -231,7 +201,6 @@ func scanSubmission(row pgx.Row) (Submission, error) {
 	}
 	submission.ExternalSubmissionID = nullStringPtr(externalSubmissionID)
 	submission.ExternalAccountID = nullStringPtr(externalAccountID)
-	submission.SessionID = nullStringPtr(sessionID)
 	submission.DailySetID = nullStringPtr(dailySetID)
 	submission.Language = nullStringPtr(language)
 	submission.RuntimeMS = nullIntPtr(runtimeMS)

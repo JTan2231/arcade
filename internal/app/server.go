@@ -95,23 +95,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /api/groups/{group_id}/divisions/{division_id}/daily", s.handleGetGroupDivisionDaily)
 	mux.HandleFunc("POST /api/groups/{group_id}/divisions/{division_id}/dailies/generate", s.handleGenerateGroupDivisionDaily)
 	mux.HandleFunc("GET /api/daily-sets/{daily_set_id}", s.handleGetDailySet)
-	mux.HandleFunc("POST /api/daily-sets/{daily_set_id}/start-session", s.handleStartDailySession)
 	mux.HandleFunc("GET /api/daily-sets/{daily_set_id}/leaderboard", s.handleDailySetLeaderboard)
-
-	mux.HandleFunc("GET /api/groups/{group_id}/sessions", s.handleListGroupSessions)
-	mux.HandleFunc("POST /api/groups/{group_id}/sessions", s.handleCreateGroupSession)
-	mux.HandleFunc("GET /api/sessions/{session_id}", s.handleGetSession)
-	mux.HandleFunc("PATCH /api/sessions/{session_id}", s.handlePatchSession)
-	mux.HandleFunc("POST /api/sessions/{session_id}/join", s.handleJoinSession)
-	mux.HandleFunc("POST /api/sessions/{session_id}/leave", s.handleLeaveSession)
-	mux.HandleFunc("POST /api/sessions/{session_id}/start", s.handleStartSession)
-	mux.HandleFunc("POST /api/sessions/{session_id}/finish", s.handleFinishSession)
-	mux.HandleFunc("POST /api/sessions/{session_id}/cancel", s.handleCancelSession)
-	mux.HandleFunc("GET /api/sessions/{session_id}/participants", s.handleListSessionParticipants)
-	mux.HandleFunc("GET /api/sessions/{session_id}/problems", s.handleListSessionProblems)
-	mux.HandleFunc("GET /api/sessions/{session_id}/leaderboard", s.handleSessionLeaderboard)
-	mux.HandleFunc("GET /api/sessions/{session_id}/submissions", s.handleSessionSubmissions)
-	mux.HandleFunc("GET /api/sessions/{session_id}/solves", s.handleSessionSolves)
 
 	mux.HandleFunc("GET /api/me/submissions", s.handleMeSubmissions)
 	mux.HandleFunc("GET /api/me/solves", s.handleMeSolves)
@@ -178,17 +162,6 @@ func (s *Server) sourceIDBySlug(ctx context.Context, slug string) (string, error
 	if err := s.db.QueryRow(ctx, `select id::text from problem_sources where slug = $1`, slug).Scan(&id); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", errNotFound("source")
-		}
-		return "", err
-	}
-	return id, nil
-}
-
-func (s *Server) scoringRuleIDBySlug(ctx context.Context, slug string) (string, error) {
-	var id string
-	if err := s.db.QueryRow(ctx, `select id::text from scoring_rules where slug = $1`, slug).Scan(&id); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return "", errNotFound("scoring rule")
 		}
 		return "", err
 	}

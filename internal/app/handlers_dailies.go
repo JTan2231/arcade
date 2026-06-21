@@ -8,7 +8,6 @@ import (
 	"math"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -149,79 +148,6 @@ func (s *Server) handleGetDailySet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, daily)
-}
-
-func (s *Server) handleStartDailySession(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Title           *string    `json:"title"`
-		StartsAt        *time.Time `json:"starts_at"`
-		DurationMinutes *int       `json:"duration_minutes"`
-	}
-	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid JSON request")
-		return
-	}
-
-	daily, err := s.getDailySet(r.Context(), r.PathValue("daily_set_id"))
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-	ruleID, err := s.scoringRuleIDBySlug(r.Context(), "daily_standard")
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-
-	title := "Daily Practice Session"
-	if daily.Title != nil {
-		title = *daily.Title + " Session"
-	}
-	if req.Title != nil && *req.Title != "" {
-		title = *req.Title
-	}
-
-	duration := req.DurationMinutes
-	if duration == nil {
-		duration = intPtr(90)
-	}
-
-	var sessionID string
-	err = s.db.QueryRow(r.Context(), `
-		insert into virtual_sessions (
-			group_id,
-			host_user_id,
-			daily_set_id,
-			title,
-			mode,
-			status,
-			starts_at,
-			duration_minutes,
-			scoring_rule_id
-		)
-		values ($1, $2, $3, $4, 'practice_set', 'scheduled', $5, $6, $7)
-		returning id::text
-	`, nullableString(daily.GroupID), s.currentUser.ID, daily.ID, title, req.StartsAt, duration, ruleID).Scan(&sessionID)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-
-	if _, err := s.db.Exec(r.Context(), `
-		insert into session_participants (session_id, user_id, status, joined_at)
-		values ($1, $2, 'joined', now())
-		on conflict (session_id, user_id) do nothing
-	`, sessionID, s.currentUser.ID); err != nil {
-		handleError(w, err)
-		return
-	}
-
-	session, err := s.getSession(r.Context(), sessionID)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusCreated, session)
 }
 
 func (s *Server) getDailyForScope(ctx context.Context, scope dailyScope) (DailySet, error) {

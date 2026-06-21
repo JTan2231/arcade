@@ -149,37 +149,6 @@ type DailyItem struct {
 	CreatedAt            time.Time `json:"created_at"`
 }
 
-type Session struct {
-	ID                string     `json:"id"`
-	GroupID           *string    `json:"group_id,omitempty"`
-	HostUserID        string     `json:"host_user_id"`
-	HostDisplayName   string     `json:"host_display_name"`
-	SourceID          *string    `json:"source_id,omitempty"`
-	SourceSlug        *string    `json:"source_slug,omitempty"`
-	DailySetID        *string    `json:"daily_set_id,omitempty"`
-	ExternalContestID *string    `json:"external_contest_id,omitempty"`
-	Title             string     `json:"title"`
-	Mode              string     `json:"mode"`
-	Status            string     `json:"status"`
-	StartsAt          *time.Time `json:"starts_at,omitempty"`
-	DurationMinutes   *int       `json:"duration_minutes,omitempty"`
-	ScoringRuleID     *string    `json:"scoring_rule_id,omitempty"`
-	ScoringRuleSlug   *string    `json:"scoring_rule_slug,omitempty"`
-	CreatedAt         time.Time  `json:"created_at"`
-	UpdatedAt         time.Time  `json:"updated_at"`
-}
-
-type SessionParticipant struct {
-	SessionID   string     `json:"session_id"`
-	UserID      string     `json:"user_id"`
-	Username    string     `json:"username"`
-	DisplayName string     `json:"display_name"`
-	Status      string     `json:"status"`
-	JoinedAt    time.Time  `json:"joined_at"`
-	StartedAt   *time.Time `json:"started_at,omitempty"`
-	FinishedAt  *time.Time `json:"finished_at,omitempty"`
-}
-
 type Submission struct {
 	ID                   string    `json:"id"`
 	UserID               string    `json:"user_id"`
@@ -190,7 +159,6 @@ type Submission struct {
 	SourceSlug           string    `json:"source_slug"`
 	ExternalSubmissionID *string   `json:"external_submission_id,omitempty"`
 	ExternalAccountID    *string   `json:"external_account_id,omitempty"`
-	SessionID            *string   `json:"session_id,omitempty"`
 	DailySetID           *string   `json:"daily_set_id,omitempty"`
 	Verdict              string    `json:"verdict"`
 	Language             *string   `json:"language,omitempty"`
@@ -201,13 +169,11 @@ type Submission struct {
 }
 
 type LeaderboardRow struct {
-	Rank            int        `json:"rank"`
-	UserID          string     `json:"user_id"`
-	DisplayName     string     `json:"display_name"`
-	Points          float64    `json:"points"`
-	Solves          int        `json:"solves"`
-	PenaltySeconds  *int       `json:"penalty_seconds,omitempty"`
-	LastSolvedAt    *time.Time `json:"last_solved_at,omitempty"`
-	StreakCount     *int       `json:"streak_count,omitempty"`
-	TieBreakerValue *float64   `json:"tie_breaker_value,omitempty"`
+	Rank         int        `json:"rank"`
+	UserID       string     `json:"user_id"`
+	DisplayName  string     `json:"display_name"`
+	Points       float64    `json:"points"`
+	Solves       int        `json:"solves"`
+	LastSolvedAt *time.Time `json:"last_solved_at,omitempty"`
+	StreakCount  *int       `json:"streak_count,omitempty"`
 }
