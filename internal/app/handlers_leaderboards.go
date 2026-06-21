@@ -9,6 +9,10 @@ import (
 )
 
 func (s *Server) handleGlobalLeaderboard(w http.ResponseWriter, r *http.Request) {
+	if _, err := requireUser(r.Context()); err != nil {
+		handleError(w, err)
+		return
+	}
 	rows, err := s.globalLeaderboard(r.Context())
 	if err != nil {
 		handleError(w, err)
@@ -18,7 +22,17 @@ func (s *Server) handleGlobalLeaderboard(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *Server) handleGroupLeaderboard(w http.ResponseWriter, r *http.Request) {
-	rows, err := s.groupLeaderboard(r.Context(), r.PathValue("group_id"))
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	groupID := r.PathValue("group_id")
+	if err := s.canViewGroup(r.Context(), current.ID, groupID); err != nil {
+		handleError(w, err)
+		return
+	}
+	rows, err := s.groupLeaderboard(r.Context(), groupID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -27,11 +41,21 @@ func (s *Server) handleGroupLeaderboard(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) handleDivisionLeaderboard(w http.ResponseWriter, r *http.Request) {
-	if _, err := s.getDivision(r.Context(), r.PathValue("group_id"), r.PathValue("division_id")); err != nil {
+	current, err := requireUser(r.Context())
+	if err != nil {
 		handleError(w, err)
 		return
 	}
-	rows, err := s.groupLeaderboard(r.Context(), r.PathValue("group_id"))
+	groupID := r.PathValue("group_id")
+	if err := s.canViewGroup(r.Context(), current.ID, groupID); err != nil {
+		handleError(w, err)
+		return
+	}
+	if _, err := s.getDivision(r.Context(), groupID, r.PathValue("division_id")); err != nil {
+		handleError(w, err)
+		return
+	}
+	rows, err := s.groupLeaderboard(r.Context(), groupID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -40,7 +64,17 @@ func (s *Server) handleDivisionLeaderboard(w http.ResponseWriter, r *http.Reques
 }
 
 func (s *Server) handleDailySetLeaderboard(w http.ResponseWriter, r *http.Request) {
-	rows, err := s.dailySetLeaderboard(r.Context(), r.PathValue("daily_set_id"))
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	dailySetID := r.PathValue("daily_set_id")
+	if err := s.authorizeDailySet(r.Context(), current.ID, dailySetID); err != nil {
+		handleError(w, err)
+		return
+	}
+	rows, err := s.dailySetLeaderboard(r.Context(), dailySetID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -136,6 +170,10 @@ func (s *Server) groupLeaderboard(ctx context.Context, groupID string) ([]Leader
 }
 
 func (s *Server) dailySetLeaderboard(ctx context.Context, dailySetID string) ([]LeaderboardRow, error) {
+	current, err := requireUser(ctx)
+	if err != nil {
+		return nil, err
+	}
 	rows, err := s.db.Query(ctx, `
 		with eligible_users as (
 			select distinct u.id, u.display_name
@@ -176,7 +214,7 @@ func (s *Server) dailySetLeaderboard(ctx context.Context, dailySetID string) ([]
 			null::integer as streak_count
 		from rollup
 		order by rank
-	`, dailySetID, s.currentUser.ID)
+	`, dailySetID, current.ID)
 	if err != nil {
 		return nil, err
 	}

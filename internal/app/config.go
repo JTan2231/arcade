@@ -3,10 +3,8 @@ package app
 import "os"
 
 type Config struct {
-	Addr           string
-	DatabaseURL    string
-	DevUsername    string
-	DevDisplayName string
+	Addr        string
+	DatabaseURL string
 }
 
 func LoadConfig() Config {
@@ -17,10 +15,8 @@ func LoadConfig() Config {
 	)
 
 	return Config{
-		Addr:           firstNonEmpty(os.Getenv("ARCADE_ADDR"), ":8080"),
-		DatabaseURL:    databaseURL,
-		DevUsername:    firstNonEmpty(os.Getenv("ARCADE_DEV_USERNAME"), "local"),
-		DevDisplayName: firstNonEmpty(os.Getenv("ARCADE_DEV_DISPLAY_NAME"), "Local Player"),
+		Addr:        firstNonEmpty(os.Getenv("ARCADE_ADDR"), ":8080"),
+		DatabaseURL: databaseURL,
 	}
 }
 

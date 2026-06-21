@@ -1,4 +1,5 @@
 const state = {
+  authenticated: false,
   me: null,
   sources: [],
   accounts: [],
@@ -11,12 +12,18 @@ const state = {
 const $ = (id) => document.getElementById(id);
 
 async function api(path, options = {}) {
+  const { skipAuthRedirect = false, ...fetchOptions } = options;
   const response = await fetch(path, {
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-    ...options,
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json", ...(fetchOptions.headers || {}) },
+    ...fetchOptions,
   });
   if (response.status === 204) return null;
   const body = await response.json().catch(() => ({}));
+  if (response.status === 401 && !skipAuthRedirect) {
+    showAuthView();
+    throw new Error("Please sign in");
+  }
   if (!response.ok) throw new Error(body.error || `Request failed: ${response.status}`);
   return body;
 }
@@ -48,6 +55,51 @@ function tagsFromInput(value) {
     .split(",")
     .map((part) => part.trim().toLowerCase())
     .filter(Boolean);
+}
+
+function resetState() {
+  state.authenticated = false;
+  state.me = null;
+  state.sources = [];
+  state.accounts = [];
+  state.groups = [];
+  state.selectedGroupId = null;
+  state.daily = null;
+  state.problems = [];
+}
+
+function showAuthView(message = "") {
+  resetState();
+  $("app-header").hidden = true;
+  $("app-layout").hidden = true;
+  $("auth-view").hidden = false;
+  $("auth-error").textContent = message;
+}
+
+function showAppView() {
+  state.authenticated = true;
+  $("auth-view").hidden = true;
+  $("app-header").hidden = false;
+  $("app-layout").hidden = false;
+  $("auth-error").textContent = "";
+}
+
+function setAuthMode(mode) {
+  const login = mode === "login";
+  $("login-form").hidden = !login;
+  $("signup-form").hidden = login;
+  $("login-tab").classList.toggle("active", login);
+  $("login-tab").classList.toggle("secondary", !login);
+  $("signup-tab").classList.toggle("active", !login);
+  $("signup-tab").classList.toggle("secondary", login);
+  $("auth-error").textContent = "";
+}
+
+async function loadAppData() {
+  await loadBase();
+  await loadDaily();
+  await loadProblems();
+  await loadLeaderboard();
 }
 
 async function loadBase() {
@@ -233,8 +285,69 @@ async function syncAccount(id) {
 }
 
 function bindForms() {
+  $("login-tab").addEventListener("click", () => setAuthMode("login"));
+  $("signup-tab").addEventListener("click", () => setAuthMode("signup"));
+
+  $("login-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      state.me = await api("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({
+          email: $("login-email").value,
+          password: $("login-password").value,
+          remember_me: $("login-remember").checked,
+        }),
+        skipAuthRedirect: true,
+      });
+      showAppView();
+      try {
+        await loadAppData();
+        toast("Signed in");
+      } catch (loadError) {
+        if (state.authenticated) toast(loadError.message);
+      }
+    } catch (error) {
+      $("auth-error").textContent = error.message;
+    }
+  });
+
+  $("signup-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      state.me = await api("/api/auth/signup", {
+        method: "POST",
+        body: JSON.stringify({
+          email: $("signup-email").value,
+          password: $("signup-password").value,
+          display_name: $("signup-display-name").value,
+          remember_me: $("signup-remember").checked,
+        }),
+        skipAuthRedirect: true,
+      });
+      showAppView();
+      try {
+        await loadAppData();
+        toast("Account created");
+      } catch (loadError) {
+        if (state.authenticated) toast(loadError.message);
+      }
+    } catch (error) {
+      $("auth-error").textContent = error.message;
+    }
+  });
+
+  $("logout").addEventListener("click", async () => {
+    try {
+      await api("/api/auth/logout", { method: "POST", body: "{}", skipAuthRedirect: true });
+    } finally {
+      showAuthView();
+      toast("Signed out");
+    }
+  });
+
   $("refresh").addEventListener("click", async () => {
-    await Promise.all([loadBase(), loadDaily(), loadProblems(), loadLeaderboard()]);
+    await loadAppData();
     toast("Refreshed");
   });
 
@@ -304,13 +417,19 @@ function bindForms() {
 
 async function boot() {
   bindForms();
+  setAuthMode("login");
   try {
-    await loadBase();
-    await loadDaily();
-    await loadProblems();
-    await loadLeaderboard();
+    state.me = await api("/api/auth/session", { skipAuthRedirect: true });
   } catch (error) {
-    toast(error.message);
+    showAuthView();
+    return;
+  }
+
+  showAppView();
+  try {
+    await loadAppData();
+  } catch (error) {
+    if (state.authenticated) toast(error.message);
   }
 }
 

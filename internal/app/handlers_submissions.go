@@ -11,6 +11,12 @@ import (
 )
 
 func (s *Server) handleManualSubmission(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
 	var req struct {
 		ProblemID   string     `json:"problem_id"`
 		Verdict     string     `json:"verdict"`
@@ -35,6 +41,12 @@ func (s *Server) handleManualSubmission(w http.ResponseWriter, r *http.Request) 
 	if req.SubmittedAt != nil {
 		submittedAt = *req.SubmittedAt
 	}
+	if req.DailySetID != nil && *req.DailySetID != "" {
+		if err := s.authorizeDailySet(r.Context(), current.ID, *req.DailySetID); err != nil {
+			handleError(w, err)
+			return
+		}
+	}
 
 	var sourceID string
 	if err := s.db.QueryRow(r.Context(), `select source_id::text from problems where id = $1`, req.ProblemID).Scan(&sourceID); errors.Is(err, pgx.ErrNoRows) {
@@ -46,7 +58,7 @@ func (s *Server) handleManualSubmission(w http.ResponseWriter, r *http.Request) 
 	}
 
 	var submissionID string
-	err := s.db.QueryRow(r.Context(), `
+	err = s.db.QueryRow(r.Context(), `
 		insert into submissions (
 			user_id,
 			problem_id,
@@ -60,7 +72,7 @@ func (s *Server) handleManualSubmission(w http.ResponseWriter, r *http.Request) 
 		)
 		values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		returning id::text
-	`, s.currentUser.ID, req.ProblemID, sourceID, req.DailySetID, req.Verdict, req.Language, submittedAt, nullableInt(req.RuntimeMS), nullableInt(req.MemoryBytes)).Scan(&submissionID)
+	`, current.ID, req.ProblemID, sourceID, req.DailySetID, req.Verdict, req.Language, submittedAt, nullableInt(req.RuntimeMS), nullableInt(req.MemoryBytes)).Scan(&submissionID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -75,7 +87,12 @@ func (s *Server) handleManualSubmission(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) handleMeSubmissions(w http.ResponseWriter, r *http.Request) {
-	submissions, err := s.listSubmissions(r.Context(), "s.user_id = $1", s.currentUser.ID)
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	submissions, err := s.listSubmissions(r.Context(), "s.user_id = $1", current.ID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -84,7 +101,12 @@ func (s *Server) handleMeSubmissions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleMeSolves(w http.ResponseWriter, r *http.Request) {
-	submissions, err := s.listSubmissions(r.Context(), "s.user_id = $1 and s.verdict in ('accepted', 'completed', 'manual_solve')", s.currentUser.ID)
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	submissions, err := s.listSubmissions(r.Context(), "s.user_id = $1 and s.verdict in ('accepted', 'completed', 'manual_solve')", current.ID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -93,6 +115,11 @@ func (s *Server) handleMeSolves(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleSyncSourceSubmissions(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
 	sourceID, err := s.sourceIDBySlug(r.Context(), r.PathValue("source_slug"))
 	if err != nil {
 		handleError(w, err)
@@ -103,7 +130,7 @@ func (s *Server) handleSyncSourceSubmissions(w http.ResponseWriter, r *http.Requ
 		set sync_status = 'synced',
 		    last_synced_at = now()
 		where user_id = $1 and source_id = $2
-	`, s.currentUser.ID, sourceID)
+	`, current.ID, sourceID)
 	if err != nil {
 		handleError(w, err)
 		return

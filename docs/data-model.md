@@ -22,6 +22,7 @@ the JSON shape exposed by the API.
 
 ```mermaid
 erDiagram
+    users ||--o{ user_sessions : authenticates
     users ||--o{ external_accounts : owns
     problem_sources ||--o{ external_accounts : provides
     problem_sources ||--o{ problems : catalogs
@@ -58,9 +59,15 @@ erDiagram
 
 ## Identity And Providers
 
-`users` stores the local account profile used by the app. The current server
-does not have a full auth layer; on startup it upserts one development user from
-`ARCADE_DEV_USERNAME` and `ARCADE_DEV_DISPLAY_NAME`.
+`users` stores local account credentials and profile data. Email is normalized
+before storage and enforced uniquely by `lower(email)`. Passwords are stored as
+hashes only; plaintext passwords are never persisted. `username` remains for
+compatibility and display URLs, but login uses email.
+
+`user_sessions` stores cookie-backed sessions. Only a SHA-256 hash of the raw
+session token is stored; the browser receives the raw token in the
+`arcade_session` cookie. Sessions track expiration, optional remember-me
+lifetime, revocation, and last-seen metadata.
 
 `problem_sources` stores external problem providers such as Codeforces, AtCoder,
 and Advent of Code. Each source has a stable `slug`, display name, base URL, and

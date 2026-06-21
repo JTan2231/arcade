@@ -8,6 +8,8 @@ Arcade is a small Go/Postgres web application. The backend serves JSON APIs and 
 - HTTP server: Go standard library `net/http`.
 - Routing: standard `http.ServeMux` method/path patterns, registered in `internal/app/server.go`.
 - JSON: standard library `encoding/json`; request decoding rejects unknown fields through `Decoder.DisallowUnknownFields`.
+- Auth: email/password form auth with bcrypt password hashes and secure
+  cookie-backed sessions stored in Postgres.
 - Logging: standard library `log` during startup and `log/slog` for request and error logs.
 - Shutdown: `cmd/arcade/main.go` listens for `SIGINT` and `SIGTERM`, then performs graceful HTTP shutdown.
 
@@ -35,8 +37,6 @@ Configuration is loaded from environment variables in `internal/app/config.go`.
 | `ARCADE_ADDR` | `:8080` | HTTP listen address. |
 | `ARCADE_DATABASE_URL` | `postgres://localhost:5432/arcade?sslmode=disable` | Postgres connection URL. |
 | `DATABASE_URL` | unset | Fallback database URL when `ARCADE_DATABASE_URL` is unset. |
-| `ARCADE_DEV_USERNAME` | `local` | Username for the single development user. |
-| `ARCADE_DEV_DISPLAY_NAME` | `Local Player` | Display name for the single development user. |
 
 ## Runtime Dependencies
 
@@ -47,7 +47,6 @@ At runtime Arcade needs:
 
 ## Current Boundaries
 
-- Authentication is not implemented. Startup ensures one development user and all request handlers operate as that user.
 - External account verification and sync endpoints update local status fields only.
 - Leaderboards are computed live from submissions. Snapshot tables exist for future materialization.
 - Division recomputation returns metadata and does not materialize user/division assignments in the local build.

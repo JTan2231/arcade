@@ -10,6 +10,12 @@ import (
 )
 
 func (s *Server) handleListGroups(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
 	rows, err := s.db.Query(r.Context(), `
 		select
 			g.id::text,
@@ -24,9 +30,11 @@ func (s *Server) handleListGroups(w http.ResponseWriter, r *http.Request) {
 			g.updated_at
 		from groups g
 		left join group_memberships gm on gm.group_id = g.id and gm.user_id = $1
-		where g.visibility = 'public' or gm.id is not null
+		where g.visibility = 'public'
+		   or gm.status = 'active'
+		   or (g.visibility = 'invite_only' and gm.status = 'invited')
 		order by g.created_at desc
-	`, s.currentUser.ID)
+	`, current.ID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -50,6 +58,12 @@ func (s *Server) handleListGroups(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
 	var req struct {
 		Name        string  `json:"name"`
 		Slug        string  `json:"slug"`
@@ -72,6 +86,10 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 	if req.Visibility == "" {
 		req.Visibility = "invite_only"
 	}
+	if !validGroupVisibility(req.Visibility) {
+		writeError(w, http.StatusBadRequest, "visibility must be public, invite_only, or private")
+		return
+	}
 
 	tx, err := s.db.Begin(r.Context())
 	if err != nil {
@@ -85,7 +103,7 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 		insert into groups (name, slug, description, visibility, created_by_user_id)
 		values ($1, $2, $3, $4, $5)
 		returning id::text
-	`, req.Name, req.Slug, req.Description, req.Visibility, s.currentUser.ID).Scan(&groupID)
+	`, req.Name, req.Slug, req.Description, req.Visibility, current.ID).Scan(&groupID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -94,7 +112,7 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 	if _, err := tx.Exec(r.Context(), `
 		insert into group_memberships (group_id, user_id, role, status, joined_at)
 		values ($1, $2, 'owner', 'active', now())
-	`, groupID, s.currentUser.ID); err != nil {
+	`, groupID, current.ID); err != nil {
 		handleError(w, err)
 		return
 	}
@@ -113,7 +131,17 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGetGroup(w http.ResponseWriter, r *http.Request) {
-	group, err := s.getGroup(r.Context(), r.PathValue("group_id"))
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	groupID := r.PathValue("group_id")
+	if err := s.canViewGroup(r.Context(), current.ID, groupID); err != nil {
+		handleError(w, err)
+		return
+	}
+	group, err := s.getGroup(r.Context(), groupID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -122,6 +150,17 @@ func (s *Server) handleGetGroup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlePatchGroup(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	groupID := r.PathValue("group_id")
+	if err := s.requireGroupRole(r.Context(), current.ID, groupID, "owner", "admin"); err != nil {
+		handleError(w, err)
+		return
+	}
+
 	var req struct {
 		Name        *string `json:"name"`
 		Slug        *string `json:"slug"`
@@ -130,6 +169,10 @@ func (s *Server) handlePatchGroup(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON request")
+		return
+	}
+	if req.Visibility != nil && !validGroupVisibility(*req.Visibility) {
+		writeError(w, http.StatusBadRequest, "visibility must be public, invite_only, or private")
 		return
 	}
 
@@ -145,7 +188,7 @@ func (s *Server) handlePatchGroup(w http.ResponseWriter, r *http.Request) {
 		    description = coalesce($4, description),
 		    visibility = coalesce($5, visibility)
 		where id = $1
-	`, r.PathValue("group_id"), req.Name, slug, req.Description, req.Visibility)
+	`, groupID, req.Name, slug, req.Description, req.Visibility)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -155,7 +198,7 @@ func (s *Server) handlePatchGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	group, err := s.getGroup(r.Context(), r.PathValue("group_id"))
+	group, err := s.getGroup(r.Context(), groupID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -164,10 +207,21 @@ func (s *Server) handlePatchGroup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleDeleteGroup(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	groupID := r.PathValue("group_id")
+	if err := s.requireGroupOwner(r.Context(), current.ID, groupID); err != nil {
+		handleError(w, err)
+		return
+	}
+
 	tag, err := s.db.Exec(r.Context(), `
 		delete from groups
-		where id = $1 and created_by_user_id = $2
-	`, r.PathValue("group_id"), s.currentUser.ID)
+		where id = $1
+	`, groupID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -180,7 +234,17 @@ func (s *Server) handleDeleteGroup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListGroupMembers(w http.ResponseWriter, r *http.Request) {
-	members, err := s.listGroupMembers(r.Context(), r.PathValue("group_id"))
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	groupID := r.PathValue("group_id")
+	if err := s.canViewGroup(r.Context(), current.ID, groupID); err != nil {
+		handleError(w, err)
+		return
+	}
+	members, err := s.listGroupMembers(r.Context(), groupID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -189,6 +253,22 @@ func (s *Server) handleListGroupMembers(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) handleAddGroupMember(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	groupID := r.PathValue("group_id")
+	actorRole, err := s.activeGroupRole(r.Context(), current.ID, groupID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	if actorRole != "owner" && actorRole != "admin" {
+		handleError(w, forbidden("insufficient group permissions"))
+		return
+	}
+
 	var req struct {
 		Username    string `json:"username"`
 		DisplayName string `json:"display_name"`
@@ -217,6 +297,18 @@ func (s *Server) handleAddGroupMember(w http.ResponseWriter, r *http.Request) {
 	if req.Status == "" {
 		req.Status = "active"
 	}
+	if !validGroupRole(req.Role) {
+		writeError(w, http.StatusBadRequest, "role must be owner, admin, or member")
+		return
+	}
+	if !validGroupStatus(req.Status) {
+		writeError(w, http.StatusBadRequest, "status must be invited, active, removed, or left")
+		return
+	}
+	if actorRole == "admin" && req.Role != "member" {
+		writeError(w, http.StatusForbidden, "admins can only add regular members")
+		return
+	}
 
 	tx, err := s.db.Begin(r.Context())
 	if err != nil {
@@ -227,13 +319,33 @@ func (s *Server) handleAddGroupMember(w http.ResponseWriter, r *http.Request) {
 
 	var userID string
 	if err := tx.QueryRow(r.Context(), `
-		insert into users (username, display_name)
-		values ($1, $2)
-		on conflict (username) do update set display_name = excluded.display_name
+		insert into users (username, email, display_name, password_hash)
+		values ($1, $2, $3, $4)
+		on conflict (username) do nothing
 		returning id::text
-	`, req.Username, req.DisplayName).Scan(&userID); err != nil {
-		handleError(w, err)
-		return
+	`, req.Username, placeholderEmail(req.Username), req.DisplayName, disabledPasswordHash).Scan(&userID); err != nil {
+		if !errors.Is(err, pgx.ErrNoRows) {
+			handleError(w, err)
+			return
+		}
+		if err := tx.QueryRow(r.Context(), `select id::text from users where username = $1`, req.Username).Scan(&userID); err != nil {
+			handleError(w, err)
+			return
+		}
+	}
+
+	existing, err := s.groupMemberState(r.Context(), groupID, userID)
+	if err == nil {
+		if err := s.guardGroupMemberChange(r.Context(), actorRole, groupID, existing, req.Role, req.Status); err != nil {
+			handleError(w, err)
+			return
+		}
+	} else {
+		var status statusError
+		if !errors.As(err, &status) || status.status != http.StatusNotFound {
+			handleError(w, err)
+			return
+		}
 	}
 
 	if _, err := tx.Exec(r.Context(), `
@@ -243,7 +355,7 @@ func (s *Server) handleAddGroupMember(w http.ResponseWriter, r *http.Request) {
 			role = excluded.role,
 			status = excluded.status,
 			joined_at = coalesce(group_memberships.joined_at, excluded.joined_at)
-	`, r.PathValue("group_id"), userID, req.Role, req.Status); err != nil {
+	`, groupID, userID, req.Role, req.Status); err != nil {
 		handleError(w, err)
 		return
 	}
@@ -253,7 +365,7 @@ func (s *Server) handleAddGroupMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	members, err := s.listGroupMembers(r.Context(), r.PathValue("group_id"))
+	members, err := s.listGroupMembers(r.Context(), groupID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -262,12 +374,55 @@ func (s *Server) handleAddGroupMember(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlePatchGroupMember(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	groupID := r.PathValue("group_id")
+	targetUserID := r.PathValue("user_id")
+	actorRole, err := s.activeGroupRole(r.Context(), current.ID, groupID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	if actorRole != "owner" && actorRole != "admin" {
+		handleError(w, forbidden("insufficient group permissions"))
+		return
+	}
+
 	var req struct {
 		Role   *string `json:"role"`
 		Status *string `json:"status"`
 	}
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON request")
+		return
+	}
+	if req.Role != nil && !validGroupRole(*req.Role) {
+		writeError(w, http.StatusBadRequest, "role must be owner, admin, or member")
+		return
+	}
+	if req.Status != nil && !validGroupStatus(*req.Status) {
+		writeError(w, http.StatusBadRequest, "status must be invited, active, removed, or left")
+		return
+	}
+
+	target, err := s.groupMemberState(r.Context(), groupID, targetUserID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	finalRole := target.Role
+	finalStatus := target.Status
+	if req.Role != nil {
+		finalRole = *req.Role
+	}
+	if req.Status != nil {
+		finalStatus = *req.Status
+	}
+	if err := s.guardGroupMemberChange(r.Context(), actorRole, groupID, target, finalRole, finalStatus); err != nil {
+		handleError(w, err)
 		return
 	}
 
@@ -280,7 +435,7 @@ func (s *Server) handlePatchGroupMember(w http.ResponseWriter, r *http.Request) 
 		    	else joined_at
 		    end
 		where group_id = $1 and user_id = $2
-	`, r.PathValue("group_id"), r.PathValue("user_id"), req.Role, req.Status)
+	`, groupID, targetUserID, req.Role, req.Status)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -290,7 +445,7 @@ func (s *Server) handlePatchGroupMember(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	members, err := s.listGroupMembers(r.Context(), r.PathValue("group_id"))
+	members, err := s.listGroupMembers(r.Context(), groupID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -299,10 +454,36 @@ func (s *Server) handlePatchGroupMember(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) handleDeleteGroupMember(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	groupID := r.PathValue("group_id")
+	targetUserID := r.PathValue("user_id")
+	actorRole, err := s.activeGroupRole(r.Context(), current.ID, groupID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	if actorRole != "owner" && actorRole != "admin" {
+		handleError(w, forbidden("insufficient group permissions"))
+		return
+	}
+	target, err := s.groupMemberState(r.Context(), groupID, targetUserID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	if err := s.guardGroupMemberChange(r.Context(), actorRole, groupID, target, target.Role, "removed"); err != nil {
+		handleError(w, err)
+		return
+	}
+
 	tag, err := s.db.Exec(r.Context(), `
 		delete from group_memberships
 		where group_id = $1 and user_id = $2
-	`, r.PathValue("group_id"), r.PathValue("user_id"))
+	`, groupID, targetUserID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -315,6 +496,10 @@ func (s *Server) handleDeleteGroupMember(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *Server) getGroup(ctx context.Context, groupID string) (Group, error) {
+	current, err := requireUser(ctx)
+	if err != nil {
+		return Group{}, err
+	}
 	group, err := scanGroup(s.db.QueryRow(ctx, `
 		select
 			g.id::text,
@@ -330,7 +515,7 @@ func (s *Server) getGroup(ctx context.Context, groupID string) (Group, error) {
 		from groups g
 		left join group_memberships gm on gm.group_id = g.id and gm.user_id = $2
 		where g.id = $1
-	`, groupID, s.currentUser.ID))
+	`, groupID, current.ID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Group{}, errNotFound("group")
 	}

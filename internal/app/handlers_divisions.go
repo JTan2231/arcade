@@ -10,7 +10,17 @@ import (
 )
 
 func (s *Server) handleListDivisions(w http.ResponseWriter, r *http.Request) {
-	divisions, err := s.listDivisions(r.Context(), r.PathValue("group_id"))
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	groupID := r.PathValue("group_id")
+	if err := s.canViewGroup(r.Context(), current.ID, groupID); err != nil {
+		handleError(w, err)
+		return
+	}
+	divisions, err := s.listDivisions(r.Context(), groupID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -19,6 +29,17 @@ func (s *Server) handleListDivisions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleCreateDivision(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	groupID := r.PathValue("group_id")
+	if err := s.requireGroupRole(r.Context(), current.ID, groupID, "owner", "admin"); err != nil {
+		handleError(w, err)
+		return
+	}
+
 	var req struct {
 		Name        string  `json:"name"`
 		Slug        string  `json:"slug"`
@@ -48,12 +69,6 @@ func (s *Server) handleCreateDivision(w http.ResponseWriter, r *http.Request) {
 		req.Slug = slugify(req.Slug)
 	}
 
-	groupID := r.PathValue("group_id")
-	if err := s.groupExists(r.Context(), groupID); err != nil {
-		handleError(w, err)
-		return
-	}
-
 	tx, err := s.db.Begin(r.Context())
 	if err != nil {
 		handleError(w, err)
@@ -66,7 +81,7 @@ func (s *Server) handleCreateDivision(w http.ResponseWriter, r *http.Request) {
 		insert into divisions (group_id, name, slug, description, created_by_user_id)
 		values ($1, $2, $3, $4, $5)
 		returning id::text
-	`, groupID, req.Name, req.Slug, req.Description, s.currentUser.ID).Scan(&divisionID); err != nil {
+	`, groupID, req.Name, req.Slug, req.Description, current.ID).Scan(&divisionID); err != nil {
 		handleError(w, err)
 		return
 	}
@@ -136,7 +151,17 @@ func (s *Server) handleCreateDivision(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGetDivision(w http.ResponseWriter, r *http.Request) {
-	division, err := s.getDivision(r.Context(), r.PathValue("group_id"), r.PathValue("division_id"))
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	groupID := r.PathValue("group_id")
+	if err := s.canViewGroup(r.Context(), current.ID, groupID); err != nil {
+		handleError(w, err)
+		return
+	}
+	division, err := s.getDivision(r.Context(), groupID, r.PathValue("division_id"))
 	if err != nil {
 		handleError(w, err)
 		return
@@ -145,6 +170,18 @@ func (s *Server) handleGetDivision(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlePatchDivision(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	groupID := r.PathValue("group_id")
+	divisionID := r.PathValue("division_id")
+	if err := s.requireGroupRole(r.Context(), current.ID, groupID, "owner", "admin"); err != nil {
+		handleError(w, err)
+		return
+	}
+
 	var req struct {
 		Name        *string `json:"name"`
 		Slug        *string `json:"slug"`
@@ -166,7 +203,7 @@ func (s *Server) handlePatchDivision(w http.ResponseWriter, r *http.Request) {
 		    slug = coalesce($4, slug),
 		    description = coalesce($5, description)
 		where group_id = $1 and id = $2
-	`, r.PathValue("group_id"), r.PathValue("division_id"), req.Name, slug, req.Description)
+	`, groupID, divisionID, req.Name, slug, req.Description)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -176,7 +213,7 @@ func (s *Server) handlePatchDivision(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	division, err := s.getDivision(r.Context(), r.PathValue("group_id"), r.PathValue("division_id"))
+	division, err := s.getDivision(r.Context(), groupID, divisionID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -185,10 +222,22 @@ func (s *Server) handlePatchDivision(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleDeleteDivision(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	groupID := r.PathValue("group_id")
+	divisionID := r.PathValue("division_id")
+	if err := s.requireGroupRole(r.Context(), current.ID, groupID, "owner", "admin"); err != nil {
+		handleError(w, err)
+		return
+	}
+
 	tag, err := s.db.Exec(r.Context(), `
 		delete from divisions
 		where group_id = $1 and id = $2
-	`, r.PathValue("group_id"), r.PathValue("division_id"))
+	`, groupID, divisionID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -201,11 +250,21 @@ func (s *Server) handleDeleteDivision(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListDivisionMembers(w http.ResponseWriter, r *http.Request) {
-	if _, err := s.getDivision(r.Context(), r.PathValue("group_id"), r.PathValue("division_id")); err != nil {
+	current, err := requireUser(r.Context())
+	if err != nil {
 		handleError(w, err)
 		return
 	}
-	members, err := s.listGroupMembers(r.Context(), r.PathValue("group_id"))
+	groupID := r.PathValue("group_id")
+	if err := s.canViewGroup(r.Context(), current.ID, groupID); err != nil {
+		handleError(w, err)
+		return
+	}
+	if _, err := s.getDivision(r.Context(), groupID, r.PathValue("division_id")); err != nil {
+		handleError(w, err)
+		return
+	}
+	members, err := s.listGroupMembers(r.Context(), groupID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -220,7 +279,17 @@ func (s *Server) handleListDivisionMembers(w http.ResponseWriter, r *http.Reques
 }
 
 func (s *Server) handleRecomputeDivision(w http.ResponseWriter, r *http.Request) {
-	division, err := s.getDivision(r.Context(), r.PathValue("group_id"), r.PathValue("division_id"))
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	groupID := r.PathValue("group_id")
+	if err := s.requireGroupRole(r.Context(), current.ID, groupID, "owner", "admin"); err != nil {
+		handleError(w, err)
+		return
+	}
+	division, err := s.getDivision(r.Context(), groupID, r.PathValue("division_id"))
 	if err != nil {
 		handleError(w, err)
 		return

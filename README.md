@@ -22,8 +22,6 @@ http://localhost:8080
 ```sh
 ARCADE_ADDR=:8080
 ARCADE_DATABASE_URL=postgres://localhost:5432/arcade?sslmode=disable
-ARCADE_DEV_USERNAME=local
-ARCADE_DEV_DISPLAY_NAME="Local Player"
 ```
 
 `DATABASE_URL` is also accepted when `ARCADE_DATABASE_URL` is not set.
@@ -32,6 +30,6 @@ ARCADE_DEV_DISPLAY_NAME="Local Player"
 
 - Postgres migrations live in `internal/migrations`.
 - Static assets live in `web/static` and are embedded into the Go binary.
-- The local build uses one development user and no auth layer.
+- Sign up in the browser to create the first local account.
 - Leaderboards are live derived views from submissions; snapshot tables exist
   for later materialization.

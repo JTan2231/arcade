@@ -30,7 +30,7 @@ web
 2. `app.LoadConfig()` reads environment configuration and defaults.
 3. `pgxpool.New()` creates the Postgres connection pool and `Ping()` verifies connectivity.
 4. `migrations.Run()` applies embedded SQL migrations in filename order.
-5. `app.NewServer()` ensures the development user exists and builds the embedded static file handler.
+5. `app.NewServer()` builds the embedded static file handler and registers routes.
 6. `http.Server` serves `server.Routes()` and shuts down gracefully on `SIGINT` or `SIGTERM`.
 
 ## Request Flow
@@ -39,6 +39,7 @@ web
 Browser
   -> embedded static assets from /
   -> fetch('/api/...') JSON requests
+  -> auth middleware loads session user for protected /api routes
   -> net/http ServeMux
   -> internal/app handler
   -> pgxpool query or transaction
@@ -47,6 +48,7 @@ Browser
 
 Routes are grouped by resource in `Server.Routes()`:
 
+- Auth: signup, login, logout, and session bootstrap.
 - Identity: `/api/me`, preferences, and external accounts.
 - Catalog: sources and problems.
 - Groups: groups and group memberships.
@@ -59,7 +61,8 @@ Routes are grouped by resource in `Server.Routes()`:
 
 The main persisted entities are:
 
-- `users`: local users. The current build operates as one configured development user.
+- `users`: local users with email/password credentials.
+- `user_sessions`: hashed session tokens for secure cookie-backed login.
 - `problem_sources`: coding platforms such as Codeforces, AtCoder, and Advent of Code.
 - `problems` and `problem_tags`: catalog entries, ratings, URLs, and tags.
 - `external_accounts`: a user's platform handles and local sync metadata.
@@ -98,7 +101,7 @@ Leaderboards are live SQL rollups over `submissions`.
 
 The browser app in `web/static` is a single static page:
 
-- `index.html` defines the main panels for identity, dailies, groups, leaderboards, problems, and accounts.
+- `index.html` defines the auth forms and main panels for identity, dailies, groups, leaderboards, problems, and accounts.
 - `app.js` owns data loading, event handlers, API calls, and DOM rendering.
 - `styles.css` defines the responsive grid and component styles.
 
@@ -108,7 +111,6 @@ Because assets are embedded, changes under `web/static` are compiled into the Go
 
 The architecture intentionally leaves a few extension points for future work:
 
-- There is no auth/session layer yet.
 - External provider imports are stubs that update local metadata but do not fetch remote submissions.
 - Division membership materialization is not connected.
 - Leaderboard snapshot tables are present, but live queries are used today.

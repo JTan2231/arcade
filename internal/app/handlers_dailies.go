@@ -35,7 +35,12 @@ type generateDailyRequest struct {
 }
 
 func (s *Server) handleGetMeDaily(w http.ResponseWriter, r *http.Request) {
-	scope := dailyScope{ScopeType: "user", ScopeID: &s.currentUser.ID, UserID: &s.currentUser.ID}
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	scope := dailyScope{ScopeType: "user", ScopeID: &current.ID, UserID: &current.ID}
 	daily, err := s.getDailyForScope(r.Context(), scope)
 	if err != nil {
 		handleError(w, err)
@@ -45,12 +50,18 @@ func (s *Server) handleGetMeDaily(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGenerateMeDaily(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
 	var req generateDailyRequest
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON request")
 		return
 	}
-	scope := dailyScope{ScopeType: "user", ScopeID: &s.currentUser.ID, UserID: &s.currentUser.ID}
+	scope := dailyScope{ScopeType: "user", ScopeID: &current.ID, UserID: &current.ID}
 	daily, err := s.generateDaily(r.Context(), scope, req)
 	if err != nil {
 		handleError(w, err)
@@ -60,7 +71,12 @@ func (s *Server) handleGenerateMeDaily(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListMeDailies(w http.ResponseWriter, r *http.Request) {
-	dailies, err := s.listDailies(r.Context(), "ds.user_id = $1", s.currentUser.ID)
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	dailies, err := s.listDailies(r.Context(), "ds.user_id = $1", current.ID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -69,7 +85,16 @@ func (s *Server) handleListMeDailies(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGetGroupDaily(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
 	groupID := r.PathValue("group_id")
+	if err := s.canViewGroup(r.Context(), current.ID, groupID); err != nil {
+		handleError(w, err)
+		return
+	}
 	scope := dailyScope{ScopeType: "group", ScopeID: &groupID, GroupID: &groupID}
 	daily, err := s.getDailyForScope(r.Context(), scope)
 	if err != nil {
@@ -80,14 +105,20 @@ func (s *Server) handleGetGroupDaily(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGenerateGroupDaily(w http.ResponseWriter, r *http.Request) {
-	var req generateDailyRequest
-	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid JSON request")
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
 		return
 	}
 	groupID := r.PathValue("group_id")
-	if err := s.groupExists(r.Context(), groupID); err != nil {
+	if err := s.requireGroupRole(r.Context(), current.ID, groupID, "owner", "admin"); err != nil {
 		handleError(w, err)
+		return
+	}
+
+	var req generateDailyRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON request")
 		return
 	}
 	scope := dailyScope{ScopeType: "group", ScopeID: &groupID, GroupID: &groupID}
@@ -100,7 +131,17 @@ func (s *Server) handleGenerateGroupDaily(w http.ResponseWriter, r *http.Request
 }
 
 func (s *Server) handleListGroupDailies(w http.ResponseWriter, r *http.Request) {
-	dailies, err := s.listDailies(r.Context(), "ds.group_id = $1 and ds.division_id is null", r.PathValue("group_id"))
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	groupID := r.PathValue("group_id")
+	if err := s.canViewGroup(r.Context(), current.ID, groupID); err != nil {
+		handleError(w, err)
+		return
+	}
+	dailies, err := s.listDailies(r.Context(), "ds.group_id = $1 and ds.division_id is null", groupID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -109,8 +150,21 @@ func (s *Server) handleListGroupDailies(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) handleGetGroupDivisionDaily(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
 	groupID := r.PathValue("group_id")
 	divisionID := r.PathValue("division_id")
+	if err := s.canViewGroup(r.Context(), current.ID, groupID); err != nil {
+		handleError(w, err)
+		return
+	}
+	if _, err := s.getDivision(r.Context(), groupID, divisionID); err != nil {
+		handleError(w, err)
+		return
+	}
 	scope := dailyScope{ScopeType: "group_division", ScopeID: &divisionID, GroupID: &groupID, DivisionID: &divisionID}
 	daily, err := s.getDailyForScope(r.Context(), scope)
 	if err != nil {
@@ -121,13 +175,23 @@ func (s *Server) handleGetGroupDivisionDaily(w http.ResponseWriter, r *http.Requ
 }
 
 func (s *Server) handleGenerateGroupDivisionDaily(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	groupID := r.PathValue("group_id")
+	divisionID := r.PathValue("division_id")
+	if err := s.requireGroupRole(r.Context(), current.ID, groupID, "owner", "admin"); err != nil {
+		handleError(w, err)
+		return
+	}
+
 	var req generateDailyRequest
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON request")
 		return
 	}
-	groupID := r.PathValue("group_id")
-	divisionID := r.PathValue("division_id")
 	if _, err := s.getDivision(r.Context(), groupID, divisionID); err != nil {
 		handleError(w, err)
 		return
@@ -142,7 +206,17 @@ func (s *Server) handleGenerateGroupDivisionDaily(w http.ResponseWriter, r *http
 }
 
 func (s *Server) handleGetDailySet(w http.ResponseWriter, r *http.Request) {
-	daily, err := s.getDailySet(r.Context(), r.PathValue("daily_set_id"))
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	dailySetID := r.PathValue("daily_set_id")
+	if err := s.authorizeDailySet(r.Context(), current.ID, dailySetID); err != nil {
+		handleError(w, err)
+		return
+	}
+	daily, err := s.getDailySet(r.Context(), dailySetID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -347,8 +421,12 @@ func (s *Server) generateDaily(ctx context.Context, scope dailyScope, req genera
 }
 
 func (s *Server) preferenceForSource(ctx context.Context, sourceSlug string) (Preference, error) {
+	current, err := requireUser(ctx)
+	if err != nil {
+		return Preference{}, err
+	}
 	var sourcePredicate string
-	args := []any{s.currentUser.ID}
+	args := []any{current.ID}
 	if sourceSlug == "" {
 		sourcePredicate = "up.source_id is null"
 	} else {
@@ -436,11 +514,15 @@ type dailySelection struct {
 }
 
 func (s *Server) selectDailyProblems(ctx context.Context, selection dailySelection) ([]Problem, error) {
+	current, err := requireUser(ctx)
+	if err != nil {
+		return nil, err
+	}
 	args := []any{
 		selection.sourceID,
 		selection.minRating,
 		selection.maxRating,
-		s.currentUser.ID,
+		current.ID,
 		selection.tags,
 		selection.blockedTags,
 		selection.targetRating,
@@ -592,6 +674,10 @@ func (s *Server) getDailySet(ctx context.Context, dailySetID string) (DailySet, 
 }
 
 func (s *Server) listDailyItems(ctx context.Context, dailySetID string) ([]DailyItem, error) {
+	current, err := requireUser(ctx)
+	if err != nil {
+		return nil, err
+	}
 	rows, err := s.db.Query(ctx, `
 		select
 			dsi.id::text,
@@ -629,7 +715,7 @@ func (s *Server) listDailyItems(ctx context.Context, dailySetID string) ([]Daily
 		where dsi.daily_set_id = $1
 		group by dsi.id, p.id, ps.slug
 		order by dsi.position
-	`, dailySetID, s.currentUser.ID)
+	`, dailySetID, current.ID)
 	if err != nil {
 		return nil, err
 	}

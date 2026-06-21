@@ -137,6 +137,10 @@ type problemFilters struct {
 }
 
 func (s *Server) listProblems(ctx context.Context, filters problemFilters) ([]Problem, error) {
+	current, err := requireUser(ctx)
+	if err != nil {
+		return nil, err
+	}
 	where := []string{"1 = 1"}
 	args := []any{}
 	addArg := func(value any) string {
@@ -152,7 +156,7 @@ func (s *Server) listProblems(ctx context.Context, filters problemFilters) ([]Pr
 			  and sm.problem_id = p.id
 			  and sm.verdict in ('accepted', 'completed', 'manual_solve')
 		)
-	`, addArg(s.currentUser.ID))
+	`, addArg(current.ID))
 
 	if filters.source != "" {
 		where = append(where, "ps.slug = "+addArg(filters.source))
@@ -227,6 +231,10 @@ func (s *Server) listProblems(ctx context.Context, filters problemFilters) ([]Pr
 }
 
 func (s *Server) getProblem(ctx context.Context, predicate string, args ...any) (Problem, error) {
+	current, err := requireUser(ctx)
+	if err != nil {
+		return Problem{}, err
+	}
 	query := `
 		select
 			p.id::text,
@@ -256,7 +264,7 @@ func (s *Server) getProblem(ctx context.Context, predicate string, args ...any) 
 		where ` + predicate + `
 		group by p.id, ps.slug
 	`
-	args = append(args, s.currentUser.ID)
+	args = append(args, current.ID)
 	problem, err := scanProblem(s.db.QueryRow(ctx, query, args...))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Problem{}, errNotFound("problem")

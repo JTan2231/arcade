@@ -35,7 +35,7 @@ The `version` value is the full migration filename, for example
 ## Adding A Migration
 
 1. Add a new SQL file under `internal/migrations` using the next zero-padded
-   prefix: `003_short_description.sql`, `004_short_description.sql`, and so on.
+   prefix: `004_short_description.sql`, `005_short_description.sql`, and so on.
 2. Keep the change forward-only. Do not edit an already-applied migration for a
    shared or persistent database.
 3. Put all required schema changes, constraint updates, data backfills, and seed

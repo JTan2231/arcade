@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -20,28 +19,19 @@ import (
 )
 
 type Server struct {
-	db          *pgxpool.Pool
-	config      Config
-	currentUser User
-	static      http.Handler
+	db     *pgxpool.Pool
+	static http.Handler
 }
 
-func NewServer(ctx context.Context, db *pgxpool.Pool, config Config) (*Server, error) {
-	user, err := ensureDevUser(ctx, db, config)
-	if err != nil {
-		return nil, err
-	}
-
+func NewServer(_ context.Context, db *pgxpool.Pool, _ Config) (*Server, error) {
 	staticFS, err := fs.Sub(web.Static, "static")
 	if err != nil {
 		return nil, fmt.Errorf("load static files: %w", err)
 	}
 
 	return &Server{
-		db:          db,
-		config:      config,
-		currentUser: user,
-		static:      http.FileServer(http.FS(staticFS)),
+		db:     db,
+		static: http.FileServer(http.FS(staticFS)),
 	}, nil
 }
 
@@ -49,6 +39,10 @@ func (s *Server) Routes() http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/health", s.handleHealth)
+	mux.HandleFunc("POST /api/auth/signup", s.handleSignup)
+	mux.HandleFunc("POST /api/auth/login", s.handleLogin)
+	mux.HandleFunc("POST /api/auth/logout", s.handleLogout)
+	mux.HandleFunc("GET /api/auth/session", s.handleAuthSession)
 
 	mux.HandleFunc("GET /api/me", s.handleGetMe)
 	mux.HandleFunc("PATCH /api/me", s.handlePatchMe)
@@ -108,7 +102,7 @@ func (s *Server) Routes() http.Handler {
 
 	mux.Handle("GET /", s.static)
 
-	return s.withRequestLog(mux)
+	return s.withRequestLog(s.withAuth(mux))
 }
 
 func (s *Server) withRequestLog(next http.Handler) http.Handler {
@@ -134,29 +128,6 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func ensureDevUser(ctx context.Context, db *pgxpool.Pool, config Config) (User, error) {
-	var user User
-	var avatarURL sql.NullString
-	err := db.QueryRow(ctx, `
-		insert into users (username, display_name)
-		values ($1, $2)
-		on conflict (username) do update set display_name = excluded.display_name
-		returning id::text, username, display_name, avatar_url, created_at, updated_at
-	`, config.DevUsername, config.DevDisplayName).Scan(
-		&user.ID,
-		&user.Username,
-		&user.DisplayName,
-		&avatarURL,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-	)
-	if err != nil {
-		return User{}, fmt.Errorf("ensure development user: %w", err)
-	}
-	user.AvatarURL = nullStringPtr(avatarURL)
-	return user, nil
-}
-
 func (s *Server) sourceIDBySlug(ctx context.Context, slug string) (string, error) {
 	var id string
 	if err := s.db.QueryRow(ctx, `select id::text from problem_sources where slug = $1`, slug).Scan(&id); err != nil {
@@ -179,27 +150,16 @@ func (s *Server) groupExists(ctx context.Context, groupID string) error {
 	return nil
 }
 
-func (s *Server) canAccessGroup(ctx context.Context, groupID string) error {
-	var exists bool
-	err := s.db.QueryRow(ctx, `
-		select exists(
-			select 1
-			from groups g
-			left join group_memberships gm on gm.group_id = g.id and gm.user_id = $2 and gm.status in ('active', 'invited')
-			where g.id = $1 and (g.visibility = 'public' or gm.id is not null)
-		)
-	`, groupID, s.currentUser.ID).Scan(&exists)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return errNotFound("group")
-	}
-	return nil
-}
-
 func errNotFound(entity string) error {
 	return statusError{status: http.StatusNotFound, message: entity + " not found"}
+}
+
+func unauthorized(message string) error {
+	return statusError{status: http.StatusUnauthorized, message: message}
+}
+
+func forbidden(message string) error {
+	return statusError{status: http.StatusForbidden, message: message}
 }
 
 type statusError struct {
@@ -236,6 +196,14 @@ func handleError(w http.ResponseWriter, err error) {
 
 	slog.Error("request error", "error", err)
 	writeError(w, http.StatusInternalServerError, "internal server error")
+}
+
+func isUniqueConstraint(err error, constraint string) bool {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) || pgErr.Code != "23505" {
+		return false
+	}
+	return constraint == "" || pgErr.ConstraintName == constraint
 }
 
 func badRequest(message string) error {

@@ -12,7 +12,12 @@ import (
 )
 
 func (s *Server) handleGetMe(w http.ResponseWriter, r *http.Request) {
-	user, err := s.getUser(r.Context(), s.currentUser.ID)
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	user, err := s.getUser(r.Context(), current.ID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -31,8 +36,14 @@ func (s *Server) handlePatchMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := s.currentUser.Username
-	displayName := s.currentUser.DisplayName
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	username := current.Username
+	displayName := current.DisplayName
 	var avatarURL any
 	if req.Username != nil {
 		username = slugify(*req.Username)
@@ -46,15 +57,16 @@ func (s *Server) handlePatchMe(w http.ResponseWriter, r *http.Request) {
 
 	var user User
 	var avatar sql.NullString
-	err := s.db.QueryRow(r.Context(), `
+	err = s.db.QueryRow(r.Context(), `
 		update users
 		set username = $2,
 		    display_name = $3,
 		    avatar_url = coalesce($4, avatar_url)
 		where id = $1
-		returning id::text, username, display_name, avatar_url, created_at, updated_at
-	`, s.currentUser.ID, username, displayName, avatarURL).Scan(
+		returning id::text, email, username, display_name, avatar_url, created_at, updated_at
+	`, current.ID, username, displayName, avatarURL).Scan(
 		&user.ID,
+		&user.Email,
 		&user.Username,
 		&user.DisplayName,
 		&avatar,
@@ -66,11 +78,16 @@ func (s *Server) handlePatchMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user.AvatarURL = nullStringPtr(avatar)
-	s.currentUser = user
 	writeJSON(w, http.StatusOK, user)
 }
 
 func (s *Server) handleGetPreferences(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
 	rows, err := s.db.Query(r.Context(), `
 		select
 			up.id::text,
@@ -98,7 +115,7 @@ func (s *Server) handleGetPreferences(w http.ResponseWriter, r *http.Request) {
 		left join problem_sources ps on ps.id = up.source_id
 		where up.user_id = $1
 		order by ps.slug nulls first
-	`, s.currentUser.ID)
+	`, current.ID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -123,6 +140,12 @@ func (s *Server) handleGetPreferences(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlePatchPreferences(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
 	var req struct {
 		Source                *string   `json:"source"`
 		TargetDifficultyDelta *int      `json:"target_difficulty_delta"`
@@ -158,13 +181,13 @@ func (s *Server) handlePatchPreferences(w http.ResponseWriter, r *http.Request) 
 		select id::text
 		from user_preferences
 		where user_id = $1 and source_id is not distinct from $2::uuid
-	`, s.currentUser.ID, sourceID).Scan(&preferenceID)
+	`, current.ID, sourceID).Scan(&preferenceID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		err = tx.QueryRow(r.Context(), `
 			insert into user_preferences (user_id, source_id)
 			values ($1, $2)
 			returning id::text
-		`, s.currentUser.ID, sourceID).Scan(&preferenceID)
+		`, current.ID, sourceID).Scan(&preferenceID)
 	}
 	if err != nil {
 		handleError(w, err)
@@ -241,7 +264,12 @@ func replacePreferenceTags(ctx context.Context, tx pgx.Tx, preferenceID string, 
 }
 
 func (s *Server) handleListExternalAccounts(w http.ResponseWriter, r *http.Request) {
-	accounts, err := s.listExternalAccounts(r.Context(), s.currentUser.ID)
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	accounts, err := s.listExternalAccounts(r.Context(), current.ID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -250,6 +278,12 @@ func (s *Server) handleListExternalAccounts(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *Server) handleCreateExternalAccount(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
 	var req struct {
 		Source         string  `json:"source"`
 		ExternalHandle string  `json:"external_handle"`
@@ -275,7 +309,7 @@ func (s *Server) handleCreateExternalAccount(w http.ResponseWriter, r *http.Requ
 		insert into external_accounts (user_id, source_id, external_handle, external_user_id)
 		values ($1, $2, $3, $4)
 		returning id::text
-	`, s.currentUser.ID, sourceID, req.ExternalHandle, req.ExternalUserID).Scan(&account.ID)
+	`, current.ID, sourceID, req.ExternalHandle, req.ExternalUserID).Scan(&account.ID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -290,12 +324,17 @@ func (s *Server) handleCreateExternalAccount(w http.ResponseWriter, r *http.Requ
 }
 
 func (s *Server) handleGetExternalAccount(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
 	account, err := s.getExternalAccount(r.Context(), r.PathValue("account_id"))
 	if err != nil {
 		handleError(w, err)
 		return
 	}
-	if account.UserID != s.currentUser.ID {
+	if account.UserID != current.ID {
 		writeError(w, http.StatusNotFound, "external account not found")
 		return
 	}
@@ -303,10 +342,15 @@ func (s *Server) handleGetExternalAccount(w http.ResponseWriter, r *http.Request
 }
 
 func (s *Server) handleDeleteExternalAccount(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
 	tag, err := s.db.Exec(r.Context(), `
 		delete from external_accounts
 		where id = $1 and user_id = $2
-	`, r.PathValue("account_id"), s.currentUser.ID)
+	`, r.PathValue("account_id"), current.ID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -319,7 +363,12 @@ func (s *Server) handleDeleteExternalAccount(w http.ResponseWriter, r *http.Requ
 }
 
 func (s *Server) handleVerifyExternalAccount(w http.ResponseWriter, r *http.Request) {
-	account, err := s.updateExternalAccountStatus(r.Context(), r.PathValue("account_id"), "synced", true, false)
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	account, err := s.updateExternalAccountStatus(r.Context(), current.ID, r.PathValue("account_id"), "synced", true, false)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -328,7 +377,12 @@ func (s *Server) handleVerifyExternalAccount(w http.ResponseWriter, r *http.Requ
 }
 
 func (s *Server) handleSyncExternalAccount(w http.ResponseWriter, r *http.Request) {
-	account, err := s.updateExternalAccountStatus(r.Context(), r.PathValue("account_id"), "synced", false, true)
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	account, err := s.updateExternalAccountStatus(r.Context(), current.ID, r.PathValue("account_id"), "synced", false, true)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -336,7 +390,7 @@ func (s *Server) handleSyncExternalAccount(w http.ResponseWriter, r *http.Reques
 	writeJSON(w, http.StatusOK, account)
 }
 
-func (s *Server) updateExternalAccountStatus(ctx context.Context, accountID string, status string, verified bool, synced bool) (ExternalAccount, error) {
+func (s *Server) updateExternalAccountStatus(ctx context.Context, userID string, accountID string, status string, verified bool, synced bool) (ExternalAccount, error) {
 	var verifiedExpr any
 	var syncedExpr any
 	if verified {
@@ -352,7 +406,7 @@ func (s *Server) updateExternalAccountStatus(ctx context.Context, accountID stri
 		    verified_at = coalesce($4, verified_at),
 		    last_synced_at = coalesce($5, last_synced_at)
 		where id = $1 and user_id = $2
-	`, accountID, s.currentUser.ID, status, verifiedExpr, syncedExpr)
+	`, accountID, userID, status, verifiedExpr, syncedExpr)
 	if err != nil {
 		return ExternalAccount{}, err
 	}
@@ -366,10 +420,10 @@ func (s *Server) getUser(ctx context.Context, userID string) (User, error) {
 	var user User
 	var avatarURL sql.NullString
 	err := s.db.QueryRow(ctx, `
-		select id::text, username, display_name, avatar_url, created_at, updated_at
+		select id::text, email, username, display_name, avatar_url, created_at, updated_at
 		from users
 		where id = $1
-	`, userID).Scan(&user.ID, &user.Username, &user.DisplayName, &avatarURL, &user.CreatedAt, &user.UpdatedAt)
+	`, userID).Scan(&user.ID, &user.Email, &user.Username, &user.DisplayName, &avatarURL, &user.CreatedAt, &user.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return User{}, errNotFound("user")
 	}
