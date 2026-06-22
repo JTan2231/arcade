@@ -30,7 +30,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -72,7 +73,8 @@ button:disabled {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   min-height: 36px;
   border: 1px solid var(--line);
@@ -80,6 +82,11 @@ select {
   background: white;
   color: var(--ink);
   padding: 6px 8px;
+}
+
+textarea {
+  min-height: 96px;
+  resize: vertical;
 }
 
 label {
@@ -184,8 +191,17 @@ label {
 
 .daily-panel,
 .leaderboard-panel,
-.problems-panel {
+.problems-panel,
+.workspace-panel {
   grid-column: span 6;
+}
+
+.groups-panel {
+  grid-column: span 4;
+}
+
+.workspace-panel {
+  grid-column: span 8;
 }
 
 .panel-header {
@@ -210,6 +226,12 @@ label {
   margin-bottom: 14px;
 }
 
+.compact-form {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
 .control-grid button {
   align-self: end;
 }
@@ -228,6 +250,11 @@ label {
   background: #fbfcfe;
 }
 
+.selected-row {
+  border-color: #81b8b2;
+  background: #f3fbfa;
+}
+
 .row-top,
 .problem-top,
 .leaderboard-row {
@@ -239,6 +266,72 @@ label {
 
 .title {
   font-weight: 700;
+}
+
+.workspace-header,
+.setup-state {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.workspace-header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.workspace-empty {
+  display: grid;
+  gap: 4px;
+}
+
+.setup-state {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfe;
+  padding: 12px;
+}
+
+.setup-form {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfe;
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
+.setup-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.wide-field {
+  grid-column: span 2;
+}
+
+.section-block {
+  display: grid;
+  gap: 8px;
+}
+
+.section-title {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.prompt-output {
+  background: #eef2f6;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  margin-top: 8px;
+  padding: 8px;
 }
 
 .meta {
@@ -331,8 +424,14 @@ label {
 
   .row-top,
   .problem-top,
-  .leaderboard-row {
+  .leaderboard-row,
+  .workspace-header,
+  .setup-state {
     align-items: flex-start;
     display: grid;
+  }
+
+  .wide-field {
+    grid-column: auto;
   }
 }

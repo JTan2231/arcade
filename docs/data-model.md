@@ -27,7 +27,6 @@ erDiagram
     problem_sources ||--o{ external_accounts : provides
     problem_sources ||--o{ problems : catalogs
     problems ||--o{ problem_tags : tagged_by
-    item_sources ||--o{ catalog_items : catalogs
 
     users ||--o{ user_preferences : configures
     problem_sources ||--o{ user_preferences : scopes
@@ -35,6 +34,8 @@ erDiagram
 
     users ||--o{ groups : creates
     groups ||--o{ group_memberships : has
+    groups ||--o{ catalog_sources : owns
+    catalog_sources ||--o{ catalog_items : catalogs
     groups ||--o{ group_daily_feeds : owns
     users ||--o{ group_memberships : joins
     groups ||--o{ divisions : contains
@@ -93,27 +94,28 @@ The initial migration seeds source rows and a small Codeforces problem catalog
 with provider tags. Seed rows use `on conflict` so a fresh database can be
 created from migrations alone.
 
-## Pointer Catalog And Daily Feeds
+## Group Catalog And Daily Feeds
 
-`item_sources` stores source namespaces used by the daily feed system. Unlike
-`problem_sources`, these rows also carry a resolver definition. The first
-resolver schema supports `external_url` actions from either a URL template
-filled from locator fields or a direct locator URL field.
+`catalog_sources` stores group-owned source collections used by the daily feed
+system. A source has a group, name, and string template. The template renders
+feed output from an item title plus keys in the item's `data` object. If the
+rendered output starts with `https://`, the frontend presents it as a link;
+otherwise it presents the rendered text as a prompt.
 
-`catalog_items` stores minimal pointer metadata for feed selection and launch.
-Rows have a `(source_id, external_id)` identity, a `kind`, a display `title`, a
-source-specific `locator`, and filterable `metadata`. For Codeforces, locator
-fields are `contest_id` and `index`; metadata includes rating and provider tags.
+`catalog_items` stores user-managed rows for a source. Rows have a display
+`title` and source-specific `data` JSON. The model intentionally does not ask
+users for external IDs, item kinds, or separate locator fields. For Codeforces,
+`data` contains keys such as `contest_id`, `index`, `rating`, and `tags`.
 Catalog items must not store statements, prompts, samples, editorials, or
 solutions.
 
 `group_daily_feeds` stores the durable daily feed definition owned by a group.
 Each feed has a unique slug within its group, an enabled flag, audience JSON,
-schedule JSON, and rule JSON. The initial rule schema uses `blocks` that select
-catalog items by source, kind, rating metadata, and tag metadata.
+schedule JSON, and rule JSON. The active rule schema uses `blocks` that select
+catalog items by `source_id`, count, `data.rating`, and `data.tags`.
 
 Daily feed outputs are generated on demand from `group_daily_feeds`,
-`catalog_items`, and `item_sources`. Generated outputs are not written to
+`catalog_items`, and `catalog_sources`. Generated outputs are not written to
 `daily_sets` or item rows.
 
 ## Preferences

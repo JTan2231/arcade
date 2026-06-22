@@ -5,56 +5,73 @@ import (
 	"testing"
 )
 
-func TestResolveDailyActionTemplate(t *testing.T) {
-	candidate := dailyCatalogCandidate{
-		Locator: map[string]any{
+func TestRenderCatalogTemplate(t *testing.T) {
+	rendered, missing := renderCatalogTemplate(
+		"https://codeforces.com/problemset/problem/{contest_id}/{index}",
+		"Watermelon",
+		map[string]any{
 			"contest_id": "4",
 			"index":      "A",
 		},
-		Resolver: dailySourceResolver{
-			DefaultAction: dailySourceAction{
-				Type:     "external_url",
-				Label:    "Open on Codeforces",
-				Template: "https://codeforces.com/problemset/problem/{contest_id}/{index}",
-			},
-			RequiredLocatorFields: []string{"contest_id", "index"},
-		},
+	)
+
+	if len(missing) != 0 {
+		t.Fatalf("missing fields = %v", missing)
+	}
+	if rendered != "https://codeforces.com/problemset/problem/4/A" {
+		t.Fatalf("rendered = %q", rendered)
+	}
+}
+
+func TestRenderCatalogTemplateReportsMissingFields(t *testing.T) {
+	_, missing := renderCatalogTemplate(
+		"Practice {title}. Focus on {focus}. Drill: {drill}.",
+		"Jin Kazama",
+		map[string]any{"focus": "electric execution"},
+	)
+
+	if !reflect.DeepEqual(missing, []string{"drill"}) {
+		t.Fatalf("missing fields = %v", missing)
+	}
+}
+
+func TestResolveDailyActionExternalURL(t *testing.T) {
+	candidate := dailyCatalogCandidate{
+		Rendered: "https://codeforces.com/problemset/problem/4/A",
 	}
 
 	action, ok := resolveDailyAction(candidate)
 	if !ok {
-		t.Fatal("resolveDailyAction rejected valid Codeforces locator")
+		t.Fatal("resolveDailyAction rejected valid HTTPS output")
 	}
 	if action.URL != "https://codeforces.com/problemset/problem/4/A" {
 		t.Fatalf("action URL = %q", action.URL)
 	}
-	if action.Label != "Open on Codeforces" {
+	if action.Label != "Open" {
 		t.Fatalf("action label = %q", action.Label)
 	}
 }
 
-func TestResolveDailyActionRejectsInvalidURL(t *testing.T) {
+func TestResolveDailyActionText(t *testing.T) {
 	candidate := dailyCatalogCandidate{
-		Locator: map[string]any{
-			"url": "http://example.com/problem",
-		},
-		Resolver: dailySourceResolver{
-			DefaultAction: dailySourceAction{
-				Type:  "external_url",
-				Field: "url",
-			},
-			RequiredLocatorFields: []string{"url"},
-		},
+		Rendered: "Practice Jin Kazama. Focus on electric execution.",
 	}
 
-	if _, ok := resolveDailyAction(candidate); ok {
-		t.Fatal("resolveDailyAction accepted a non-HTTPS URL")
+	action, ok := resolveDailyAction(candidate)
+	if !ok {
+		t.Fatal("resolveDailyAction rejected text output")
+	}
+	if action.Type != "text" {
+		t.Fatalf("action type = %q", action.Type)
+	}
+	if action.Text != "Practice Jin Kazama. Focus on electric execution." {
+		t.Fatalf("action text = %q", action.Text)
 	}
 }
 
 func TestDailyCandidateMatchesMetadataFilters(t *testing.T) {
 	candidate := dailyCatalogCandidate{
-		Metadata: map[string]any{
+		Data: map[string]any{
 			"rating": float64(1000),
 			"tags":   []any{"implementation", "math"},
 		},
@@ -84,9 +101,9 @@ func TestDailyCandidateMatchesMetadataFilters(t *testing.T) {
 
 func TestSortDailyCandidatesIsStableForSameInputs(t *testing.T) {
 	candidates := []dailyCatalogCandidate{
-		{ID: "item-a", Metadata: map[string]any{"rating": float64(1000)}},
-		{ID: "item-b", Metadata: map[string]any{"rating": float64(1000)}},
-		{ID: "item-c", Metadata: map[string]any{"rating": float64(1000)}},
+		{ID: "item-a", Data: map[string]any{"rating": float64(1000)}},
+		{ID: "item-b", Data: map[string]any{"rating": float64(1000)}},
+		{ID: "item-c", Data: map[string]any{"rating": float64(1000)}},
 	}
 	first := append([]dailyCatalogCandidate(nil), candidates...)
 	second := append([]dailyCatalogCandidate(nil), candidates...)

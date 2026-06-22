@@ -69,57 +69,23 @@
     </main>
 
     <main id="app-layout" class="layout" hidden>
-      <section class="panel daily-panel">
-        <div class="panel-header">
-          <h2>My Dailies</h2>
-          <button id="refresh">Refresh</button>
-        </div>
-        <form id="daily-form" class="control-grid">
-          <label>
-            Name
-            <input id="daily-name" placeholder="Beginner Daily">
-          </label>
-          <label>
-            Source
-            <select id="daily-source"></select>
-          </label>
-          <label>
-            Tags
-            <input id="daily-tags" placeholder="dp, graphs">
-          </label>
-          <label>
-            Count
-            <input id="daily-count" type="number" min="1" max="12" value="3">
-          </label>
-          <label>
-            Target
-            <input id="daily-target" type="number" min="800" max="2600" step="100" value="1300">
-          </label>
-          <button type="submit">Create feed</button>
-        </form>
-        <div id="daily" class="stack"></div>
-      </section>
-
-      <section class="panel">
+      <section class="panel groups-panel">
         <div class="panel-header">
           <h2>Groups</h2>
+          <button id="refresh" class="secondary" type="button">Refresh</button>
         </div>
-        <form id="group-form" class="control-grid">
+        <form id="group-form" class="compact-form">
           <label>
             Name
             <input id="group-name" placeholder="Morning Dojo">
           </label>
-          <label>
-            Visibility
-            <select id="group-visibility">
-              <option value="invite_only">Invite only</option>
-              <option value="public">Public</option>
-              <option value="private">Private</option>
-            </select>
-          </label>
-          <button type="submit">Create</button>
+          <button type="submit">Create group</button>
         </form>
         <div id="groups" class="stack"></div>
+      </section>
+
+      <section class="panel workspace-panel">
+        <div id="group-workspace" class="stack"></div>
       </section>
 
       <section class="panel leaderboard-panel">

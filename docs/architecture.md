@@ -66,7 +66,7 @@ The main persisted entities are:
 - `user_sessions`: hashed session tokens for secure cookie-backed login.
 - `problem_sources`: coding platforms such as Codeforces, AtCoder, and Advent of Code.
 - `problems` and `problem_tags`: catalog entries, ratings, URLs, and tags.
-- `item_sources` and `catalog_items`: pointer catalog rows and launch resolvers
+- `catalog_sources` and `catalog_items`: group-owned source templates and rows
   for group daily feeds.
 - `external_accounts`: a user's platform handles and local sync metadata.
 - `user_preferences` and `user_preference_tags`: daily generation defaults.
@@ -88,9 +88,10 @@ The current daily feed model follows `DAILY.md`:
 - Owners and admins manage `group_daily_feeds`.
 - Active members read only enabled feeds whose audience they match.
 - Feed outputs are computed on demand from feed rules, `catalog_items`, and
-  `item_sources`.
+  `catalog_sources`.
 - Selection is deterministic by feed, date, block, and catalog item.
-- Outputs resolve to HTTPS external actions and are not persisted.
+- Outputs render from source templates. HTTPS renders become links; other
+  renders become text prompts. Outputs are not persisted.
 
 The generator does not use the requesting user's preferences or solved history.
 
@@ -111,13 +112,16 @@ Leaderboards are live SQL rollups over `submissions`.
 
 The browser app in `web/static` is a single static page:
 
-- `index.html` defines the auth forms and main panels for identity, dailies, groups, leaderboards, problems, and accounts.
+- `index.html` defines the auth forms and main panels for group setup,
+  leaderboards, problems, and accounts.
 - `app.js` owns data loading, event handlers, API calls, and DOM rendering.
 - `styles.css` defines the responsive grid and component styles.
 
-The main daily surface loads `/api/me/daily-feed-outputs` and shows source-owned
-actions for each generated catalog item. Creating a feed from the UI posts a
-group-owned feed definition to `/api/groups/{group_id}/daily-feeds`.
+The main group surface loads `/api/groups/{group_id}/catalog-sources`,
+`/api/groups/{group_id}/daily-feeds`, and `/api/me/daily-feed-outputs`.
+Creating the first feed guides owners/admins through source creation or preset
+import, previews `/api/groups/{group_id}/daily-feeds/preview`, then posts the
+enabled feed definition to `/api/groups/{group_id}/daily-feeds`.
 
 Because assets are embedded, changes under `web/static` are compiled into the Go binary. During local development, `go run ./cmd/arcade` serves the latest files from a fresh build.
 
