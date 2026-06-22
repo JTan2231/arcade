@@ -10,15 +10,8 @@
     <header id="app-header" class="app-header" hidden>
       <div>
         <h1>Arcade</h1>
-        <p id="identity">Loading</p>
       </div>
-      <div class="header-actions">
-        <form id="profile-form" class="inline-form">
-          <input id="display-name" name="display_name" placeholder="Display name" autocomplete="off">
-          <button type="submit">Save</button>
-        </form>
-        <button id="logout" class="secondary" type="button">Logout</button>
-      </div>
+      <button id="logout" class="secondary" type="button">Logout</button>
     </header>
 
     <main id="auth-view" class="auth-layout">
@@ -68,79 +61,19 @@
       </section>
     </main>
 
-    <main id="app-layout" class="layout" hidden>
+    <main id="app-layout" class="layout group-layout" hidden>
       <section class="panel groups-panel">
         <div class="panel-header">
           <h2>Groups</h2>
-          <button id="refresh" class="secondary" type="button">Refresh</button>
         </div>
         <form id="group-form" class="compact-form">
           <label>
             Name
-            <input id="group-name" placeholder="Morning Dojo">
+            <input id="group-name" placeholder="Morning Dojo" required>
           </label>
           <button type="submit">Create group</button>
         </form>
         <div id="groups" class="stack"></div>
-      </section>
-
-      <section class="panel workspace-panel">
-        <div id="group-workspace" class="stack"></div>
-      </section>
-
-      <section class="panel leaderboard-panel">
-        <div class="panel-header">
-          <h2>Leaderboard</h2>
-          <select id="leaderboard-scope">
-            <option value="global">Global</option>
-            <option value="group">Selected group</option>
-          </select>
-        </div>
-        <div id="leaderboard" class="stack"></div>
-      </section>
-
-      <section class="panel problems-panel">
-        <div class="panel-header">
-          <h2>Problems</h2>
-        </div>
-        <form id="problem-form" class="control-grid">
-          <label>
-            Source
-            <select id="problem-source"></select>
-          </label>
-          <label>
-            Tag
-            <input id="problem-tag" placeholder="greedy">
-          </label>
-          <label>
-            Min
-            <input id="problem-min" type="number" step="100">
-          </label>
-          <label>
-            Max
-            <input id="problem-max" type="number" step="100">
-          </label>
-          <button type="submit">Filter</button>
-        </form>
-        <div id="problems" class="problem-list"></div>
-      </section>
-
-      <section class="panel">
-        <div class="panel-header">
-          <h2>Accounts</h2>
-        </div>
-        <form id="account-form" class="control-grid">
-          <label>
-            Source
-            <select id="account-source"></select>
-          </label>
-          <label>
-            Handle
-            <input id="account-handle" placeholder="tourist">
-          </label>
-          <button type="submit">Link</button>
-        </form>
-        <div id="accounts" class="stack"></div>
       </section>
     </main>
 
