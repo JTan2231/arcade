@@ -28,7 +28,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -61,6 +62,16 @@ button.secondary:hover {
 }
 
 input {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  min-height: 36px;
+  padding: 6px 8px;
+  width: 100%;
+}
+
+select {
   background: white;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -143,7 +154,7 @@ label {
 .layout {
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(0, 720px);
+  grid-template-columns: minmax(280px, 360px) minmax(0, 820px);
   justify-content: center;
   padding: 16px;
 }
@@ -210,6 +221,174 @@ label {
   font-size: 13px;
 }
 
+.group-dashboard-panel {
+  min-height: 420px;
+}
+
+.dashboard-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.dashboard-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.4fr);
+}
+
+.dashboard-section {
+  min-width: 0;
+}
+
+.section-header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.section-header h3 {
+  font-size: 15px;
+  letter-spacing: 0;
+  margin: 0;
+}
+
+.output-header {
+  align-items: flex-start;
+}
+
+.date-control {
+  min-width: 160px;
+  width: 180px;
+}
+
+.feed-row-top {
+  align-items: flex-start;
+}
+
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.empty-state {
+  background: #fbfcfe;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  padding: 14px;
+}
+
+.output-summary {
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+}
+
+.management-strip {
+  align-items: center;
+  background: #fbfcfe;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding: 10px;
+}
+
+.output-item {
+  align-items: flex-start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.output-item-main {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 32px minmax(0, 1fr);
+  min-width: 0;
+}
+
+.item-position {
+  align-items: center;
+  background: #e9f5f4;
+  border: 1px solid #bedbd8;
+  border-radius: 999px;
+  color: var(--accent-strong);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 700;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.output-item-side {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pill {
+  background: #eef2f6;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1;
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+
+.button-link {
+  align-items: center;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  color: white;
+  display: inline-flex;
+  font-size: 13px;
+  min-height: 32px;
+  padding: 0 10px;
+  text-decoration: none;
+}
+
+.button-link:hover {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+.prompt-details {
+  max-width: 240px;
+}
+
+.prompt-details summary {
+  color: var(--accent-strong);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.prompt-details pre {
+  background: #f6f7f9;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  margin: 8px 0 0;
+  max-width: 100%;
+  overflow: auto;
+  padding: 8px;
+  white-space: pre-wrap;
+}
+
 #toast {
   background: #111827;
   border-radius: 8px;
@@ -238,11 +417,45 @@ label {
 
   .layout {
     gap: 10px;
+    grid-template-columns: minmax(0, 1fr);
     padding: 10px;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .section-header,
+  .output-header {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .date-control {
+    width: 100%;
   }
 
   .row-top {
     align-items: flex-start;
     display: grid;
+  }
+
+  .button-group {
+    justify-content: flex-start;
+  }
+
+  .output-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .management-strip {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .output-item-side {
+    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 }
