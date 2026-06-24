@@ -82,7 +82,7 @@ The main persisted entities are:
 Daily feed management and output generation live in
 `internal/app/handlers_daily_feeds.go`.
 
-The current daily feed model follows `DAILY.md`:
+The current daily feed model follows these rules:
 
 - Groups are the delivery and permission boundary.
 - Owners and admins manage `group_daily_feeds`.
