@@ -87,11 +87,14 @@ The current daily feed model follows these rules:
 - Groups are the delivery and permission boundary.
 - Owners and admins manage `group_daily_feeds`.
 - Active members read only enabled feeds whose audience they match.
-- Feed outputs are computed on demand from feed rules, `catalog_items`, and
-  `catalog_sources`.
-- Selection is deterministic by feed, date, block, and catalog item.
-- Outputs render from source templates. HTTPS renders become links; other
-  renders become text prompts. Outputs are not persisted.
+- Feed kinds are `catalog_daily` and `daily_thread`.
+- New groups receive one enabled `daily_thread` feed by default. There can be
+  only one daily thread per group; it can be deleted and created again later.
+- Catalog daily outputs are computed on demand from feed rules, `catalog_items`,
+  and `catalog_sources`.
+- Catalog selection is deterministic by feed, date, block, and catalog item.
+- Catalog outputs render from source templates. HTTPS renders become links;
+  other renders become text prompts. Outputs are not persisted.
 
 The generator does not use the requesting user's preferences or solved history.
 
@@ -119,9 +122,9 @@ The browser app in `web/static` is a single static page:
 
 The main group surface loads `/api/groups/{group_id}/catalog-sources`,
 `/api/groups/{group_id}/daily-feeds`, and `/api/me/daily-feed-outputs`.
-Creating the first feed guides owners/admins through source creation or preset
-import, previews `/api/groups/{group_id}/daily-feeds/preview`, then posts the
-enabled feed definition to `/api/groups/{group_id}/daily-feeds`.
+Creating a catalog daily feed guides owners/admins through source creation or
+preset import, previews `/api/groups/{group_id}/daily-feeds/preview`, then
+posts the enabled feed definition to `/api/groups/{group_id}/daily-feeds`.
 
 Because assets are embedded, changes under `web/static` are compiled into the Go binary. During local development, `go run ./cmd/arcade` serves the latest files from a fresh build.
 

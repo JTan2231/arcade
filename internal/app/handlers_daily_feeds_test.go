@@ -1,8 +1,10 @@
 package app
 
 import (
+	"context"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestRenderCatalogTemplate(t *testing.T) {
@@ -128,6 +130,59 @@ func TestDailyFeedDefaults(t *testing.T) {
 	}
 	if got := dailyFeedPoints(1, []int{2, 3}); got != 3 {
 		t.Fatalf("configured points = %d", got)
+	}
+}
+
+func TestDailyFeedKindDefaultsToCatalogDaily(t *testing.T) {
+	kind, err := normalizeDailyFeedKind("")
+	if err != nil {
+		t.Fatalf("normalizeDailyFeedKind returned error: %v", err)
+	}
+	if kind != dailyFeedKindCatalogDaily {
+		t.Fatalf("kind = %q", kind)
+	}
+}
+
+func TestDailyThreadRulesAreEmpty(t *testing.T) {
+	server := &Server{}
+	rules, err := server.normalizeDailyFeedRulesForKind(context.Background(), "group", dailyFeedKindDailyThread, DailyFeedRules{})
+	if err != nil {
+		t.Fatalf("normalizeDailyFeedRulesForKind returned error: %v", err)
+	}
+	if len(rules.Blocks) != 0 {
+		t.Fatalf("rules blocks = %d", len(rules.Blocks))
+	}
+
+	_, err = server.normalizeDailyFeedRulesForKind(context.Background(), "group", dailyFeedKindDailyThread, DailyFeedRules{
+		Blocks: []DailyFeedRuleBlock{{SourceID: "source", Count: 1}},
+	})
+	if err == nil {
+		t.Fatal("expected daily thread rules to reject blocks")
+	}
+}
+
+func TestDailyThreadOutputHasNoGeneratedItems(t *testing.T) {
+	server := &Server{}
+	requestedDate := time.Date(2026, 6, 24, 12, 0, 0, 0, time.UTC)
+	output, err := server.generateDailyFeedOutputForFeed(context.Background(), DailyFeed{
+		ID:       "feed-id",
+		GroupID:  "group-id",
+		Name:     defaultDailyThreadFeedName,
+		Slug:     defaultDailyThreadFeedSlug,
+		Kind:     dailyFeedKindDailyThread,
+		Schedule: DailyFeedSchedule{Cadence: "daily", Timezone: "UTC"},
+	}, &requestedDate)
+	if err != nil {
+		t.Fatalf("generateDailyFeedOutputForFeed returned error: %v", err)
+	}
+	if output.Title != defaultDailyThreadFeedName {
+		t.Fatalf("title = %q", output.Title)
+	}
+	if output.Date != "2026-06-24" {
+		t.Fatalf("date = %q", output.Date)
+	}
+	if len(output.Items) != 0 {
+		t.Fatalf("items = %d", len(output.Items))
 	}
 }
 

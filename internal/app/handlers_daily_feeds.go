@@ -20,13 +20,20 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const dailyFeedDateLayout = "2006-01-02"
+const (
+	dailyFeedDateLayout        = "2006-01-02"
+	dailyFeedKindCatalogDaily  = "catalog_daily"
+	dailyFeedKindDailyThread   = "daily_thread"
+	defaultDailyThreadFeedName = "Daily Thread"
+	defaultDailyThreadFeedSlug = "daily-thread"
+)
 
 var templateFieldPattern = regexp.MustCompile(`\{([A-Za-z0-9_]+)\}`)
 
 type createDailyFeedRequest struct {
 	Name        string             `json:"name"`
 	Slug        string             `json:"slug"`
+	Kind        string             `json:"kind"`
 	Description *string            `json:"description"`
 	Enabled     *bool              `json:"enabled"`
 	Audience    *DailyFeedAudience `json:"audience"`
@@ -117,13 +124,26 @@ func (s *Server) handleCreateGroupDailyFeed(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	req.Name = strings.TrimSpace(req.Name)
-	if req.Name == "" {
-		writeError(w, http.StatusBadRequest, "name is required")
+	kind, err := normalizeDailyFeedKind(req.Kind)
+	if err != nil {
+		handleError(w, err)
 		return
 	}
+
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Name == "" {
+		if kind != dailyFeedKindDailyThread {
+			writeError(w, http.StatusBadRequest, "name is required")
+			return
+		}
+		req.Name = defaultDailyThreadFeedName
+	}
 	if req.Slug == "" {
-		req.Slug = slugify(req.Name)
+		if kind == dailyFeedKindDailyThread {
+			req.Slug = defaultDailyThreadFeedSlug
+		} else {
+			req.Slug = slugify(req.Name)
+		}
 	} else {
 		req.Slug = slugify(req.Slug)
 	}
@@ -140,7 +160,7 @@ func (s *Server) handleCreateGroupDailyFeed(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	rules, err := s.normalizeDailyFeedRules(r.Context(), groupID, req.Rules)
+	rules, err := s.normalizeDailyFeedRulesForKind(r.Context(), groupID, kind, req.Rules)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -166,7 +186,7 @@ func (s *Server) handleCreateGroupDailyFeed(w http.ResponseWriter, r *http.Reque
 	if req.Enabled != nil {
 		enabled = *req.Enabled
 	}
-	if enabled {
+	if enabled && dailyFeedKindRequiresReady(kind) {
 		if err := s.validateDailyFeedReady(r.Context(), rules); err != nil {
 			handleError(w, err)
 			return
@@ -179,6 +199,7 @@ func (s *Server) handleCreateGroupDailyFeed(w http.ResponseWriter, r *http.Reque
 			group_id,
 			name,
 			slug,
+			kind,
 			description,
 			enabled,
 			audience,
@@ -187,9 +208,9 @@ func (s *Server) handleCreateGroupDailyFeed(w http.ResponseWriter, r *http.Reque
 			rules,
 			created_by_user_id
 		)
-		values ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, 1, $8::jsonb, $9)
+		values ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, 1, $9::jsonb, $10)
 		returning id::text
-	`, groupID, req.Name, req.Slug, req.Description, enabled, audienceJSON, scheduleJSON, rulesJSON, current.ID).Scan(&feedID)
+	`, groupID, req.Name, req.Slug, kind, req.Description, enabled, audienceJSON, scheduleJSON, rulesJSON, current.ID).Scan(&feedID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -359,7 +380,20 @@ func (s *Server) handlePatchGroupDailyFeed(w http.ResponseWriter, r *http.Reques
 
 	var rulesJSON any
 	var rules *DailyFeedRules
+	var currentFeed *DailyFeed
+	if req.Enabled != nil || req.Rules != nil {
+		feed, err := s.getGroupDailyFeed(r.Context(), groupID, r.PathValue("feed_id"))
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+		currentFeed = &feed
+	}
 	if req.Rules != nil {
+		if currentFeed.Kind == dailyFeedKindDailyThread {
+			handleError(w, badRequest("daily thread feeds do not support rules"))
+			return
+		}
 		normalized, err := s.normalizeDailyFeedRules(r.Context(), groupID, *req.Rules)
 		if err != nil {
 			handleError(w, err)
@@ -374,12 +408,7 @@ func (s *Server) handlePatchGroupDailyFeed(w http.ResponseWriter, r *http.Reques
 		rulesJSON = value
 	}
 
-	if req.Enabled != nil || req.Rules != nil {
-		currentFeed, err := s.getGroupDailyFeed(r.Context(), groupID, r.PathValue("feed_id"))
-		if err != nil {
-			handleError(w, err)
-			return
-		}
+	if currentFeed != nil {
 		finalEnabled := currentFeed.Enabled
 		if req.Enabled != nil {
 			finalEnabled = *req.Enabled
@@ -388,7 +417,7 @@ func (s *Server) handlePatchGroupDailyFeed(w http.ResponseWriter, r *http.Reques
 		if rules != nil {
 			finalRules = *rules
 		}
-		if finalEnabled {
+		if finalEnabled && dailyFeedKindRequiresReady(currentFeed.Kind) {
 			if err := s.validateDailyFeedReady(r.Context(), finalRules); err != nil {
 				handleError(w, err)
 				return
@@ -539,6 +568,7 @@ func (s *Server) listGroupDailyFeeds(ctx context.Context, groupID string) ([]Dai
 			g.name,
 			f.name,
 			f.slug,
+			f.kind,
 			f.description,
 			f.enabled,
 			f.audience,
@@ -577,6 +607,7 @@ func (s *Server) listMeDailyFeeds(ctx context.Context, userID string) ([]DailyFe
 			g.name,
 			f.name,
 			f.slug,
+			f.kind,
 			f.description,
 			f.enabled,
 			f.audience,
@@ -624,6 +655,7 @@ func (s *Server) getGroupDailyFeed(ctx context.Context, groupID string, feedID s
 			g.name,
 			f.name,
 			f.slug,
+			f.kind,
 			f.description,
 			f.enabled,
 			f.audience,
@@ -657,6 +689,7 @@ func scanDailyFeed(row pgx.Row) (DailyFeed, error) {
 		&groupName,
 		&feed.Name,
 		&feed.Slug,
+		&feed.Kind,
 		&description,
 		&feed.Enabled,
 		&audienceJSON,
@@ -724,6 +757,9 @@ func (s *Server) generateDailyFeedOutputForFeed(ctx context.Context, feed DailyF
 		Date:      dateString,
 		Title:     feed.Name,
 		Items:     []DailyFeedOutputItem{},
+	}
+	if feed.Kind == dailyFeedKindDailyThread {
+		return output, nil
 	}
 	selected := map[string]bool{}
 
@@ -1160,6 +1196,19 @@ func normalizeDailyFeedSchedule(schedule *DailyFeedSchedule) (DailyFeedSchedule,
 	return normalized, nil
 }
 
+func normalizeDailyFeedKind(kind string) (string, error) {
+	normalized := strings.TrimSpace(kind)
+	if normalized == "" {
+		return dailyFeedKindCatalogDaily, nil
+	}
+	switch normalized {
+	case dailyFeedKindCatalogDaily, dailyFeedKindDailyThread:
+		return normalized, nil
+	default:
+		return "", badRequest("daily feed kind must be catalog_daily or daily_thread")
+	}
+}
+
 func (s *Server) validateDailyFeedAudience(ctx context.Context, groupID string, audience DailyFeedAudience) error {
 	switch audience.Type {
 	case "all_group_members":
@@ -1269,6 +1318,20 @@ func (s *Server) normalizeDailyFeedRules(ctx context.Context, groupID string, ru
 	}
 
 	return rules, nil
+}
+
+func (s *Server) normalizeDailyFeedRulesForKind(ctx context.Context, groupID string, kind string, rules DailyFeedRules) (DailyFeedRules, error) {
+	if kind == dailyFeedKindDailyThread {
+		if len(rules.Blocks) > 0 {
+			return DailyFeedRules{}, badRequest("daily thread feeds do not support rules")
+		}
+		return DailyFeedRules{}, nil
+	}
+	return s.normalizeDailyFeedRules(ctx, groupID, rules)
+}
+
+func dailyFeedKindRequiresReady(kind string) bool {
+	return kind == "" || kind == dailyFeedKindCatalogDaily
 }
 
 func (s *Server) catalogSourceInGroup(ctx context.Context, groupID string, sourceID string) (bool, error) {

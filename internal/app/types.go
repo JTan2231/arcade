@@ -156,6 +156,7 @@ type DailyFeed struct {
 	GroupName          *string           `json:"group_name,omitempty"`
 	Name               string            `json:"name"`
 	Slug               string            `json:"slug"`
+	Kind               string            `json:"kind"`
 	Description        *string           `json:"description,omitempty"`
 	Enabled            bool              `json:"enabled"`
 	Audience           DailyFeedAudience `json:"audience"`

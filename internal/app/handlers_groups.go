@@ -117,6 +117,36 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if _, err := tx.Exec(r.Context(), `
+		insert into group_daily_feeds (
+			group_id,
+			name,
+			slug,
+			kind,
+			enabled,
+			audience,
+			schedule,
+			rules_schema_version,
+			rules,
+			created_by_user_id
+		)
+		values (
+			$1,
+			$2,
+			$3,
+			$4,
+			true,
+			'{"type":"all_group_members"}'::jsonb,
+			'{"cadence":"daily","timezone":"UTC"}'::jsonb,
+			1,
+			'{}'::jsonb,
+			$5
+		)
+	`, groupID, defaultDailyThreadFeedName, defaultDailyThreadFeedSlug, dailyFeedKindDailyThread, current.ID); err != nil {
+		handleError(w, err)
+		return
+	}
+
 	if err := tx.Commit(r.Context()); err != nil {
 		handleError(w, err)
 		return

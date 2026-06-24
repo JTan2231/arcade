@@ -110,12 +110,16 @@ Catalog items must not store statements, prompts, samples, editorials, or
 solutions.
 
 `group_daily_feeds` stores the durable daily feed definition owned by a group.
-Each feed has a unique slug within its group, an enabled flag, audience JSON,
-schedule JSON, and rule JSON. The active rule schema uses `blocks` that select
-catalog items by `source_id`, count, `data.rating`, and `data.tags`.
+Each feed has a unique slug within its group, a kind, an enabled flag, audience
+JSON, schedule JSON, and rule JSON. The `catalog_daily` kind uses `blocks` that
+select catalog items by `source_id`, count, `data.rating`, and `data.tags`.
+The `daily_thread` kind is a general group daily surface with no prompt or
+catalog rules. A partial unique index allows only one `daily_thread` feed per
+group, while deletion frees the group to create another one later.
 
-Daily feed outputs are generated on demand from `group_daily_feeds`,
-`catalog_items`, and `catalog_sources`. Generated outputs are not written to
+Catalog daily feed outputs are generated on demand from `group_daily_feeds`,
+`catalog_items`, and `catalog_sources`. Daily thread outputs return the daily
+feed shell without generated items. Generated outputs are not written to
 `daily_sets` or item rows.
 
 ## Preferences
