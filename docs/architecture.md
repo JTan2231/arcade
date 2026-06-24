@@ -21,7 +21,8 @@ internal/migrations
 
 web
   static.go              Embedded static filesystem.
-  static/                Browser app: HTML, CSS, JavaScript.
+  static/                Generated Vite build output embedded by Go.
+  frontend/              React, TypeScript, Vite, and Bun frontend source.
 ```
 
 ## Startup Flow
@@ -30,7 +31,7 @@ web
 2. `app.LoadConfig()` reads environment configuration and defaults.
 3. `pgxpool.New()` creates the Postgres connection pool and `Ping()` verifies connectivity.
 4. `migrations.Run()` applies embedded SQL migrations in filename order.
-5. `app.NewServer()` builds the embedded static file handler and registers routes.
+5. `app.NewServer()` builds the embedded static file handler from the latest frontend build and registers routes.
 6. `http.Server` serves `server.Routes()` and shuts down gracefully on `SIGINT` or `SIGTERM`.
 
 ## Request Flow
@@ -113,20 +114,32 @@ Leaderboards are live SQL rollups over `submissions`.
 
 ## Frontend Shape
 
-The browser app in `web/static` is a single static page:
+The browser app source lives in `web/frontend`:
 
-- `index.html` defines the auth forms and main panels for group setup,
-  leaderboards, problems, and accounts.
-- `app.js` owns data loading, event handlers, API calls, and DOM rendering.
-- `styles.css` defines the responsive grid and component styles.
+- `src/App.tsx` owns session bootstrap, top-level state, auth transitions,
+  group selection, feed loading, and toast messages.
+- `src/api.ts` wraps same-origin JSON requests to `/api/*` and preserves the
+  backend `{ "error": "message" }` error contract.
+- `src/components` contains the auth, group list, dashboard, and toast views.
+- `src/styles.css` defines the responsive grid and component styles.
 
-The main group surface loads `/api/groups/{group_id}/catalog-sources`,
-`/api/groups/{group_id}/daily-feeds`, and `/api/me/daily-feed-outputs`.
-Creating a catalog daily feed guides owners/admins through source creation or
-preset import, previews `/api/groups/{group_id}/daily-feeds/preview`, then
-posts the enabled feed definition to `/api/groups/{group_id}/daily-feeds`.
+Vite builds generated HTML, CSS, and JavaScript into `web/static`, which remains
+the Go embed target. Do not hand-edit generated files in `web/static`; change
+the React source and run `cd web/frontend && bun run build`.
 
-Because assets are embedded, changes under `web/static` are compiled into the Go binary. During local development, `go run ./cmd/arcade` serves the latest files from a fresh build.
+The main group surface loads `/api/groups/{group_id}/daily-feeds` and
+`/api/groups/{group_id}/daily-feeds/{feed_id}/today` or
+`/api/groups/{group_id}/daily-feeds/{feed_id}/outputs/{date}`. Owners and
+admins can toggle feed enabled state through
+`PATCH /api/groups/{group_id}/daily-feeds/{feed_id}`.
+
+Because assets are embedded, a production-style local run should build the
+frontend before starting Go:
+
+```sh
+(cd web/frontend && bun ci && bun run build)
+go run ./cmd/arcade
+```
 
 ## Local-Build Limitations
 

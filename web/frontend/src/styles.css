@@ -15,10 +15,6 @@
   box-sizing: border-box;
 }
 
-[hidden] {
-  display: none !important;
-}
-
 body {
   margin: 0;
   background: var(--bg);
@@ -46,9 +42,14 @@ button {
   padding: 0 12px;
 }
 
-button:hover {
+button:hover:not(:disabled) {
   background: var(--accent-strong);
   border-color: var(--accent-strong);
+}
+
+button:disabled {
+  cursor: progress;
+  opacity: 0.72;
 }
 
 button.secondary {
@@ -57,7 +58,7 @@ button.secondary {
   color: var(--ink);
 }
 
-button.secondary:hover {
+button.secondary:hover:not(:disabled) {
   background: #eef2f6;
 }
 
@@ -107,6 +108,12 @@ label {
   font-size: 26px;
   letter-spacing: 0;
   margin: 0;
+}
+
+.header-user {
+  color: #dbe5ea;
+  font-size: 13px;
+  margin-top: 2px;
 }
 
 .auth-layout {

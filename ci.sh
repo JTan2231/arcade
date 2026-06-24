@@ -12,8 +12,22 @@ if ! command -v go >/dev/null 2>&1; then
 	exit 1
 fi
 
+if ! command -v bun >/dev/null 2>&1; then
+	printf 'bun is required but was not found in PATH\n' >&2
+	exit 1
+fi
+
 tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/arcade-ci.XXXXXX")"
 trap 'rm -rf "$tmp_dir"' EXIT INT TERM
+
+section "Installing frontend dependencies"
+(cd web/frontend && bun ci)
+
+section "Checking frontend"
+(cd web/frontend && bun run check)
+
+section "Building frontend"
+(cd web/frontend && bun run build)
 
 section "Checking Go formatting"
 find . -type f -name '*.go' ! -path './.git/*' -print | sort | while IFS= read -r file; do
@@ -37,13 +51,5 @@ go test ./...
 
 section "Building arcade binary"
 go build -trimpath -o "$tmp_dir/arcade" ./cmd/arcade
-
-if command -v node >/dev/null 2>&1; then
-	section "Checking frontend JavaScript syntax"
-	node --check web/static/app.js
-else
-	section "Skipping frontend JavaScript syntax check"
-	printf 'node was not found in PATH\n'
-fi
 
 section "CI checks passed"

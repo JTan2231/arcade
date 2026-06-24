@@ -2,12 +2,13 @@
 
 Arcade is a Go/Postgres app for practice workflows.
 The Go server runs migrations on startup, exposes JSON APIs under `/api`, and
-serves a static HTML/CSS/JavaScript app from `/`.
+serves the built React frontend from `/`.
 
 ## Run
 
 ```sh
 createdb arcade
+(cd web/frontend && bun ci && bun run build)
 go run ./cmd/arcade
 ```
 
@@ -26,10 +27,31 @@ ARCADE_DATABASE_URL=postgres://localhost:5432/arcade?sslmode=disable
 
 `DATABASE_URL` is also accepted when `ARCADE_DATABASE_URL` is not set.
 
+## Frontend Development
+
+Editable frontend source lives in `web/frontend`. Vite builds production assets
+into `web/static`, which is embedded by the Go binary.
+
+Run the backend:
+
+```sh
+go run ./cmd/arcade
+```
+
+Run the React dev server:
+
+```sh
+cd web/frontend
+bun run dev
+```
+
+The Vite dev server proxies `/api` to `http://localhost:8080`.
+
 ## Notes
 
 - Postgres migrations live in `internal/migrations`.
-- Static assets live in `web/static` and are embedded into the Go binary.
+- React source lives in `web/frontend`.
+- Generated static assets live in `web/static` and are embedded into the Go binary.
 - Sign up in the browser to create the first local account.
 - Leaderboards are live derived views from submissions; snapshot tables exist
   for later materialization.
