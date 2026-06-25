@@ -58,28 +58,17 @@ export function GroupsPanel({
         ) : groups.length ? (
           groups.map((group) => {
             const selected = group.id === selectedGroupId;
-            const role = group.my_role || "viewer";
-            const status = group.my_status ? ` - ${group.my_status}` : "";
 
             return (
-              <div className={`row ${selected ? "selected-row" : ""}`} key={group.id}>
-                <div className="row-top">
-                  <div>
-                    <div className="title">{group.name}</div>
-                    <div className="meta">
-                      {group.visibility} - {role}
-                      {status}
-                    </div>
-                  </div>
-                  <button
-                    className={selected ? "" : "secondary"}
-                    type="button"
-                    onClick={() => onSelectGroup(group.id)}
-                  >
-                    {selected ? "Selected" : "Open"}
-                  </button>
-                </div>
-              </div>
+              <button
+                aria-pressed={selected}
+                className={`row selectable-row ${selected ? "selected-row" : ""}`}
+                key={group.id}
+                type="button"
+                onClick={() => onSelectGroup(group.id)}
+              >
+                <div className="title">{group.name}</div>
+              </button>
             );
           })
         ) : (
