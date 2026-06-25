@@ -13,11 +13,19 @@ func LoadConfig() Config {
 		os.Getenv("DATABASE_URL"),
 		"postgres://localhost:5432/arcade?sslmode=disable",
 	)
+	addr := firstNonEmpty(os.Getenv("ARCADE_ADDR"), addrFromPort(os.Getenv("PORT")), ":8080")
 
 	return Config{
-		Addr:        firstNonEmpty(os.Getenv("ARCADE_ADDR"), ":8080"),
+		Addr:        addr,
 		DatabaseURL: databaseURL,
 	}
+}
+
+func addrFromPort(port string) string {
+	if port == "" {
+		return ""
+	}
+	return ":" + port
 }
 
 func firstNonEmpty(values ...string) string {

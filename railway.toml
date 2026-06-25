@@ -1,0 +1,9 @@
+[build]
+builder = "RAILPACK"
+buildCommand = "cd web/frontend && bun ci && bun run build && cd ../.. && CGO_ENABLED=0 go build -trimpath -ldflags='-w -s' -o out ./cmd/arcade"
+
+[deploy]
+startCommand = "./out"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
+numReplicas = 1

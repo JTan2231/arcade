@@ -41,6 +41,7 @@ Configuration is loaded from environment variables in `internal/app/config.go`.
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `ARCADE_ADDR` | `:8080` | HTTP listen address. |
+| `PORT` | unset | Fallback HTTP port when `ARCADE_ADDR` is unset. |
 | `ARCADE_DATABASE_URL` | `postgres://localhost:5432/arcade?sslmode=disable` | Postgres connection URL. |
 | `DATABASE_URL` | unset | Fallback database URL when `ARCADE_DATABASE_URL` is unset. |
 

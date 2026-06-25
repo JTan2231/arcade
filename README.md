@@ -25,7 +25,15 @@ ARCADE_ADDR=:8080
 ARCADE_DATABASE_URL=postgres://localhost:5432/arcade?sslmode=disable
 ```
 
-`DATABASE_URL` is also accepted when `ARCADE_DATABASE_URL` is not set.
+`PORT` is also accepted when `ARCADE_ADDR` is not set. `DATABASE_URL` is also
+accepted when `ARCADE_DATABASE_URL` is not set.
+
+## Deploy
+
+The root `railpack.json` makes Railway's Railpack builder run the React
+frontend build before compiling Go, so the generated `web/static` assets are
+embedded in the binary. `railway.toml` pins the start command and healthcheck.
+Attach a Railway Postgres database so `DATABASE_URL` is available.
 
 ## Frontend Development
 
