@@ -1,5 +1,6 @@
 [build]
 builder = "RAILPACK"
+buildCommand = "cd web/frontend && bun ci && bun run build && cd ../.. && CGO_ENABLED=0 go build -trimpath -o out ./cmd/arcade"
 
 [deploy]
 startCommand = "./out"

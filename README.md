@@ -30,10 +30,9 @@ accepted when `ARCADE_DATABASE_URL` is not set.
 
 ## Deploy
 
-The root `railpack.json` makes Railway's Railpack builder install Bun, build
-the React frontend, and then compile `./cmd/arcade`, so the generated
-`web/static` assets are embedded in the binary. `railway.toml` selects the
-Railpack builder and pins the start command and healthcheck. Attach a Railway
+The root `railpack.json` makes Railway's Railpack builder install Bun.
+`railway.toml` selects the Railpack builder, builds the React frontend, compiles
+`./cmd/arcade`, and pins the start command and healthcheck. Attach a Railway
 Postgres database so `DATABASE_URL` is available.
 
 ## Frontend Development
