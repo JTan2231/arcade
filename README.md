@@ -30,10 +30,11 @@ accepted when `ARCADE_DATABASE_URL` is not set.
 
 ## Deploy
 
-The root `railpack.json` makes Railway's Railpack builder run the React
-frontend build before compiling Go, so the generated `web/static` assets are
-embedded in the binary. `railway.toml` pins the start command and healthcheck.
-Attach a Railway Postgres database so `DATABASE_URL` is available.
+The root `railpack.json` makes Railway's Railpack builder install Bun, build
+the React frontend, and then compile `./cmd/arcade`, so the generated
+`web/static` assets are embedded in the binary. `railway.toml` selects the
+Railpack builder and pins the start command and healthcheck. Attach a Railway
+Postgres database so `DATABASE_URL` is available.
 
 ## Frontend Development
 

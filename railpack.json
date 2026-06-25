@@ -3,5 +3,16 @@
   "provider": "golang",
   "packages": {
     "bun": "1.1.42"
+  },
+  "steps": {
+    "build": {
+      "commands": [
+        "cd web/frontend && bun ci && bun run build",
+        "CGO_ENABLED=0 go build -trimpath -ldflags='-w -s' -o out ./cmd/arcade"
+      ]
+    }
+  },
+  "deploy": {
+    "startCommand": "./out"
   }
 }
