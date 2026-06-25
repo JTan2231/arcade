@@ -241,6 +241,24 @@ type DailyFeedAction struct {
 	Text  string `json:"text,omitempty"`
 }
 
+type GroupFeedPost struct {
+	ID                string     `json:"id"`
+	GroupID           string     `json:"group_id"`
+	FeedInstanceID    string     `json:"feed_instance_id"`
+	FeedID            string     `json:"feed_id"`
+	FeedDate          string     `json:"feed_date"`
+	AuthorUserID      string     `json:"author_user_id"`
+	AuthorUsername    string     `json:"author_username"`
+	AuthorDisplayName string     `json:"author_display_name"`
+	AuthorAvatarURL   *string    `json:"author_avatar_url,omitempty"`
+	EvidenceKind      string     `json:"evidence_kind"`
+	EvidenceText      string     `json:"evidence_text"`
+	Caption           *string    `json:"caption,omitempty"`
+	DeletedAt         *time.Time `json:"deleted_at,omitempty"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
+}
+
 type CatalogSource struct {
 	ID                string    `json:"id"`
 	GroupID           string    `json:"group_id"`

@@ -43,6 +43,9 @@ erDiagram
     divisions ||--o{ division_rules : defines
     problem_sources ||--o{ division_rules : scopes
     division_rules ||--o{ division_rule_tags : constrains
+    group_daily_feeds ||--o{ group_daily_feed_instances : materializes
+    group_daily_feed_instances ||--o{ group_feed_posts : receives
+    users ||--o{ group_feed_posts : authors
 
     users ||--o{ daily_sets : receives
     groups ||--o{ daily_sets : receives
@@ -121,6 +124,17 @@ Catalog daily feed outputs are generated on demand from `group_daily_feeds`,
 `catalog_items`, and `catalog_sources`. Daily thread outputs return the daily
 feed shell without generated items. Generated outputs are not written to
 `daily_sets` or item rows.
+
+`group_daily_feed_instances` materializes a dated `(feed_id, feed_date)` only
+when durable member content exists for that feed instance. The row carries
+`group_id` for group-scoped lookup and authorization, with composite foreign
+keys keeping it consistent with `group_daily_feeds`.
+
+`group_feed_posts` stores one member-authored response per feed instance. A post
+currently requires plaintext evidence with `evidence_kind = 'text'`; `caption`
+is optional and separate from evidence. Posts are soft deleted with
+`deleted_at`, and the unique `(feed_instance_id, author_user_id)` rule means a
+later post by the same member reuses and reactivates the existing row.
 
 ## Preferences
 

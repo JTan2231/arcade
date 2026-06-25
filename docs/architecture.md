@@ -74,6 +74,8 @@ The main persisted entities are:
 - `groups` and `group_memberships`: social scopes and roles.
 - `divisions`, `division_rules`, and `division_rule_tags`: group-scoped daily selection constraints.
 - `group_daily_feeds`: durable group-owned daily feed definitions.
+- `group_daily_feed_instances` and `group_feed_posts`: durable member posts
+  attached to one feed on one date.
 - `daily_sets` and `daily_set_items`: legacy generated practice sets and their ordered problems.
 - `submissions`: accepted/manual solves and other verdicts.
 - `leaderboard_snapshots` and `leaderboard_snapshot_rows`: reserved for future materialized leaderboards.
@@ -96,6 +98,9 @@ The current daily feed model follows these rules:
 - Catalog selection is deterministic by feed, date, block, and catalog item.
 - Catalog outputs render from source templates. HTTPS renders become links;
   other renders become text prompts. Outputs are not persisted.
+- Member posts are stored separately from generated output. The first post for a
+  feed/date lazily creates a `group_daily_feed_instances` row, and each active
+  member can own at most one post on that instance.
 
 The generator does not use the requesting user's preferences or solved history.
 

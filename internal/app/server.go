@@ -95,6 +95,11 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("DELETE /api/groups/{group_id}/daily-feeds/{feed_id}", s.handleDeleteGroupDailyFeed)
 	mux.HandleFunc("GET /api/groups/{group_id}/daily-feeds/{feed_id}/today", s.handleGetGroupDailyFeedToday)
 	mux.HandleFunc("GET /api/groups/{group_id}/daily-feeds/{feed_id}/outputs/{date}", s.handleGetGroupDailyFeedOutput)
+	mux.HandleFunc("GET /api/groups/{group_id}/daily-feeds/{feed_id}/outputs/{date}/posts", s.handleListGroupFeedPosts)
+	mux.HandleFunc("POST /api/groups/{group_id}/daily-feeds/{feed_id}/outputs/{date}/posts", s.handleCreateGroupFeedPost)
+	mux.HandleFunc("GET /api/groups/{group_id}/feed-posts/{post_id}", s.handleGetGroupFeedPost)
+	mux.HandleFunc("PATCH /api/groups/{group_id}/feed-posts/{post_id}", s.handlePatchGroupFeedPost)
+	mux.HandleFunc("DELETE /api/groups/{group_id}/feed-posts/{post_id}", s.handleDeleteGroupFeedPost)
 
 	mux.HandleFunc("GET /api/me/daily", s.handleGetMeDaily)
 	mux.HandleFunc("POST /api/me/dailies/generate", s.handleGenerateMeDaily)

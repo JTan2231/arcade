@@ -505,9 +505,9 @@ func (s *Server) handleGetGroupDailyFeedOutput(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	date, err := time.Parse(dailyFeedDateLayout, r.PathValue("date"))
+	date, err := parseDailyFeedPathDate(r.PathValue("date"))
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "date must use YYYY-MM-DD")
+		handleError(w, err)
 		return
 	}
 
