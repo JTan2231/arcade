@@ -10,8 +10,8 @@ import (
 func TestRenderCatalogTemplate(t *testing.T) {
 	rendered, missing := renderCatalogTemplate(
 		"https://codeforces.com/problemset/problem/{contest_id}/{index}",
-		"Watermelon",
 		map[string]any{
+			"name":       "Watermelon",
 			"contest_id": "4",
 			"index":      "A",
 		},
@@ -27,9 +27,8 @@ func TestRenderCatalogTemplate(t *testing.T) {
 
 func TestRenderCatalogTemplateReportsMissingFields(t *testing.T) {
 	_, missing := renderCatalogTemplate(
-		"Practice {title}. Focus on {focus}. Drill: {drill}.",
-		"Jin Kazama",
-		map[string]any{"focus": "electric execution"},
+		"Practice {name}. Focus on {focus}. Drill: {drill}.",
+		map[string]any{"name": "Jin Kazama", "focus": "electric execution"},
 	)
 
 	if !reflect.DeepEqual(missing, []string{"drill"}) {
@@ -78,26 +77,31 @@ func TestDailyCandidateMatchesMetadataFilters(t *testing.T) {
 			"tags":   []any{"implementation", "math"},
 		},
 	}
-	block := DailyFeedRuleBlock{
-		Filters: DailyFeedFilters{
-			Rating: &DailyFeedRatingFilter{
-				Min: intPtr(800),
-				Max: intPtr(1200),
-			},
-			Tags: &DailyFeedTagFilter{
-				IncludeAny: []string{"implementation"},
-				ExcludeAny: []string{"geometry"},
-			},
+	filters := []DailyFeedRuleFilter{
+		{
+			FieldKey:     "rating",
+			FieldLabel:   "Rating",
+			ValueType:    "number",
+			Op:           "between",
+			NumberValues: []float64{800, 1200},
+		},
+		{
+			FieldKey:   "tags",
+			FieldLabel: "Tags",
+			ValueType:  "string",
+			IsArray:    true,
+			Op:         "contains",
+			TextValues: []string{"implementation"},
 		},
 	}
 
-	if !dailyCandidateMatchesBlock(candidate, block) {
+	if !dailyCandidateMatchesFilters(candidate, filters) {
 		t.Fatal("candidate should match rating and tag filters")
 	}
 
-	block.Filters.Tags.ExcludeAny = []string{"math"}
-	if dailyCandidateMatchesBlock(candidate, block) {
-		t.Fatal("candidate should not match excluded tag")
+	filters[1].TextValues = []string{"geometry"}
+	if dailyCandidateMatchesFilters(candidate, filters) {
+		t.Fatal("candidate should not match missing tag")
 	}
 }
 
@@ -110,8 +114,8 @@ func TestSortDailyCandidatesIsStableForSameInputs(t *testing.T) {
 	first := append([]dailyCatalogCandidate(nil), candidates...)
 	second := append([]dailyCatalogCandidate(nil), candidates...)
 
-	sortDailyCandidates(first, "feed", "2026-06-21", 0, intPtr(1000))
-	sortDailyCandidates(second, "feed", "2026-06-21", 0, intPtr(1000))
+	sortDailyCandidates(first, "feed", "2026-06-21")
+	sortDailyCandidates(second, "feed", "2026-06-21")
 
 	if !reflect.DeepEqual(candidateIDs(first), candidateIDs(second)) {
 		t.Fatalf("same inputs produced different orders: %v vs %v", candidateIDs(first), candidateIDs(second))
@@ -119,17 +123,11 @@ func TestSortDailyCandidatesIsStableForSameInputs(t *testing.T) {
 }
 
 func TestDailyFeedDefaults(t *testing.T) {
-	if got := dailyFeedRole(0, 1, nil); got != "target" {
+	if got := dailyFeedRole(0, 1); got != "target" {
 		t.Fatalf("single item role = %q", got)
 	}
-	if got := dailyFeedRole(3, 4, nil); got != "bonus" {
+	if got := dailyFeedRole(3, 4); got != "bonus" {
 		t.Fatalf("fourth item role = %q", got)
-	}
-	if got := dailyFeedPoints(0, nil); got != 1 {
-		t.Fatalf("default points = %d", got)
-	}
-	if got := dailyFeedPoints(1, []int{2, 3}); got != 3 {
-		t.Fatalf("configured points = %d", got)
 	}
 }
 
@@ -143,21 +141,25 @@ func TestDailyFeedKindDefaultsToCatalogDaily(t *testing.T) {
 	}
 }
 
-func TestDailyThreadRulesAreEmpty(t *testing.T) {
+func TestDailyThreadRejectsPracticeFields(t *testing.T) {
 	server := &Server{}
-	rules, err := server.normalizeDailyFeedRulesForKind(context.Background(), "group", dailyFeedKindDailyThread, DailyFeedRules{})
+	input, err := server.normalizeCreateDailyFeed(context.Background(), "group", createDailyFeedRequest{
+		Kind: dailyFeedKindDailyThread,
+	})
 	if err != nil {
-		t.Fatalf("normalizeDailyFeedRulesForKind returned error: %v", err)
+		t.Fatalf("normalizeCreateDailyFeed returned error: %v", err)
 	}
-	if len(rules.Blocks) != 0 {
-		t.Fatalf("rules blocks = %d", len(rules.Blocks))
+	if input.Kind != dailyFeedKindDailyThread {
+		t.Fatalf("kind = %q", input.Kind)
 	}
 
-	_, err = server.normalizeDailyFeedRulesForKind(context.Background(), "group", dailyFeedKindDailyThread, DailyFeedRules{
-		Blocks: []DailyFeedRuleBlock{{SourceID: "source", Count: 1}},
+	_, err = server.normalizeCreateDailyFeed(context.Background(), "group", createDailyFeedRequest{
+		Kind:      dailyFeedKindDailyThread,
+		SourceID:  "source",
+		ItemCount: 1,
 	})
 	if err == nil {
-		t.Fatal("expected daily thread rules to reject blocks")
+		t.Fatal("expected daily thread to reject practice fields")
 	}
 }
 
@@ -165,12 +167,16 @@ func TestDailyThreadOutputHasNoGeneratedItems(t *testing.T) {
 	server := &Server{}
 	requestedDate := time.Date(2026, 6, 24, 12, 0, 0, 0, time.UTC)
 	output, err := server.generateDailyFeedOutputForFeed(context.Background(), DailyFeed{
-		ID:       "feed-id",
-		GroupID:  "group-id",
-		Name:     defaultDailyThreadFeedName,
-		Slug:     defaultDailyThreadFeedSlug,
-		Kind:     dailyFeedKindDailyThread,
-		Schedule: DailyFeedSchedule{Cadence: "daily", Timezone: "UTC"},
+		ID:      "feed-id",
+		GroupID: "group-id",
+		Name:    defaultDailyThreadFeedName,
+		Slug:    defaultDailyThreadFeedSlug,
+		Kind:    dailyFeedKindDailyThread,
+		Schedule: DailyFeedSchedule{
+			StartsAt:        time.Date(2026, 6, 24, 0, 0, 0, 0, time.UTC),
+			Timezone:        "UTC",
+			IntervalSeconds: 86400,
+		},
 	}, &requestedDate)
 	if err != nil {
 		t.Fatalf("generateDailyFeedOutputForFeed returned error: %v", err)
@@ -192,8 +198,4 @@ func candidateIDs(candidates []dailyCatalogCandidate) []string {
 		ids = append(ids, candidate.ID)
 	}
 	return ids
-}
-
-func intPtr(value int) *int {
-	return &value
 }

@@ -13,7 +13,6 @@ import (
 	"net/url"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -31,39 +30,84 @@ const (
 var templateFieldPattern = regexp.MustCompile(`\{([A-Za-z0-9_]+)\}`)
 
 type createDailyFeedRequest struct {
-	Name        string             `json:"name"`
-	Slug        string             `json:"slug"`
-	Kind        string             `json:"kind"`
-	Description *string            `json:"description"`
-	Enabled     *bool              `json:"enabled"`
-	Audience    *DailyFeedAudience `json:"audience"`
-	Schedule    *DailyFeedSchedule `json:"schedule"`
-	Rules       DailyFeedRules     `json:"rules"`
+	Name        string                `json:"name"`
+	Slug        string                `json:"slug"`
+	Kind        string                `json:"kind"`
+	Description *string               `json:"description"`
+	Enabled     *bool                 `json:"enabled"`
+	SourceID    string                `json:"source_id"`
+	ItemCount   int                   `json:"item_count"`
+	Schedule    *DailyFeedSchedule    `json:"schedule"`
+	Filters     []DailyFeedRuleFilter `json:"filters"`
 }
 
 type patchDailyFeedRequest struct {
-	Name        *string            `json:"name"`
-	Slug        *string            `json:"slug"`
-	Description *string            `json:"description"`
-	Enabled     *bool              `json:"enabled"`
-	Audience    *DailyFeedAudience `json:"audience"`
-	Schedule    *DailyFeedSchedule `json:"schedule"`
-	Rules       *DailyFeedRules    `json:"rules"`
+	Name        optionalStringField           `json:"name"`
+	Slug        optionalStringField           `json:"slug"`
+	Description optionalNullableStringField   `json:"description"`
+	Enabled     *bool                         `json:"enabled"`
+	SourceID    optionalStringField           `json:"source_id"`
+	ItemCount   optionalIntField              `json:"item_count"`
+	Schedule    *DailyFeedSchedule            `json:"schedule"`
+	Filters     optionalDailyFeedFiltersField `json:"filters"`
 }
 
-type previewDailyFeedRequest struct {
-	Name  string         `json:"name"`
-	Rules DailyFeedRules `json:"rules"`
+type optionalIntField struct {
+	Set   bool
+	Value int
+}
+
+func (field *optionalIntField) UnmarshalJSON(data []byte) error {
+	field.Set = true
+	if strings.TrimSpace(string(data)) == "null" {
+		return errors.New("field must be an integer")
+	}
+	return json.Unmarshal(data, &field.Value)
+}
+
+type optionalDailyFeedFiltersField struct {
+	Set   bool
+	Value []DailyFeedRuleFilter
+}
+
+func (field *optionalDailyFeedFiltersField) UnmarshalJSON(data []byte) error {
+	field.Set = true
+	if strings.TrimSpace(string(data)) == "null" {
+		field.Value = nil
+		return nil
+	}
+	return json.Unmarshal(data, &field.Value)
+}
+
+type normalizedDailyFeedInput struct {
+	Name        string
+	Slug        string
+	Kind        string
+	Description *string
+	Enabled     bool
+	SourceID    *string
+	ItemCount   *int
+	Schedule    DailyFeedSchedule
+	Filters     []DailyFeedRuleFilter
 }
 
 type dailyCatalogCandidate struct {
-	ID         string
-	SourceID   string
-	SourceName string
-	Title      string
-	Data       map[string]any
-	Rendered   string
-	Action     DailyFeedAction
+	ID            string
+	SourceID      string
+	SourceName    string
+	Title         string
+	Data          map[string]any
+	Rendered      string
+	MissingFields []string
+	Action        DailyFeedAction
+}
+
+type dailyFeedSelection struct {
+	Output              DailyFeedOutput
+	CandidateItemCount  int
+	EligibleItemCount   int
+	IneligibleItemCount int
+	IneligibleItems     []CatalogItemEligibility
 }
 
 func (s *Server) handleListGroupDailyFeeds(w http.ResponseWriter, r *http.Request) {
@@ -88,16 +132,7 @@ func (s *Server) handleListGroupDailyFeeds(w http.ResponseWriter, r *http.Reques
 
 	visible := make([]DailyFeed, 0, len(feeds))
 	for _, feed := range feeds {
-		if canManageDailyFeeds(role) {
-			visible = append(visible, feed)
-			continue
-		}
-		ok, err := s.dailyFeedAudienceMatches(r.Context(), current.ID, feed)
-		if err != nil {
-			handleError(w, err)
-			return
-		}
-		if feed.Enabled && ok {
+		if canManageDailyFeeds(role) || feed.Enabled {
 			visible = append(visible, feed)
 		}
 	}
@@ -124,77 +159,28 @@ func (s *Server) handleCreateGroupDailyFeed(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	kind, err := normalizeDailyFeedKind(req.Kind)
+	input, err := s.normalizeCreateDailyFeed(r.Context(), groupID, req)
 	if err != nil {
 		handleError(w, err)
 		return
 	}
 
-	req.Name = strings.TrimSpace(req.Name)
-	if req.Name == "" {
-		if kind != dailyFeedKindDailyThread {
-			writeError(w, http.StatusBadRequest, "name is required")
-			return
-		}
-		req.Name = defaultDailyThreadFeedName
-	}
-	if req.Slug == "" {
-		if kind == dailyFeedKindDailyThread {
-			req.Slug = defaultDailyThreadFeedSlug
-		} else {
-			req.Slug = slugify(req.Name)
-		}
-	} else {
-		req.Slug = slugify(req.Slug)
-	}
-
-	audience := defaultDailyFeedAudience(req.Audience)
-	if err := s.validateDailyFeedAudience(r.Context(), groupID, audience); err != nil {
-		handleError(w, err)
-		return
-	}
-
-	schedule, err := normalizeDailyFeedSchedule(req.Schedule)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-
-	rules, err := s.normalizeDailyFeedRulesForKind(r.Context(), groupID, kind, req.Rules)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-
-	audienceJSON, err := dailyFeedJSONParam(audience)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-	scheduleJSON, err := dailyFeedJSONParam(schedule)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-	rulesJSON, err := dailyFeedJSONParam(rules)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-
-	enabled := true
-	if req.Enabled != nil {
-		enabled = *req.Enabled
-	}
-	if enabled && dailyFeedKindRequiresReady(kind) {
-		if err := s.validateDailyFeedReady(r.Context(), rules); err != nil {
+	if input.Enabled && input.Kind == dailyFeedKindCatalogDaily {
+		if err := s.validatePracticeFeedReady(r.Context(), *input.SourceID, *input.ItemCount, input.Filters); err != nil {
 			handleError(w, err)
 			return
 		}
 	}
 
+	tx, err := s.db.Begin(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	defer tx.Rollback(r.Context())
+
 	var feedID string
-	err = s.db.QueryRow(r.Context(), `
+	err = tx.QueryRow(r.Context(), `
 		insert into group_daily_feeds (
 			group_id,
 			name,
@@ -202,16 +188,29 @@ func (s *Server) handleCreateGroupDailyFeed(w http.ResponseWriter, r *http.Reque
 			kind,
 			description,
 			enabled,
-			audience,
-			schedule,
-			rules_schema_version,
-			rules,
+			source_id,
+			item_count,
+			schedule_starts_at,
+			schedule_timezone,
+			schedule_interval_seconds,
 			created_by_user_id
 		)
-		values ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, 1, $9::jsonb, $10)
+		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		returning id::text
-	`, groupID, req.Name, req.Slug, kind, req.Description, enabled, audienceJSON, scheduleJSON, rulesJSON, current.ID).Scan(&feedID)
+	`, groupID, input.Name, input.Slug, input.Kind, input.Description, input.Enabled, input.SourceID, input.ItemCount, input.Schedule.StartsAt, input.Schedule.Timezone, input.Schedule.IntervalSeconds, current.ID).Scan(&feedID)
 	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	if input.Kind == dailyFeedKindCatalogDaily {
+		if err := insertDailyFeedFilters(r.Context(), tx, feedID, *input.SourceID, input.Filters); err != nil {
+			handleError(w, err)
+			return
+		}
+	}
+
+	if err := tx.Commit(r.Context()); err != nil {
 		handleError(w, err)
 		return
 	}
@@ -237,46 +236,46 @@ func (s *Server) handlePreviewGroupDailyFeed(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	var req previewDailyFeedRequest
+	var req createDailyFeedRequest
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON request")
 		return
 	}
-	req.Name = strings.TrimSpace(req.Name)
-	if req.Name == "" {
+	req.Kind = dailyFeedKindCatalogDaily
+	if strings.TrimSpace(req.Name) == "" {
 		req.Name = "Daily Practice"
 	}
 
-	rules, err := s.normalizeDailyFeedRules(r.Context(), groupID, req.Rules)
+	input, err := s.normalizeCreateDailyFeed(r.Context(), groupID, req)
 	if err != nil {
 		handleError(w, err)
 		return
 	}
 
 	feed := DailyFeed{
-		ID:       "preview",
-		GroupID:  groupID,
-		Name:     req.Name,
-		Slug:     slugify(req.Name),
-		Enabled:  true,
-		Audience: defaultDailyFeedAudience(nil),
-		Schedule: DailyFeedSchedule{Cadence: "daily", Timezone: "UTC"},
-		Rules:    rules,
+		ID:        "preview",
+		GroupID:   groupID,
+		Name:      input.Name,
+		Slug:      input.Slug,
+		Kind:      input.Kind,
+		Enabled:   true,
+		SourceID:  input.SourceID,
+		ItemCount: input.ItemCount,
+		Schedule:  input.Schedule,
+		Filters:   input.Filters,
 	}
-	output, err := s.generateDailyFeedOutputForFeed(r.Context(), feed, nil)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-	ineligible, err := s.ineligibleDailyCatalogItems(r.Context(), rules)
+	selection, err := s.selectDailyFeedItems(r.Context(), feed, nil, false)
 	if err != nil {
 		handleError(w, err)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, DailyFeedPreview{
-		Output:          output,
-		IneligibleItems: ineligible,
+		Output:              selection.Output,
+		CandidateItemCount:  selection.CandidateItemCount,
+		EligibleItemCount:   selection.EligibleItemCount,
+		IneligibleItemCount: selection.IneligibleItemCount,
+		IneligibleItems:     selection.IneligibleItems,
 	})
 }
 
@@ -299,16 +298,9 @@ func (s *Server) handleGetGroupDailyFeed(w http.ResponseWriter, r *http.Request)
 		handleError(w, err)
 		return
 	}
-	if !canManageDailyFeeds(role) {
-		ok, err := s.dailyFeedAudienceMatches(r.Context(), current.ID, feed)
-		if err != nil {
-			handleError(w, err)
-			return
-		}
-		if !feed.Enabled || !ok {
-			handleError(w, errNotFound("daily feed"))
-			return
-		}
+	if !canManageDailyFeeds(role) && !feed.Enabled {
+		handleError(w, errNotFound("daily feed"))
+		return
 	}
 
 	writeJSON(w, http.StatusOK, feed)
@@ -333,110 +325,120 @@ func (s *Server) handlePatchGroupDailyFeed(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	var name any
-	if req.Name != nil {
-		trimmed := strings.TrimSpace(*req.Name)
-		if trimmed == "" {
+	currentFeed, err := s.getGroupDailyFeed(r.Context(), groupID, r.PathValue("feed_id"))
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	name := currentFeed.Name
+	if req.Name.Set {
+		name = strings.TrimSpace(req.Name.Value)
+		if name == "" {
 			writeError(w, http.StatusBadRequest, "name cannot be empty")
 			return
 		}
-		name = trimmed
 	}
 
-	var slug any
-	if req.Slug != nil {
-		slug = slugify(*req.Slug)
+	slug := currentFeed.Slug
+	if req.Slug.Set {
+		slug = slugify(req.Slug.Value)
 	}
 
-	var audienceJSON any
-	if req.Audience != nil {
-		audience := defaultDailyFeedAudience(req.Audience)
-		if err := s.validateDailyFeedAudience(r.Context(), groupID, audience); err != nil {
-			handleError(w, err)
-			return
-		}
-		value, err := dailyFeedJSONParam(audience)
-		if err != nil {
-			handleError(w, err)
-			return
-		}
-		audienceJSON = value
+	descriptionSet := req.Description.Set
+	description := currentFeed.Description
+	if req.Description.Set {
+		description = trimOptionalString(req.Description.Value)
 	}
 
-	var scheduleJSON any
+	enabled := currentFeed.Enabled
+	if req.Enabled != nil {
+		enabled = *req.Enabled
+	}
+
+	schedule := currentFeed.Schedule
 	if req.Schedule != nil {
-		schedule, err := normalizeDailyFeedSchedule(req.Schedule)
+		normalized, err := normalizeDailyFeedSchedule(req.Schedule)
 		if err != nil {
 			handleError(w, err)
 			return
 		}
-		value, err := dailyFeedJSONParam(schedule)
-		if err != nil {
-			handleError(w, err)
-			return
-		}
-		scheduleJSON = value
+		schedule = normalized
 	}
 
-	var rulesJSON any
-	var rules *DailyFeedRules
-	var currentFeed *DailyFeed
-	if req.Enabled != nil || req.Rules != nil {
-		feed, err := s.getGroupDailyFeed(r.Context(), groupID, r.PathValue("feed_id"))
-		if err != nil {
-			handleError(w, err)
-			return
-		}
-		currentFeed = &feed
-	}
-	if req.Rules != nil {
-		if currentFeed.Kind == dailyFeedKindDailyThread {
-			handleError(w, badRequest("daily thread feeds do not support rules"))
-			return
-		}
-		normalized, err := s.normalizeDailyFeedRules(r.Context(), groupID, *req.Rules)
-		if err != nil {
-			handleError(w, err)
-			return
-		}
-		rules = &normalized
-		value, err := dailyFeedJSONParam(normalized)
-		if err != nil {
-			handleError(w, err)
-			return
-		}
-		rulesJSON = value
-	}
+	sourceID := currentFeed.SourceID
+	itemCount := currentFeed.ItemCount
+	filters := currentFeed.Filters
 
-	if currentFeed != nil {
-		finalEnabled := currentFeed.Enabled
-		if req.Enabled != nil {
-			finalEnabled = *req.Enabled
+	if currentFeed.Kind == dailyFeedKindDailyThread {
+		if req.SourceID.Set || req.ItemCount.Set || req.Filters.Set {
+			handleError(w, badRequest("daily thread feeds do not support source, item count, or filters"))
+			return
 		}
-		finalRules := currentFeed.Rules
-		if rules != nil {
-			finalRules = *rules
+	} else {
+		if req.SourceID.Set {
+			value := strings.TrimSpace(req.SourceID.Value)
+			sourceID = &value
 		}
-		if finalEnabled && dailyFeedKindRequiresReady(currentFeed.Kind) {
-			if err := s.validateDailyFeedReady(r.Context(), finalRules); err != nil {
+		if req.ItemCount.Set {
+			value := req.ItemCount.Value
+			itemCount = &value
+		}
+		if req.Filters.Set {
+			filters = req.Filters.Value
+		}
+
+		if sourceID == nil || strings.TrimSpace(*sourceID) == "" {
+			handleError(w, badRequest("source_id is required"))
+			return
+		}
+		if itemCount == nil {
+			handleError(w, badRequest("item_count is required"))
+			return
+		}
+		normalizedFilters, err := s.normalizePracticeFeedConfig(r.Context(), groupID, *sourceID, *itemCount, filters)
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+		filters = normalizedFilters
+
+		if enabled {
+			if err := s.validatePracticeFeedReady(r.Context(), *sourceID, *itemCount, filters); err != nil {
 				handleError(w, err)
 				return
 			}
 		}
 	}
 
-	tag, err := s.db.Exec(r.Context(), `
+	tx, err := s.db.Begin(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	replaceFilters := currentFeed.Kind == dailyFeedKindCatalogDaily && req.Filters.Set
+	if replaceFilters {
+		if _, err := tx.Exec(r.Context(), `delete from feed_rule_filters where feed_id = $1`, currentFeed.ID); err != nil {
+			handleError(w, err)
+			return
+		}
+	}
+
+	tag, err := tx.Exec(r.Context(), `
 		update group_daily_feeds
-		set name = coalesce($3, name),
-		    slug = coalesce($4, slug),
-		    description = coalesce($5, description),
-		    enabled = coalesce($6, enabled),
-		    audience = coalesce($7::jsonb, audience),
-		    schedule = coalesce($8::jsonb, schedule),
-		    rules = coalesce($9::jsonb, rules),
-		    rules_schema_version = case when $9::jsonb is null then rules_schema_version else 1 end
+		set name = $3,
+		    slug = $4,
+		    description = case when $5 then $6 else description end,
+		    enabled = $7,
+		    source_id = $8,
+		    item_count = $9,
+		    schedule_starts_at = $10,
+		    schedule_timezone = $11,
+		    schedule_interval_seconds = $12
 		where group_id = $1 and id = $2
-	`, groupID, r.PathValue("feed_id"), name, slug, req.Description, req.Enabled, audienceJSON, scheduleJSON, rulesJSON)
+	`, groupID, currentFeed.ID, name, slug, descriptionSet, description, enabled, sourceID, itemCount, schedule.StartsAt, schedule.Timezone, schedule.IntervalSeconds)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -446,7 +448,19 @@ func (s *Server) handlePatchGroupDailyFeed(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	feed, err := s.getGroupDailyFeed(r.Context(), groupID, r.PathValue("feed_id"))
+	if replaceFilters {
+		if err := insertDailyFeedFilters(r.Context(), tx, currentFeed.ID, *sourceID, filters); err != nil {
+			handleError(w, err)
+			return
+		}
+	}
+
+	if err := tx.Commit(r.Context()); err != nil {
+		handleError(w, err)
+		return
+	}
+
+	feed, err := s.getGroupDailyFeed(r.Context(), groupID, currentFeed.ID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -561,25 +575,7 @@ func (s *Server) handleListMeDailyFeedOutputs(w http.ResponseWriter, r *http.Req
 }
 
 func (s *Server) listGroupDailyFeeds(ctx context.Context, groupID string) ([]DailyFeed, error) {
-	rows, err := s.db.Query(ctx, `
-		select
-			f.id::text,
-			f.group_id::text,
-			g.name,
-			f.name,
-			f.slug,
-			f.kind,
-			f.description,
-			f.enabled,
-			f.audience,
-			f.schedule,
-			f.rules_schema_version,
-			f.rules,
-			f.created_by_user_id::text,
-			f.created_at,
-			f.updated_at
-		from group_daily_feeds f
-		join groups g on g.id = f.group_id
+	rows, err := s.db.Query(ctx, dailyFeedSelectSQL()+`
 		where f.group_id = $1
 		order by f.name
 	`, groupID)
@@ -594,31 +590,16 @@ func (s *Server) listGroupDailyFeeds(ctx context.Context, groupID string) ([]Dai
 		if err != nil {
 			return nil, err
 		}
+		if err := s.hydrateDailyFeedFilters(ctx, &feed); err != nil {
+			return nil, err
+		}
 		feeds = append(feeds, feed)
 	}
 	return feeds, rows.Err()
 }
 
 func (s *Server) listMeDailyFeeds(ctx context.Context, userID string) ([]DailyFeed, error) {
-	rows, err := s.db.Query(ctx, `
-		select
-			f.id::text,
-			f.group_id::text,
-			g.name,
-			f.name,
-			f.slug,
-			f.kind,
-			f.description,
-			f.enabled,
-			f.audience,
-			f.schedule,
-			f.rules_schema_version,
-			f.rules,
-			f.created_by_user_id::text,
-			f.created_at,
-			f.updated_at
-		from group_daily_feeds f
-		join groups g on g.id = f.group_id
+	rows, err := s.db.Query(ctx, dailyFeedSelectSQL()+`
 		join group_memberships gm on gm.group_id = f.group_id
 		where gm.user_id = $1
 		  and gm.status = 'active'
@@ -636,19 +617,32 @@ func (s *Server) listMeDailyFeeds(ctx context.Context, userID string) ([]DailyFe
 		if err != nil {
 			return nil, err
 		}
-		ok, err := s.dailyFeedAudienceMatches(ctx, userID, feed)
-		if err != nil {
+		if err := s.hydrateDailyFeedFilters(ctx, &feed); err != nil {
 			return nil, err
 		}
-		if ok {
-			feeds = append(feeds, feed)
-		}
+		feeds = append(feeds, feed)
 	}
 	return feeds, rows.Err()
 }
 
 func (s *Server) getGroupDailyFeed(ctx context.Context, groupID string, feedID string) (DailyFeed, error) {
-	feed, err := scanDailyFeed(s.db.QueryRow(ctx, `
+	feed, err := scanDailyFeed(s.db.QueryRow(ctx, dailyFeedSelectSQL()+`
+		where f.group_id = $1 and f.id = $2
+	`, groupID, feedID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return DailyFeed{}, errNotFound("daily feed")
+	}
+	if err != nil {
+		return DailyFeed{}, err
+	}
+	if err := s.hydrateDailyFeedFilters(ctx, &feed); err != nil {
+		return DailyFeed{}, err
+	}
+	return feed, nil
+}
+
+func dailyFeedSelectSQL() string {
+	return `
 		select
 			f.id::text,
 			f.group_id::text,
@@ -658,31 +652,29 @@ func (s *Server) getGroupDailyFeed(ctx context.Context, groupID string, feedID s
 			f.kind,
 			f.description,
 			f.enabled,
-			f.audience,
-			f.schedule,
-			f.rules_schema_version,
-			f.rules,
+			f.source_id::text,
+			cs.name,
+			f.item_count,
+			f.schedule_starts_at,
+			f.schedule_timezone,
+			f.schedule_interval_seconds,
 			f.created_by_user_id::text,
 			f.created_at,
 			f.updated_at
 		from group_daily_feeds f
 		join groups g on g.id = f.group_id
-		where f.group_id = $1 and f.id = $2
-	`, groupID, feedID))
-	if errors.Is(err, pgx.ErrNoRows) {
-		return DailyFeed{}, errNotFound("daily feed")
-	}
-	return feed, err
+		left join catalog_sources cs on cs.id = f.source_id
+	`
 }
 
 func scanDailyFeed(row pgx.Row) (DailyFeed, error) {
 	var feed DailyFeed
 	var groupName sql.NullString
 	var description sql.NullString
+	var sourceID sql.NullString
+	var sourceName sql.NullString
+	var itemCount sql.NullInt64
 	var createdByUserID sql.NullString
-	var audienceJSON []byte
-	var scheduleJSON []byte
-	var rulesJSON []byte
 	if err := row.Scan(
 		&feed.ID,
 		&feed.GroupID,
@@ -692,29 +684,84 @@ func scanDailyFeed(row pgx.Row) (DailyFeed, error) {
 		&feed.Kind,
 		&description,
 		&feed.Enabled,
-		&audienceJSON,
-		&scheduleJSON,
-		&feed.RulesSchemaVersion,
-		&rulesJSON,
+		&sourceID,
+		&sourceName,
+		&itemCount,
+		&feed.Schedule.StartsAt,
+		&feed.Schedule.Timezone,
+		&feed.Schedule.IntervalSeconds,
 		&createdByUserID,
 		&feed.CreatedAt,
 		&feed.UpdatedAt,
 	); err != nil {
 		return DailyFeed{}, err
 	}
-	if err := json.Unmarshal(audienceJSON, &feed.Audience); err != nil {
-		return DailyFeed{}, fmt.Errorf("decode daily feed audience: %w", err)
-	}
-	if err := json.Unmarshal(scheduleJSON, &feed.Schedule); err != nil {
-		return DailyFeed{}, fmt.Errorf("decode daily feed schedule: %w", err)
-	}
-	if err := json.Unmarshal(rulesJSON, &feed.Rules); err != nil {
-		return DailyFeed{}, fmt.Errorf("decode daily feed rules: %w", err)
-	}
 	feed.GroupName = nullStringPtr(groupName)
 	feed.Description = nullStringPtr(description)
+	feed.SourceID = nullStringPtr(sourceID)
+	feed.SourceName = nullStringPtr(sourceName)
+	feed.ItemCount = nullIntPtr(itemCount)
 	feed.CreatedByUserID = nullStringPtr(createdByUserID)
+	feed.Filters = []DailyFeedRuleFilter{}
 	return feed, nil
+}
+
+func (s *Server) hydrateDailyFeedFilters(ctx context.Context, feed *DailyFeed) error {
+	if feed.SourceID == nil {
+		feed.Filters = []DailyFeedRuleFilter{}
+		return nil
+	}
+	rows, err := s.db.Query(ctx, `
+		select
+			frf.id::text,
+			frf.feed_id::text,
+			frf.source_id::text,
+			frf.field_id::text,
+			csf.key,
+			csf.label,
+			csf.value_type,
+			csf.is_array,
+			frf.position,
+			frf.op,
+			frf.text_values,
+			frf.number_values::double precision[],
+			frf.created_at,
+			frf.updated_at
+		from feed_rule_filters frf
+		join catalog_source_fields csf on csf.id = frf.field_id and csf.source_id = frf.source_id
+		where frf.feed_id = $1
+		order by frf.position
+	`, feed.ID)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	filters := []DailyFeedRuleFilter{}
+	for rows.Next() {
+		var filter DailyFeedRuleFilter
+		if err := rows.Scan(
+			&filter.ID,
+			&filter.FeedID,
+			&filter.SourceID,
+			&filter.FieldID,
+			&filter.FieldKey,
+			&filter.FieldLabel,
+			&filter.ValueType,
+			&filter.IsArray,
+			&filter.Position,
+			&filter.Op,
+			&filter.TextValues,
+			&filter.NumberValues,
+			&filter.CreatedAt,
+			&filter.UpdatedAt,
+		); err != nil {
+			return err
+		}
+		filters = append(filters, filter)
+	}
+	feed.Filters = filters
+	return rows.Err()
 }
 
 func (s *Server) generateDailyFeedOutput(ctx context.Context, userID string, groupID string, feedID string, requestedDate *time.Time) (DailyFeedOutput, error) {
@@ -732,87 +779,103 @@ func (s *Server) generateDailyFeedOutput(ctx context.Context, userID string, gro
 		return DailyFeedOutput{}, errNotFound("daily feed")
 	}
 
-	ok, err := s.dailyFeedAudienceMatches(ctx, userID, feed)
-	if err != nil {
-		return DailyFeedOutput{}, err
-	}
-	if !ok {
-		return DailyFeedOutput{}, forbidden("daily feed audience required")
-	}
-
 	return s.generateDailyFeedOutputForFeed(ctx, feed, requestedDate)
 }
 
 func (s *Server) generateDailyFeedOutputForFeed(ctx context.Context, feed DailyFeed, requestedDate *time.Time) (DailyFeedOutput, error) {
-	date, err := dailyFeedOutputDate(feed.Schedule, requestedDate)
+	selection, err := s.selectDailyFeedItems(ctx, feed, requestedDate, true)
 	if err != nil {
 		return DailyFeedOutput{}, err
 	}
+	return selection.Output, nil
+}
+
+func (s *Server) selectDailyFeedItems(ctx context.Context, feed DailyFeed, requestedDate *time.Time, requireFullCount bool) (dailyFeedSelection, error) {
+	date, err := dailyFeedOutputDate(feed.Schedule, requestedDate)
+	if err != nil {
+		return dailyFeedSelection{}, err
+	}
 	dateString := date.Format(dailyFeedDateLayout)
 
-	output := DailyFeedOutput{
-		FeedID:    feed.ID,
-		GroupID:   feed.GroupID,
-		GroupName: feed.GroupName,
-		Date:      dateString,
-		Title:     feed.Name,
-		Items:     []DailyFeedOutputItem{},
+	selection := dailyFeedSelection{
+		Output: DailyFeedOutput{
+			FeedID:    feed.ID,
+			GroupID:   feed.GroupID,
+			GroupName: feed.GroupName,
+			Date:      dateString,
+			Title:     feed.Name,
+			Items:     []DailyFeedOutputItem{},
+		},
 	}
+
 	if feed.Kind == dailyFeedKindDailyThread {
-		return output, nil
+		return selection, nil
 	}
-	selected := map[string]bool{}
+	if feed.SourceID == nil || feed.ItemCount == nil {
+		return dailyFeedSelection{}, badRequest("practice feed source and item count are required")
+	}
 
-	for blockIndex, block := range feed.Rules.Blocks {
-		candidates, err := s.dailyCatalogCandidates(ctx, block.SourceID)
-		if err != nil {
-			return DailyFeedOutput{}, err
-		}
+	candidates, err := s.dailyCatalogCandidates(ctx, *feed.SourceID)
+	if err != nil {
+		return dailyFeedSelection{}, err
+	}
+	selection.CandidateItemCount = len(candidates)
 
-		matching := make([]dailyCatalogCandidate, 0, len(candidates))
-		for _, candidate := range candidates {
-			if selected[candidate.ID] || !dailyCandidateMatchesBlock(candidate, block) {
-				continue
-			}
-			action, ok := resolveDailyAction(candidate)
-			if !ok {
-				continue
-			}
-			candidate.Action = action
-			matching = append(matching, candidate)
-		}
-
-		target := dailyBlockTargetRating(block)
-		sortDailyCandidates(matching, dailyFeedSelectionKey(feed), dateString, blockIndex, target)
-		if len(matching) < block.Count {
-			return DailyFeedOutput{}, statusError{
-				status:  http.StatusUnprocessableEntity,
-				message: fmt.Sprintf("daily feed block %d could select only %d of %d items", blockIndex+1, len(matching), block.Count),
-			}
-		}
-
-		for localIndex, candidate := range matching[:block.Count] {
-			selected[candidate.ID] = true
-			role := dailyFeedRole(localIndex, block.Count, block.Roles)
-			points := dailyFeedPoints(localIndex, block.Points)
-			output.Items = append(output.Items, DailyFeedOutputItem{
-				Position: len(output.Items) + 1,
-				Role:     role,
-				Points:   points,
-				Reason:   dailyFeedReason(candidate, block, role),
-				Item: DailyCatalogItem{
-					ID:         candidate.ID,
-					SourceID:   candidate.SourceID,
-					SourceName: candidate.SourceName,
-					Title:      candidate.Title,
-					Data:       candidate.Data,
-				},
-				Action: candidate.Action,
+	matching := make([]dailyCatalogCandidate, 0, len(candidates))
+	for _, candidate := range candidates {
+		if len(candidate.MissingFields) > 0 {
+			selection.IneligibleItems = append(selection.IneligibleItems, CatalogItemEligibility{
+				ID:            candidate.ID,
+				SourceID:      candidate.SourceID,
+				Title:         candidate.Title,
+				MissingFields: candidate.MissingFields,
 			})
+			continue
+		}
+		if !dailyCandidateMatchesFilters(candidate, feed.Filters) {
+			continue
+		}
+		action, ok := resolveDailyAction(candidate)
+		if !ok {
+			continue
+		}
+		candidate.Action = action
+		matching = append(matching, candidate)
+	}
+
+	selection.EligibleItemCount = len(matching)
+	selection.IneligibleItemCount = len(selection.IneligibleItems)
+	sortDailyCandidates(matching, dailyFeedSelectionKey(feed), dateString)
+	if requireFullCount && len(matching) < *feed.ItemCount {
+		return dailyFeedSelection{}, statusError{
+			status:  http.StatusUnprocessableEntity,
+			message: fmt.Sprintf("daily feed could select only %d of %d items", len(matching), *feed.ItemCount),
 		}
 	}
 
-	return output, nil
+	limit := *feed.ItemCount
+	if len(matching) < limit {
+		limit = len(matching)
+	}
+	for index, candidate := range matching[:limit] {
+		role := dailyFeedRole(index, limit)
+		selection.Output.Items = append(selection.Output.Items, DailyFeedOutputItem{
+			Position: index + 1,
+			Role:     role,
+			Points:   1,
+			Reason:   dailyFeedReason(candidate, feed.Filters),
+			Item: DailyCatalogItem{
+				ID:         candidate.ID,
+				SourceID:   candidate.SourceID,
+				SourceName: candidate.SourceName,
+				Title:      candidate.Title,
+				Data:       candidate.Data,
+			},
+			Action: candidate.Action,
+		})
+	}
+
+	return selection, nil
 }
 
 func (s *Server) dailyCatalogCandidates(ctx context.Context, sourceID string) ([]dailyCatalogCandidate, error) {
@@ -822,7 +885,6 @@ func (s *Server) dailyCatalogCandidates(ctx context.Context, sourceID string) ([
 			src.id::text,
 			src.name,
 			src.template,
-			ci.title,
 			ci.data
 		from catalog_items ci
 		join catalog_sources src on src.id = ci.source_id
@@ -843,7 +905,6 @@ func (s *Server) dailyCatalogCandidates(ctx context.Context, sourceID string) ([
 			&candidate.SourceID,
 			&candidate.SourceName,
 			&template,
-			&candidate.Title,
 			&dataJSON,
 		); err != nil {
 			return nil, err
@@ -851,54 +912,140 @@ func (s *Server) dailyCatalogCandidates(ctx context.Context, sourceID string) ([
 		if err := json.Unmarshal(dataJSON, &candidate.Data); err != nil {
 			return nil, fmt.Errorf("decode catalog item data: %w", err)
 		}
-		rendered, missing := renderCatalogTemplate(template, candidate.Title, candidate.Data)
-		if len(missing) > 0 {
-			continue
-		}
-		candidate.Rendered = rendered
+		candidate.Title = catalogItemDisplayName(candidate.Data)
+		candidate.Rendered, candidate.MissingFields = renderCatalogTemplate(template, candidate.Data)
 		candidates = append(candidates, candidate)
 	}
 	return candidates, rows.Err()
 }
 
-func dailyCandidateMatchesBlock(candidate dailyCatalogCandidate, block DailyFeedRuleBlock) bool {
-	if block.Filters.Rating != nil {
-		rating := dailyMetadataInt(candidate.Data, "rating")
-		if block.Filters.Rating.Min != nil && (rating == nil || *rating < *block.Filters.Rating.Min) {
-			return false
-		}
-		if block.Filters.Rating.Max != nil && (rating == nil || *rating > *block.Filters.Rating.Max) {
+func dailyCandidateMatchesFilters(candidate dailyCatalogCandidate, filters []DailyFeedRuleFilter) bool {
+	for _, filter := range filters {
+		if !dailyCandidateMatchesFilter(candidate, filter) {
 			return false
 		}
 	}
-
-	if block.Filters.Tags != nil {
-		tags := dailyMetadataStrings(candidate.Data, "tags")
-		if len(block.Filters.Tags.IncludeAny) > 0 && !stringSetsOverlap(tags, block.Filters.Tags.IncludeAny) {
-			return false
-		}
-		if len(block.Filters.Tags.ExcludeAny) > 0 && stringSetsOverlap(tags, block.Filters.Tags.ExcludeAny) {
-			return false
-		}
-	}
-
 	return true
 }
 
-func sortDailyCandidates(candidates []dailyCatalogCandidate, feedKey string, date string, blockIndex int, target *int) {
-	sort.SliceStable(candidates, func(i, j int) bool {
-		if target != nil {
-			leftRating := dailyMetadataInt(candidates[i].Data, "rating")
-			rightRating := dailyMetadataInt(candidates[j].Data, "rating")
-			leftDistance := ratingDistance(leftRating, *target)
-			rightDistance := ratingDistance(rightRating, *target)
-			if leftDistance != rightDistance {
-				return leftDistance < rightDistance
+func dailyCandidateMatchesFilter(candidate dailyCatalogCandidate, filter DailyFeedRuleFilter) bool {
+	value, ok := candidate.Data[filter.FieldKey]
+	if !ok || value == nil {
+		return false
+	}
+
+	if filter.ValueType == "number" {
+		number, ok := dailyMetadataNumber(value)
+		if !ok {
+			return false
+		}
+		return dailyNumberMatches(number, filter.Op, filter.NumberValues)
+	}
+
+	if filter.IsArray {
+		values := dailyMetadataStringArray(value)
+		if len(values) == 0 {
+			return false
+		}
+		return dailyStringArrayMatches(values, filter.Op, filter.TextValues)
+	}
+
+	text, ok := dailyMetadataString(value)
+	if !ok {
+		return false
+	}
+	return dailyStringMatches(text, filter.Op, filter.TextValues)
+}
+
+func dailyNumberMatches(value float64, op string, operands []float64) bool {
+	switch op {
+	case "eq":
+		return len(operands) == 1 && value == operands[0]
+	case "gt":
+		return len(operands) == 1 && value > operands[0]
+	case "gte":
+		return len(operands) == 1 && value >= operands[0]
+	case "lt":
+		return len(operands) == 1 && value < operands[0]
+	case "lte":
+		return len(operands) == 1 && value <= operands[0]
+	case "between":
+		return len(operands) == 2 && value >= operands[0] && value <= operands[1]
+	default:
+		return false
+	}
+}
+
+func dailyStringMatches(value string, op string, operands []string) bool {
+	if len(operands) != 1 {
+		return false
+	}
+	switch op {
+	case "eq":
+		return value == operands[0]
+	case "contains":
+		return strings.Contains(strings.ToLower(value), strings.ToLower(operands[0]))
+	case "like":
+		return dailyLikeMatches(value, operands[0])
+	default:
+		return false
+	}
+}
+
+func dailyStringArrayMatches(values []string, op string, operands []string) bool {
+	switch op {
+	case "contains":
+		return len(operands) == 1 && stringSliceContainsFold(values, operands[0])
+	case "contains_any":
+		for _, operand := range operands {
+			if stringSliceContainsFold(values, operand) {
+				return true
 			}
 		}
+		return false
+	case "contains_all":
+		for _, operand := range operands {
+			if !stringSliceContainsFold(values, operand) {
+				return false
+			}
+		}
+		return len(operands) > 0
+	default:
+		return false
+	}
+}
 
-		leftHash := stableDailyHash(feedKey, date, blockIndex, candidates[i].ID)
-		rightHash := stableDailyHash(feedKey, date, blockIndex, candidates[j].ID)
+func dailyLikeMatches(value string, pattern string) bool {
+	var builder strings.Builder
+	builder.WriteString("(?is)^")
+	for _, char := range pattern {
+		switch char {
+		case '%':
+			builder.WriteString(".*")
+		case '_':
+			builder.WriteString(".")
+		default:
+			builder.WriteString(regexp.QuoteMeta(string(char)))
+		}
+	}
+	builder.WriteString("$")
+	matched, err := regexp.MatchString(builder.String(), value)
+	return err == nil && matched
+}
+
+func stringSliceContainsFold(values []string, needle string) bool {
+	for _, value := range values {
+		if strings.EqualFold(value, needle) {
+			return true
+		}
+	}
+	return false
+}
+
+func sortDailyCandidates(candidates []dailyCatalogCandidate, feedKey string, date string) {
+	sort.SliceStable(candidates, func(i, j int) bool {
+		leftHash := stableDailyHash(feedKey, date, candidates[i].ID)
+		rightHash := stableDailyHash(feedKey, date, candidates[j].ID)
 		if leftHash != rightHash {
 			return leftHash < rightHash
 		}
@@ -913,19 +1060,9 @@ func dailyFeedSelectionKey(feed DailyFeed) string {
 	return feed.ID
 }
 
-func stableDailyHash(feedKey string, date string, blockIndex int, itemID string) uint64 {
-	sum := sha256.Sum256([]byte(feedKey + "\x00" + date + "\x00" + strconv.Itoa(blockIndex) + "\x00" + itemID))
+func stableDailyHash(feedKey string, date string, itemID string) uint64 {
+	sum := sha256.Sum256([]byte(feedKey + "\x00" + date + "\x00" + itemID))
 	return binary.BigEndian.Uint64(sum[:8])
-}
-
-func ratingDistance(rating *int, target int) int {
-	if rating == nil {
-		return math.MaxInt
-	}
-	if *rating > target {
-		return *rating - target
-	}
-	return target - *rating
 }
 
 func resolveDailyAction(candidate dailyCatalogCandidate) (DailyFeedAction, bool) {
@@ -952,78 +1089,47 @@ func validDailyExternalURL(rawURL string) bool {
 	return err == nil && parsed.Scheme == "https" && parsed.Host != ""
 }
 
-func dailyMetadataInt(metadata map[string]any, key string) *int {
-	value, ok := metadata[key]
-	if !ok || value == nil {
-		return nil
-	}
+func dailyMetadataNumber(value any) (float64, bool) {
 	switch typed := value.(type) {
 	case int:
-		return &typed
+		return float64(typed), true
 	case int64:
-		converted := int(typed)
-		return &converted
+		return float64(typed), true
 	case float64:
-		converted := int(typed)
-		if float64(converted) == typed {
-			return &converted
-		}
+		return typed, true
 	case json.Number:
-		parsed, err := typed.Int64()
-		if err == nil {
-			converted := int(parsed)
-			return &converted
-		}
+		parsed, err := typed.Float64()
+		return parsed, err == nil
+	default:
+		return 0, false
 	}
-	return nil
 }
 
-func dailyMetadataStrings(metadata map[string]any, key string) []string {
-	value, ok := metadata[key]
-	if !ok || value == nil {
-		return nil
+func dailyMetadataString(value any) (string, bool) {
+	switch typed := value.(type) {
+	case string:
+		return typed, true
+	default:
+		return "", false
 	}
+}
+
+func dailyMetadataStringArray(value any) []string {
 	values := []string{}
 	switch typed := value.(type) {
 	case []string:
 		values = append(values, typed...)
 	case []any:
 		for _, item := range typed {
-			if tag, ok := item.(string); ok {
-				values = append(values, strings.ToLower(tag))
+			if text, ok := item.(string); ok {
+				values = append(values, text)
 			}
 		}
 	}
 	return values
 }
 
-func stringSetsOverlap(left []string, right []string) bool {
-	if len(left) == 0 || len(right) == 0 {
-		return false
-	}
-	seen := map[string]bool{}
-	for _, value := range left {
-		seen[strings.ToLower(value)] = true
-	}
-	for _, value := range right {
-		if seen[strings.ToLower(value)] {
-			return true
-		}
-	}
-	return false
-}
-
-func dailyBlockTargetRating(block DailyFeedRuleBlock) *int {
-	if block.Filters.Rating == nil {
-		return nil
-	}
-	return block.Filters.Rating.Target
-}
-
-func dailyFeedRole(index int, count int, roles []string) string {
-	if index < len(roles) {
-		return roles[index]
-	}
+func dailyFeedRole(index int, count int) string {
 	if count == 1 {
 		return "target"
 	}
@@ -1039,37 +1145,19 @@ func dailyFeedRole(index int, count int, roles []string) string {
 	}
 }
 
-func dailyFeedPoints(index int, points []int) int {
-	if index < len(points) {
-		return points[index]
-	}
-	return 1
-}
-
-func dailyFeedReason(candidate dailyCatalogCandidate, block DailyFeedRuleBlock, role string) string {
-	if target := dailyBlockTargetRating(block); target != nil {
-		if rating := dailyMetadataInt(candidate.Data, "rating"); rating != nil {
-			return fmt.Sprintf("%s pick, rating %d within %d of target", role, *rating, ratingDistance(rating, *target))
+func dailyFeedReason(candidate dailyCatalogCandidate, filters []DailyFeedRuleFilter) string {
+	for _, filter := range filters {
+		if filter.FieldLabel != "" && filter.Op != "" {
+			return fmt.Sprintf("selected by %s filter", strings.ToLower(filter.FieldLabel))
 		}
 	}
-
-	if block.Filters.Tags != nil && len(block.Filters.Tags.IncludeAny) > 0 {
-		tags := dailyMetadataStrings(candidate.Data, "tags")
-		for _, tag := range block.Filters.Tags.IncludeAny {
-			if stringSetsOverlap(tags, []string{tag}) {
-				return fmt.Sprintf("%s pick from %s tag", role, tag)
-			}
-		}
+	if candidate.SourceName != "" {
+		return "selected from " + candidate.SourceName
 	}
-
 	return "selected by deterministic date rotation"
 }
 
 func dailyFeedOutputDate(schedule DailyFeedSchedule, requestedDate *time.Time) (time.Time, error) {
-	if requestedDate != nil {
-		return *requestedDate, nil
-	}
-
 	timezone := schedule.Timezone
 	if timezone == "" {
 		timezone = "UTC"
@@ -1078,122 +1166,85 @@ func dailyFeedOutputDate(schedule DailyFeedSchedule, requestedDate *time.Time) (
 	if err != nil {
 		return time.Time{}, badRequest("schedule timezone is invalid")
 	}
-	now := time.Now().In(location)
-	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, location), nil
+	if requestedDate != nil {
+		local := requestedDate.In(location)
+		return time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, location), nil
+	}
+	if schedule.IntervalSeconds <= 0 {
+		return time.Time{}, badRequest("schedule interval_seconds must be positive")
+	}
+
+	start := schedule.StartsAt
+	if start.IsZero() {
+		start = defaultScheduleStartsAt(location)
+	}
+
+	boundary := start
+	now := time.Now()
+	if !now.Before(start) {
+		interval := time.Duration(schedule.IntervalSeconds) * time.Second
+		elapsedIntervals := int64(now.Sub(start) / interval)
+		boundary = start.Add(time.Duration(elapsedIntervals) * interval)
+	}
+	local := boundary.In(location)
+	return time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, location), nil
 }
 
-func (s *Server) validateDailyFeedReady(ctx context.Context, rules DailyFeedRules) error {
-	for blockIndex, block := range rules.Blocks {
-		candidates, err := s.dailyCatalogCandidates(ctx, block.SourceID)
-		if err != nil {
-			return err
+func (s *Server) validatePracticeFeedReady(ctx context.Context, sourceID string, itemCount int, filters []DailyFeedRuleFilter) error {
+	candidates, err := s.dailyCatalogCandidates(ctx, sourceID)
+	if err != nil {
+		return err
+	}
+	eligible := 0
+	for _, candidate := range candidates {
+		if len(candidate.MissingFields) > 0 || !dailyCandidateMatchesFilters(candidate, filters) {
+			continue
 		}
-		eligible := 0
-		for _, candidate := range candidates {
-			if !dailyCandidateMatchesBlock(candidate, block) {
-				continue
-			}
-			if _, ok := resolveDailyAction(candidate); ok {
-				eligible++
-			}
+		if _, ok := resolveDailyAction(candidate); ok {
+			eligible++
 		}
-		if eligible < block.Count {
-			return statusError{
-				status:  http.StatusUnprocessableEntity,
-				message: fmt.Sprintf("daily feed block %d has only %d eligible items for %d requested", blockIndex+1, eligible, block.Count),
-			}
+	}
+	if eligible < itemCount {
+		return statusError{
+			status:  http.StatusUnprocessableEntity,
+			message: fmt.Sprintf("daily feed has only %d eligible items for %d requested", eligible, itemCount),
 		}
 	}
 	return nil
 }
 
-func (s *Server) ineligibleDailyCatalogItems(ctx context.Context, rules DailyFeedRules) ([]CatalogItemEligibility, error) {
-	sourceIDs := []string{}
-	seen := map[string]bool{}
-	for _, block := range rules.Blocks {
-		if block.SourceID == "" || seen[block.SourceID] {
-			continue
-		}
-		seen[block.SourceID] = true
-		sourceIDs = append(sourceIDs, block.SourceID)
-	}
-
-	ineligible := []CatalogItemEligibility{}
-	for _, sourceID := range sourceIDs {
-		rows, err := s.db.Query(ctx, `
-			select
-				ci.id::text,
-				ci.source_id::text,
-				ci.title,
-				ci.data,
-				src.template
-			from catalog_items ci
-			join catalog_sources src on src.id = ci.source_id
-			where ci.source_id = $1
-			order by ci.created_at, ci.title
-		`, sourceID)
-		if err != nil {
-			return nil, err
-		}
-
-		for rows.Next() {
-			var item CatalogItemEligibility
-			var dataJSON []byte
-			var template string
-			if err := rows.Scan(&item.ID, &item.SourceID, &item.Title, &dataJSON, &template); err != nil {
-				rows.Close()
-				return nil, err
-			}
-			data := map[string]any{}
-			if err := json.Unmarshal(dataJSON, &data); err != nil {
-				rows.Close()
-				return nil, fmt.Errorf("decode catalog item data: %w", err)
-			}
-			_, missing := renderCatalogTemplate(template, item.Title, data)
-			if len(missing) == 0 {
-				continue
-			}
-			item.MissingFields = missing
-			ineligible = append(ineligible, item)
-		}
-		if err := rows.Err(); err != nil {
-			rows.Close()
-			return nil, err
-		}
-		rows.Close()
-	}
-	return ineligible, nil
-}
-
-func defaultDailyFeedAudience(audience *DailyFeedAudience) DailyFeedAudience {
-	if audience == nil || audience.Type == "" {
-		return DailyFeedAudience{Type: "all_group_members"}
-	}
-	normalized := *audience
-	if normalized.Type == "all_group_members" {
-		normalized.DivisionID = nil
-	}
-	return normalized
-}
-
 func normalizeDailyFeedSchedule(schedule *DailyFeedSchedule) (DailyFeedSchedule, error) {
 	if schedule == nil {
-		return DailyFeedSchedule{Cadence: "daily", Timezone: "UTC"}, nil
+		location := time.UTC
+		return DailyFeedSchedule{
+			StartsAt:        defaultScheduleStartsAt(location),
+			Timezone:        "UTC",
+			IntervalSeconds: 86400,
+		}, nil
 	}
 	normalized := *schedule
-	if normalized.Cadence == "" {
-		normalized.Cadence = "daily"
-	}
 	if normalized.Timezone == "" {
 		normalized.Timezone = "UTC"
 	}
-	if normalized.Cadence != "daily" {
-		return DailyFeedSchedule{}, badRequest("schedule cadence must be daily")
-	}
-	if _, err := time.LoadLocation(normalized.Timezone); err != nil {
+	location, err := time.LoadLocation(normalized.Timezone)
+	if err != nil {
 		return DailyFeedSchedule{}, badRequest("schedule timezone is invalid")
 	}
+	if normalized.StartsAt.IsZero() {
+		normalized.StartsAt = defaultScheduleStartsAt(location)
+	}
+	if normalized.IntervalSeconds == 0 {
+		normalized.IntervalSeconds = 86400
+	}
+	if normalized.IntervalSeconds < 1 {
+		return DailyFeedSchedule{}, badRequest("schedule interval_seconds must be positive")
+	}
 	return normalized, nil
+}
+
+func defaultScheduleStartsAt(location *time.Location) time.Time {
+	now := time.Now().In(location)
+	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, location)
 }
 
 func normalizeDailyFeedKind(kind string) (string, error) {
@@ -1209,125 +1260,261 @@ func normalizeDailyFeedKind(kind string) (string, error) {
 	}
 }
 
-func (s *Server) validateDailyFeedAudience(ctx context.Context, groupID string, audience DailyFeedAudience) error {
-	switch audience.Type {
-	case "all_group_members":
-		return nil
-	case "division":
-		if audience.DivisionID == nil || *audience.DivisionID == "" {
-			return badRequest("division audience requires division_id")
+func (s *Server) normalizeCreateDailyFeed(ctx context.Context, groupID string, req createDailyFeedRequest) (normalizedDailyFeedInput, error) {
+	kind, err := normalizeDailyFeedKind(req.Kind)
+	if err != nil {
+		return normalizedDailyFeedInput{}, err
+	}
+
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		if kind != dailyFeedKindDailyThread {
+			return normalizedDailyFeedInput{}, badRequest("name is required")
 		}
-		var exists bool
-		if err := s.db.QueryRow(ctx, `
-			select exists (
-				select 1
-				from divisions
-				where id = $1 and group_id = $2
+		name = defaultDailyThreadFeedName
+	}
+
+	slug := strings.TrimSpace(req.Slug)
+	if slug == "" {
+		if kind == dailyFeedKindDailyThread {
+			slug = defaultDailyThreadFeedSlug
+		} else {
+			slug = slugify(name)
+		}
+	} else {
+		slug = slugify(slug)
+	}
+
+	schedule, err := normalizeDailyFeedSchedule(req.Schedule)
+	if err != nil {
+		return normalizedDailyFeedInput{}, err
+	}
+
+	enabled := true
+	if req.Enabled != nil {
+		enabled = *req.Enabled
+	}
+
+	input := normalizedDailyFeedInput{
+		Name:        name,
+		Slug:        slug,
+		Kind:        kind,
+		Description: trimOptionalString(req.Description),
+		Enabled:     enabled,
+		Schedule:    schedule,
+	}
+
+	if kind == dailyFeedKindDailyThread {
+		if strings.TrimSpace(req.SourceID) != "" || req.ItemCount != 0 || len(req.Filters) > 0 {
+			return normalizedDailyFeedInput{}, badRequest("daily thread feeds do not support source, item count, or filters")
+		}
+		return input, nil
+	}
+
+	sourceID := strings.TrimSpace(req.SourceID)
+	filters, err := s.normalizePracticeFeedConfig(ctx, groupID, sourceID, req.ItemCount, req.Filters)
+	if err != nil {
+		return normalizedDailyFeedInput{}, err
+	}
+	input.SourceID = &sourceID
+	input.ItemCount = &req.ItemCount
+	input.Filters = filters
+	return input, nil
+}
+
+func (s *Server) normalizePracticeFeedConfig(ctx context.Context, groupID string, sourceID string, itemCount int, filters []DailyFeedRuleFilter) ([]DailyFeedRuleFilter, error) {
+	sourceID = strings.TrimSpace(sourceID)
+	if sourceID == "" {
+		return nil, badRequest("source_id is required")
+	}
+	if itemCount < 1 || itemCount > 50 {
+		return nil, badRequest("item_count must be between 1 and 50")
+	}
+	if ok, err := s.catalogSourceInGroup(ctx, groupID, sourceID); err != nil {
+		return nil, err
+	} else if !ok {
+		return nil, errNotFound("catalog source")
+	}
+	return s.normalizeDailyFeedFilters(ctx, sourceID, filters)
+}
+
+func (s *Server) normalizeDailyFeedFilters(ctx context.Context, sourceID string, filters []DailyFeedRuleFilter) ([]DailyFeedRuleFilter, error) {
+	fields, err := s.listCatalogSourceFields(ctx, sourceID)
+	if err != nil {
+		return nil, err
+	}
+	fieldsByID := map[string]CatalogSourceField{}
+	for _, field := range fields {
+		fieldsByID[field.ID] = field
+	}
+
+	normalized := make([]DailyFeedRuleFilter, 0, len(filters))
+	for index, filter := range filters {
+		fieldID := strings.TrimSpace(filter.FieldID)
+		if fieldID == "" {
+			return nil, badRequest(fmt.Sprintf("filter %d field_id is required", index+1))
+		}
+		field, ok := fieldsByID[fieldID]
+		if !ok {
+			return nil, badRequest(fmt.Sprintf("filter %d field is not filterable for the selected source", index+1))
+		}
+
+		op := strings.TrimSpace(filter.Op)
+		if !dailyFilterOperatorAllowed(field, op) {
+			return nil, badRequest(fmt.Sprintf("filter %d operator is not allowed for %s", index+1, field.Label))
+		}
+
+		cleanFilter := DailyFeedRuleFilter{
+			SourceID:   sourceID,
+			FieldID:    field.ID,
+			FieldKey:   field.Key,
+			FieldLabel: field.Label,
+			ValueType:  field.ValueType,
+			IsArray:    field.IsArray,
+			Position:   index,
+			Op:         op,
+		}
+
+		if field.ValueType == "number" {
+			if len(filter.TextValues) > 0 || len(filter.NumberValues) == 0 {
+				return nil, badRequest(fmt.Sprintf("filter %d requires number_values", index+1))
+			}
+			values, err := normalizeDailyNumberValues(op, filter.NumberValues)
+			if err != nil {
+				return nil, badRequest(fmt.Sprintf("filter %d %s", index+1, err.Error()))
+			}
+			cleanFilter.NumberValues = values
+		} else {
+			if len(filter.NumberValues) > 0 || len(filter.TextValues) == 0 {
+				return nil, badRequest(fmt.Sprintf("filter %d requires text_values", index+1))
+			}
+			values, err := normalizeDailyTextValues(op, field.IsArray, filter.TextValues)
+			if err != nil {
+				return nil, badRequest(fmt.Sprintf("filter %d %s", index+1, err.Error()))
+			}
+			cleanFilter.TextValues = values
+		}
+
+		normalized = append(normalized, cleanFilter)
+	}
+	return normalized, nil
+}
+
+func dailyFilterOperatorAllowed(field CatalogSourceField, op string) bool {
+	if field.ValueType == "number" && !field.IsArray {
+		switch op {
+		case "eq", "gt", "gte", "lt", "lte", "between":
+			return true
+		}
+		return false
+	}
+	if field.ValueType == "string" && field.IsArray {
+		switch op {
+		case "contains", "contains_any", "contains_all":
+			return true
+		}
+		return false
+	}
+	if field.ValueType == "string" {
+		switch op {
+		case "eq", "contains", "like":
+			return true
+		}
+		return false
+	}
+	return false
+}
+
+func normalizeDailyNumberValues(op string, values []float64) ([]float64, error) {
+	expected := 1
+	if op == "between" {
+		expected = 2
+	}
+	if len(values) != expected {
+		if expected == 1 {
+			return nil, errors.New("requires exactly one number")
+		}
+		return nil, errors.New("requires exactly two numbers")
+	}
+	normalized := append([]float64(nil), values...)
+	for _, value := range normalized {
+		if math.IsNaN(value) || math.IsInf(value, 0) {
+			return nil, errors.New("number_values must be finite")
+		}
+	}
+	if op == "between" && normalized[0] > normalized[1] {
+		normalized[0], normalized[1] = normalized[1], normalized[0]
+	}
+	return normalized, nil
+}
+
+func normalizeDailyTextValues(op string, isArray bool, values []string) ([]string, error) {
+	if !isArray || op == "contains" {
+		if len(values) != 1 {
+			return nil, errors.New("requires exactly one text value")
+		}
+	}
+
+	normalized := []string{}
+	seen := map[string]bool{}
+	for _, value := range values {
+		clean := strings.TrimSpace(value)
+		if clean == "" {
+			continue
+		}
+		key := strings.ToLower(clean)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		normalized = append(normalized, clean)
+	}
+	if len(normalized) == 0 {
+		return nil, errors.New("requires at least one text value")
+	}
+	if (!isArray || op == "contains") && len(normalized) != 1 {
+		return nil, errors.New("requires exactly one text value")
+	}
+	return normalized, nil
+}
+
+func insertDailyFeedFilters(ctx context.Context, tx pgx.Tx, feedID string, sourceID string, filters []DailyFeedRuleFilter) error {
+	for index, filter := range filters {
+		var textValues any
+		var numberValues any
+		if len(filter.TextValues) > 0 {
+			textValues = filter.TextValues
+		}
+		if len(filter.NumberValues) > 0 {
+			numberValues = filter.NumberValues
+		}
+		if _, err := tx.Exec(ctx, `
+			insert into feed_rule_filters (
+				feed_id,
+				source_id,
+				field_id,
+				position,
+				op,
+				text_values,
+				number_values
 			)
-		`, *audience.DivisionID, groupID).Scan(&exists); err != nil {
+			values ($1, $2, $3, $4, $5, $6::text[], $7::double precision[]::numeric[])
+		`, feedID, sourceID, filter.FieldID, index, filter.Op, textValues, numberValues); err != nil {
 			return err
 		}
-		if !exists {
-			return errNotFound("division")
-		}
+	}
+	return nil
+}
+
+func trimOptionalString(value *string) *string {
+	if value == nil {
 		return nil
-	default:
-		return badRequest("audience type must be all_group_members or division")
 	}
-}
-
-func (s *Server) dailyFeedAudienceMatches(ctx context.Context, userID string, feed DailyFeed) (bool, error) {
-	switch feed.Audience.Type {
-	case "", "all_group_members":
-		return true, nil
-	case "division":
-		if feed.Audience.DivisionID == nil || *feed.Audience.DivisionID == "" {
-			return false, nil
-		}
-		var exists bool
-		err := s.db.QueryRow(ctx, `
-			select exists (
-				select 1
-				from divisions d
-				join group_memberships gm on gm.group_id = d.group_id
-				where d.id = $1
-				  and d.group_id = $2
-				  and gm.user_id = $3
-				  and gm.status = 'active'
-			)
-		`, *feed.Audience.DivisionID, feed.GroupID, userID).Scan(&exists)
-		return exists, err
-	default:
-		return false, nil
+	trimmed := strings.TrimSpace(*value)
+	if trimmed == "" {
+		return nil
 	}
-}
-
-func (s *Server) normalizeDailyFeedRules(ctx context.Context, groupID string, rules DailyFeedRules) (DailyFeedRules, error) {
-	if len(rules.Blocks) == 0 {
-		return DailyFeedRules{}, badRequest("rules.blocks is required")
-	}
-
-	for blockIndex := range rules.Blocks {
-		block := &rules.Blocks[blockIndex]
-		block.SourceID = strings.TrimSpace(block.SourceID)
-		block.Source = ""
-		block.Kind = ""
-		if block.SourceID == "" {
-			return DailyFeedRules{}, badRequest("rule block source_id is required")
-		}
-		if block.Count < 1 || block.Count > 50 {
-			return DailyFeedRules{}, badRequest("rule block count must be between 1 and 50")
-		}
-
-		if ok, err := s.catalogSourceInGroup(ctx, groupID, block.SourceID); err != nil {
-			return DailyFeedRules{}, err
-		} else if !ok {
-			return DailyFeedRules{}, errNotFound("catalog source")
-		}
-
-		if block.Filters.Rating != nil && block.Filters.Rating.Min != nil && block.Filters.Rating.Max != nil && *block.Filters.Rating.Min > *block.Filters.Rating.Max {
-			return DailyFeedRules{}, badRequest("rating min cannot exceed max")
-		}
-
-		if block.Filters.Tags != nil {
-			block.Filters.Tags.IncludeAny = cleanTags(block.Filters.Tags.IncludeAny)
-			block.Filters.Tags.ExcludeAny = cleanTags(block.Filters.Tags.ExcludeAny)
-		}
-
-		if len(block.Roles) > 0 {
-			if len(block.Roles) < block.Count {
-				return DailyFeedRules{}, badRequest("roles must include at least count entries")
-			}
-			for _, role := range block.Roles {
-				if !validDailyFeedRole(role) {
-					return DailyFeedRules{}, badRequest("roles must be warmup, target, stretch, or bonus")
-				}
-			}
-		}
-
-		if len(block.Points) > 0 {
-			if len(block.Points) < block.Count {
-				return DailyFeedRules{}, badRequest("points must include at least count entries")
-			}
-			for _, points := range block.Points {
-				if points < 1 {
-					return DailyFeedRules{}, badRequest("points must be positive")
-				}
-			}
-		}
-	}
-
-	return rules, nil
-}
-
-func (s *Server) normalizeDailyFeedRulesForKind(ctx context.Context, groupID string, kind string, rules DailyFeedRules) (DailyFeedRules, error) {
-	if kind == dailyFeedKindDailyThread {
-		if len(rules.Blocks) > 0 {
-			return DailyFeedRules{}, badRequest("daily thread feeds do not support rules")
-		}
-		return DailyFeedRules{}, nil
-	}
-	return s.normalizeDailyFeedRules(ctx, groupID, rules)
+	return &trimmed
 }
 
 func dailyFeedKindRequiresReady(kind string) bool {
@@ -1346,13 +1533,8 @@ func (s *Server) catalogSourceInGroup(ctx context.Context, groupID string, sourc
 	return exists, err
 }
 
-func validDailyFeedRole(role string) bool {
-	switch role {
-	case "warmup", "target", "stretch", "bonus":
-		return true
-	default:
-		return false
-	}
+func (s *Server) dailyFeedAudienceMatches(context.Context, string, DailyFeed) (bool, error) {
+	return true, nil
 }
 
 func canManageDailyFeeds(role string) bool {

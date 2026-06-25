@@ -1,8 +1,11 @@
 import type {
+  CatalogSource,
+  CreateDailyFeedRequest,
   CreateGroupFeedPostRequest,
   CreateGroupRequest,
   DailyFeed,
   DailyFeedOutput,
+  DailyFeedPreview,
   Group,
   GroupFeedPost,
   LoginRequest,
@@ -104,6 +107,24 @@ export function createGroup(payload: CreateGroupRequest): Promise<Group> {
 
 export function listGroupDailyFeeds(groupID: string): Promise<DailyFeed[]> {
   return api<DailyFeed[]>(`/api/groups/${encodeURIComponent(groupID)}/daily-feeds`);
+}
+
+export function listGroupCatalogSources(groupID: string): Promise<CatalogSource[]> {
+  return api<CatalogSource[]>(`/api/groups/${encodeURIComponent(groupID)}/catalog-sources`);
+}
+
+export function createGroupDailyFeed(groupID: string, payload: CreateDailyFeedRequest): Promise<DailyFeed> {
+  return api<DailyFeed>(`/api/groups/${encodeURIComponent(groupID)}/daily-feeds`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function previewGroupDailyFeed(groupID: string, payload: CreateDailyFeedRequest): Promise<DailyFeedPreview> {
+  return api<DailyFeedPreview>(`/api/groups/${encodeURIComponent(groupID)}/daily-feeds/preview`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export function getGroupDailyFeedToday(groupID: string, feedID: string): Promise<DailyFeedOutput> {

@@ -223,6 +223,10 @@ label {
   gap: 8px;
 }
 
+.add-feed-button {
+  width: 100%;
+}
+
 .row {
   background: #fbfcfe;
   border: 1px solid var(--line);
@@ -298,6 +302,108 @@ label {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
+}
+
+.modal-backdrop {
+  align-items: center;
+  background: rgba(17, 24, 39, 0.42);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 16px;
+  position: fixed;
+  z-index: 20;
+}
+
+.modal-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 24px 60px rgba(20, 28, 38, 0.28);
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 14px;
+  width: min(760px, 100%);
+}
+
+.modal-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.add-feed-form {
+  display: grid;
+  gap: 12px;
+}
+
+.form-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.two-column {
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
+}
+
+.three-column {
+  grid-template-columns: minmax(180px, 1fr) minmax(160px, 1fr) minmax(140px, 180px);
+}
+
+.status-checkbox {
+  align-content: end;
+  min-height: 60px;
+}
+
+.feed-filters-section {
+  display: grid;
+  gap: 10px;
+}
+
+.section-header-row {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.filter-row {
+  align-items: end;
+  background: #fbfcfe;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(140px, 1fr) minmax(132px, 0.8fr) minmax(160px, 1fr) auto;
+  padding: 10px;
+}
+
+.filter-between-inputs {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.filter-remove-button {
+  min-width: 86px;
+}
+
+.preview-panel {
+  background: #fbfcfe;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
+.preview-items {
+  gap: 6px;
+}
+
+.preview-item {
+  background: white;
 }
 
 .feed-output-toolbar {
@@ -557,6 +663,30 @@ label {
   .output-actions {
     align-items: stretch;
     display: grid;
+  }
+
+  .modal-backdrop {
+    align-items: stretch;
+    padding: 10px;
+  }
+
+  .modal-panel {
+    max-height: calc(100vh - 20px);
+  }
+
+  .modal-header,
+  .section-header-row {
+    display: grid;
+  }
+
+  .two-column,
+  .three-column,
+  .filter-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .filter-between-inputs {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .row-top {

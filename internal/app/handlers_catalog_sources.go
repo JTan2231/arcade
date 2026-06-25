@@ -15,15 +15,24 @@ import (
 )
 
 type createCatalogSourceRequest struct {
-	Name     string                     `json:"name"`
-	Template string                     `json:"template"`
-	Preset   string                     `json:"preset"`
-	Items    []createCatalogItemRequest `json:"items"`
+	Name     string                            `json:"name"`
+	Template string                            `json:"template"`
+	Preset   string                            `json:"preset"`
+	Fields   []createCatalogSourceFieldRequest `json:"fields"`
+	Items    []createCatalogItemRequest        `json:"items"`
 }
 
 type createCatalogItemRequest struct {
 	Title string         `json:"title"`
 	Data  map[string]any `json:"data"`
+}
+
+type createCatalogSourceFieldRequest struct {
+	Key          string `json:"key"`
+	Label        string `json:"label"`
+	ValueType    string `json:"value_type"`
+	IsArray      bool   `json:"is_array"`
+	DisplayOrder int    `json:"display_order"`
 }
 
 var disallowedCatalogDataKeys = map[string]bool{
@@ -132,15 +141,31 @@ func (s *Server) handleCreateGroupCatalogSource(w http.ResponseWriter, r *http.R
 			handleError(w, err)
 			return
 		}
+		if err := insertCodeforcesCatalogSourceFields(r.Context(), tx, sourceID); err != nil {
+			handleError(w, err)
+			return
+		}
 	}
 
-	for _, item := range req.Items {
-		title, data, err := normalizeCatalogItemInput(item)
+	for _, field := range req.Fields {
+		normalized, err := normalizeCatalogSourceFieldInput(field)
 		if err != nil {
 			handleError(w, err)
 			return
 		}
-		if err := insertCatalogItem(r.Context(), tx, sourceID, title, data); err != nil {
+		if err := insertCatalogSourceField(r.Context(), tx, sourceID, normalized); err != nil {
+			handleError(w, err)
+			return
+		}
+	}
+
+	for _, item := range req.Items {
+		data, err := normalizeCatalogItemInput(item)
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+		if err := insertCatalogItem(r.Context(), tx, sourceID, data); err != nil {
 			handleError(w, err)
 			return
 		}
@@ -231,7 +256,7 @@ func (s *Server) handleCreateGroupCatalogItem(w http.ResponseWriter, r *http.Req
 		writeError(w, http.StatusBadRequest, "invalid JSON request")
 		return
 	}
-	title, data, err := normalizeCatalogItemInput(req)
+	data, err := normalizeCatalogItemInput(req)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -245,12 +270,11 @@ func (s *Server) handleCreateGroupCatalogItem(w http.ResponseWriter, r *http.Req
 	item, err := scanCatalogItem(s.db.QueryRow(r.Context(), `
 		insert into catalog_items (
 			source_id,
-			title,
 			data
 		)
-		values ($1, $2, $3::jsonb)
-		returning id::text, source_id::text, title, data, created_at, updated_at
-	`, source.ID, title, string(dataJSON)), source.Template)
+		values ($1, $2::jsonb)
+		returning id::text, source_id::text, data, created_at, updated_at
+	`, source.ID, string(dataJSON)), source.Template)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -286,6 +310,11 @@ func (s *Server) listGroupCatalogSources(ctx context.Context, groupID string) ([
 		if err := s.hydrateCatalogSourceStats(ctx, &source); err != nil {
 			return nil, err
 		}
+		fields, err := s.listCatalogSourceFields(ctx, source.ID)
+		if err != nil {
+			return nil, err
+		}
+		source.Fields = fields
 		sources = append(sources, source)
 	}
 	return sources, rows.Err()
@@ -313,6 +342,11 @@ func (s *Server) getCatalogSource(ctx context.Context, groupID string, sourceID 
 	if err := s.hydrateCatalogSourceStats(ctx, &source); err != nil {
 		return CatalogSource{}, err
 	}
+	fields, err := s.listCatalogSourceFields(ctx, source.ID)
+	if err != nil {
+		return CatalogSource{}, err
+	}
+	source.Fields = fields
 	return source, nil
 }
 
@@ -337,7 +371,7 @@ func scanCatalogSource(row pgx.Row) (CatalogSource, error) {
 
 func (s *Server) hydrateCatalogSourceStats(ctx context.Context, source *CatalogSource) error {
 	rows, err := s.db.Query(ctx, `
-		select title, data
+		select data
 		from catalog_items
 		where source_id = $1
 	`, source.ID)
@@ -349,16 +383,15 @@ func (s *Server) hydrateCatalogSourceStats(ctx context.Context, source *CatalogS
 	source.ItemCount = 0
 	source.EligibleItemCount = 0
 	for rows.Next() {
-		var title string
 		var dataJSON []byte
-		if err := rows.Scan(&title, &dataJSON); err != nil {
+		if err := rows.Scan(&dataJSON); err != nil {
 			return err
 		}
 		data := map[string]any{}
 		if err := json.Unmarshal(dataJSON, &data); err != nil {
 			return fmt.Errorf("decode catalog item data: %w", err)
 		}
-		_, missing := renderCatalogTemplate(source.Template, title, data)
+		_, missing := renderCatalogTemplate(source.Template, data)
 		source.ItemCount++
 		if len(missing) == 0 {
 			source.EligibleItemCount++
@@ -372,13 +405,12 @@ func (s *Server) listCatalogItems(ctx context.Context, source CatalogSource) ([]
 		select
 			id::text,
 			source_id::text,
-			title,
 			data,
 			created_at,
 			updated_at
 		from catalog_items
 		where source_id = $1
-		order by created_at, title
+		order by created_at, id
 	`, source.ID)
 	if err != nil {
 		return nil, err
@@ -402,7 +434,6 @@ func scanCatalogItem(row pgx.Row, template string) (CatalogItem, error) {
 	if err := row.Scan(
 		&item.ID,
 		&item.SourceID,
-		&item.Title,
 		&dataJSON,
 		&item.CreatedAt,
 		&item.UpdatedAt,
@@ -413,11 +444,12 @@ func scanCatalogItem(row pgx.Row, template string) (CatalogItem, error) {
 	if err := json.Unmarshal(dataJSON, &item.Data); err != nil {
 		return CatalogItem{}, fmt.Errorf("decode catalog item data: %w", err)
 	}
-	item.Rendered, item.MissingFields = renderCatalogTemplate(template, item.Title, item.Data)
+	item.Title = catalogItemDisplayName(item.Data)
+	item.Rendered, item.MissingFields = renderCatalogTemplate(template, item.Data)
 	return item, nil
 }
 
-func insertCatalogItem(ctx context.Context, tx pgx.Tx, sourceID string, title string, data map[string]any) error {
+func insertCatalogItem(ctx context.Context, tx pgx.Tx, sourceID string, data map[string]any) error {
 	dataJSON, err := json.Marshal(data)
 	if err != nil {
 		return err
@@ -425,11 +457,10 @@ func insertCatalogItem(ctx context.Context, tx pgx.Tx, sourceID string, title st
 	_, err = tx.Exec(ctx, `
 		insert into catalog_items (
 			source_id,
-			title,
 			data
 		)
-		values ($1, $2, $3::jsonb)
-	`, sourceID, title, string(dataJSON))
+		values ($1, $2::jsonb)
+	`, sourceID, string(dataJSON))
 	return err
 }
 
@@ -437,13 +468,12 @@ func importCodeforcesCatalogPreset(ctx context.Context, tx pgx.Tx, sourceID stri
 	_, err := tx.Exec(ctx, `
 		insert into catalog_items (
 			source_id,
-			title,
 			data
 		)
 		select
 			$1,
-			p.title,
 			jsonb_strip_nulls(jsonb_build_object(
+				'name', p.title,
 				'contest_id', p.contest_id,
 				'index', p.problem_index,
 				'rating', p.rating,
@@ -463,12 +493,20 @@ func importCodeforcesCatalogPreset(ctx context.Context, tx pgx.Tx, sourceID stri
 	return err
 }
 
-func normalizeCatalogItemInput(req createCatalogItemRequest) (string, map[string]any, error) {
-	title := strings.TrimSpace(req.Title)
-	if title == "" {
-		return "", nil, badRequest("catalog item title is required")
+func insertCodeforcesCatalogSourceFields(ctx context.Context, tx pgx.Tx, sourceID string) error {
+	fields := []normalizedCatalogSourceField{
+		{Key: "rating", Label: "Rating", ValueType: "number", DisplayOrder: 10},
+		{Key: "tags", Label: "Tags", ValueType: "string", IsArray: true, DisplayOrder: 20},
 	}
+	for _, field := range fields {
+		if err := insertCatalogSourceField(ctx, tx, sourceID, field); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
+func normalizeCatalogItemInput(req createCatalogItemRequest) (map[string]any, error) {
 	data := map[string]any{}
 	for key, value := range req.Data {
 		cleanKey := strings.TrimSpace(key)
@@ -476,12 +514,18 @@ func normalizeCatalogItemInput(req createCatalogItemRequest) (string, map[string
 			continue
 		}
 		if disallowedCatalogDataKeys[cleanKey] {
-			return "", nil, badRequest("catalog item data cannot include answer-bearing content")
+			return nil, badRequest("catalog item data cannot include answer-bearing content")
 		}
 		data[cleanKey] = normalizeCatalogDataValue(cleanKey, value)
 	}
 
-	return title, data, nil
+	if title := strings.TrimSpace(req.Title); title != "" {
+		if _, exists := data["name"]; !exists {
+			data["name"] = title
+		}
+	}
+
+	return data, nil
 }
 
 func normalizeCatalogDataValue(key string, value any) any {
@@ -520,19 +564,12 @@ func templateFields(template string) []string {
 	return fields
 }
 
-func renderCatalogTemplate(template string, title string, data map[string]any) (string, []string) {
+func renderCatalogTemplate(template string, data map[string]any) (string, []string) {
 	missing := []string{}
 	missingSeen := map[string]bool{}
 	rendered := templateFieldPattern.ReplaceAllStringFunc(template, func(match string) string {
 		field := strings.TrimSuffix(strings.TrimPrefix(match, "{"), "}")
-		var value any
-		var ok bool
-		if field == "title" {
-			value = title
-			ok = true
-		} else {
-			value, ok = data[field]
-		}
+		value, ok := data[field]
 
 		text, valueOK := catalogTemplateValueString(value)
 		if !ok || !valueOK || strings.TrimSpace(text) == "" {
@@ -545,6 +582,109 @@ func renderCatalogTemplate(template string, title string, data map[string]any) (
 		return text
 	})
 	return rendered, missing
+}
+
+type normalizedCatalogSourceField struct {
+	Key          string
+	Label        string
+	ValueType    string
+	IsArray      bool
+	DisplayOrder int
+}
+
+func normalizeCatalogSourceFieldInput(req createCatalogSourceFieldRequest) (normalizedCatalogSourceField, error) {
+	field := normalizedCatalogSourceField{
+		Key:          strings.TrimSpace(req.Key),
+		Label:        strings.TrimSpace(req.Label),
+		ValueType:    strings.ToLower(strings.TrimSpace(req.ValueType)),
+		IsArray:      req.IsArray,
+		DisplayOrder: req.DisplayOrder,
+	}
+	if field.Key == "" {
+		return normalizedCatalogSourceField{}, badRequest("field key is required")
+	}
+	if field.Label == "" {
+		field.Label = field.Key
+	}
+	switch field.ValueType {
+	case "string", "number":
+	default:
+		return normalizedCatalogSourceField{}, badRequest("field value_type must be string or number")
+	}
+	return field, nil
+}
+
+func insertCatalogSourceField(ctx context.Context, tx pgx.Tx, sourceID string, field normalizedCatalogSourceField) error {
+	_, err := tx.Exec(ctx, `
+		insert into catalog_source_fields (
+			source_id,
+			key,
+			label,
+			value_type,
+			is_array,
+			display_order
+		)
+		values ($1, $2, $3, $4, $5, $6)
+		on conflict (source_id, key) do update set
+			label = excluded.label,
+			value_type = excluded.value_type,
+			is_array = excluded.is_array,
+			display_order = excluded.display_order
+	`, sourceID, field.Key, field.Label, field.ValueType, field.IsArray, field.DisplayOrder)
+	return err
+}
+
+func (s *Server) listCatalogSourceFields(ctx context.Context, sourceID string) ([]CatalogSourceField, error) {
+	rows, err := s.db.Query(ctx, `
+		select
+			id::text,
+			source_id::text,
+			key,
+			label,
+			value_type,
+			is_array,
+			display_order,
+			created_at,
+			updated_at
+		from catalog_source_fields
+		where source_id = $1
+		order by display_order, label, key
+	`, sourceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	fields := []CatalogSourceField{}
+	for rows.Next() {
+		var field CatalogSourceField
+		if err := rows.Scan(
+			&field.ID,
+			&field.SourceID,
+			&field.Key,
+			&field.Label,
+			&field.ValueType,
+			&field.IsArray,
+			&field.DisplayOrder,
+			&field.CreatedAt,
+			&field.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		fields = append(fields, field)
+	}
+	return fields, rows.Err()
+}
+
+func catalogItemDisplayName(data map[string]any) string {
+	for _, key := range []string{"name", "title", "label"} {
+		if value, ok := data[key]; ok {
+			if text, ok := catalogTemplateValueString(value); ok && strings.TrimSpace(text) != "" {
+				return text
+			}
+		}
+	}
+	return "Untitled"
 }
 
 func catalogTemplateValueString(value any) (string, bool) {

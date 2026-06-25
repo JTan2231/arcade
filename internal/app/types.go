@@ -151,61 +151,45 @@ type DailyItem struct {
 }
 
 type DailyFeed struct {
-	ID                 string            `json:"id"`
-	GroupID            string            `json:"group_id"`
-	GroupName          *string           `json:"group_name,omitempty"`
-	Name               string            `json:"name"`
-	Slug               string            `json:"slug"`
-	Kind               string            `json:"kind"`
-	Description        *string           `json:"description,omitempty"`
-	Enabled            bool              `json:"enabled"`
-	Audience           DailyFeedAudience `json:"audience"`
-	Schedule           DailyFeedSchedule `json:"schedule"`
-	RulesSchemaVersion int               `json:"rules_schema_version"`
-	Rules              DailyFeedRules    `json:"rules"`
-	CreatedByUserID    *string           `json:"created_by_user_id,omitempty"`
-	CreatedAt          time.Time         `json:"created_at"`
-	UpdatedAt          time.Time         `json:"updated_at"`
-}
-
-type DailyFeedAudience struct {
-	Type       string  `json:"type"`
-	DivisionID *string `json:"division_id,omitempty"`
+	ID              string                `json:"id"`
+	GroupID         string                `json:"group_id"`
+	GroupName       *string               `json:"group_name,omitempty"`
+	Name            string                `json:"name"`
+	Slug            string                `json:"slug"`
+	Kind            string                `json:"kind"`
+	Description     *string               `json:"description,omitempty"`
+	Enabled         bool                  `json:"enabled"`
+	SourceID        *string               `json:"source_id,omitempty"`
+	SourceName      *string               `json:"source_name,omitempty"`
+	ItemCount       *int                  `json:"item_count,omitempty"`
+	Schedule        DailyFeedSchedule     `json:"schedule"`
+	Filters         []DailyFeedRuleFilter `json:"filters"`
+	CreatedByUserID *string               `json:"created_by_user_id,omitempty"`
+	CreatedAt       time.Time             `json:"created_at"`
+	UpdatedAt       time.Time             `json:"updated_at"`
 }
 
 type DailyFeedSchedule struct {
-	Cadence  string `json:"cadence"`
-	Timezone string `json:"timezone"`
+	StartsAt        time.Time `json:"starts_at"`
+	Timezone        string    `json:"timezone"`
+	IntervalSeconds int       `json:"interval_seconds"`
 }
 
-type DailyFeedRules struct {
-	Blocks []DailyFeedRuleBlock `json:"blocks"`
-}
-
-type DailyFeedRuleBlock struct {
-	SourceID string           `json:"source_id"`
-	Source   string           `json:"source,omitempty"`
-	Kind     string           `json:"kind,omitempty"`
-	Count    int              `json:"count"`
-	Filters  DailyFeedFilters `json:"filters,omitempty"`
-	Roles    []string         `json:"roles,omitempty"`
-	Points   []int            `json:"points,omitempty"`
-}
-
-type DailyFeedFilters struct {
-	Rating *DailyFeedRatingFilter `json:"rating,omitempty"`
-	Tags   *DailyFeedTagFilter    `json:"tags,omitempty"`
-}
-
-type DailyFeedRatingFilter struct {
-	Min    *int `json:"min,omitempty"`
-	Max    *int `json:"max,omitempty"`
-	Target *int `json:"target,omitempty"`
-}
-
-type DailyFeedTagFilter struct {
-	IncludeAny []string `json:"include_any,omitempty"`
-	ExcludeAny []string `json:"exclude_any,omitempty"`
+type DailyFeedRuleFilter struct {
+	ID           string    `json:"id,omitempty"`
+	FeedID       string    `json:"feed_id,omitempty"`
+	SourceID     string    `json:"source_id,omitempty"`
+	FieldID      string    `json:"field_id"`
+	FieldKey     string    `json:"field_key,omitempty"`
+	FieldLabel   string    `json:"field_label,omitempty"`
+	ValueType    string    `json:"value_type,omitempty"`
+	IsArray      bool      `json:"is_array,omitempty"`
+	Position     int       `json:"position"`
+	Op           string    `json:"op"`
+	TextValues   []string  `json:"text_values,omitempty"`
+	NumberValues []float64 `json:"number_values,omitempty"`
+	CreatedAt    time.Time `json:"created_at,omitempty"`
+	UpdatedAt    time.Time `json:"updated_at,omitempty"`
 }
 
 type DailyFeedOutput struct {
@@ -260,22 +244,35 @@ type GroupFeedPost struct {
 }
 
 type CatalogSource struct {
-	ID                string    `json:"id"`
-	GroupID           string    `json:"group_id"`
-	Name              string    `json:"name"`
-	Template          string    `json:"template"`
-	CreatedByUserID   *string   `json:"created_by_user_id,omitempty"`
-	ItemCount         int       `json:"item_count"`
-	EligibleItemCount int       `json:"eligible_item_count"`
-	TemplateFields    []string  `json:"template_fields"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	ID                string               `json:"id"`
+	GroupID           string               `json:"group_id"`
+	Name              string               `json:"name"`
+	Template          string               `json:"template"`
+	CreatedByUserID   *string              `json:"created_by_user_id,omitempty"`
+	ItemCount         int                  `json:"item_count"`
+	EligibleItemCount int                  `json:"eligible_item_count"`
+	TemplateFields    []string             `json:"template_fields"`
+	Fields            []CatalogSourceField `json:"fields"`
+	CreatedAt         time.Time            `json:"created_at"`
+	UpdatedAt         time.Time            `json:"updated_at"`
+}
+
+type CatalogSourceField struct {
+	ID           string    `json:"id"`
+	SourceID     string    `json:"source_id"`
+	Key          string    `json:"key"`
+	Label        string    `json:"label"`
+	ValueType    string    `json:"value_type"`
+	IsArray      bool      `json:"is_array"`
+	DisplayOrder int       `json:"display_order"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 type CatalogItem struct {
 	ID            string         `json:"id"`
 	SourceID      string         `json:"source_id"`
-	Title         string         `json:"title"`
+	Title         string         `json:"title,omitempty"`
 	Data          map[string]any `json:"data"`
 	Rendered      string         `json:"rendered"`
 	MissingFields []string       `json:"missing_fields"`
@@ -284,14 +281,17 @@ type CatalogItem struct {
 }
 
 type DailyFeedPreview struct {
-	Output          DailyFeedOutput          `json:"output"`
-	IneligibleItems []CatalogItemEligibility `json:"ineligible_items"`
+	Output              DailyFeedOutput          `json:"output"`
+	CandidateItemCount  int                      `json:"candidate_item_count"`
+	EligibleItemCount   int                      `json:"eligible_item_count"`
+	IneligibleItemCount int                      `json:"ineligible_item_count"`
+	IneligibleItems     []CatalogItemEligibility `json:"ineligible_items"`
 }
 
 type CatalogItemEligibility struct {
 	ID            string   `json:"id"`
 	SourceID      string   `json:"source_id"`
-	Title         string   `json:"title"`
+	Title         string   `json:"title,omitempty"`
 	MissingFields []string `json:"missing_fields"`
 }
 

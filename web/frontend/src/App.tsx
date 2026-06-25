@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   createGroup,
+  createGroupDailyFeed,
   createGroupFeedPost,
   deleteGroupFeedPost,
   errorMessage,
@@ -9,11 +10,13 @@ import {
   getGroupDailyFeedToday,
   getSession,
   isUnauthorized,
+  listGroupCatalogSources,
   listGroupFeedPosts,
   listGroupDailyFeeds,
   listGroups,
   login,
   logout,
+  previewGroupDailyFeed,
   signup,
   updateGroupDailyFeed,
   updateGroupFeedPost,
@@ -23,7 +26,18 @@ import { GroupDashboard } from "./components/GroupDashboard";
 import { GroupsPanel } from "./components/GroupsPanel";
 import { Toast } from "./components/Toast";
 import { todayDateValue } from "./dates";
-import type { DailyFeed, DailyFeedOutput, Group, GroupFeedPost, LoginRequest, SignupRequest, User } from "./types";
+import type {
+  CatalogSource,
+  CreateDailyFeedRequest,
+  DailyFeed,
+  DailyFeedOutput,
+  DailyFeedPreview,
+  Group,
+  GroupFeedPost,
+  LoginRequest,
+  SignupRequest,
+  User,
+} from "./types";
 
 type AuthStatus = "checking" | "anonymous" | "authenticated";
 
@@ -397,6 +411,63 @@ export default function App() {
     }
   }
 
+  async function handleLoadCatalogSources(): Promise<CatalogSource[]> {
+    if (!selectedGroup) {
+      return [];
+    }
+    try {
+      return await listGroupCatalogSources(selectedGroup.id);
+    } catch (error) {
+      if (!handleUnauthorized(error)) {
+        showToast(errorMessage(error));
+      }
+      throw error;
+    }
+  }
+
+  async function handlePreviewFeed(payload: CreateDailyFeedRequest): Promise<DailyFeedPreview> {
+    if (!selectedGroup) {
+      throw new Error("No group selected");
+    }
+    try {
+      return await previewGroupDailyFeed(selectedGroup.id, payload);
+    } catch (error) {
+      if (!handleUnauthorized(error)) {
+        showToast(errorMessage(error));
+      }
+      throw error;
+    }
+  }
+
+  async function handleCreateFeed(payload: CreateDailyFeedRequest): Promise<DailyFeed> {
+    if (!selectedGroup) {
+      throw new Error("No group selected");
+    }
+    try {
+      const feed = await createGroupDailyFeed(selectedGroup.id, payload);
+      setGroupFeeds((feeds) => [...feeds.filter((candidate) => candidate.id !== feed.id), feed]);
+      setSelectedFeedId(feed.id);
+      setSelectedFeedDate(todayDateValue());
+      setSelectedFeedOutput(null);
+      setFeedOutputError("");
+      setFeedPosts([]);
+      setFeedPostsError("");
+      showToast("Feed created");
+      void loadFeedOutput({
+        groupId: selectedGroup.id,
+        feedId: feed.id,
+        date: todayDateValue(),
+        useToday: true,
+      });
+      return feed;
+    } catch (error) {
+      if (!handleUnauthorized(error)) {
+        showToast(errorMessage(error));
+      }
+      throw error;
+    }
+  }
+
   async function handleCreateFeedPost(payload: { evidenceText: string; caption: string }) {
     if (!selectedGroup || !selectedFeedId || !selectedFeedOutput) {
       return false;
@@ -557,6 +628,9 @@ export default function App() {
           onSelectFeed={handleSelectFeed}
           onChangeFeedDate={handleChangeFeedDate}
           onToggleFeedEnabled={handleToggleFeedEnabled}
+          onLoadCatalogSources={handleLoadCatalogSources}
+          onPreviewFeed={handlePreviewFeed}
+          onCreateFeed={handleCreateFeed}
           onCreateFeedPost={handleCreateFeedPost}
           onUpdateFeedPost={handleUpdateFeedPost}
           onDeleteFeedPost={handleDeleteFeedPost}

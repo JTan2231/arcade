@@ -36,6 +36,7 @@ erDiagram
     groups ||--o{ group_memberships : has
     groups ||--o{ catalog_sources : owns
     catalog_sources ||--o{ catalog_items : catalogs
+    catalog_sources ||--o{ catalog_source_fields : exposes
     groups ||--o{ group_daily_feeds : owns
     users ||--o{ group_memberships : joins
     groups ||--o{ divisions : contains
@@ -44,6 +45,8 @@ erDiagram
     problem_sources ||--o{ division_rules : scopes
     division_rules ||--o{ division_rule_tags : constrains
     group_daily_feeds ||--o{ group_daily_feed_instances : materializes
+    group_daily_feeds ||--o{ feed_rule_filters : filters
+    catalog_source_fields ||--o{ feed_rule_filters : constrains
     group_daily_feed_instances ||--o{ group_feed_posts : receives
     users ||--o{ group_feed_posts : authors
 
@@ -101,29 +104,43 @@ created from migrations alone.
 
 `catalog_sources` stores group-owned source collections used by the daily feed
 system. A source has a group, name, and string template. The template renders
-feed output from an item title plus keys in the item's `data` object. If the
-rendered output starts with `https://`, the frontend presents it as a link;
-otherwise it presents the rendered text as a prompt.
+feed output from keys in the item's `data` object. If the rendered output
+starts with `https://`, the frontend presents it as a link; otherwise it
+presents the rendered text as a prompt.
 
 `catalog_items` stores user-managed rows for a source. Rows have a display
-`title` and source-specific `data` JSON. The model intentionally does not ask
-users for external IDs, item kinds, or separate locator fields. For Codeforces,
-`data` contains keys such as `contest_id`, `index`, `rating`, and `tags`.
-Catalog items must not store statements, prompts, samples, editorials, or
-solutions.
+source-specific `data` JSON object; display labels belong in `data` with keys
+such as `name`. The model intentionally does not ask users for external IDs,
+item kinds, or separate locator fields. For Codeforces, `data` contains keys
+such as `name`, `contest_id`, `index`, `rating`, and `tags`. Catalog items must
+not store statements, prompts, samples, editorials, or solutions.
+
+`catalog_source_fields` stores source-owned metadata for fields that feed rules
+may filter on. Presence in this table makes a JSON key filterable. Each field
+has a label, value type (`string` or `number`), cardinality flag, and display
+order; operator semantics stay in application code.
 
 `group_daily_feeds` stores the durable daily feed definition owned by a group.
-Each feed has a unique slug within its group, a kind, an enabled flag, audience
-JSON, schedule JSON, and rule JSON. The `catalog_daily` kind uses `blocks` that
-select catalog items by `source_id`, count, `data.rating`, and `data.tags`.
-The `daily_thread` kind is a general group daily surface with no prompt or
-catalog rules. A partial unique index allows only one `daily_thread` feed per
-group, while deletion frees the group to create another one later.
+Each feed has a unique slug within its group, a kind, an enabled flag, explicit
+schedule columns (`schedule_starts_at`, `schedule_timezone`, and
+`schedule_interval_seconds`), and optional practice-feed source/count columns.
+The `catalog_daily` kind selects items from exactly one `catalog_sources` row.
+The `daily_thread` kind is a general group daily surface with no source, item
+count, or catalog filters. A partial unique index allows only one
+`daily_thread` feed per group, while deletion frees the group to create another
+one later.
+
+`feed_rule_filters` stores practice feed filters relationally. Each filter
+references a feed, the feed source, and one `catalog_source_fields` row, then
+stores an operator plus either text operands or numeric operands. Scalar values
+are represented as one-element arrays; multi-value operators use the same
+columns with multiple operands.
 
 Catalog daily feed outputs are generated on demand from `group_daily_feeds`,
-`catalog_items`, and `catalog_sources`. Daily thread outputs return the daily
-feed shell without generated items. Generated outputs are not written to
-`daily_sets` or item rows.
+`catalog_items`, `catalog_sources`, `catalog_source_fields`, and
+`feed_rule_filters`. Daily thread outputs return the daily feed shell without
+generated items. Generated outputs are not written to `daily_sets` or item
+rows.
 
 `group_daily_feed_instances` materializes a dated `(feed_id, feed_date)` only
 when durable member content exists for that feed instance. The row carries

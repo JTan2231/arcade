@@ -361,7 +361,7 @@ func (s *Server) authorizeGroupFeedPostTargetForRole(ctx context.Context, userID
 		return time.Time{}, err
 	}
 	if !ok {
-		return time.Time{}, forbidden("daily feed audience required")
+		return time.Time{}, forbidden("active group membership required")
 	}
 
 	return dailyFeedOutputDate(feed.Schedule, &requestedDate)

@@ -21,44 +21,37 @@ export type Group = {
   updated_at: string;
 };
 
-export type DailyFeedAudience = {
-  type: "all_members" | "division" | string;
-  division_id?: string;
-};
-
 export type DailyFeedSchedule = {
-  cadence: "daily" | string;
+  starts_at: string;
   timezone: string;
+  interval_seconds: number;
 };
 
-export type DailyFeedRatingFilter = {
-  min?: number;
-  max?: number;
-  target?: number;
-};
-
-export type DailyFeedTagFilter = {
-  include_any?: string[];
-  exclude_any?: string[];
-};
-
-export type DailyFeedFilters = {
-  rating?: DailyFeedRatingFilter;
-  tags?: DailyFeedTagFilter;
-};
-
-export type DailyFeedRuleBlock = {
+export type CatalogSourceField = {
+  id: string;
   source_id: string;
-  source?: string;
-  kind?: string;
-  count: number;
-  filters?: DailyFeedFilters;
-  roles?: string[];
-  points?: number[];
+  key: string;
+  label: string;
+  value_type: "string" | "number" | string;
+  is_array: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
 };
 
-export type DailyFeedRules = {
-  blocks: DailyFeedRuleBlock[];
+export type DailyFeedRuleFilter = {
+  id?: string;
+  feed_id?: string;
+  source_id?: string;
+  field_id: string;
+  field_key?: string;
+  field_label?: string;
+  value_type?: "string" | "number" | string;
+  is_array?: boolean;
+  position?: number;
+  op: string;
+  text_values?: string[];
+  number_values?: number[];
 };
 
 export type DailyFeed = {
@@ -70,10 +63,11 @@ export type DailyFeed = {
   kind: "catalog_daily" | "daily_thread" | string;
   description?: string;
   enabled: boolean;
-  audience: DailyFeedAudience;
+  source_id?: string;
+  source_name?: string;
+  item_count?: number;
   schedule: DailyFeedSchedule;
-  rules_schema_version: number;
-  rules: DailyFeedRules;
+  filters: DailyFeedRuleFilter[];
   created_by_user_id?: string;
   created_at: string;
   updated_at: string;
@@ -83,7 +77,7 @@ export type DailyCatalogItem = {
   id: string;
   source_id: string;
   source_name: string;
-  title: string;
+  title?: string;
   data: Record<string, unknown>;
 };
 
@@ -110,6 +104,44 @@ export type DailyFeedOutput = {
   date: string;
   title: string;
   items: DailyFeedOutputItem[];
+};
+
+export type CatalogSource = {
+  id: string;
+  group_id: string;
+  name: string;
+  template: string;
+  created_by_user_id?: string;
+  item_count: number;
+  eligible_item_count: number;
+  template_fields: string[];
+  fields: CatalogSourceField[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type DailyFeedPreview = {
+  output: DailyFeedOutput;
+  candidate_item_count: number;
+  eligible_item_count: number;
+  ineligible_item_count: number;
+  ineligible_items: Array<{
+    id: string;
+    source_id: string;
+    title?: string;
+    missing_fields: string[];
+  }>;
+};
+
+export type CreateDailyFeedRequest = {
+  name: string;
+  kind: "catalog_daily" | "daily_thread";
+  description?: string;
+  enabled: boolean;
+  source_id?: string;
+  item_count?: number;
+  schedule: DailyFeedSchedule;
+  filters?: DailyFeedRuleFilter[];
 };
 
 export type GroupFeedPost = {

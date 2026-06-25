@@ -89,13 +89,16 @@ The current daily feed model follows these rules:
 
 - Groups are the delivery and permission boundary.
 - Owners and admins manage `group_daily_feeds`.
-- Active members read only enabled feeds whose audience they match.
+- Active members read enabled feeds in their groups; owners and admins can also
+  inspect disabled feeds.
 - Feed kinds are `catalog_daily` and `daily_thread`.
 - New groups receive one enabled `daily_thread` feed by default. There can be
   only one daily thread per group; it can be deleted and created again later.
-- Catalog daily outputs are computed on demand from feed rules, `catalog_items`,
-  and `catalog_sources`.
-- Catalog selection is deterministic by feed, date, block, and catalog item.
+- Catalog daily outputs are computed on demand from `catalog_sources`,
+  `catalog_source_fields`, `catalog_items`, `group_daily_feeds`, and
+  `feed_rule_filters`.
+- Catalog selection is deterministic by feed, date, source, filters, and
+  catalog item set.
 - Catalog outputs render from source templates. HTTPS renders become links;
   other renders become text prompts. Outputs are not persisted.
 - Member posts are stored separately from generated output. The first post for a
@@ -136,7 +139,10 @@ The main group surface loads `/api/groups/{group_id}/daily-feeds` and
 `/api/groups/{group_id}/daily-feeds/{feed_id}/today` or
 `/api/groups/{group_id}/daily-feeds/{feed_id}/outputs/{date}`. Owners and
 admins can toggle feed enabled state through
-`PATCH /api/groups/{group_id}/daily-feeds/{feed_id}`.
+`PATCH /api/groups/{group_id}/daily-feeds/{feed_id}`. The same surface exposes
+an owner/admin-only Add feed flow backed by group catalog sources, source field
+metadata, `POST /api/groups/{group_id}/daily-feeds/preview`, and
+`POST /api/groups/{group_id}/daily-feeds`.
 
 Because assets are embedded, a production-style local run should build the
 frontend before starting Go:

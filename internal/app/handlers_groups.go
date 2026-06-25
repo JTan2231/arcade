@@ -124,10 +124,9 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 			slug,
 			kind,
 			enabled,
-			audience,
-			schedule,
-			rules_schema_version,
-			rules,
+			schedule_starts_at,
+			schedule_timezone,
+			schedule_interval_seconds,
 			created_by_user_id
 		)
 		values (
@@ -136,10 +135,9 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 			$3,
 			$4,
 			true,
-			'{"type":"all_group_members"}'::jsonb,
-			'{"cadence":"daily","timezone":"UTC"}'::jsonb,
-			1,
-			'{}'::jsonb,
+			date_trunc('day', now()),
+			'UTC',
+			86400,
 			$5
 		)
 	`, groupID, defaultDailyThreadFeedName, defaultDailyThreadFeedSlug, dailyFeedKindDailyThread, current.ID); err != nil {
