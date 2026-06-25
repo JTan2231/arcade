@@ -112,6 +112,36 @@ export type DailyFeedOutput = {
   items: DailyFeedOutputItem[];
 };
 
+export type GroupFeedPost = {
+  id: string;
+  group_id: string;
+  feed_instance_id: string;
+  feed_id: string;
+  feed_date: string;
+  author_user_id: string;
+  author_username: string;
+  author_display_name: string;
+  author_avatar_url?: string;
+  evidence_kind: "text" | string;
+  evidence_text: string;
+  caption?: string;
+  deleted_at?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreateGroupFeedPostRequest = {
+  evidence_kind: "text";
+  evidence_text: string;
+  caption?: string;
+};
+
+export type PatchGroupFeedPostRequest = {
+  evidence_kind?: "text";
+  evidence_text?: string;
+  caption?: string | null;
+};
+
 export type LoginRequest = {
   email: string;
   password: string;

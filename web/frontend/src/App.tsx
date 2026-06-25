@@ -2,24 +2,28 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   createGroup,
+  createGroupFeedPost,
+  deleteGroupFeedPost,
   errorMessage,
   getGroupDailyFeedOutput,
   getGroupDailyFeedToday,
   getSession,
   isUnauthorized,
+  listGroupFeedPosts,
   listGroupDailyFeeds,
   listGroups,
   login,
   logout,
   signup,
   updateGroupDailyFeed,
+  updateGroupFeedPost,
 } from "./api";
 import { AuthView } from "./components/AuthView";
 import { GroupDashboard } from "./components/GroupDashboard";
 import { GroupsPanel } from "./components/GroupsPanel";
 import { Toast } from "./components/Toast";
 import { todayDateValue } from "./dates";
-import type { DailyFeed, DailyFeedOutput, Group, LoginRequest, SignupRequest, User } from "./types";
+import type { DailyFeed, DailyFeedOutput, Group, GroupFeedPost, LoginRequest, SignupRequest, User } from "./types";
 
 type AuthStatus = "checking" | "anonymous" | "authenticated";
 
@@ -46,6 +50,10 @@ export default function App() {
   const [selectedFeedOutput, setSelectedFeedOutput] = useState<DailyFeedOutput | null>(null);
   const [feedOutputLoading, setFeedOutputLoading] = useState(false);
   const [feedOutputError, setFeedOutputError] = useState("");
+  const [feedPosts, setFeedPosts] = useState<GroupFeedPost[]>([]);
+  const [feedPostsLoading, setFeedPostsLoading] = useState(false);
+  const [feedPostsError, setFeedPostsError] = useState("");
+  const [feedPostSubmitting, setFeedPostSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const groupRequestId = useRef(0);
@@ -70,6 +78,10 @@ export default function App() {
     setSelectedFeedOutput(null);
     setFeedOutputLoading(false);
     setFeedOutputError("");
+    setFeedPosts([]);
+    setFeedPostsLoading(false);
+    setFeedPostsError("");
+    setFeedPostSubmitting(false);
     groupRequestId.current += 1;
     feedOutputRequestId.current += 1;
   }, []);
@@ -131,6 +143,9 @@ export default function App() {
       setFeedOutputLoading(true);
       setFeedOutputError("");
       setSelectedFeedOutput(null);
+      setFeedPosts([]);
+      setFeedPostsLoading(true);
+      setFeedPostsError("");
 
       try {
         const output = useToday
@@ -143,6 +158,22 @@ export default function App() {
 
         setSelectedFeedOutput(output);
         setSelectedFeedDate(output.date || date);
+        setFeedOutputLoading(false);
+
+        try {
+          const posts = await listGroupFeedPosts(groupId, feedId, output.date || date);
+          if (requestId !== feedOutputRequestId.current) {
+            return;
+          }
+          setFeedPosts(posts);
+        } catch (error) {
+          if (requestId !== feedOutputRequestId.current) {
+            return;
+          }
+          if (!handleUnauthorized(error)) {
+            setFeedPostsError(errorMessage(error));
+          }
+        }
       } catch (error) {
         if (requestId !== feedOutputRequestId.current) {
           return;
@@ -153,6 +184,7 @@ export default function App() {
       } finally {
         if (requestId === feedOutputRequestId.current) {
           setFeedOutputLoading(false);
+          setFeedPostsLoading(false);
         }
       }
     },
@@ -211,6 +243,10 @@ export default function App() {
     setSelectedFeedOutput(null);
     setFeedOutputError("");
     setFeedOutputLoading(false);
+    setFeedPosts([]);
+    setFeedPostsError("");
+    setFeedPostsLoading(false);
+    setFeedPostSubmitting(false);
     setGroupFeedsLoading(Boolean(group));
 
     if (!group) {
@@ -321,6 +357,8 @@ export default function App() {
     setSelectedFeedDate(date);
     setSelectedFeedOutput(null);
     setFeedOutputError("");
+    setFeedPosts([]);
+    setFeedPostsError("");
     void loadFeedOutput({ groupId: selectedGroup.id, feedId: id, date, useToday: true });
   }
 
@@ -332,6 +370,8 @@ export default function App() {
     setSelectedFeedDate(date);
     setSelectedFeedOutput(null);
     setFeedOutputError("");
+    setFeedPosts([]);
+    setFeedPostsError("");
     void loadFeedOutput({ groupId: selectedGroup.id, feedId: selectedFeedId, date });
   }
 
@@ -354,6 +394,100 @@ export default function App() {
       if (!handleUnauthorized(error)) {
         showToast(errorMessage(error));
       }
+    }
+  }
+
+  async function handleCreateFeedPost(payload: { evidenceText: string; caption: string }) {
+    if (!selectedGroup || !selectedFeedId || !selectedFeedOutput) {
+      return false;
+    }
+
+    const requestId = feedOutputRequestId.current;
+    const evidenceText = payload.evidenceText.trim();
+    const caption = payload.caption.trim();
+    if (!evidenceText) {
+      return false;
+    }
+
+    setFeedPostSubmitting(true);
+    try {
+      const post = await createGroupFeedPost(selectedGroup.id, selectedFeedId, selectedFeedOutput.date, {
+        evidence_kind: "text",
+        evidence_text: evidenceText,
+        ...(caption ? { caption } : {}),
+      });
+      if (requestId !== feedOutputRequestId.current) {
+        return false;
+      }
+      setFeedPosts((posts) => [post, ...posts.filter((candidate) => candidate.id !== post.id)]);
+      setFeedPostsError("");
+      showToast("Post submitted");
+      return true;
+    } catch (error) {
+      if (!handleUnauthorized(error)) {
+        showToast(errorMessage(error));
+      }
+      return false;
+    } finally {
+      if (requestId === feedOutputRequestId.current) {
+        setFeedPostSubmitting(false);
+      }
+    }
+  }
+
+  async function handleUpdateFeedPost(postId: string, payload: { evidenceText: string; caption: string }) {
+    if (!selectedGroup) {
+      return false;
+    }
+
+    const requestId = feedOutputRequestId.current;
+    const evidenceText = payload.evidenceText.trim();
+    const caption = payload.caption.trim();
+    if (!evidenceText) {
+      return false;
+    }
+
+    try {
+      const post = await updateGroupFeedPost(selectedGroup.id, postId, {
+        evidence_kind: "text",
+        evidence_text: evidenceText,
+        caption: caption || null,
+      });
+      if (requestId !== feedOutputRequestId.current) {
+        return false;
+      }
+      setFeedPosts((posts) => posts.map((candidate) => (candidate.id === post.id ? post : candidate)));
+      setFeedPostsError("");
+      showToast("Post updated");
+      return true;
+    } catch (error) {
+      if (!handleUnauthorized(error)) {
+        showToast(errorMessage(error));
+      }
+      return false;
+    }
+  }
+
+  async function handleDeleteFeedPost(postId: string) {
+    if (!selectedGroup) {
+      return false;
+    }
+
+    const requestId = feedOutputRequestId.current;
+    try {
+      await deleteGroupFeedPost(selectedGroup.id, postId);
+      if (requestId !== feedOutputRequestId.current) {
+        return false;
+      }
+      setFeedPosts((posts) => posts.filter((candidate) => candidate.id !== postId));
+      setFeedPostsError("");
+      showToast("Post deleted");
+      return true;
+    } catch (error) {
+      if (!handleUnauthorized(error)) {
+        showToast(errorMessage(error));
+      }
+      return false;
     }
   }
 
@@ -415,9 +549,17 @@ export default function App() {
           output={selectedFeedOutput}
           outputLoading={feedOutputLoading}
           outputError={feedOutputError}
+          posts={feedPosts}
+          postsLoading={feedPostsLoading}
+          postsError={feedPostsError}
+          postSubmitting={feedPostSubmitting}
+          currentUserId={sessionUser?.id || null}
           onSelectFeed={handleSelectFeed}
           onChangeFeedDate={handleChangeFeedDate}
           onToggleFeedEnabled={handleToggleFeedEnabled}
+          onCreateFeedPost={handleCreateFeedPost}
+          onUpdateFeedPost={handleUpdateFeedPost}
+          onDeleteFeedPost={handleDeleteFeedPost}
         />
       </main>
 

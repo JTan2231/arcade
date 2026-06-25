@@ -25,7 +25,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -62,6 +63,17 @@ button.secondary:hover:not(:disabled) {
   background: #eef2f6;
 }
 
+button.danger {
+  background: white;
+  border-color: #f0b8b8;
+  color: var(--danger);
+}
+
+button.danger:hover:not(:disabled) {
+  background: #fff1f1;
+  border-color: #d66f6f;
+}
+
 input {
   background: white;
   border: 1px solid var(--line);
@@ -79,6 +91,17 @@ select {
   color: var(--ink);
   min-height: 36px;
   padding: 6px 8px;
+  width: 100%;
+}
+
+textarea {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  min-height: 80px;
+  padding: 8px;
+  resize: vertical;
   width: 100%;
 }
 
@@ -290,9 +313,119 @@ label {
 }
 
 .output-summary {
-  border-bottom: 1px solid var(--line);
   margin-bottom: 10px;
-  padding-bottom: 10px;
+}
+
+.feed-posts-section {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.feed-posts-header {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.feed-post-form {
+  background: #fbfcfe;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
+.evidence-textarea {
+  min-height: 180px;
+}
+
+.caption-textarea {
+  min-height: 72px;
+}
+
+.feed-post-card {
+  display: grid;
+  gap: 8px;
+}
+
+.post-card-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.post-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.post-card-actions button {
+  font-size: 13px;
+  min-height: 32px;
+}
+
+.post-evidence-code-wrap {
+  position: relative;
+}
+
+.post-evidence-code {
+  background: #f6f7f9;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  line-height: 1.45;
+  margin: 0;
+  overflow: auto;
+  padding: 10px;
+  white-space: pre-wrap;
+}
+
+.post-evidence-code.clickable {
+  cursor: pointer;
+}
+
+.post-evidence-code.clickable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.post-evidence-code-wrap.preview::after {
+  background: linear-gradient(rgba(246, 247, 249, 0), #f6f7f9 78%);
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  bottom: 1px;
+  content: "";
+  height: 46px;
+  left: 1px;
+  pointer-events: none;
+  position: absolute;
+  right: 1px;
+}
+
+.post-evidence-collapse-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.post-evidence-collapse-row button {
+  font-size: 13px;
+  min-height: 32px;
+}
+
+.post-caption {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.edit-post-form {
+  background: white;
 }
 
 .output-item {
@@ -439,5 +572,13 @@ label {
     align-items: flex-start;
     flex-direction: row;
     flex-wrap: wrap;
+  }
+
+  .post-card-header {
+    display: grid;
+  }
+
+  .post-card-actions {
+    justify-content: flex-start;
   }
 }

@@ -1,9 +1,12 @@
 import type {
+  CreateGroupFeedPostRequest,
   CreateGroupRequest,
   DailyFeed,
   DailyFeedOutput,
   Group,
+  GroupFeedPost,
   LoginRequest,
+  PatchGroupFeedPostRequest,
   SignupRequest,
   User,
 } from "./types";
@@ -117,6 +120,44 @@ export function getGroupDailyFeedOutput(
   return api<DailyFeedOutput>(
     `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/outputs/${encodeURIComponent(date)}`,
   );
+}
+
+export function listGroupFeedPosts(groupID: string, feedID: string, date: string): Promise<GroupFeedPost[]> {
+  return api<GroupFeedPost[]>(
+    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/outputs/${encodeURIComponent(date)}/posts`,
+  );
+}
+
+export function createGroupFeedPost(
+  groupID: string,
+  feedID: string,
+  date: string,
+  payload: CreateGroupFeedPostRequest,
+): Promise<GroupFeedPost> {
+  return api<GroupFeedPost>(
+    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/outputs/${encodeURIComponent(date)}/posts`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function updateGroupFeedPost(
+  groupID: string,
+  postID: string,
+  payload: PatchGroupFeedPostRequest,
+): Promise<GroupFeedPost> {
+  return api<GroupFeedPost>(`/api/groups/${encodeURIComponent(groupID)}/feed-posts/${encodeURIComponent(postID)}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteGroupFeedPost(groupID: string, postID: string): Promise<null> {
+  return api<null>(`/api/groups/${encodeURIComponent(groupID)}/feed-posts/${encodeURIComponent(postID)}`, {
+    method: "DELETE",
+  });
 }
 
 export function updateGroupDailyFeed(
