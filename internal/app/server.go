@@ -18,19 +18,21 @@ import (
 )
 
 type Server struct {
-	db     *pgxpool.Pool
-	static http.Handler
+	db                 *pgxpool.Pool
+	static             http.Handler
+	catalogImportToken string
 }
 
-func NewServer(_ context.Context, db *pgxpool.Pool, _ Config) (*Server, error) {
+func NewServer(_ context.Context, db *pgxpool.Pool, config Config) (*Server, error) {
 	staticFS, err := fs.Sub(web.Static, "static")
 	if err != nil {
 		return nil, fmt.Errorf("load static files: %w", err)
 	}
 
 	return &Server{
-		db:     db,
-		static: http.FileServer(http.FS(staticFS)),
+		db:                 db,
+		static:             http.FileServer(http.FS(staticFS)),
+		catalogImportToken: strings.TrimSpace(config.CatalogImportToken),
 	}, nil
 }
 
@@ -42,6 +44,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("POST /api/auth/login", s.handleLogin)
 	mux.HandleFunc("POST /api/auth/logout", s.handleLogout)
 	mux.HandleFunc("GET /api/auth/session", s.handleAuthSession)
+	mux.HandleFunc("POST /api/catalog-imports", s.handleCatalogImport)
 
 	mux.HandleFunc("GET /api/me", s.handleGetMe)
 	mux.HandleFunc("PATCH /api/me", s.handlePatchMe)

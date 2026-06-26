@@ -1330,7 +1330,7 @@ func (s *Server) normalizePracticeFeedConfig(ctx context.Context, groupID string
 	if itemCount < 1 || itemCount > 50 {
 		return nil, badRequest("item_count must be between 1 and 50")
 	}
-	if ok, err := s.catalogSourceInGroup(ctx, groupID, sourceID); err != nil {
+	if ok, err := s.catalogSourceAvailableToGroup(ctx, groupID, sourceID); err != nil {
 		return nil, err
 	} else if !ok {
 		return nil, errNotFound("catalog source")
@@ -1521,13 +1521,14 @@ func dailyFeedKindRequiresReady(kind string) bool {
 	return kind == "" || kind == dailyFeedKindCatalogDaily
 }
 
-func (s *Server) catalogSourceInGroup(ctx context.Context, groupID string, sourceID string) (bool, error) {
+func (s *Server) catalogSourceAvailableToGroup(ctx context.Context, groupID string, sourceID string) (bool, error) {
 	var exists bool
 	err := s.db.QueryRow(ctx, `
 		select exists(
 			select 1
 			from catalog_sources
-			where group_id = $1 and id = $2
+			where id = $2
+			  and (group_id = $1 or scope = 'global')
 		)
 	`, groupID, sourceID).Scan(&exists)
 	return exists, err

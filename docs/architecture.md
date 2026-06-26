@@ -52,6 +52,8 @@ Routes are grouped by resource in `Server.Routes()`:
 - Auth: signup, login, logout, and session bootstrap.
 - Identity: `/api/me` profile lookup and updates.
 - Catalog: group-owned catalog sources and items.
+- Catalog imports: admin-only normalized JSONL uploads through a shared bearer
+  token.
 - Groups: groups and group memberships.
 - Divisions: group-scoped divisions and optional user-rating rules.
 - Dailies: group-owned daily feed definitions and deterministic feed outputs.
@@ -62,8 +64,8 @@ The main persisted entities are:
 
 - `users`: local users with email/password credentials.
 - `user_sessions`: hashed session tokens for secure cookie-backed login.
-- `catalog_sources` and `catalog_items`: group-owned source templates and rows
-  for group daily feeds.
+- `catalog_sources` and `catalog_items`: group-owned or global source templates
+  and rows for group daily feeds.
 - `groups` and `group_memberships`: social scopes and roles.
 - `divisions` and `division_rules`: group-scoped division metadata.
 - `group_daily_feeds`: durable group-owned daily feed definitions.
@@ -91,6 +93,9 @@ The current daily feed model follows these rules:
   catalog item set.
 - Catalog outputs render from source templates. HTTPS renders become links;
   other renders become text prompts. Outputs are not persisted.
+- Global catalog sources are available to every group for catalog daily feeds,
+  while group-owned sources remain mutable through that group's admin catalog
+  APIs.
 - Member posts are stored separately from generated output. The first post for a
   feed/date lazily creates a `group_daily_feed_instances` row, and each active
   member can own at most one post on that instance.

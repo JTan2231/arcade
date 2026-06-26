@@ -112,6 +112,7 @@ func (s *Server) handleCreateGroupCatalogSource(w http.ResponseWriter, r *http.R
 		writeError(w, http.StatusBadRequest, "template is required")
 		return
 	}
+	slug := slugify(req.Name)
 
 	tx, err := s.db.Begin(r.Context())
 	if err != nil {
@@ -124,13 +125,15 @@ func (s *Server) handleCreateGroupCatalogSource(w http.ResponseWriter, r *http.R
 	err = tx.QueryRow(r.Context(), `
 		insert into catalog_sources (
 			group_id,
+			slug,
+			scope,
 			name,
 			template,
 			created_by_user_id
 		)
-		values ($1, $2, $3, $4)
+		values ($1, $2, 'group', $3, $4, $5)
 		returning id::text
-	`, groupID, req.Name, req.Template, current.ID).Scan(&sourceID)
+	`, groupID, slug, req.Name, req.Template, current.ID).Scan(&sourceID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -245,7 +248,7 @@ func (s *Server) handleCreateGroupCatalogItem(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	source, err := s.getCatalogSource(r.Context(), groupID, r.PathValue("source_id"))
+	source, err := s.getGroupOwnedCatalogSource(r.Context(), groupID, r.PathValue("source_id"))
 	if err != nil {
 		handleError(w, err)
 		return
@@ -273,7 +276,7 @@ func (s *Server) handleCreateGroupCatalogItem(w http.ResponseWriter, r *http.Req
 			data
 		)
 		values ($1, $2::jsonb)
-		returning id::text, source_id::text, data, created_at, updated_at
+		returning id::text, source_id::text, external_id, data, created_at, updated_at
 	`, source.ID, string(dataJSON)), source.Template)
 	if err != nil {
 		handleError(w, err)
@@ -287,6 +290,8 @@ func (s *Server) listGroupCatalogSources(ctx context.Context, groupID string) ([
 		select
 			id::text,
 			group_id::text,
+			slug,
+			scope,
 			name,
 			template,
 			created_by_user_id::text,
@@ -294,7 +299,8 @@ func (s *Server) listGroupCatalogSources(ctx context.Context, groupID string) ([
 			updated_at
 		from catalog_sources
 		where group_id = $1
-		order by name
+		   or scope = 'global'
+		order by scope, name
 	`, groupID)
 	if err != nil {
 		return nil, err
@@ -325,13 +331,16 @@ func (s *Server) getCatalogSource(ctx context.Context, groupID string, sourceID 
 		select
 			id::text,
 			group_id::text,
+			slug,
+			scope,
 			name,
 			template,
 			created_by_user_id::text,
 			created_at,
 			updated_at
 		from catalog_sources
-		where group_id = $1 and id = $2
+		where id = $2
+		  and (group_id = $1 or scope = 'global')
 	`, groupID, sourceID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return CatalogSource{}, errNotFound("catalog source")
@@ -350,12 +359,26 @@ func (s *Server) getCatalogSource(ctx context.Context, groupID string, sourceID 
 	return source, nil
 }
 
+func (s *Server) getGroupOwnedCatalogSource(ctx context.Context, groupID string, sourceID string) (CatalogSource, error) {
+	source, err := s.getCatalogSource(ctx, groupID, sourceID)
+	if err != nil {
+		return CatalogSource{}, err
+	}
+	if source.GroupID == nil || *source.GroupID != groupID || source.Scope != "group" {
+		return CatalogSource{}, forbidden("catalog source is not group-owned")
+	}
+	return source, nil
+}
+
 func scanCatalogSource(row pgx.Row) (CatalogSource, error) {
 	var source CatalogSource
+	var groupID sql.NullString
 	var createdByUserID sql.NullString
 	if err := row.Scan(
 		&source.ID,
-		&source.GroupID,
+		&groupID,
+		&source.Slug,
+		&source.Scope,
 		&source.Name,
 		&source.Template,
 		&createdByUserID,
@@ -364,6 +387,7 @@ func scanCatalogSource(row pgx.Row) (CatalogSource, error) {
 	); err != nil {
 		return CatalogSource{}, err
 	}
+	source.GroupID = nullStringPtr(groupID)
 	source.CreatedByUserID = nullStringPtr(createdByUserID)
 	source.TemplateFields = templateFields(source.Template)
 	return source, nil
@@ -405,6 +429,7 @@ func (s *Server) listCatalogItems(ctx context.Context, source CatalogSource) ([]
 		select
 			id::text,
 			source_id::text,
+			external_id,
 			data,
 			created_at,
 			updated_at
@@ -430,16 +455,19 @@ func (s *Server) listCatalogItems(ctx context.Context, source CatalogSource) ([]
 
 func scanCatalogItem(row pgx.Row, template string) (CatalogItem, error) {
 	var item CatalogItem
+	var externalID sql.NullString
 	var dataJSON []byte
 	if err := row.Scan(
 		&item.ID,
 		&item.SourceID,
+		&externalID,
 		&dataJSON,
 		&item.CreatedAt,
 		&item.UpdatedAt,
 	); err != nil {
 		return CatalogItem{}, err
 	}
+	item.ExternalID = nullStringPtr(externalID)
 	item.Data = map[string]any{}
 	if err := json.Unmarshal(dataJSON, &item.Data); err != nil {
 		return CatalogItem{}, fmt.Errorf("decode catalog item data: %w", err)

@@ -3,8 +3,9 @@ package app
 import "os"
 
 type Config struct {
-	Addr        string
-	DatabaseURL string
+	Addr               string
+	DatabaseURL        string
+	CatalogImportToken string
 }
 
 func LoadConfig() Config {
@@ -16,8 +17,9 @@ func LoadConfig() Config {
 	addr := firstNonEmpty(os.Getenv("ARCADE_ADDR"), addrFromPort(os.Getenv("PORT")), ":8080")
 
 	return Config{
-		Addr:        addr,
-		DatabaseURL: databaseURL,
+		Addr:               addr,
+		DatabaseURL:        databaseURL,
+		CatalogImportToken: os.Getenv("ARCADE_CATALOG_IMPORT_TOKEN"),
 	}
 }
 

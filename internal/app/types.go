@@ -153,7 +153,9 @@ type GroupFeedPost struct {
 
 type CatalogSource struct {
 	ID                string               `json:"id"`
-	GroupID           string               `json:"group_id"`
+	GroupID           *string              `json:"group_id,omitempty"`
+	Slug              string               `json:"slug"`
+	Scope             string               `json:"scope"`
 	Name              string               `json:"name"`
 	Template          string               `json:"template"`
 	CreatedByUserID   *string              `json:"created_by_user_id,omitempty"`
@@ -180,6 +182,7 @@ type CatalogSourceField struct {
 type CatalogItem struct {
 	ID            string         `json:"id"`
 	SourceID      string         `json:"source_id"`
+	ExternalID    *string        `json:"external_id,omitempty"`
 	Title         string         `json:"title,omitempty"`
 	Data          map[string]any `json:"data"`
 	Rendered      string         `json:"rendered"`

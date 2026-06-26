@@ -59,16 +59,19 @@ lifetime, revocation, and last-seen metadata.
 
 ## Group Catalog And Daily Feeds
 
-`catalog_sources` stores group-owned source collections used by the daily feed
-system. A source has a group, name, and string template. The template renders
-feed output from keys in the item's `data` object. If the rendered output
-starts with `https://`, the frontend presents it as a link; otherwise it
-presents the rendered text as a prompt.
+`catalog_sources` stores source collections used by the daily feed system. A
+source has a stable `slug`, a `scope`, a name, and a string template. Group
+sources use `scope = 'group'` and belong to one group. Global sources use
+`scope = 'global'`, have no group owner, and are available to every group for
+feed creation. The template renders feed output from keys in the item's `data`
+object. If the rendered output starts with `https://`, the frontend presents it
+as a link; otherwise it presents the rendered text as a prompt.
 
-`catalog_items` stores user-managed rows for a source. Rows have a
-source-specific `data` JSON object; display labels belong in `data` with keys
-such as `name`. Catalog items must not store statements, prompts, samples,
-editorials, or solutions.
+`catalog_items` stores rows for a source. Imported rows use `external_id` as a
+stable source-local key so repeated bulk imports can upsert the same item. Rows
+also have a source-specific `data` JSON object; display labels belong in `data`
+with keys such as `name`. Catalog items must not store statements, prompts,
+samples, editorials, or solutions.
 
 `catalog_source_fields` stores source-owned metadata for fields that feed rules
 may filter on. Presence in this table makes a JSON key filterable. Each field
@@ -79,7 +82,9 @@ order; operator semantics stay in application code.
 Each feed has a unique slug within its group, a kind, an enabled flag, explicit
 schedule columns (`schedule_starts_at`, `schedule_timezone`, and
 `schedule_interval_seconds`), and optional practice-feed source/count columns.
-The `catalog_daily` kind selects items from exactly one `catalog_sources` row.
+The `catalog_daily` kind selects items from exactly one available
+`catalog_sources` row. A source is available when it either belongs to the feed
+group or has global scope.
 The `daily_thread` kind is a general group daily surface with no source, item
 count, or catalog filters. A partial unique index allows only one
 `daily_thread` feed per group, while deletion frees the group to create another

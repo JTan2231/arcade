@@ -220,6 +220,9 @@ func isPublicAPIRoute(r *http.Request) bool {
 		return true
 	case r.Method == http.MethodGet && r.URL.Path == "/api/auth/session":
 		return true
+	case r.Method == http.MethodPost && r.URL.Path == "/api/catalog-imports":
+		// Admin import scripts authenticate this route with a shared bearer token.
+		return true
 	default:
 		return false
 	}
