@@ -27,6 +27,8 @@ Arcade is a small Go/Postgres web application. The backend serves JSON APIs and 
 - Package manager and script runner: Bun, with reproducible installs from
   `web/frontend/bun.lock`.
 - Build tool: Vite, configured to emit production assets into `web/static`.
+- Validation: TypeScript, ESLint, Prettier, Stylelint, and Knip run from
+  `web/frontend` and are wired into the root `ci.sh`.
 - Asset delivery: `web/static.go` embeds the generated static directory with Go
   `embed.FS`.
 - Runtime: the frontend calls `/api/*` with `fetch`, same-origin credentials,

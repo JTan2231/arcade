@@ -21,7 +21,7 @@ export type Group = {
   updated_at: string;
 };
 
-export type DailyFeedSchedule = {
+type DailyFeedSchedule = {
   starts_at: string;
   timezone: string;
   interval_seconds: number;
@@ -73,7 +73,7 @@ export type DailyFeed = {
   updated_at: string;
 };
 
-export type DailyCatalogItem = {
+type DailyCatalogItem = {
   id: string;
   source_id: string;
   source_name: string;
@@ -108,7 +108,9 @@ export type DailyFeedOutput = {
 
 export type CatalogSource = {
   id: string;
-  group_id: string;
+  group_id?: string;
+  slug: string;
+  scope: "group" | "global" | string;
   name: string;
   template: string;
   created_by_user_id?: string;

@@ -40,12 +40,7 @@ export function GroupsPanel({
       <form className="compact-form" onSubmit={handleSubmit}>
         <label>
           Name
-          <input
-            placeholder="Morning Dojo"
-            required
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-          />
+          <input placeholder="Morning Dojo" required value={name} onChange={(event) => setName(event.target.value)} />
         </label>
         <button type="submit" disabled={creating}>
           Create group

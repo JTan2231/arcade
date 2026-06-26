@@ -18,11 +18,7 @@ type APIErrorBody = {
   error?: string;
 };
 
-type APIOptions = RequestInit & {
-  skipAuthRedirect?: boolean;
-};
-
-export class APIError extends Error {
+class APIError extends Error {
   readonly status: number;
 
   constructor(message: string, status: number) {
@@ -40,8 +36,8 @@ export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Request failed";
 }
 
-async function api<T>(path: string, options: APIOptions = {}): Promise<T> {
-  const { skipAuthRedirect: _skipAuthRedirect, headers, ...fetchOptions } = options;
+async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const { headers, ...fetchOptions } = options;
   const response = await fetch(path, {
     credentials: "same-origin",
     headers: {
@@ -67,14 +63,13 @@ async function api<T>(path: string, options: APIOptions = {}): Promise<T> {
 }
 
 export function getSession(): Promise<User> {
-  return api<User>("/api/auth/session", { skipAuthRedirect: true });
+  return api<User>("/api/auth/session");
 }
 
 export function login(payload: LoginRequest): Promise<User> {
   return api<User>("/api/auth/login", {
     method: "POST",
     body: JSON.stringify(payload),
-    skipAuthRedirect: true,
   });
 }
 
@@ -82,7 +77,6 @@ export function signup(payload: SignupRequest): Promise<User> {
   return api<User>("/api/auth/signup", {
     method: "POST",
     body: JSON.stringify(payload),
-    skipAuthRedirect: true,
   });
 }
 
@@ -90,7 +84,6 @@ export function logout(): Promise<null> {
   return api<null>("/api/auth/logout", {
     method: "POST",
     body: "{}",
-    skipAuthRedirect: true,
   });
 }
 
@@ -133,11 +126,7 @@ export function getGroupDailyFeedToday(groupID: string, feedID: string): Promise
   );
 }
 
-export function getGroupDailyFeedOutput(
-  groupID: string,
-  feedID: string,
-  date: string,
-): Promise<DailyFeedOutput> {
+export function getGroupDailyFeedOutput(groupID: string, feedID: string, date: string): Promise<DailyFeedOutput> {
   return api<DailyFeedOutput>(
     `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/outputs/${encodeURIComponent(date)}`,
   );
@@ -186,11 +175,8 @@ export function updateGroupDailyFeed(
   feedID: string,
   payload: Partial<Pick<DailyFeed, "enabled">>,
 ): Promise<DailyFeed> {
-  return api<DailyFeed>(
-    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    },
-  );
+  return api<DailyFeed>(`/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 }

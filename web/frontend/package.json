@@ -6,6 +6,12 @@
   "scripts": {
     "ci": "bun install --frozen-lockfile",
     "dev": "vite",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "lint:css": "stylelint \"src/**/*.css\"",
+    "check:dead": "knip",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "check": "tsc --noEmit"
@@ -15,10 +21,21 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "eslint": "^9",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
+    "globals": "^17.7.0",
+    "knip": "^6.20.0",
+    "prettier": "^3.8.4",
+    "stylelint": "^17.14.0",
+    "stylelint-config-standard": "^40.0.0",
     "typescript": "^5.0.0",
+    "typescript-eslint": "^8.62.0",
     "vite": "^7.0.0"
   }
 }

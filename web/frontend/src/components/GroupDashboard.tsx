@@ -276,7 +276,7 @@ function AddFeedDialog({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [onLoadCatalogSources]);
 
   const selectedSource = sources.find((source) => source.id === sourceId) || null;
   const sourceFields = selectedSource?.fields || [];
@@ -488,7 +488,9 @@ function AddFeedDialog({
                   />
                 </label>
               </div>
-              {!sourcesLoading && !sources.length ? <div className="empty-state">No catalog sources available.</div> : null}
+              {!sourcesLoading && !sources.length ? (
+                <div className="empty-state">No catalog sources available.</div>
+              ) : null}
             </>
           ) : null}
 
@@ -577,9 +579,7 @@ function FilterEditor({
 }) {
   const field = fields.find((candidate) => candidate.id === filter.fieldId) || fields[0] || null;
   const operators = field ? operatorsForField(field) : [];
-  const currentOp = operators.some((operator) => operator.value === filter.op)
-    ? filter.op
-    : operators[0]?.value || "";
+  const currentOp = operators.some((operator) => operator.value === filter.op) ? filter.op : operators[0]?.value || "";
 
   function handleFieldChange(fieldId: string) {
     const nextField = fields.find((candidate) => candidate.id === fieldId);
@@ -769,9 +769,7 @@ function FeedOutput({
         </div>
       ) : !isDailyThread ? (
         <div className="empty-state">No generated items for {output.date}.</div>
-      ) : (
-        null
-      )}
+      ) : null}
       <FeedPostSection
         key={`${feed.id}-${output.date}`}
         disabled={!feed.enabled}
@@ -1016,32 +1014,20 @@ function EvidenceCodeBlock({ value }: { value: string }) {
   const previewText = lines.slice(0, 3).join("\n");
   const displayText = hasPreview && !expanded ? previewText : value;
 
-  function expand() {
-    if (hasPreview && !expanded) {
-      setExpanded(true);
-    }
-  }
-
   return (
     <div className={`post-evidence-code-wrap ${hasPreview && !expanded ? "preview" : ""}`}>
-      <pre
-        aria-expanded={hasPreview ? expanded : undefined}
-        className={`post-evidence-code ${hasPreview && !expanded ? "clickable" : ""}`}
-        onClick={expand}
-        onKeyDown={(event) => {
-          if (!hasPreview || expanded) {
-            return;
-          }
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            setExpanded(true);
-          }
-        }}
-        role={hasPreview && !expanded ? "button" : undefined}
-        tabIndex={hasPreview && !expanded ? 0 : undefined}
-      >
-        {displayText}
-      </pre>
+      {hasPreview && !expanded ? (
+        <button
+          aria-expanded={expanded}
+          className="post-evidence-code-button"
+          type="button"
+          onClick={() => setExpanded(true)}
+        >
+          <pre className="post-evidence-code">{displayText}</pre>
+        </button>
+      ) : (
+        <pre className="post-evidence-code">{displayText}</pre>
+      )}
       {hasPreview && expanded ? (
         <div className="post-evidence-collapse-row">
           <button className="secondary" type="button" onClick={() => setExpanded(false)}>

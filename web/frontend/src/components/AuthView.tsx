@@ -101,13 +101,7 @@ export function AuthView({ error, onClearError, onLogin, onSignup }: AuthViewPro
             </label>
             <label>
               Password
-              <input
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                minLength={8}
-                required
-              />
+              <input name="password" type="password" autoComplete="new-password" minLength={8} required />
             </label>
             <label className="checkbox-row">
               <input name="remember_me" type="checkbox" />

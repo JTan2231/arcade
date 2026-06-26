@@ -411,7 +411,7 @@ export default function App() {
     }
   }
 
-  async function handleLoadCatalogSources(): Promise<CatalogSource[]> {
+  const handleLoadCatalogSources = useCallback(async (): Promise<CatalogSource[]> => {
     if (!selectedGroup) {
       return [];
     }
@@ -423,7 +423,7 @@ export default function App() {
       }
       throw error;
     }
-  }
+  }, [handleUnauthorized, selectedGroup, showToast]);
 
   async function handlePreviewFeed(payload: CreateDailyFeedRequest): Promise<DailyFeedPreview> {
     if (!selectedGroup) {
