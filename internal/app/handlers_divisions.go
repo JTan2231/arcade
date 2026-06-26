@@ -45,14 +45,8 @@ func (s *Server) handleCreateDivision(w http.ResponseWriter, r *http.Request) {
 		Slug        string  `json:"slug"`
 		Description *string `json:"description"`
 		Rules       []struct {
-			Source           *string  `json:"source"`
-			MinUserRating    *int     `json:"min_user_rating"`
-			MaxUserRating    *int     `json:"max_user_rating"`
-			MinProblemRating *int     `json:"min_problem_rating"`
-			MaxProblemRating *int     `json:"max_problem_rating"`
-			ProblemCount     *int     `json:"problem_count"`
-			RequiredTags     []string `json:"required_tags"`
-			ExcludedTags     []string `json:"excluded_tags"`
+			MinUserRating *int `json:"min_user_rating"`
+			MaxUserRating *int `json:"max_user_rating"`
 		} `json:"rules"`
 	}
 	if err := decodeJSON(r, &req); err != nil {
@@ -87,53 +81,16 @@ func (s *Server) handleCreateDivision(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, rule := range req.Rules {
-		var sourceID any
-		if rule.Source != nil && *rule.Source != "" {
-			id, err := s.sourceIDBySlug(r.Context(), *rule.Source)
-			if err != nil {
-				handleError(w, err)
-				return
-			}
-			sourceID = id
-		}
-
-		var ruleID string
-		if err := tx.QueryRow(r.Context(), `
+		if _, err := tx.Exec(r.Context(), `
 			insert into division_rules (
 				division_id,
-				source_id,
 				min_user_rating,
-				max_user_rating,
-				min_problem_rating,
-				max_problem_rating,
-				problem_count
+				max_user_rating
 			)
-			values ($1, $2, $3, $4, $5, $6, $7)
-			returning id::text
-		`, divisionID, sourceID, rule.MinUserRating, rule.MaxUserRating, rule.MinProblemRating, rule.MaxProblemRating, rule.ProblemCount).Scan(&ruleID); err != nil {
+			values ($1, $2, $3)
+		`, divisionID, rule.MinUserRating, rule.MaxUserRating); err != nil {
 			handleError(w, err)
 			return
-		}
-
-		for _, tag := range rule.RequiredTags {
-			if _, err := tx.Exec(r.Context(), `
-				insert into division_rule_tags (division_rule_id, tag, constraint_type)
-				values ($1, $2, 'required')
-				on conflict do nothing
-			`, ruleID, tag); err != nil {
-				handleError(w, err)
-				return
-			}
-		}
-		for _, tag := range rule.ExcludedTags {
-			if _, err := tx.Exec(r.Context(), `
-				insert into division_rule_tags (division_rule_id, tag, constraint_type)
-				values ($1, $2, 'excluded')
-				on conflict do nothing
-			`, ruleID, tag); err != nil {
-				handleError(w, err)
-				return
-			}
 		}
 	}
 
@@ -388,29 +345,11 @@ func (s *Server) listDivisionRules(ctx context.Context, divisionID string) ([]Di
 		select
 			dr.id::text,
 			dr.division_id::text,
-			dr.source_id::text,
-			ps.slug,
 			dr.min_user_rating,
 			dr.max_user_rating,
-			dr.min_problem_rating,
-			dr.max_problem_rating,
-			dr.problem_count,
-			coalesce(array(
-				select drt.tag
-				from division_rule_tags drt
-				where drt.division_rule_id = dr.id and drt.constraint_type = 'required'
-				order by drt.tag
-			), '{}'),
-			coalesce(array(
-				select drt.tag
-				from division_rule_tags drt
-				where drt.division_rule_id = dr.id and drt.constraint_type = 'excluded'
-				order by drt.tag
-			), '{}'),
 			dr.created_at,
 			dr.updated_at
 		from division_rules dr
-		left join problem_sources ps on ps.id = dr.source_id
 		where dr.division_id = $1
 		order by dr.created_at
 	`, divisionID)
@@ -432,36 +371,19 @@ func (s *Server) listDivisionRules(ctx context.Context, divisionID string) ([]Di
 
 func scanDivisionRule(row pgx.Row) (DivisionRule, error) {
 	var rule DivisionRule
-	var sourceID sql.NullString
-	var sourceSlug sql.NullString
 	var minUserRating sql.NullInt64
 	var maxUserRating sql.NullInt64
-	var minProblemRating sql.NullInt64
-	var maxProblemRating sql.NullInt64
-	var problemCount sql.NullInt64
 	if err := row.Scan(
 		&rule.ID,
 		&rule.DivisionID,
-		&sourceID,
-		&sourceSlug,
 		&minUserRating,
 		&maxUserRating,
-		&minProblemRating,
-		&maxProblemRating,
-		&problemCount,
-		&rule.RequiredTags,
-		&rule.ExcludedTags,
 		&rule.CreatedAt,
 		&rule.UpdatedAt,
 	); err != nil {
 		return DivisionRule{}, err
 	}
-	rule.SourceID = nullStringPtr(sourceID)
-	rule.SourceSlug = nullStringPtr(sourceSlug)
 	rule.MinUserRating = nullIntPtr(minUserRating)
 	rule.MaxUserRating = nullIntPtr(maxUserRating)
-	rule.MinProblemRating = nullIntPtr(minProblemRating)
-	rule.MaxProblemRating = nullIntPtr(maxProblemRating)
-	rule.ProblemCount = nullIntPtr(problemCount)
 	return rule, nil
 }

@@ -55,6 +55,4 @@ At runtime Arcade needs:
 
 ## Current Boundaries
 
-- External account verification and sync endpoints update local status fields only.
-- Leaderboards are computed live from submissions. Snapshot tables exist for future materialization.
 - Division recomputation returns metadata and does not materialize user/division assignments in the local build.

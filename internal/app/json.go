@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -62,24 +61,6 @@ func stringPtr(value string) *string {
 	return &value
 }
 
-func nullableInt(value *int) any {
-	if value == nil {
-		return nil
-	}
-	return *value
-}
-
-func parseOptionalInt(raw string) (*int, error) {
-	if raw == "" {
-		return nil, nil
-	}
-	value, err := strconv.Atoi(raw)
-	if err != nil {
-		return nil, err
-	}
-	return &value, nil
-}
-
 func splitCSV(raw string) []string {
 	if raw == "" {
 		return nil
@@ -93,4 +74,18 @@ func splitCSV(raw string) []string {
 		}
 	}
 	return values
+}
+
+func cleanTags(tags []string) []string {
+	cleaned := []string{}
+	seen := map[string]bool{}
+	for _, tag := range tags {
+		tag = strings.TrimSpace(strings.ToLower(tag))
+		if tag == "" || seen[tag] {
+			continue
+		}
+		seen[tag] = true
+		cleaned = append(cleaned, tag)
+	}
+	return cleaned
 }

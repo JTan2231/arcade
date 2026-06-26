@@ -13,7 +13,6 @@ import (
 
 	"arcade/web"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -46,21 +45,6 @@ func (s *Server) Routes() http.Handler {
 
 	mux.HandleFunc("GET /api/me", s.handleGetMe)
 	mux.HandleFunc("PATCH /api/me", s.handlePatchMe)
-	mux.HandleFunc("GET /api/me/preferences", s.handleGetPreferences)
-	mux.HandleFunc("PATCH /api/me/preferences", s.handlePatchPreferences)
-	mux.HandleFunc("GET /api/me/external-accounts", s.handleListExternalAccounts)
-	mux.HandleFunc("POST /api/me/external-accounts", s.handleCreateExternalAccount)
-	mux.HandleFunc("GET /api/me/external-accounts/{account_id}", s.handleGetExternalAccount)
-	mux.HandleFunc("DELETE /api/me/external-accounts/{account_id}", s.handleDeleteExternalAccount)
-	mux.HandleFunc("POST /api/me/external-accounts/{account_id}/verify", s.handleVerifyExternalAccount)
-	mux.HandleFunc("POST /api/me/external-accounts/{account_id}/sync", s.handleSyncExternalAccount)
-
-	mux.HandleFunc("GET /api/sources", s.handleListSources)
-	mux.HandleFunc("GET /api/sources/{source_slug}", s.handleGetSource)
-	mux.HandleFunc("GET /api/problems", s.handleListProblems)
-	mux.HandleFunc("GET /api/problems/{problem_id}", s.handleGetProblem)
-	mux.HandleFunc("GET /api/sources/{source_slug}/problems", s.handleListProblems)
-	mux.HandleFunc("GET /api/sources/{source_slug}/problems/{external_id...}", s.handleGetProblemByExternalID)
 
 	mux.HandleFunc("GET /api/groups", s.handleListGroups)
 	mux.HandleFunc("POST /api/groups", s.handleCreateGroup)
@@ -101,26 +85,6 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("PATCH /api/groups/{group_id}/feed-posts/{post_id}", s.handlePatchGroupFeedPost)
 	mux.HandleFunc("DELETE /api/groups/{group_id}/feed-posts/{post_id}", s.handleDeleteGroupFeedPost)
 
-	mux.HandleFunc("GET /api/me/daily", s.handleGetMeDaily)
-	mux.HandleFunc("POST /api/me/dailies/generate", s.handleGenerateMeDaily)
-	mux.HandleFunc("GET /api/me/dailies", s.handleListMeDailies)
-	mux.HandleFunc("GET /api/groups/{group_id}/daily", s.handleGetGroupDaily)
-	mux.HandleFunc("POST /api/groups/{group_id}/dailies/generate", s.handleGenerateGroupDaily)
-	mux.HandleFunc("GET /api/groups/{group_id}/dailies", s.handleListGroupDailies)
-	mux.HandleFunc("GET /api/groups/{group_id}/divisions/{division_id}/daily", s.handleGetGroupDivisionDaily)
-	mux.HandleFunc("POST /api/groups/{group_id}/divisions/{division_id}/dailies/generate", s.handleGenerateGroupDivisionDaily)
-	mux.HandleFunc("GET /api/daily-sets/{daily_set_id}", s.handleGetDailySet)
-	mux.HandleFunc("GET /api/daily-sets/{daily_set_id}/leaderboard", s.handleDailySetLeaderboard)
-
-	mux.HandleFunc("GET /api/me/submissions", s.handleMeSubmissions)
-	mux.HandleFunc("GET /api/me/solves", s.handleMeSolves)
-	mux.HandleFunc("POST /api/submissions/manual", s.handleManualSubmission)
-	mux.HandleFunc("POST /api/sources/{source_slug}/sync/submissions", s.handleSyncSourceSubmissions)
-
-	mux.HandleFunc("GET /api/leaderboards", s.handleGlobalLeaderboard)
-	mux.HandleFunc("GET /api/groups/{group_id}/leaderboard", s.handleGroupLeaderboard)
-	mux.HandleFunc("GET /api/groups/{group_id}/divisions/{division_id}/leaderboard", s.handleDivisionLeaderboard)
-
 	mux.Handle("GET /", s.static)
 
 	return s.withRequestLog(s.withAuth(mux))
@@ -147,17 +111,6 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"ok":        true,
 		"timestamp": time.Now().UTC(),
 	})
-}
-
-func (s *Server) sourceIDBySlug(ctx context.Context, slug string) (string, error) {
-	var id string
-	if err := s.db.QueryRow(ctx, `select id::text from problem_sources where slug = $1`, slug).Scan(&id); err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return "", errNotFound("source")
-		}
-		return "", err
-	}
-	return id, nil
 }
 
 func (s *Server) groupExists(ctx context.Context, groupID string) error {

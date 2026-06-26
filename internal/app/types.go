@@ -12,65 +12,6 @@ type User struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-type Source struct {
-	ID                     string    `json:"id"`
-	Slug                   string    `json:"slug"`
-	Name                   string    `json:"name"`
-	BaseURL                string    `json:"base_url"`
-	SupportsSubmissions    bool      `json:"supports_submissions"`
-	SupportsProblemRatings bool      `json:"supports_problem_ratings"`
-	SupportsTags           bool      `json:"supports_tags"`
-	CreatedAt              time.Time `json:"created_at"`
-	UpdatedAt              time.Time `json:"updated_at"`
-}
-
-type ExternalAccount struct {
-	ID             string     `json:"id"`
-	UserID         string     `json:"user_id"`
-	SourceID       string     `json:"source_id"`
-	SourceSlug     string     `json:"source_slug"`
-	SourceName     string     `json:"source_name"`
-	ExternalHandle string     `json:"external_handle"`
-	ExternalUserID *string    `json:"external_user_id,omitempty"`
-	VerifiedAt     *time.Time `json:"verified_at,omitempty"`
-	LastSyncedAt   *time.Time `json:"last_synced_at,omitempty"`
-	SyncStatus     string     `json:"sync_status"`
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
-}
-
-type Preference struct {
-	ID                    string    `json:"id"`
-	UserID                string    `json:"user_id"`
-	SourceID              *string   `json:"source_id,omitempty"`
-	SourceSlug            *string   `json:"source_slug,omitempty"`
-	TargetDifficultyDelta int       `json:"target_difficulty_delta"`
-	DailyProblemCount     int       `json:"daily_problem_count"`
-	IncludeSolved         bool      `json:"include_solved"`
-	PreferredTags         []string  `json:"preferred_tags"`
-	BlockedTags           []string  `json:"blocked_tags"`
-	CreatedAt             time.Time `json:"created_at"`
-	UpdatedAt             time.Time `json:"updated_at"`
-}
-
-type Problem struct {
-	ID              string     `json:"id"`
-	SourceID        string     `json:"source_id"`
-	SourceSlug      string     `json:"source_slug"`
-	ExternalID      string     `json:"external_id"`
-	Title           string     `json:"title"`
-	URL             string     `json:"url"`
-	ContestID       *string    `json:"contest_id,omitempty"`
-	ProblemIndex    *string    `json:"problem_index,omitempty"`
-	Rating          *int       `json:"rating,omitempty"`
-	DifficultyLabel *string    `json:"difficulty_label,omitempty"`
-	PublishedAt     *time.Time `json:"published_at,omitempty"`
-	Tags            []string   `json:"tags"`
-	SolvedByMe      bool       `json:"solved_by_me"`
-	CreatedAt       time.Time  `json:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at"`
-}
-
 type Group struct {
 	ID              string    `json:"id"`
 	Name            string    `json:"name"`
@@ -109,45 +50,12 @@ type Division struct {
 }
 
 type DivisionRule struct {
-	ID               string    `json:"id"`
-	DivisionID       string    `json:"division_id"`
-	SourceID         *string   `json:"source_id,omitempty"`
-	SourceSlug       *string   `json:"source_slug,omitempty"`
-	MinUserRating    *int      `json:"min_user_rating,omitempty"`
-	MaxUserRating    *int      `json:"max_user_rating,omitempty"`
-	MinProblemRating *int      `json:"min_problem_rating,omitempty"`
-	MaxProblemRating *int      `json:"max_problem_rating,omitempty"`
-	ProblemCount     *int      `json:"problem_count,omitempty"`
-	RequiredTags     []string  `json:"required_tags"`
-	ExcludedTags     []string  `json:"excluded_tags"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
-}
-
-type DailySet struct {
-	ID               string      `json:"id"`
-	ScopeType        string      `json:"scope_type"`
-	ScopeID          *string     `json:"scope_id,omitempty"`
-	GroupID          *string     `json:"group_id,omitempty"`
-	DivisionID       *string     `json:"division_id,omitempty"`
-	UserID           *string     `json:"user_id,omitempty"`
-	Date             string      `json:"date"`
-	Title            *string     `json:"title,omitempty"`
-	GenerationReason *string     `json:"generation_reason,omitempty"`
-	GeneratorVersion *string     `json:"generator_version,omitempty"`
-	Items            []DailyItem `json:"items"`
-	CreatedAt        time.Time   `json:"created_at"`
-}
-
-type DailyItem struct {
-	ID                   string    `json:"id"`
-	DailySetID           string    `json:"daily_set_id"`
-	Position             int       `json:"position"`
-	Role                 string    `json:"role"`
-	Points               int       `json:"points"`
-	RecommendationReason *string   `json:"recommendation_reason,omitempty"`
-	Problem              Problem   `json:"problem"`
-	CreatedAt            time.Time `json:"created_at"`
+	ID            string    `json:"id"`
+	DivisionID    string    `json:"division_id"`
+	MinUserRating *int      `json:"min_user_rating,omitempty"`
+	MaxUserRating *int      `json:"max_user_rating,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 type DailyFeed struct {
@@ -293,33 +201,4 @@ type CatalogItemEligibility struct {
 	SourceID      string   `json:"source_id"`
 	Title         string   `json:"title,omitempty"`
 	MissingFields []string `json:"missing_fields"`
-}
-
-type Submission struct {
-	ID                   string    `json:"id"`
-	UserID               string    `json:"user_id"`
-	DisplayName          string    `json:"display_name"`
-	ProblemID            string    `json:"problem_id"`
-	ProblemTitle         string    `json:"problem_title"`
-	SourceID             string    `json:"source_id"`
-	SourceSlug           string    `json:"source_slug"`
-	ExternalSubmissionID *string   `json:"external_submission_id,omitempty"`
-	ExternalAccountID    *string   `json:"external_account_id,omitempty"`
-	DailySetID           *string   `json:"daily_set_id,omitempty"`
-	Verdict              string    `json:"verdict"`
-	Language             *string   `json:"language,omitempty"`
-	SubmittedAt          time.Time `json:"submitted_at"`
-	RuntimeMS            *int      `json:"runtime_ms,omitempty"`
-	MemoryBytes          *int      `json:"memory_bytes,omitempty"`
-	CreatedAt            time.Time `json:"created_at"`
-}
-
-type LeaderboardRow struct {
-	Rank         int        `json:"rank"`
-	UserID       string     `json:"user_id"`
-	DisplayName  string     `json:"display_name"`
-	Points       float64    `json:"points"`
-	Solves       int        `json:"solves"`
-	LastSolvedAt *time.Time `json:"last_solved_at,omitempty"`
-	StreakCount  *int       `json:"streak_count,omitempty"`
 }

@@ -464,33 +464,51 @@ func insertCatalogItem(ctx context.Context, tx pgx.Tx, sourceID string, data map
 	return err
 }
 
+type codeforcesPresetItem struct {
+	Name      string
+	ContestID string
+	Index     string
+	Rating    int
+	Tags      []string
+}
+
+var codeforcesCatalogPresetItems = []codeforcesPresetItem{
+	{Name: "Watermelon", ContestID: "4", Index: "A", Rating: 800, Tags: []string{"math", "greedy"}},
+	{Name: "Way Too Long Words", ContestID: "71", Index: "A", Rating: 800, Tags: []string{"strings"}},
+	{Name: "Team", ContestID: "231", Index: "A", Rating: 800, Tags: []string{"greedy"}},
+	{Name: "Next Round", ContestID: "158", Index: "A", Rating: 800, Tags: []string{"implementation"}},
+	{Name: "Domino Piling", ContestID: "50", Index: "A", Rating: 800, Tags: []string{"math"}},
+	{Name: "Beautiful Matrix", ContestID: "263", Index: "A", Rating: 800, Tags: []string{"implementation"}},
+	{Name: "Bit++", ContestID: "282", Index: "A", Rating: 800, Tags: []string{"implementation"}},
+	{Name: "Helpful Maths", ContestID: "339", Index: "A", Rating: 800, Tags: []string{"strings", "sortings"}},
+	{Name: "Wrong Subtraction", ContestID: "977", Index: "A", Rating: 800, Tags: []string{"math"}},
+	{Name: "Anton and Danik", ContestID: "734", Index: "A", Rating: 800, Tags: []string{"implementation"}},
+	{Name: "I Wanna Be the Guy", ContestID: "469", Index: "A", Rating: 800, Tags: []string{"implementation"}},
+	{Name: "Raising Bacteria", ContestID: "579", Index: "A", Rating: 1000, Tags: []string{"bitmasks", "math"}},
+	{Name: "Woodcutters", ContestID: "545", Index: "C", Rating: 1500, Tags: []string{"dp", "greedy"}},
+	{Name: "Boredom", ContestID: "455", Index: "A", Rating: 1500, Tags: []string{"dp"}},
+	{Name: "Kefa and Park", ContestID: "580", Index: "C", Rating: 1500, Tags: []string{"graphs", "dfs"}},
+	{Name: "Number of Ways", ContestID: "466", Index: "C", Rating: 1700, Tags: []string{"dp", "two pointers"}},
+	{Name: "Given Length and Sum of Digits...", ContestID: "489", Index: "C", Rating: 1400, Tags: []string{"greedy", "math"}},
+	{Name: "Quiz", ContestID: "337", Index: "C", Rating: 1700, Tags: []string{"math", "binary search"}},
+	{Name: "Compress Words", ContestID: "1200", Index: "E", Rating: 1900, Tags: []string{"strings", "hashing"}},
+	{Name: "Greg and Graph", ContestID: "295", Index: "B", Rating: 1800, Tags: []string{"graphs", "shortest paths"}},
+}
+
 func importCodeforcesCatalogPreset(ctx context.Context, tx pgx.Tx, sourceID string) error {
-	_, err := tx.Exec(ctx, `
-		insert into catalog_items (
-			source_id,
-			data
-		)
-		select
-			$1,
-			jsonb_strip_nulls(jsonb_build_object(
-				'name', p.title,
-				'contest_id', p.contest_id,
-				'index', p.problem_index,
-				'rating', p.rating,
-				'tags', to_jsonb(coalesce((
-					select array_agg(distinct pt.tag order by pt.tag)
-					from problem_tags pt
-					where pt.problem_id = p.id
-				), array[]::text[]))
-			))
-		from problems p
-		join problem_sources ps on ps.id = p.source_id
-		where ps.slug = 'codeforces'
-		  and p.contest_id is not null
-		  and p.problem_index is not null
-		order by p.rating nulls last, p.title
-	`, sourceID)
-	return err
+	for _, item := range codeforcesCatalogPresetItems {
+		data := map[string]any{
+			"name":       item.Name,
+			"contest_id": item.ContestID,
+			"index":      item.Index,
+			"rating":     item.Rating,
+			"tags":       item.Tags,
+		}
+		if err := insertCatalogItem(ctx, tx, sourceID, data); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func insertCodeforcesCatalogSourceFields(ctx context.Context, tx pgx.Tx, sourceID string) error {

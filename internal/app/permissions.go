@@ -75,45 +75,6 @@ func (s *Server) activeGroupRole(ctx context.Context, userID string, groupID str
 	return "", forbidden("active group membership required")
 }
 
-func (s *Server) authorizeDailySet(ctx context.Context, userID string, dailySetID string) error {
-	var scopeType string
-	var groupID sql.NullString
-	var setUserID sql.NullString
-	err := s.db.QueryRow(ctx, `
-		select scope_type, group_id::text, user_id::text
-		from daily_sets
-		where id = $1
-	`, dailySetID).Scan(&scopeType, &groupID, &setUserID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return errNotFound("daily set")
-	}
-	if err != nil {
-		return err
-	}
-
-	switch scopeType {
-	case "user":
-		if setUserID.Valid && setUserID.String == userID {
-			return nil
-		}
-		return errNotFound("daily set")
-	case "group", "group_division":
-		if !groupID.Valid {
-			return errNotFound("daily set")
-		}
-		return s.canViewGroup(ctx, userID, groupID.String)
-	case "division":
-		if groupID.Valid {
-			return s.canViewGroup(ctx, userID, groupID.String)
-		}
-		return nil
-	case "global":
-		return nil
-	default:
-		return errNotFound("daily set")
-	}
-}
-
 func validGroupRole(role string) bool {
 	switch role {
 	case "owner", "admin", "member":

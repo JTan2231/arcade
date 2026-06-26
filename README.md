@@ -61,5 +61,3 @@ The Vite dev server proxies `/api` to `http://localhost:8080`.
 - React source lives in `web/frontend`.
 - Generated static assets live in `web/static` and are embedded into the Go binary.
 - Sign up in the browser to create the first local account.
-- Leaderboards are live derived views from submissions; snapshot tables exist
-  for later materialization.

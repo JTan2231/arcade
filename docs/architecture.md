@@ -50,14 +50,11 @@ Browser
 Routes are grouped by resource in `Server.Routes()`:
 
 - Auth: signup, login, logout, and session bootstrap.
-- Identity: `/api/me`, preferences, and external accounts.
-- Catalog: sources and problems.
+- Identity: `/api/me` profile lookup and updates.
+- Catalog: group-owned catalog sources and items.
 - Groups: groups and group memberships.
-- Divisions: group-scoped divisions and division rules.
-- Dailies: group-owned daily feed definitions and deterministic feed outputs,
-  plus legacy daily set lookup and daily-set leaderboards.
-- Submissions: manual solves and local sync markers.
-- Leaderboards: global, group, division, and daily-set views.
+- Divisions: group-scoped divisions and optional user-rating rules.
+- Dailies: group-owned daily feed definitions and deterministic feed outputs.
 
 ## Domain Model
 
@@ -65,20 +62,13 @@ The main persisted entities are:
 
 - `users`: local users with email/password credentials.
 - `user_sessions`: hashed session tokens for secure cookie-backed login.
-- `problem_sources`: coding platforms such as Codeforces, AtCoder, and Advent of Code.
-- `problems` and `problem_tags`: catalog entries, ratings, URLs, and tags.
 - `catalog_sources` and `catalog_items`: group-owned source templates and rows
   for group daily feeds.
-- `external_accounts`: a user's platform handles and local sync metadata.
-- `user_preferences` and `user_preference_tags`: daily generation defaults.
 - `groups` and `group_memberships`: social scopes and roles.
-- `divisions`, `division_rules`, and `division_rule_tags`: group-scoped daily selection constraints.
+- `divisions` and `division_rules`: group-scoped division metadata.
 - `group_daily_feeds`: durable group-owned daily feed definitions.
 - `group_daily_feed_instances` and `group_feed_posts`: durable member posts
   attached to one feed on one date.
-- `daily_sets` and `daily_set_items`: legacy generated practice sets and their ordered problems.
-- `submissions`: accepted/manual solves and other verdicts.
-- `leaderboard_snapshots` and `leaderboard_snapshot_rows`: reserved for future materialized leaderboards.
 
 ## Daily Feeds
 
@@ -105,20 +95,7 @@ The current daily feed model follows these rules:
   feed/date lazily creates a `group_daily_feed_instances` row, and each active
   member can own at most one post on that instance.
 
-The generator does not use the requesting user's preferences or solved history.
-
-Legacy daily-set generation remains in `internal/app/handlers_dailies.go` for
-older `/api/me/daily`, `/api/*/dailies/generate`, and daily-set lookup routes.
-
-## Leaderboards
-
-Leaderboards are live SQL rollups over `submissions`.
-
-- Accepted verdicts are `accepted`, `completed`, and `manual_solve`.
-- Global leaderboards include users with at least one solve.
-- Group leaderboards include active group members.
-- Legacy daily-set leaderboards score solves using `daily_set_items.points`.
-- Division leaderboards currently reuse group leaderboard logic after verifying the division exists.
+The generator uses feed configuration and catalog item data only.
 
 ## Frontend Shape
 
@@ -156,6 +133,4 @@ go run ./cmd/arcade
 
 The architecture intentionally leaves a few extension points for future work:
 
-- External provider imports are stubs that update local metadata but do not fetch remote submissions.
 - Division membership materialization is not connected.
-- Leaderboard snapshot tables are present, but live queries are used today.
