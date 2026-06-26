@@ -7,7 +7,7 @@ type GroupsPanelProps = {
   selectedGroupId: string | null;
   loading: boolean;
   creating: boolean;
-  onCreateGroup: (name: string) => Promise<void>;
+  onCreateGroup: (name: string) => void;
   onSelectGroup: (id: string) => void;
 };
 
@@ -21,14 +21,14 @@ export function GroupsPanel({
 }: GroupsPanelProps) {
   const [name, setName] = useState("");
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) {
       return;
     }
 
-    await onCreateGroup(trimmed);
+    onCreateGroup(trimmed);
     setName("");
   }
 
@@ -37,12 +37,7 @@ export function GroupsPanel({
       <div className="panel-header">
         <h2 id="groups-title">Groups</h2>
       </div>
-      <form
-        className="compact-form"
-        onSubmit={(event) => {
-          void handleSubmit(event);
-        }}
-      >
+      <form className="compact-form" onSubmit={handleSubmit}>
         <label>
           Name
           <input placeholder="Morning Dojo" required value={name} onChange={(event) => setName(event.target.value)} />

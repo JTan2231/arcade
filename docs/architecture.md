@@ -106,10 +106,14 @@ The generator uses feed configuration and catalog item data only.
 
 The browser app source lives in `web/frontend`:
 
-- `src/App.tsx` owns session bootstrap, top-level state, auth transitions,
-  group selection, feed loading, and toast messages.
+- `src/App.tsx` adapts the top-level XState machine snapshot to React
+  components and sends user-intent events.
+- `src/machines/appMachine.ts` owns session bootstrap, auth transitions, group
+  selection, feed loading, feed output/post loading, feed mutations, Add Feed
+  remote calls, and toast messages.
 - `src/api.ts` wraps same-origin JSON requests to `/api/*` and preserves the
-  backend `{ "error": "message" }` error contract.
+  backend `{ "error": "message" }` error contract. Endpoint calls originate
+  from invoked machine actors.
 - `src/components` contains the auth, group list, dashboard, and toast views.
 - `src/styles.css` defines the responsive grid and component styles.
 

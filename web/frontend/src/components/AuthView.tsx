@@ -6,49 +6,39 @@ type AuthMode = "login" | "signup";
 
 type AuthViewProps = {
   error: string;
+  submitting: boolean;
   onClearError: () => void;
-  onLogin: (payload: LoginRequest) => Promise<void>;
-  onSignup: (payload: SignupRequest) => Promise<void>;
+  onLogin: (payload: LoginRequest) => void;
+  onSignup: (payload: SignupRequest) => void;
 };
 
-export function AuthView({ error, onClearError, onLogin, onSignup }: AuthViewProps) {
+export function AuthView({ error, submitting, onClearError, onLogin, onSignup }: AuthViewProps) {
   const [mode, setMode] = useState<AuthMode>("login");
-  const [submitting, setSubmitting] = useState(false);
 
   function switchMode(nextMode: AuthMode) {
     setMode(nextMode);
     onClearError();
   }
 
-  async function handleLogin(event: FormEvent<HTMLFormElement>) {
+  function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    setSubmitting(true);
-    try {
-      await onLogin({
-        email: formString(form, "email"),
-        password: formString(form, "password"),
-        remember_me: form.get("remember_me") === "on",
-      });
-    } finally {
-      setSubmitting(false);
-    }
+    onLogin({
+      email: formString(form, "email"),
+      password: formString(form, "password"),
+      remember_me: form.get("remember_me") === "on",
+    });
   }
 
-  async function handleSignup(event: FormEvent<HTMLFormElement>) {
+  function handleSignup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    setSubmitting(true);
-    try {
-      await onSignup({
-        display_name: formString(form, "display_name"),
-        email: formString(form, "email"),
-        password: formString(form, "password"),
-        remember_me: form.get("remember_me") === "on",
-      });
-    } finally {
-      setSubmitting(false);
-    }
+    onSignup({
+      display_name: formString(form, "display_name"),
+      email: formString(form, "email"),
+      password: formString(form, "password"),
+      remember_me: form.get("remember_me") === "on",
+    });
   }
 
   return (
@@ -76,12 +66,7 @@ export function AuthView({ error, onClearError, onLogin, onSignup }: AuthViewPro
         </div>
 
         {mode === "login" ? (
-          <form
-            className="auth-form"
-            onSubmit={(event) => {
-              void handleLogin(event);
-            }}
-          >
+          <form className="auth-form" onSubmit={handleLogin}>
             <label>
               Email
               <input name="email" type="email" autoComplete="email" required />
@@ -99,12 +84,7 @@ export function AuthView({ error, onClearError, onLogin, onSignup }: AuthViewPro
             </button>
           </form>
         ) : (
-          <form
-            className="auth-form"
-            onSubmit={(event) => {
-              void handleSignup(event);
-            }}
-          >
+          <form className="auth-form" onSubmit={handleSignup}>
             <label>
               Display name
               <input name="display_name" autoComplete="name" maxLength={100} required />

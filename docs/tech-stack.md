@@ -24,6 +24,7 @@ Arcade is a small Go/Postgres web application. The backend serves JSON APIs and 
 ## Frontend
 
 - UI: React with TypeScript source in `web/frontend`.
+- State: XState and `@xstate/react` drive the top-level workflow machine.
 - Package manager and script runner: Bun, with reproducible installs from
   `web/frontend/bun.lock`.
 - Build tool: Vite, configured to emit production assets into `web/static`.
@@ -33,8 +34,8 @@ Arcade is a small Go/Postgres web application. The backend serves JSON APIs and 
   `embed.FS`.
 - Runtime: the frontend calls `/api/*` with `fetch`, same-origin credentials,
   and no frontend token storage.
-- State model: React component state owns session bootstrap, groups, selected
-  group/feed state, daily feed output, and toast messages.
+- State model: `src/machines/appMachine.ts` owns async workflow state and API
+  invocation; React components keep local form draft/editing state.
 
 ## Configuration
 

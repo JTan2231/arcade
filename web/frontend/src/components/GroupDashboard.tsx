@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 
-import { errorMessage } from "../api";
 import { feedDateOptions, formatDateLabel } from "../dates";
+import { errorMessage } from "../errors";
 import type {
   CatalogSource,
   CatalogSourceField,
@@ -30,16 +30,27 @@ type GroupDashboardProps = {
   postsLoading: boolean;
   postsError: string;
   postSubmitting: boolean;
+  updatingPostId: string | null;
+  deletingPostId: string | null;
   currentUserId: string | null;
+  addFeedOpen: boolean;
+  addFeedSources: CatalogSource[];
+  addFeedSourcesLoading: boolean;
+  addFeedPreview: DailyFeedPreview | null;
+  addFeedPreviewLoading: boolean;
+  addFeedSaving: boolean;
+  addFeedError: string;
   onSelectFeed: (id: string) => void;
   onChangeFeedDate: (date: string) => void;
-  onToggleFeedEnabled: (id: string) => Promise<void>;
-  onLoadCatalogSources: () => Promise<CatalogSource[]>;
-  onPreviewFeed: (payload: CreateDailyFeedRequest) => Promise<DailyFeedPreview>;
-  onCreateFeed: (payload: CreateDailyFeedRequest) => Promise<DailyFeed>;
-  onCreateFeedPost: (payload: { evidenceText: string; caption: string }) => Promise<boolean>;
-  onUpdateFeedPost: (postId: string, payload: { evidenceText: string; caption: string }) => Promise<boolean>;
-  onDeleteFeedPost: (postId: string) => Promise<boolean>;
+  onToggleFeedEnabled: (id: string) => void;
+  onOpenAddFeed: () => void;
+  onCloseAddFeed: () => void;
+  onAddFeedDraftChanged: () => void;
+  onPreviewFeed: (payload: CreateDailyFeedRequest) => void;
+  onCreateFeed: (payload: CreateDailyFeedRequest) => void;
+  onCreateFeedPost: (payload: { evidenceText: string; caption: string }) => void;
+  onUpdateFeedPost: (postId: string, payload: { evidenceText: string; caption: string }) => void;
+  onDeleteFeedPost: (postId: string) => void;
 };
 
 export function GroupDashboard({
@@ -56,19 +67,28 @@ export function GroupDashboard({
   postsLoading,
   postsError,
   postSubmitting,
+  updatingPostId,
+  deletingPostId,
   currentUserId,
+  addFeedOpen,
+  addFeedSources,
+  addFeedSourcesLoading,
+  addFeedPreview,
+  addFeedPreviewLoading,
+  addFeedSaving,
+  addFeedError,
   onSelectFeed,
   onChangeFeedDate,
   onToggleFeedEnabled,
-  onLoadCatalogSources,
+  onOpenAddFeed,
+  onCloseAddFeed,
+  onAddFeedDraftChanged,
   onPreviewFeed,
   onCreateFeed,
   onCreateFeedPost,
   onUpdateFeedPost,
   onDeleteFeedPost,
 }: GroupDashboardProps) {
-  const [addFeedOpen, setAddFeedOpen] = useState(false);
-
   if (!group) {
     return (
       <section className="panel group-dashboard-panel">
@@ -94,7 +114,7 @@ export function GroupDashboard({
             manage={manage}
             selectedFeedId={selectedFeedId}
             onSelectFeed={onSelectFeed}
-            onAddFeed={() => setAddFeedOpen(true)}
+            onAddFeed={onOpenAddFeed}
           />
         </section>
 
@@ -107,7 +127,7 @@ export function GroupDashboard({
                   type="button"
                   aria-label={feed.enabled ? "Disable feed" : "Enable feed"}
                   onClick={() => {
-                    void onToggleFeedEnabled(feed.id);
+                    onToggleFeedEnabled(feed.id);
                   }}
                 >
                   Manage
@@ -135,6 +155,8 @@ export function GroupDashboard({
             postsLoading={postsLoading}
             postsError={postsError}
             postSubmitting={postSubmitting}
+            updatingPostId={updatingPostId}
+            deletingPostId={deletingPostId}
             currentUserId={currentUserId}
             onCreateFeedPost={onCreateFeedPost}
             onUpdateFeedPost={onUpdateFeedPost}
@@ -145,9 +167,15 @@ export function GroupDashboard({
       {addFeedOpen ? (
         <AddFeedDialog
           feeds={feeds}
-          onClose={() => setAddFeedOpen(false)}
+          formError={addFeedError}
+          preview={addFeedPreview}
+          previewLoading={addFeedPreviewLoading}
+          saving={addFeedSaving}
+          sources={addFeedSources}
+          sourcesLoading={addFeedSourcesLoading}
+          onClose={onCloseAddFeed}
           onCreateFeed={onCreateFeed}
-          onLoadCatalogSources={onLoadCatalogSources}
+          onDraftChanged={onAddFeedDraftChanged}
           onPreviewFeed={onPreviewFeed}
         />
       ) : null}
@@ -226,69 +254,66 @@ type DraftFilter = {
 
 function AddFeedDialog({
   feeds,
+  formError,
+  preview,
+  previewLoading,
+  saving,
+  sources,
+  sourcesLoading,
   onClose,
-  onLoadCatalogSources,
+  onDraftChanged,
   onPreviewFeed,
   onCreateFeed,
 }: {
   feeds: DailyFeed[];
+  formError: string;
+  preview: DailyFeedPreview | null;
+  previewLoading: boolean;
+  saving: boolean;
+  sources: CatalogSource[];
+  sourcesLoading: boolean;
   onClose: () => void;
-  onLoadCatalogSources: () => Promise<CatalogSource[]>;
-  onPreviewFeed: (payload: CreateDailyFeedRequest) => Promise<DailyFeedPreview>;
-  onCreateFeed: (payload: CreateDailyFeedRequest) => Promise<DailyFeed>;
+  onDraftChanged: () => void;
+  onPreviewFeed: (payload: CreateDailyFeedRequest) => void;
+  onCreateFeed: (payload: CreateDailyFeedRequest) => void;
 }) {
   const canCreateDailyThread = !feeds.some((feed) => feed.kind === "daily_thread");
   const [kind, setKind] = useState<FeedKind>("catalog_daily");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [enabled, setEnabled] = useState(true);
-  const [sources, setSources] = useState<CatalogSource[]>([]);
-  const [sourcesLoading, setSourcesLoading] = useState(false);
   const [sourceId, setSourceId] = useState("");
   const [itemCount, setItemCount] = useState("3");
   const [startsAt, setStartsAt] = useState(defaultStartsAtInput);
   const [timezone, setTimezone] = useState(defaultTimezone);
   const [intervalSeconds, setIntervalSeconds] = useState("86400");
   const [filters, setFilters] = useState<DraftFilter[]>([]);
-  const [preview, setPreview] = useState<DailyFeedPreview | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState("");
+  const [validationError, setValidationError] = useState("");
 
   useEffect(() => {
-    let cancelled = false;
-    setSourcesLoading(true);
-    onLoadCatalogSources()
-      .then((loaded) => {
-        if (cancelled) {
-          return;
-        }
-        setSources(loaded);
-        setSourceId((current) => (current !== "" ? current : (loaded[0]?.id ?? "")));
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          setFormError(errorMessage(error));
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setSourcesLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [onLoadCatalogSources]);
+    const firstSourceId = sources[0]?.id ?? "";
+    if (sourceId === "") {
+      setSourceId(firstSourceId);
+      return;
+    }
+    if (!sources.some((source) => source.id === sourceId)) {
+      setSourceId(firstSourceId);
+    }
+  }, [sourceId, sources]);
 
   const selectedSource = sources.find((source) => source.id === sourceId) || null;
   const sourceFields = selectedSource?.fields || [];
   const practice = kind === "catalog_daily";
+  const visibleError = validationError || formError;
+
+  function markDraftChanged() {
+    setValidationError("");
+    onDraftChanged();
+  }
 
   function handleKindChange(nextKind: FeedKind) {
     setKind(nextKind);
-    setPreview(null);
-    setFormError("");
+    markDraftChanged();
     if (nextKind === "daily_thread") {
       setFilters([]);
     }
@@ -297,8 +322,7 @@ function AddFeedDialog({
   function handleSourceChange(nextSourceId: string) {
     setSourceId(nextSourceId);
     setFilters([]);
-    setPreview(null);
-    setFormError("");
+    markDraftChanged();
   }
 
   function handleAddFilter() {
@@ -317,18 +341,17 @@ function AddFeedDialog({
         numberMaxValue: "",
       },
     ]);
+    markDraftChanged();
   }
 
   function updateFilter(id: string, patch: Partial<DraftFilter>) {
     setFilters((current) => current.map((filter) => (filter.id === id ? { ...filter, ...patch } : filter)));
-    setPreview(null);
-    setFormError("");
+    markDraftChanged();
   }
 
   function removeFilter(id: string) {
     setFilters((current) => current.filter((filter) => filter.id !== id));
-    setPreview(null);
-    setFormError("");
+    markDraftChanged();
   }
 
   function buildPayload(): CreateDailyFeedRequest {
@@ -372,62 +395,40 @@ function AddFeedDialog({
     return payload;
   }
 
-  async function handlePreview() {
-    setFormError("");
-    setPreview(null);
+  function handlePreview() {
+    setValidationError("");
     let payload: CreateDailyFeedRequest;
     try {
       payload = buildPayload();
     } catch (error) {
-      setFormError(errorMessage(error));
+      setValidationError(errorMessage(error));
       return;
     }
     if (payload.kind !== "catalog_daily") {
       return;
     }
 
-    setPreviewLoading(true);
-    try {
-      const nextPreview = await onPreviewFeed(payload);
-      setPreview(nextPreview);
-    } catch (error) {
-      setFormError(errorMessage(error));
-    } finally {
-      setPreviewLoading(false);
-    }
+    onPreviewFeed(payload);
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setFormError("");
+    setValidationError("");
     let payload: CreateDailyFeedRequest;
     try {
       payload = buildPayload();
     } catch (error) {
-      setFormError(errorMessage(error));
+      setValidationError(errorMessage(error));
       return;
     }
 
-    setSaving(true);
-    try {
-      await onCreateFeed(payload);
-      onClose();
-    } catch (error) {
-      setFormError(errorMessage(error));
-    } finally {
-      setSaving(false);
-    }
+    onCreateFeed(payload);
   }
 
   return (
     <div className="modal-backdrop" role="presentation">
       <div className="modal-panel add-feed-dialog" role="dialog" aria-modal="true" aria-labelledby="add-feed-title">
-        <form
-          className="add-feed-form"
-          onSubmit={(event) => {
-            void handleSubmit(event);
-          }}
-        >
+        <form className="add-feed-form" onSubmit={handleSubmit}>
           <div className="modal-header">
             <div>
               <h2 id="add-feed-title">Add feed</h2>
@@ -454,18 +455,34 @@ function AddFeedDialog({
               <input
                 value={name}
                 placeholder={practice ? "Daily Practice" : "Daily Thread"}
-                onChange={(event) => setName(event.target.value)}
+                onChange={(event) => {
+                  setName(event.target.value);
+                  markDraftChanged();
+                }}
               />
             </label>
             <label className="checkbox-row status-checkbox">
-              <input checked={enabled} type="checkbox" onChange={(event) => setEnabled(event.target.checked)} />
+              <input
+                checked={enabled}
+                type="checkbox"
+                onChange={(event) => {
+                  setEnabled(event.target.checked);
+                  markDraftChanged();
+                }}
+              />
               Active
             </label>
           </div>
 
           <label>
             Description
-            <textarea value={description} onChange={(event) => setDescription(event.target.value)} />
+            <textarea
+              value={description}
+              onChange={(event) => {
+                setDescription(event.target.value);
+                markDraftChanged();
+              }}
+            />
           </label>
 
           {practice ? (
@@ -492,7 +509,10 @@ function AddFeedDialog({
                     step="1"
                     type="number"
                     value={itemCount}
-                    onChange={(event) => setItemCount(event.target.value)}
+                    onChange={(event) => {
+                      setItemCount(event.target.value);
+                      markDraftChanged();
+                    }}
                   />
                 </label>
               </div>
@@ -505,15 +525,34 @@ function AddFeedDialog({
           <div className="form-grid three-column">
             <label>
               Start time
-              <input type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} />
+              <input
+                type="datetime-local"
+                value={startsAt}
+                onChange={(event) => {
+                  setStartsAt(event.target.value);
+                  markDraftChanged();
+                }}
+              />
             </label>
             <label>
               Timezone
-              <input value={timezone} onChange={(event) => setTimezone(event.target.value)} />
+              <input
+                value={timezone}
+                onChange={(event) => {
+                  setTimezone(event.target.value);
+                  markDraftChanged();
+                }}
+              />
             </label>
             <label>
               Repeat
-              <select value={intervalSeconds} onChange={(event) => setIntervalSeconds(event.target.value)}>
+              <select
+                value={intervalSeconds}
+                onChange={(event) => {
+                  setIntervalSeconds(event.target.value);
+                  markDraftChanged();
+                }}
+              >
                 <option value="86400">Daily</option>
                 <option value="604800">Weekly</option>
                 <option value="3600">Hourly</option>
@@ -549,22 +588,15 @@ function AddFeedDialog({
 
           {preview ? <PreviewPanel preview={preview} /> : null}
 
-          {formError ? (
+          {visibleError ? (
             <div className="form-error" role="alert">
-              {formError}
+              {visibleError}
             </div>
           ) : null}
 
           <div className="output-actions">
             {practice ? (
-              <button
-                className="secondary"
-                type="button"
-                disabled={previewLoading || saving}
-                onClick={() => {
-                  void handlePreview();
-                }}
-              >
+              <button className="secondary" type="button" disabled={previewLoading || saving} onClick={handlePreview}>
                 {previewLoading ? "Previewing..." : "Preview"}
               </button>
             ) : null}
@@ -737,6 +769,8 @@ function FeedOutput({
   postsLoading,
   postsError,
   postSubmitting,
+  updatingPostId,
+  deletingPostId,
   currentUserId,
   onCreateFeedPost,
   onUpdateFeedPost,
@@ -750,10 +784,12 @@ function FeedOutput({
   postsLoading: boolean;
   postsError: string;
   postSubmitting: boolean;
+  updatingPostId: string | null;
+  deletingPostId: string | null;
   currentUserId: string | null;
-  onCreateFeedPost: (payload: { evidenceText: string; caption: string }) => Promise<boolean>;
-  onUpdateFeedPost: (postId: string, payload: { evidenceText: string; caption: string }) => Promise<boolean>;
-  onDeleteFeedPost: (postId: string) => Promise<boolean>;
+  onCreateFeedPost: (payload: { evidenceText: string; caption: string }) => void;
+  onUpdateFeedPost: (postId: string, payload: { evidenceText: string; caption: string }) => void;
+  onDeleteFeedPost: (postId: string) => void;
 }) {
   if (!feed) {
     return <div className="empty-state">Select a feed to view its daily output.</div>;
@@ -796,6 +832,8 @@ function FeedOutput({
         loading={postsLoading}
         error={postsError}
         submitting={postSubmitting}
+        updatingPostId={updatingPostId}
+        deletingPostId={deletingPostId}
         currentUserId={currentUserId}
         onCreateFeedPost={onCreateFeedPost}
         onUpdateFeedPost={onUpdateFeedPost}
@@ -811,6 +849,8 @@ function FeedPostSection({
   loading,
   error,
   submitting,
+  updatingPostId,
+  deletingPostId,
   currentUserId,
   onCreateFeedPost,
   onUpdateFeedPost,
@@ -821,10 +861,12 @@ function FeedPostSection({
   loading: boolean;
   error: string;
   submitting: boolean;
+  updatingPostId: string | null;
+  deletingPostId: string | null;
   currentUserId: string | null;
-  onCreateFeedPost: (payload: { evidenceText: string; caption: string }) => Promise<boolean>;
-  onUpdateFeedPost: (postId: string, payload: { evidenceText: string; caption: string }) => Promise<boolean>;
-  onDeleteFeedPost: (postId: string) => Promise<boolean>;
+  onCreateFeedPost: (payload: { evidenceText: string; caption: string }) => void;
+  onUpdateFeedPost: (postId: string, payload: { evidenceText: string; caption: string }) => void;
+  onDeleteFeedPost: (postId: string) => void;
 }) {
   const [formOpen, setFormOpen] = useState(false);
   const [evidenceText, setEvidenceText] = useState("");
@@ -832,20 +874,24 @@ function FeedPostSection({
   const ownPost = currentUserId !== null ? (posts.find((post) => post.author_user_id === currentUserId) ?? null) : null;
   const postUnavailable = disabled || loading || Boolean(ownPost);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    if (ownPost === null || !formOpen || submitting) {
+      return;
+    }
+
+    setEvidenceText("");
+    setCaption("");
+    setFormOpen(false);
+  }, [formOpen, ownPost, submitting]);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmedEvidence = evidenceText.trim();
     if (!trimmedEvidence || postUnavailable) {
       return;
     }
 
-    const saved = await onCreateFeedPost({ evidenceText: trimmedEvidence, caption });
-    if (!saved) {
-      return;
-    }
-    setEvidenceText("");
-    setCaption("");
-    setFormOpen(false);
+    onCreateFeedPost({ evidenceText: trimmedEvidence, caption });
   }
 
   return (
@@ -863,12 +909,7 @@ function FeedPostSection({
       </div>
 
       {formOpen ? (
-        <form
-          className="feed-post-form"
-          onSubmit={(event) => {
-            void handleSubmit(event);
-          }}
-        >
+        <form className="feed-post-form" onSubmit={handleSubmit}>
           <label>
             Evidence
             <textarea
@@ -910,6 +951,8 @@ function FeedPostSection({
               key={post.id}
               mine={currentUserId === post.author_user_id}
               post={post}
+              saving={updatingPostId === post.id}
+              deleting={deletingPostId === post.id}
               onUpdateFeedPost={onUpdateFeedPost}
               onDeleteFeedPost={onDeleteFeedPost}
             />
@@ -924,19 +967,45 @@ function FeedPostSection({
 function FeedPostCard({
   post,
   mine,
+  saving,
+  deleting,
   onUpdateFeedPost,
   onDeleteFeedPost,
 }: {
   post: GroupFeedPost;
   mine: boolean;
-  onUpdateFeedPost: (postId: string, payload: { evidenceText: string; caption: string }) => Promise<boolean>;
-  onDeleteFeedPost: (postId: string) => Promise<boolean>;
+  saving: boolean;
+  deleting: boolean;
+  onUpdateFeedPost: (postId: string, payload: { evidenceText: string; caption: string }) => void;
+  onDeleteFeedPost: (postId: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [evidenceText, setEvidenceText] = useState(post.evidence_text);
   const [caption, setCaption] = useState(post.caption ?? "");
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [submittedUpdate, setSubmittedUpdate] = useState<{
+    evidenceText: string;
+    caption: string;
+    seenSaving: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (submittedUpdate === null) {
+      return;
+    }
+    if (saving) {
+      if (!submittedUpdate.seenSaving) {
+        setSubmittedUpdate({ ...submittedUpdate, seenSaving: true });
+      }
+      return;
+    }
+    if (!submittedUpdate.seenSaving) {
+      return;
+    }
+    if (post.evidence_text === submittedUpdate.evidenceText && (post.caption ?? "") === submittedUpdate.caption) {
+      setEditing(false);
+    }
+    setSubmittedUpdate(null);
+  }, [post.caption, post.evidence_text, saving, submittedUpdate]);
 
   function beginEdit() {
     setEvidenceText(post.evidence_text);
@@ -944,34 +1013,24 @@ function FeedPostCard({
     setEditing(true);
   }
 
-  async function handleUpdate(event: FormEvent<HTMLFormElement>) {
+  function handleUpdate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmedEvidence = evidenceText.trim();
     if (!trimmedEvidence || saving || deleting) {
       return;
     }
 
-    setSaving(true);
-    try {
-      const saved = await onUpdateFeedPost(post.id, { evidenceText: trimmedEvidence, caption });
-      if (saved) {
-        setEditing(false);
-      }
-    } finally {
-      setSaving(false);
-    }
+    const trimmedCaption = caption.trim();
+    setSubmittedUpdate({ evidenceText: trimmedEvidence, caption: trimmedCaption, seenSaving: false });
+    onUpdateFeedPost(post.id, { evidenceText: trimmedEvidence, caption: trimmedCaption });
   }
 
-  async function handleDelete() {
+  function handleDelete() {
     if (saving || deleting || !window.confirm("Delete this post?")) {
       return;
     }
 
-    setDeleting(true);
-    const deleted = await onDeleteFeedPost(post.id);
-    if (!deleted) {
-      setDeleting(false);
-    }
+    onDeleteFeedPost(post.id);
   }
 
   return (
@@ -986,14 +1045,7 @@ function FeedPostCard({
             <button className="secondary" type="button" disabled={deleting} onClick={beginEdit}>
               Edit
             </button>
-            <button
-              className="danger"
-              type="button"
-              disabled={deleting}
-              onClick={() => {
-                void handleDelete();
-              }}
-            >
+            <button className="danger" type="button" disabled={deleting} onClick={handleDelete}>
               Delete
             </button>
           </div>
@@ -1001,12 +1053,7 @@ function FeedPostCard({
       </div>
 
       {editing ? (
-        <form
-          className="feed-post-form edit-post-form"
-          onSubmit={(event) => {
-            void handleUpdate(event);
-          }}
-        >
+        <form className="feed-post-form edit-post-form" onSubmit={handleUpdate}>
           <label>
             Evidence
             <textarea

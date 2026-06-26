@@ -17,8 +17,10 @@
     "check": "tsc --noEmit"
   },
   "dependencies": {
+    "@xstate/react": "^6.1.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "xstate": "^5.32.2"
   },
   "devDependencies": {
     "@eslint/js": "^9",
