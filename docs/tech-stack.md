@@ -34,8 +34,9 @@ Arcade is a small Go/Postgres web application. The backend serves JSON APIs and 
   `embed.FS`.
 - Runtime: the frontend calls `/api/*` with `fetch`, same-origin credentials,
   and no frontend token storage.
-- State model: `src/machines/appMachine.ts` owns async workflow state and API
-  invocation; React components keep local form draft/editing state.
+- State model: XState actors split app lifecycle, dashboard workspace, and Add
+  Feed dialog workflows. React components keep local form draft/editing state
+  and send user-intent events to the actor that owns the workflow.
 
 ## Configuration
 

@@ -107,10 +107,15 @@ The generator uses feed configuration and catalog item data only.
 The browser app source lives in `web/frontend`:
 
 - `src/App.tsx` adapts the top-level XState machine snapshot to React
-  components and sends user-intent events.
-- `src/machines/appMachine.ts` owns session bootstrap, auth transitions, group
-  selection, feed loading, feed output/post loading, feed mutations, Add Feed
-  remote calls, and toast messages.
+  components, subscribes to invoked workflow actors, and sends user-intent
+  events to the actor that owns each workflow.
+- `src/machines/appMachine.ts` owns session bootstrap, auth transitions,
+  logout, current user state, unauthorized recovery, and toast messages.
+- `src/machines/dashboardMachine.ts` owns authenticated workspace state:
+  groups, group selection, feed loading/selection, output and post loading,
+  feed toggling, and post mutations.
+- `src/machines/addFeedMachine.ts` owns the Add Feed dialog remote workflow:
+  source loading, preview, creation, and dialog-scoped errors.
 - `src/api.ts` wraps same-origin JSON requests to `/api/*` and preserves the
   backend `{ "error": "message" }` error contract. Endpoint calls originate
   from invoked machine actors.
