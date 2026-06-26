@@ -134,9 +134,14 @@ function reportScenarioFailure(error: unknown): void {
   }
 
   process.stderr.write(`failed: ${error.scenarioName}\n`);
+  process.stderr.write(`file: ${error.scenarioFile}\n`);
   process.stderr.write(`browser: ${error.project}\n`);
   process.stderr.write(`steps: ${error.stepCount}\n`);
+  process.stderr.write(`failed phase: ${error.failedPhase}\n`);
   process.stderr.write(`failed step: ${error.failedStepIndex + 1}\n`);
+  if (error.failedStepID !== undefined) {
+    process.stderr.write(`step id: ${error.failedStepID}\n`);
+  }
   process.stderr.write(`error: ${error.message}\n`);
   process.stderr.write("step:\n");
   process.stderr.write(`${indent(error.stepSnippet)}\n`);

@@ -1,28 +1,63 @@
 name: add feed loads sources, previews, validates, and creates
 
-setup:
-  accounts:
-    - id: owner
-      displayName: Add Feed Owner
-      email: add-feed-owner@example.test
-      password: password123
-  loginAs: owner
-  groups:
-    - id: group
-      name: Add Feed Dojo
-      owner: owner
-  catalogSources:
-    - id: source
-      group: group
-      name: Add Feed Source
-      template: https://example.test/{slug}
-      items:
-        - title: Alpha Warmup
-          data:
-            slug: alpha-warmup
-        - title: Beta Warmup
-          data:
-            slug: beta-warmup
+vars:
+  email: add-feed-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Add Feed Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+      capture:
+        owner_id: $.id
+
+  - request:
+      id: login_owner
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Add Feed Dojo
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: create_source
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/catalog-sources
+      json:
+        name: Add Feed Source
+        template: https://example.test/{slug}
+        items:
+          - title: Alpha Warmup
+            data:
+              slug: alpha-warmup
+          - title: Beta Warmup
+            data:
+              slug: beta-warmup
+      expectStatus: 201
+      capture:
+        source_id: $.id
 
 steps:
   - visit: /

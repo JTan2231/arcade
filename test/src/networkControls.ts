@@ -1,5 +1,6 @@
 import type { Page, Request, Route } from "@playwright/test";
 
+import { interpolateData, type RuntimeVariables } from "./interpolation";
 import type { ScenarioStep } from "./scenarioSchema";
 import { scenarioPath } from "./values";
 
@@ -51,7 +52,7 @@ export class NetworkController {
     await page.route("**/*", async (route) => this.handleRoute(route));
   }
 
-  holdRequest(step: ScenarioStep): void {
+  holdRequest(step: ScenarioStep, variables: RuntimeVariables): void {
     if (step.holdRequest === undefined) {
       throw new Error("holdRequest action is missing");
     }
@@ -60,7 +61,7 @@ export class NetworkController {
       type: "hold",
       id: step.holdRequest.id,
       method: step.holdRequest.method,
-      path: scenarioPath(step.holdRequest.path),
+      path: scenarioPath(step.holdRequest.path, variables),
       times: step.holdRequest.times,
       released: false,
       observed: 0,
@@ -89,7 +90,7 @@ export class NetworkController {
     await Promise.all(pending.map((continueRoute) => continueRoute()));
   }
 
-  fulfillRequest(step: ScenarioStep): void {
+  fulfillRequest(step: ScenarioStep, variables: RuntimeVariables): void {
     if (step.fulfillRequest === undefined) {
       throw new Error("fulfillRequest action is missing");
     }
@@ -98,18 +99,31 @@ export class NetworkController {
       type: "fulfill",
       id: step.fulfillRequest.id,
       method: step.fulfillRequest.method,
-      path: scenarioPath(step.fulfillRequest.path),
+      path: scenarioPath(step.fulfillRequest.path, variables),
       released: true,
       observed: 0,
       pending: [],
       status: step.fulfillRequest.status,
-      headers: step.fulfillRequest.headers,
-      json: step.fulfillRequest.json,
-      body: step.fulfillRequest.body,
+      headers:
+        step.fulfillRequest.headers === undefined
+          ? undefined
+          : Object.fromEntries(
+              Object.entries(step.fulfillRequest.headers).map(
+                ([key, value]) => [key, scenarioPath(value, variables)],
+              ),
+            ),
+      json:
+        step.fulfillRequest.json === undefined
+          ? undefined
+          : interpolateData(step.fulfillRequest.json, variables),
+      body:
+        step.fulfillRequest.body === undefined
+          ? undefined
+          : scenarioPath(step.fulfillRequest.body, variables),
     });
   }
 
-  failRequest(step: ScenarioStep): void {
+  failRequest(step: ScenarioStep, variables: RuntimeVariables): void {
     if (step.failRequest === undefined) {
       throw new Error("failRequest action is missing");
     }
@@ -118,7 +132,7 @@ export class NetworkController {
       type: "fail",
       id: step.failRequest.id,
       method: step.failRequest.method,
-      path: scenarioPath(step.failRequest.path),
+      path: scenarioPath(step.failRequest.path, variables),
       released: true,
       observed: 0,
       pending: [],
@@ -126,7 +140,10 @@ export class NetworkController {
     });
   }
 
-  async expectRequest(step: ScenarioStep): Promise<void> {
+  async expectRequest(
+    step: ScenarioStep,
+    variables: RuntimeVariables,
+  ): Promise<void> {
     if (step.expectRequest === undefined) {
       throw new Error("expectRequest action is missing");
     }
@@ -137,7 +154,7 @@ export class NetworkController {
       path:
         step.expectRequest.path === undefined
           ? undefined
-          : scenarioPath(step.expectRequest.path),
+          : scenarioPath(step.expectRequest.path, variables),
     };
     if (
       this.observedRequests.some((request) =>

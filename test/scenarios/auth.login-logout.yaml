@@ -1,11 +1,22 @@
 name: login and logout through the authentication panel
 
-setup:
-  accounts:
-    - id: user
-      displayName: Login User
-      email: login-user@example.test
-      password: password123
+vars:
+  email: login-user@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_user
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Login User
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+      capture:
+        user_id: $.id
 
 steps:
   - visit: /
@@ -13,12 +24,12 @@ steps:
   - within: Authentication
     fill:
       label: Email
-      value: login-user@example.test
+      value: "{{email}}"
 
   - within: Authentication
     fill:
       label: Password
-      value: password123
+      value: "{{password}}"
 
   - within: Authentication
     click:

@@ -1,16 +1,44 @@
 name: add feed reports source loading errors
 
-setup:
-  accounts:
-    - id: owner
-      displayName: Add Feed Error Owner
-      email: add-feed-error-owner@example.test
-      password: password123
-  loginAs: owner
-  groups:
-    - id: group
-      name: Add Feed Error Dojo
-      owner: owner
+vars:
+  email: add-feed-error-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Add Feed Error Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+      capture:
+        owner_id: $.id
+
+  - request:
+      id: login_owner
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Add Feed Error Dojo
+      expectStatus: 201
+      capture:
+        group_id: $.id
 
 steps:
   - fulfillRequest:

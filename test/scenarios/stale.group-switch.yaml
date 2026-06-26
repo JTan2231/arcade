@@ -1,47 +1,127 @@
 name: keep selected group stable when old feed requests finish
 
-setup:
-  accounts:
-    - id: owner
-      displayName: Switch Owner
-      email: switch-owner@example.test
-      password: password123
-  loginAs: owner
-  groups:
-    - id: group-a
-      name: Group A
-      owner: owner
-    - id: group-b
-      name: Group B
-      owner: owner
-  catalogSources:
-    - id: source-a
-      group: group-a
-      name: Group A Source
-      template: https://example.test/{slug}
-      items:
-        - title: Group A Task
-          data:
-            slug: group-a-task
-    - id: source-b
-      group: group-b
-      name: Group B Source
-      template: https://example.test/{slug}
-      items:
-        - title: Group B Task
-          data:
-            slug: group-b-task
-  dailyFeeds:
-    - id: feed-a
-      group: group-a
-      name: Group A Practice
-      source: source-a
-      itemCount: 1
-    - id: feed-b
-      group: group-b
-      name: Group B Practice
-      source: source-b
-      itemCount: 1
+vars:
+  email: switch-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Switch Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+      capture:
+        owner_id: $.id
+
+  - request:
+      id: login_owner
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: create_group_a
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Group A
+      expectStatus: 201
+      capture:
+        group_a_id: $.id
+
+  - request:
+      id: create_group_b
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Group B
+      expectStatus: 201
+      capture:
+        group_b_id: $.id
+
+  - request:
+      id: create_source_a
+      client: browser
+      method: POST
+      path: /api/groups/{{group_a_id}}/catalog-sources
+      json:
+        name: Group A Source
+        template: https://example.test/{slug}
+        items:
+          - title: Group A Task
+            data:
+              slug: group-a-task
+      expectStatus: 201
+      capture:
+        source_a_id: $.id
+
+  - request:
+      id: create_source_b
+      client: browser
+      method: POST
+      path: /api/groups/{{group_b_id}}/catalog-sources
+      json:
+        name: Group B Source
+        template: https://example.test/{slug}
+        items:
+          - title: Group B Task
+            data:
+              slug: group-b-task
+      expectStatus: 201
+      capture:
+        source_b_id: $.id
+
+  - request:
+      id: create_feed_a
+      client: browser
+      method: POST
+      path: /api/groups/{{group_a_id}}/daily-feeds
+      json:
+        name: Group A Practice
+        kind: catalog_daily
+        enabled: true
+        source_id: "{{source_a_id}}"
+        item_count: 1
+        filters: []
+        schedule:
+          starts_at: "2020-01-01T00:00:00.000Z"
+          timezone: UTC
+          interval_seconds: 86400
+      expectStatus: 201
+      capture:
+        feed_a_id: $.id
+
+  - request:
+      id: create_feed_b
+      client: browser
+      method: POST
+      path: /api/groups/{{group_b_id}}/daily-feeds
+      json:
+        name: Group B Practice
+        kind: catalog_daily
+        enabled: true
+        source_id: "{{source_b_id}}"
+        item_count: 1
+        filters: []
+        schedule:
+          starts_at: "2020-01-01T00:00:00.000Z"
+          timezone: UTC
+          interval_seconds: 86400
+      expectStatus: 201
+      capture:
+        feed_b_id: $.id
 
 steps:
   - visit: /

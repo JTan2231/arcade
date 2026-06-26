@@ -1,14 +1,22 @@
 import YAML from "yaml";
 import { z } from "zod";
 
+const identifierPattern = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
 const roleSchema = z.enum([
+  "alert",
   "button",
-  "link",
-  "tab",
   "checkbox",
   "combobox",
+  "dialog",
+  "link",
+  "main",
+  "region",
+  "status",
+  "tab",
   "textbox",
 ]);
+
 const scalarSchema = z.union([z.string(), z.number(), z.boolean()]);
 const methodSchema = z
   .string()
@@ -158,92 +166,43 @@ const expectRequestSchema = z
     },
   );
 
-const setupAccountSchema = z
-  .object({
-    id: z.string().min(1),
-    displayName: z.string().min(1),
-    email: z.string().email(),
-    password: z.string().min(8),
-    rememberMe: z.boolean().optional(),
-  })
-  .strict();
+const captureEntrySchema = z.union([
+  z.string().min(1),
+  z
+    .object({
+      selector: z.string().min(1),
+      overwrite: z.literal(true).optional(),
+    })
+    .strict(),
+]);
 
-const setupGroupSchema = z
-  .object({
-    id: z.string().min(1),
-    name: z.string().min(1),
-    owner: z.string().min(1),
-    slug: z.string().min(1).optional(),
-    description: z.string().optional(),
-    visibility: z.enum(["public", "invite_only", "private"]).optional(),
-  })
-  .strict();
-
-const catalogFieldSchema = z
-  .object({
-    key: z.string().min(1),
-    label: z.string().min(1),
-    value_type: z.enum(["string", "number"]),
-    is_array: z.boolean().optional(),
-    display_order: z.number().int().optional(),
-  })
-  .strict();
-
-const catalogItemSchema = z
-  .object({
-    title: z.string().min(1).optional(),
-    data: z.record(z.string(), z.unknown()),
-  })
-  .strict();
-
-const catalogSourceSchema = z
+const requestSchema = z
   .object({
     id: z.string().min(1).optional(),
-    group: z.string().min(1),
-    name: z.string().min(1),
-    template: z.string().min(1).optional(),
-    preset: z.string().min(1).optional(),
-    fields: z.array(catalogFieldSchema).optional(),
-    items: z.array(catalogItemSchema).optional(),
+    client: z.enum(["isolated", "browser"]).optional(),
+    method: methodSchema,
+    path: requestPathSchema,
+    headers: z.record(z.string(), z.string()).optional(),
+    json: z.unknown().optional(),
+    body: z.string().optional(),
+    form: z.record(z.string(), scalarSchema).optional(),
+    expectStatus: z.number().int().min(100).max(599).optional(),
+    expectJson: z.unknown().optional(),
+    capture: z.record(z.string(), captureEntrySchema).optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (request) =>
+      [request.json, request.body, request.form].filter(
+        (value) => value !== undefined,
+      ).length <= 1,
+    {
+      message: "request supports only one of json, body, or form",
+    },
+  );
 
-const setupDailyFeedSchema = z
-  .object({
-    id: z.string().min(1),
-    group: z.string().min(1),
-    name: z.string().min(1),
-    kind: z.enum(["catalog_daily", "daily_thread"]).optional(),
-    source: z.string().min(1).optional(),
-    itemCount: z.number().int().positive().optional(),
-    enabled: z.boolean().optional(),
-    description: z.string().optional(),
-  })
-  .strict();
-
-const setupFeedPostSchema = z
-  .object({
-    group: z.string().min(1),
-    feed: z.string().min(1),
-    author: z.string().min(1),
-    date: z.string().min(1).optional(),
-    evidenceText: z.string().min(1),
-    caption: z.string().optional(),
-  })
-  .strict();
-
-const setupSchema = z
-  .object({
-    accounts: z.array(setupAccountSchema).optional(),
-    loginAs: z.string().min(1).optional(),
-    groups: z.array(setupGroupSchema).optional(),
-    catalogSources: z.array(catalogSourceSchema).optional(),
-    dailyFeeds: z.array(setupDailyFeedSchema).optional(),
-    feedPosts: z.array(setupFeedPostSchema).optional(),
-  })
-  .strict();
-
-const actionKeys = [
+const operationKeys = [
+  "request",
   "visit",
   "click",
   "fill",
@@ -268,8 +227,11 @@ const actionKeys = [
 
 export const scenarioStepSchema = z
   .object({
+    id: z.string().min(1).optional(),
     within: z.string().min(1).optional(),
+    timeout: z.number().int().positive().optional(),
     acceptDialog: acceptDialogSchema.optional(),
+    request: requestSchema.optional(),
     visit: z.string().min(1).optional(),
     click: roleTargetSchema.optional(),
     fill: fillSchema.optional(),
@@ -293,13 +255,13 @@ export const scenarioStepSchema = z
   })
   .strict()
   .superRefine((step, context) => {
-    const configuredActions = actionKeys.filter(
+    const configuredOperations = operationKeys.filter(
       (key) => step[key] !== undefined,
     );
-    if (configuredActions.length !== 1) {
+    if (configuredOperations.length !== 1) {
       context.addIssue({
         code: "custom",
-        message: `expected exactly one action, found ${configuredActions.length}`,
+        message: `expected exactly one primitive operation, found ${configuredOperations.length}`,
       });
     }
 
@@ -315,15 +277,58 @@ export const scenarioStepSchema = z
 export const scenarioSchema = z
   .object({
     name: z.string().min(1),
-    setup: setupSchema.optional(),
+    vars: z.record(z.string(), scalarSchema).optional(),
+    before: z.array(scenarioStepSchema).optional(),
     steps: z.array(scenarioStepSchema).min(1),
+    after: z.array(scenarioStepSchema).optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((scenario, context) => {
+    for (const variableName of Object.keys(scenario.vars ?? {})) {
+      if (!identifierPattern.test(variableName)) {
+        context.addIssue({
+          code: "custom",
+          path: ["vars", variableName],
+          message: "variable name must be a valid identifier",
+        });
+      }
+    }
+
+    const capturedNames = new Set(Object.keys(scenario.vars ?? {}));
+    for (const phase of ["before", "steps", "after"] as const) {
+      for (const [index, step] of (scenario[phase] ?? []).entries()) {
+        for (const [name, capture] of Object.entries(
+          step.request?.capture ?? {},
+        )) {
+          if (!identifierPattern.test(name)) {
+            context.addIssue({
+              code: "custom",
+              path: [phase, index, "request", "capture", name],
+              message: "capture name must be a valid identifier",
+            });
+          }
+
+          const overwrites =
+            typeof capture === "object" && capture.overwrite === true;
+          if (capturedNames.has(name) && !overwrites) {
+            context.addIssue({
+              code: "custom",
+              path: [phase, index, "request", "capture", name],
+              message:
+                "duplicate capture names require overwrite: true on the capture",
+            });
+          }
+          capturedNames.add(name);
+        }
+      }
+    }
+  });
 
 export type RoleTarget = z.infer<typeof roleTargetSchema>;
 export type Scenario = z.infer<typeof scenarioSchema>;
 export type ScenarioStep = z.infer<typeof scenarioStepSchema>;
-export type ScenarioSetup = NonNullable<Scenario["setup"]>;
+export type ScenarioPhase = "before" | "steps" | "after";
+export type RequestPrimitive = NonNullable<ScenarioStep["request"]>;
 export type TextExpectation = z.infer<typeof textExpectationSchema>;
 export type VisibleTarget = z.infer<typeof visibleTargetSchema>;
 
@@ -368,20 +373,25 @@ function formatScenarioValidationError(
 ): string {
   const messages = error.issues.map((issue) => {
     const path = issue.path.length > 0 ? issue.path.join(".") : "<root>";
-    const stepIndex = stepIndexFromPath(issue.path);
+    const stepLocation = stepLocationFromPath(issue.path);
     const prefix =
-      stepIndex === null
+      stepLocation === null
         ? `${file}: ${path}`
-        : `${file}: step ${stepIndex + 1} (${path})`;
+        : `${file}: ${stepLocation.phase} step ${stepLocation.index + 1} (${path})`;
     return `${prefix}: ${issue.message}`;
   });
 
   return messages.join("\n");
 }
 
-function stepIndexFromPath(path: PropertyKey[]): number | null {
-  if (path[0] !== "steps" || typeof path[1] !== "number") {
+function stepLocationFromPath(
+  path: PropertyKey[],
+): { phase: ScenarioPhase; index: number } | null {
+  if (path[0] !== "before" && path[0] !== "steps" && path[0] !== "after") {
     return null;
   }
-  return path[1];
+  if (typeof path[1] !== "number") {
+    return null;
+  }
+  return { phase: path[0], index: path[1] };
 }

@@ -1,6 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 
 import { scope, strictRoleLocator } from "./actions";
+import type { PrimitiveContext } from "./context";
 import type {
   ScenarioStep,
   TextExpectation,
@@ -9,43 +10,45 @@ import type {
 import { scenarioValue } from "./values";
 
 export async function expectVisible(
-  page: Page,
+  context: PrimitiveContext,
   step: ScenarioStep,
 ): Promise<void> {
   if (step.expectVisible === undefined) {
     throw new Error("expectVisible assertion is missing");
   }
 
-  await expectTargetVisible(page, step.within, step.expectVisible);
+  await expectTargetVisible(context, step.within, step.expectVisible);
 }
 
 export async function expectHidden(
-  page: Page,
+  context: PrimitiveContext,
   step: ScenarioStep,
 ): Promise<void> {
   if (step.expectHidden === undefined) {
     throw new Error("expectHidden assertion is missing");
   }
 
-  const root = scope(page, step.within);
+  const root = scope(context.page, step.within);
   const target = step.expectHidden;
   if ("text" in target) {
     await expect(
-      root.getByText(target.text, { exact: target.exact ?? false }),
+      root.getByText(scenarioValue(target.text, context.variables), {
+        exact: target.exact ?? false,
+      }),
     ).toBeHidden();
     return;
   }
 
   await expect(
     root.getByRole(target.role, {
-      name: target.name,
+      name: scenarioValue(target.name, context.variables),
       exact: target.exact ?? true,
     }),
   ).toBeHidden();
 }
 
 export async function expectPressed(
-  page: Page,
+  context: PrimitiveContext,
   step: ScenarioStep,
 ): Promise<void> {
   if (step.expectPressed === undefined) {
@@ -53,8 +56,9 @@ export async function expectPressed(
   }
 
   const locator = await strictRoleLocator(
-    scope(page, step.within),
+    scope(context.page, step.within),
     step.expectPressed,
+    context,
   );
   await expect(locator).toHaveAttribute(
     "aria-pressed",
@@ -63,70 +67,77 @@ export async function expectPressed(
 }
 
 export async function expectDisabled(
-  page: Page,
+  context: PrimitiveContext,
   step: ScenarioStep,
 ): Promise<void> {
   if (step.expectDisabled === undefined) {
     throw new Error("expectDisabled assertion is missing");
   }
 
-  await expectControlState(page, step.within, step.expectDisabled, false);
+  await expectControlState(context, step.within, step.expectDisabled, false);
 }
 
 export async function expectEnabled(
-  page: Page,
+  context: PrimitiveContext,
   step: ScenarioStep,
 ): Promise<void> {
   if (step.expectEnabled === undefined) {
     throw new Error("expectEnabled assertion is missing");
   }
 
-  await expectControlState(page, step.within, step.expectEnabled, true);
+  await expectControlState(context, step.within, step.expectEnabled, true);
 }
 
 export async function expectValue(
-  page: Page,
+  context: PrimitiveContext,
   step: ScenarioStep,
 ): Promise<void> {
   if (step.expectValue === undefined) {
     throw new Error("expectValue assertion is missing");
   }
 
-  const locator = scope(page, step.within).getByLabel(step.expectValue.label, {
-    exact: step.expectValue.exact ?? true,
-  });
+  const locator = scope(context.page, step.within).getByLabel(
+    scenarioValue(step.expectValue.label, context.variables),
+    {
+      exact: step.expectValue.exact ?? true,
+    },
+  );
   await expect(locator.first()).toBeVisible();
-  await expect(locator).toHaveValue(scenarioValue(step.expectValue.value));
+  await expect(locator).toHaveValue(
+    scenarioValue(step.expectValue.value, context.variables),
+  );
 }
 
 export async function expectStatus(
-  page: Page,
+  context: PrimitiveContext,
   expectation: TextExpectation,
 ): Promise<void> {
-  const status = page.getByRole("status");
+  const status = context.page.getByRole("status");
+  const text = scenarioValue(expectation.text, context.variables);
   if (expectation.exact === true) {
-    await expect(status).toHaveText(expectation.text);
+    await expect(status).toHaveText(text);
     return;
   }
-  await expect(status).toContainText(expectation.text);
+  await expect(status).toContainText(text);
 }
 
 export async function expectAlert(
-  page: Page,
+  context: PrimitiveContext,
   expectation: TextExpectation,
 ): Promise<void> {
-  const alert = page
+  const text = scenarioValue(expectation.text, context.variables);
+  const alert = context.page
     .getByRole("alert")
-    .filter({ hasText: expectation.text })
+    .filter({ hasText: text })
     .first();
   await expect(alert).toBeVisible();
   if (expectation.exact === true) {
-    await expect(alert).toHaveText(expectation.text);
+    await expect(alert).toHaveText(text);
   }
 }
 
 async function expectControlState(
-  page: Page,
+  context: PrimitiveContext,
   within: string | undefined,
   target: VisibleTarget,
   enabled: boolean,
@@ -135,7 +146,11 @@ async function expectControlState(
     throw new Error("control state assertions require a role target");
   }
 
-  const locator = await strictRoleLocator(scope(page, within), target);
+  const locator = await strictRoleLocator(
+    scope(context.page, within),
+    target,
+    context,
+  );
   if (enabled) {
     await expect(locator).toBeEnabled();
     return;
@@ -144,17 +159,21 @@ async function expectControlState(
 }
 
 async function expectTargetVisible(
-  page: Page,
+  context: PrimitiveContext,
   within: string | undefined,
   target: VisibleTarget,
 ): Promise<void> {
-  const root = scope(page, within);
+  const root = scope(context.page, within);
   if ("text" in target) {
     await expect(
-      root.getByText(target.text, { exact: target.exact ?? false }).first(),
+      root
+        .getByText(scenarioValue(target.text, context.variables), {
+          exact: target.exact ?? false,
+        })
+        .first(),
     ).toBeVisible();
     return;
   }
 
-  await strictRoleLocator(root, target);
+  await strictRoleLocator(root, target, context);
 }

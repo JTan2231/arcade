@@ -1,31 +1,80 @@
 name: keep selected date stable when old output requests finish
 
-setup:
-  accounts:
-    - id: owner
-      displayName: Date Switch Output Owner
-      email: date-switch-output-owner@example.test
-      password: password123
-  loginAs: owner
-  groups:
-    - id: group
-      name: Date Switch Output Dojo
-      owner: owner
-  catalogSources:
-    - id: source
-      group: group
-      name: Date Switch Output Source
-      template: https://example.test/{slug}
-      items:
-        - title: Date Output Task
-          data:
-            slug: date-output-task
-  dailyFeeds:
-    - id: feed
-      group: group
-      name: Date Output Practice
-      source: source
-      itemCount: 1
+vars:
+  email: date-switch-output-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Date Switch Output Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+      capture:
+        owner_id: $.id
+
+  - request:
+      id: login_owner
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Date Switch Output Dojo
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: create_source
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/catalog-sources
+      json:
+        name: Date Switch Output Source
+        template: https://example.test/{slug}
+        items:
+          - title: Date Output Task
+            data:
+              slug: date-output-task
+      expectStatus: 201
+      capture:
+        source_id: $.id
+
+  - request:
+      id: create_feed
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds
+      json:
+        name: Date Output Practice
+        kind: catalog_daily
+        enabled: true
+        source_id: "{{source_id}}"
+        item_count: 1
+        filters: []
+        schedule:
+          starts_at: "2020-01-01T00:00:00.000Z"
+          timezone: UTC
+          interval_seconds: 86400
+      expectStatus: 201
+      capture:
+        feed_id: $.id
 
 steps:
   - visit: /

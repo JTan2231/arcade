@@ -94,9 +94,7 @@ run_e2e() {
 	require_command bun || return 1
 	require_command psql || return 1
 
-	run_scenarios || return 1
-
-	section "Scenarios: running browser suite"
+	section "E2E: running browser suite"
 	(cd test && bun run e2e) || return 1
 }
 
@@ -142,6 +140,7 @@ frontend_status=0
 backend_status=0
 scenarios_status=0
 e2e_status=0
+e2e_blocked_by_scenarios=0
 run_frontend_checks=0
 run_backend_checks=0
 run_scenario_checks=0
@@ -152,6 +151,7 @@ all)
 	run_frontend_checks=1
 	run_backend_checks=1
 	run_scenario_checks=1
+	run_e2e_checks=1
 	;;
 frontend)
 	run_frontend_checks=1
@@ -163,6 +163,7 @@ scenarios)
 	run_scenario_checks=1
 	;;
 e2e)
+	run_scenario_checks=1
 	run_e2e_checks=1
 	;;
 esac
@@ -180,7 +181,12 @@ if [ "$run_scenario_checks" -eq 1 ]; then
 fi
 
 if [ "$run_e2e_checks" -eq 1 ]; then
-	run_e2e || e2e_status=$?
+	if [ "$run_scenario_checks" -eq 1 ] && [ "$scenarios_status" -ne 0 ]; then
+		e2e_blocked_by_scenarios=1
+		e2e_status=1
+	else
+		run_e2e || e2e_status=$?
+	fi
 fi
 
 section "CI summary"
@@ -216,7 +222,9 @@ else
 fi
 
 if [ "$run_e2e_checks" -eq 1 ]; then
-	if [ "$e2e_status" -eq 0 ]; then
+	if [ "$e2e_blocked_by_scenarios" -eq 1 ]; then
+		printf 'E2E: skipped because scenario checks failed\n' >&2
+	elif [ "$e2e_status" -eq 0 ]; then
 		printf 'E2E: passed\n'
 	else
 		printf 'E2E: failed\n' >&2

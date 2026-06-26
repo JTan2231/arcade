@@ -1,16 +1,44 @@
 name: authenticated endpoint unauthorized response returns to login
 
-setup:
-  accounts:
-    - id: owner
-      displayName: Unauthorized User
-      email: unauthorized-user@example.test
-      password: password123
-  loginAs: owner
-  groups:
-    - id: group
-      name: Unauthorized Group
-      owner: owner
+vars:
+  email: unauthorized-user@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Unauthorized User
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+      capture:
+        owner_id: $.id
+
+  - request:
+      id: login_owner
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Unauthorized Group
+      expectStatus: 201
+      capture:
+        group_id: $.id
 
 steps:
   - fulfillRequest:

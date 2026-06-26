@@ -1,36 +1,100 @@
 name: keep selected feed output stable when old output requests finish
 
-setup:
-  accounts:
-    - id: owner
-      displayName: Feed Switch Output Owner
-      email: feed-switch-output-owner@example.test
-      password: password123
-  loginAs: owner
-  groups:
-    - id: group
-      name: Feed Switch Output Dojo
-      owner: owner
-  catalogSources:
-    - id: source
-      group: group
-      name: Feed Switch Output Source
-      template: https://example.test/{slug}
-      items:
-        - title: Output Task
-          data:
-            slug: output-task
-  dailyFeeds:
-    - id: old-feed
-      group: group
-      name: Output Old Practice
-      source: source
-      itemCount: 1
-    - id: new-feed
-      group: group
-      name: Output New Practice
-      source: source
-      itemCount: 1
+vars:
+  email: feed-switch-output-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Feed Switch Output Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+      capture:
+        owner_id: $.id
+
+  - request:
+      id: login_owner
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Feed Switch Output Dojo
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: create_source
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/catalog-sources
+      json:
+        name: Feed Switch Output Source
+        template: https://example.test/{slug}
+        items:
+          - title: Output Task
+            data:
+              slug: output-task
+      expectStatus: 201
+      capture:
+        source_id: $.id
+
+  - request:
+      id: create_old_feed
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds
+      json:
+        name: Output Old Practice
+        kind: catalog_daily
+        enabled: true
+        source_id: "{{source_id}}"
+        item_count: 1
+        filters: []
+        schedule:
+          starts_at: "2020-01-01T00:00:00.000Z"
+          timezone: UTC
+          interval_seconds: 86400
+      expectStatus: 201
+      capture:
+        old_feed_id: $.id
+
+  - request:
+      id: create_new_feed
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds
+      json:
+        name: Output New Practice
+        kind: catalog_daily
+        enabled: true
+        source_id: "{{source_id}}"
+        item_count: 1
+        filters: []
+        schedule:
+          starts_at: "2020-01-01T00:00:00.000Z"
+          timezone: UTC
+          interval_seconds: 86400
+      expectStatus: 201
+      capture:
+        new_feed_id: $.id
 
 steps:
   - visit: /

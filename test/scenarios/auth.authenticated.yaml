@@ -1,16 +1,44 @@
 name: fresh authenticated load opens the workspace
 
-setup:
-  accounts:
-    - id: owner
-      displayName: Fresh Auth User
-      email: fresh-auth@example.test
-      password: password123
-  loginAs: owner
-  groups:
-    - id: group
-      name: Fresh Auth Group
-      owner: owner
+vars:
+  email: fresh-auth@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Fresh Auth User
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+      capture:
+        owner_id: $.id
+
+  - request:
+      id: login_owner
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Fresh Auth Group
+      expectStatus: 201
+      capture:
+        group_id: $.id
 
 steps:
   - visit: /

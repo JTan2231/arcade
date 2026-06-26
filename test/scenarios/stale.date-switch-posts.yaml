@@ -1,38 +1,91 @@
 name: keep selected date posts stable when old post requests finish
 
-setup:
-  accounts:
-    - id: owner
-      displayName: Date Switch Posts Owner
-      email: date-switch-posts-owner@example.test
-      password: password123
-  loginAs: owner
-  groups:
-    - id: group
-      name: Date Switch Posts Dojo
-      owner: owner
-  catalogSources:
-    - id: source
-      group: group
-      name: Date Switch Posts Source
-      template: https://example.test/{slug}
-      items:
-        - title: Date Posts Task
-          data:
-            slug: date-posts-task
-  dailyFeeds:
-    - id: feed
-      group: group
-      name: Date Posts Practice
-      source: source
-      itemCount: 1
-  feedPosts:
-    - group: group
-      feed: feed
-      author: owner
-      date: "{{yesterday}}"
-      evidenceText: Yesterday evidence should stay hidden.
-      caption: Yesterday caption should stay hidden.
+vars:
+  email: date-switch-posts-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Date Switch Posts Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+      capture:
+        owner_id: $.id
+
+  - request:
+      id: login_owner
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Date Switch Posts Dojo
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: create_source
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/catalog-sources
+      json:
+        name: Date Switch Posts Source
+        template: https://example.test/{slug}
+        items:
+          - title: Date Posts Task
+            data:
+              slug: date-posts-task
+      expectStatus: 201
+      capture:
+        source_id: $.id
+
+  - request:
+      id: create_feed
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds
+      json:
+        name: Date Posts Practice
+        kind: catalog_daily
+        enabled: true
+        source_id: "{{source_id}}"
+        item_count: 1
+        filters: []
+        schedule:
+          starts_at: "2020-01-01T00:00:00.000Z"
+          timezone: UTC
+          interval_seconds: 86400
+      expectStatus: 201
+      capture:
+        feed_id: $.id
+
+  - request:
+      id: create_yesterday_post
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{yesterday}}/posts
+      json:
+        evidence_kind: text
+        evidence_text: Yesterday evidence should stay hidden.
+        caption: Yesterday caption should stay hidden.
+      expectStatus: 201
 
 steps:
   - visit: /

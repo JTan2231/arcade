@@ -1,16 +1,44 @@
 name: feed enable and disable updates the selected feed
 
-setup:
-  accounts:
-    - id: owner
-      displayName: Toggle Owner
-      email: toggle-owner@example.test
-      password: password123
-  loginAs: owner
-  groups:
-    - id: group
-      name: Toggle Dojo
-      owner: owner
+vars:
+  email: toggle-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Toggle Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+      capture:
+        owner_id: $.id
+
+  - request:
+      id: login_owner
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Toggle Dojo
+      expectStatus: 201
+      capture:
+        group_id: $.id
 
 steps:
   - visit: /

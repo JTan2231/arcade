@@ -7,3 +7,5 @@ package.
   important constraints.
 - [Database migrations](database-migrations.md): how migration files are named,
   applied, tested, and operated.
+- [Testing](testing.md): design and implementation of the TypeScript/YAML
+  scenario harness under `test/`.
