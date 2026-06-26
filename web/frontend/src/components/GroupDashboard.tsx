@@ -196,6 +196,7 @@ function FeedList({
             className={`row selectable-row feed-row ${selected ? "selected-row" : ""}`}
             key={feed.id}
             type="button"
+            aria-label={feed.name}
             onClick={() => onSelectFeed(feed.id)}
           >
             <div className="title">{feed.name}</div>
@@ -1056,6 +1057,7 @@ function EvidenceCodeBlock({ value }: { value: string }) {
       {hasPreview && !expanded ? (
         <button
           aria-expanded={expanded}
+          aria-label="Expand evidence"
           className="post-evidence-code-button"
           type="button"
           onClick={() => setExpanded(true)}
@@ -1067,7 +1069,7 @@ function EvidenceCodeBlock({ value }: { value: string }) {
       )}
       {hasPreview && expanded ? (
         <div className="post-evidence-collapse-row">
-          <button className="secondary" type="button" onClick={() => setExpanded(false)}>
+          <button className="secondary" type="button" aria-label="Collapse evidence" onClick={() => setExpanded(false)}>
             Collapse
           </button>
         </div>

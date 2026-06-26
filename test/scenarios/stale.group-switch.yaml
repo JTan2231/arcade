@@ -1,0 +1,106 @@
+name: keep selected group stable when old feed requests finish
+
+setup:
+  accounts:
+    - id: owner
+      displayName: Switch Owner
+      email: switch-owner@example.test
+      password: password123
+  loginAs: owner
+  groups:
+    - id: group-a
+      name: Group A
+      owner: owner
+    - id: group-b
+      name: Group B
+      owner: owner
+  catalogSources:
+    - id: source-a
+      group: group-a
+      name: Group A Source
+      template: https://example.test/{slug}
+      items:
+        - title: Group A Task
+          data:
+            slug: group-a-task
+    - id: source-b
+      group: group-b
+      name: Group B Source
+      template: https://example.test/{slug}
+      items:
+        - title: Group B Task
+          data:
+            slug: group-b-task
+  dailyFeeds:
+    - id: feed-a
+      group: group-a
+      name: Group A Practice
+      source: source-a
+      itemCount: 1
+    - id: feed-b
+      group: group-b
+      name: Group B Practice
+      source: source-b
+      itemCount: 1
+
+steps:
+  - visit: /
+
+  - within: Groups
+    expectPressed:
+      role: button
+      name: Group B
+      pressed: true
+
+  - within: Feeds
+    expectVisible:
+      role: button
+      name: Group B Practice
+
+  - holdRequest:
+      id: old-feeds
+      method: GET
+      path: /api/groups/*/daily-feeds
+      times: 1
+
+  - holdRequest:
+      id: new-feeds
+      method: GET
+      path: /api/groups/*/daily-feeds
+      times: 1
+
+  - within: Groups
+    click:
+      role: button
+      name: Group A
+
+  - expectRequest:
+      id: old-feeds
+
+  - within: Groups
+    click:
+      role: button
+      name: Group B
+
+  - expectRequest:
+      id: new-feeds
+
+  - releaseRequest: new-feeds
+
+  - releaseRequest: old-feeds
+
+  - within: Groups
+    expectPressed:
+      role: button
+      name: Group B
+      pressed: true
+
+  - within: Feeds
+    expectVisible:
+      role: button
+      name: Group B Practice
+
+  - within: Feeds
+    expectHidden:
+      role: button
+      name: Group A Practice

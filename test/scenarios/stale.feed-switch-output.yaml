@@ -1,0 +1,84 @@
+name: keep selected feed output stable when old output requests finish
+
+setup:
+  accounts:
+    - id: owner
+      displayName: Feed Switch Output Owner
+      email: feed-switch-output-owner@example.test
+      password: password123
+  loginAs: owner
+  groups:
+    - id: group
+      name: Feed Switch Output Dojo
+      owner: owner
+  catalogSources:
+    - id: source
+      group: group
+      name: Feed Switch Output Source
+      template: https://example.test/{slug}
+      items:
+        - title: Output Task
+          data:
+            slug: output-task
+  dailyFeeds:
+    - id: old-feed
+      group: group
+      name: Output Old Practice
+      source: source
+      itemCount: 1
+    - id: new-feed
+      group: group
+      name: Output New Practice
+      source: source
+      itemCount: 1
+
+steps:
+  - visit: /
+
+  - within: Selected feed output
+    expectVisible:
+      text: Daily Thread
+
+  - holdRequest:
+      id: old-output
+      method: GET
+      path: /api/groups/*/daily-feeds/*/today
+      times: 1
+
+  - holdRequest:
+      id: new-output
+      method: GET
+      path: /api/groups/*/daily-feeds/*/today
+      times: 1
+
+  - within: Feeds
+    click:
+      role: button
+      name: Output Old Practice
+
+  - expectRequest:
+      id: old-output
+
+  - within: Feeds
+    click:
+      role: button
+      name: Output New Practice
+
+  - expectRequest:
+      id: new-output
+
+  - releaseRequest: new-output
+
+  - within: Selected feed output
+    expectVisible:
+      text: Output New Practice
+
+  - releaseRequest: old-output
+
+  - within: Selected feed output
+    expectVisible:
+      text: Output New Practice
+
+  - within: Selected feed output
+    expectHidden:
+      text: Output Old Practice

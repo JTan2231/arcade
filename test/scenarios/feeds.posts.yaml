@@ -1,0 +1,127 @@
+name: post to the daily thread
+
+steps:
+  - visit: /
+
+  - within: Authentication
+    click:
+      role: tab
+      name: Signup
+
+  - within: Authentication
+    fill:
+      label: Display name
+      value: Feed Owner
+
+  - within: Authentication
+    fill:
+      label: Email
+      value: feed-owner@example.test
+
+  - within: Authentication
+    fill:
+      label: Password
+      value: password123
+
+  - within: Authentication
+    click:
+      role: button
+      name: Create account
+
+  - within: Groups
+    fill:
+      label: Name
+      value: Posting Dojo
+
+  - within: Groups
+    click:
+      role: button
+      name: Create group
+
+  - within: Feeds
+    click:
+      role: button
+      name: Daily Thread
+
+  - within: Selected feed output
+    expectVisible:
+      text: Daily Thread
+
+  - within: Posts
+    click:
+      role: button
+      name: Post
+
+  - within: Posts
+    fill:
+      label: Evidence
+      value: Solved the warmup set.
+
+  - within: Posts
+    fill:
+      label: Caption
+      value: Felt clean today.
+
+  - within: Posts
+    click:
+      role: button
+      name: Submit
+
+  - expectStatus:
+      text: Post submitted
+
+  - within: Posts
+    expectVisible:
+      text: Solved the warmup set.
+
+  - within: Posts
+    click:
+      role: button
+      name: Edit
+
+  - within: Posts
+    fill:
+      label: Evidence
+      exact: false
+      value: Updated the warmup solution.
+
+  - within: Posts
+    fill:
+      label: Caption
+      exact: false
+      value: Cleaner after review.
+
+  - within: Posts
+    click:
+      role: button
+      name: Save
+
+  - expectStatus:
+      text: Post updated
+
+  - within: Posts
+    expectVisible:
+      text: Updated the warmup solution.
+
+  - within: Posts
+    expectVisible:
+      text: Cleaner after review.
+
+  - within: Posts
+    click:
+      role: button
+      name: Delete
+    acceptDialog:
+      message: Delete this post?
+      exact: true
+
+  - expectStatus:
+      text: Post deleted
+
+  - within: Posts
+    expectHidden:
+      text: Updated the warmup solution.
+
+  - within: Posts
+    expectVisible:
+      text: No posts yet.

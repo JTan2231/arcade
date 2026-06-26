@@ -1,0 +1,31 @@
+name: fresh authenticated load opens the workspace
+
+setup:
+  accounts:
+    - id: owner
+      displayName: Fresh Auth User
+      email: fresh-auth@example.test
+      password: password123
+  loginAs: owner
+  groups:
+    - id: group
+      name: Fresh Auth Group
+      owner: owner
+
+steps:
+  - visit: /
+
+  - within: Arcade workspace
+    expectVisible:
+      text: Fresh Auth Group
+
+  - within: Groups
+    expectPressed:
+      role: button
+      name: Fresh Auth Group
+      pressed: true
+
+  - within: Feeds
+    expectVisible:
+      role: button
+      name: Daily Thread

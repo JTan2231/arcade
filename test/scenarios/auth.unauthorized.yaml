@@ -1,0 +1,33 @@
+name: authenticated endpoint unauthorized response returns to login
+
+setup:
+  accounts:
+    - id: owner
+      displayName: Unauthorized User
+      email: unauthorized-user@example.test
+      password: password123
+  loginAs: owner
+  groups:
+    - id: group
+      name: Unauthorized Group
+      owner: owner
+
+steps:
+  - fulfillRequest:
+      method: GET
+      path: /api/groups
+      status: 401
+      json:
+        error: session expired
+
+  - visit: /
+
+  - within: Authentication
+    expectVisible:
+      role: tab
+      name: Login
+
+  - within: Authentication
+    expectVisible:
+      role: tab
+      name: Signup

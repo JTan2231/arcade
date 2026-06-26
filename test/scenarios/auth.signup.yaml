@@ -1,0 +1,36 @@
+name: signup through the authentication panel
+
+steps:
+  - visit: /
+
+  - within: Authentication
+    click:
+      role: tab
+      name: Signup
+
+  - within: Authentication
+    fill:
+      label: Display name
+      value: Ada Lovelace
+
+  - within: Authentication
+    fill:
+      label: Email
+      value: ada@example.test
+
+  - within: Authentication
+    fill:
+      label: Password
+      value: password123
+
+  - within: Authentication
+    click:
+      role: button
+      name: Create account
+
+  - expectStatus:
+      text: Account created
+
+  - within: Arcade workspace
+    expectVisible:
+      text: No groups yet

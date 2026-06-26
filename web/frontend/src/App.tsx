@@ -570,7 +570,7 @@ export default function App() {
     return (
       <>
         <main className="auth-layout">
-          <section className="panel auth-panel">
+          <section className="panel auth-panel" aria-label="Authentication">
             <div className="empty-state">Checking session...</div>
           </section>
         </main>
@@ -611,7 +611,7 @@ export default function App() {
         </button>
       </header>
 
-      <main className="layout group-layout">
+      <main className="layout group-layout" aria-label="Arcade workspace">
         <GroupsPanel
           groups={groups}
           selectedGroupId={selectedGroupId}

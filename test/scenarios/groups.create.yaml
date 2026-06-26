@@ -1,0 +1,78 @@
+name: signup and create a group
+
+steps:
+  - visit: /
+
+  - within: Authentication
+    click:
+      role: tab
+      name: Signup
+
+  - within: Authentication
+    fill:
+      label: Display name
+      value: Group Owner
+
+  - within: Authentication
+    fill:
+      label: Email
+      value: group-owner@example.test
+
+  - within: Authentication
+    fill:
+      label: Password
+      value: password123
+
+  - within: Authentication
+    click:
+      role: button
+      name: Create account
+
+  - within: Groups
+    fill:
+      label: Name
+      value: Morning Dojo First
+
+  - within: Groups
+    click:
+      role: button
+      name: Create group
+
+  - expectStatus:
+      text: Group created
+
+  - within: Groups
+    expectPressed:
+      role: button
+      name: Morning Dojo First
+      pressed: true
+
+  - within: Groups
+    fill:
+      label: Name
+      value: Morning Dojo Preferred
+
+  - within: Groups
+    click:
+      role: button
+      name: Create group
+
+  - expectStatus:
+      text: Group created
+
+  - within: Groups
+    expectPressed:
+      role: button
+      name: Morning Dojo Preferred
+      pressed: true
+
+  - within: Groups
+    expectPressed:
+      role: button
+      name: Morning Dojo First
+      pressed: false
+
+  - within: Feeds
+    expectVisible:
+      role: button
+      name: Daily Thread

@@ -1,0 +1,94 @@
+name: keep selected feed posts stable when old post requests finish
+
+setup:
+  accounts:
+    - id: owner
+      displayName: Feed Switch Posts Owner
+      email: feed-switch-posts-owner@example.test
+      password: password123
+  loginAs: owner
+  groups:
+    - id: group
+      name: Feed Switch Posts Dojo
+      owner: owner
+  catalogSources:
+    - id: source
+      group: group
+      name: Feed Switch Posts Source
+      template: https://example.test/{slug}
+      items:
+        - title: Posts Task
+          data:
+            slug: posts-task
+  dailyFeeds:
+    - id: old-feed
+      group: group
+      name: Post Old Practice
+      source: source
+      itemCount: 1
+    - id: new-feed
+      group: group
+      name: Post New Practice
+      source: source
+      itemCount: 1
+  feedPosts:
+    - group: group
+      feed: old-feed
+      author: owner
+      evidenceText: Old feed evidence should stay hidden.
+      caption: Old feed caption should stay hidden.
+
+steps:
+  - visit: /
+
+  - within: Selected feed output
+    expectVisible:
+      text: Daily Thread
+
+  - holdRequest:
+      id: old-posts
+      method: GET
+      path: /api/groups/*/daily-feeds/*/outputs/{{today}}/posts
+      times: 1
+
+  - holdRequest:
+      id: new-posts
+      method: GET
+      path: /api/groups/*/daily-feeds/*/outputs/{{today}}/posts
+      times: 1
+
+  - within: Feeds
+    click:
+      role: button
+      name: Post Old Practice
+
+  - expectRequest:
+      id: old-posts
+
+  - within: Feeds
+    click:
+      role: button
+      name: Post New Practice
+
+  - expectRequest:
+      id: new-posts
+
+  - releaseRequest: new-posts
+
+  - within: Selected feed output
+    expectVisible:
+      text: Post New Practice
+
+  - within: Posts
+    expectVisible:
+      text: No posts yet.
+
+  - releaseRequest: old-posts
+
+  - within: Selected feed output
+    expectVisible:
+      text: Post New Practice
+
+  - within: Posts
+    expectHidden:
+      text: Old feed evidence should stay hidden.

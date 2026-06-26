@@ -1,0 +1,95 @@
+name: keep selected date posts stable when old post requests finish
+
+setup:
+  accounts:
+    - id: owner
+      displayName: Date Switch Posts Owner
+      email: date-switch-posts-owner@example.test
+      password: password123
+  loginAs: owner
+  groups:
+    - id: group
+      name: Date Switch Posts Dojo
+      owner: owner
+  catalogSources:
+    - id: source
+      group: group
+      name: Date Switch Posts Source
+      template: https://example.test/{slug}
+      items:
+        - title: Date Posts Task
+          data:
+            slug: date-posts-task
+  dailyFeeds:
+    - id: feed
+      group: group
+      name: Date Posts Practice
+      source: source
+      itemCount: 1
+  feedPosts:
+    - group: group
+      feed: feed
+      author: owner
+      date: "{{yesterday}}"
+      evidenceText: Yesterday evidence should stay hidden.
+      caption: Yesterday caption should stay hidden.
+
+steps:
+  - visit: /
+
+  - within: Feeds
+    click:
+      role: button
+      name: Date Posts Practice
+
+  - within: Selected feed output
+    expectVisible:
+      text: Date Posts Practice
+
+  - holdRequest:
+      id: old-posts
+      method: GET
+      path: /api/groups/*/daily-feeds/*/outputs/{{yesterday}}/posts
+      times: 1
+
+  - holdRequest:
+      id: new-posts
+      method: GET
+      path: /api/groups/*/daily-feeds/*/outputs/{{today}}/posts
+      times: 1
+
+  - within: Selected feed output
+    select:
+      label: Date
+      exact: false
+      value: "{{yesterday}}"
+
+  - expectRequest:
+      id: old-posts
+
+  - within: Selected feed output
+    select:
+      label: Date
+      exact: false
+      value: "{{today}}"
+
+  - expectRequest:
+      id: new-posts
+
+  - releaseRequest: new-posts
+
+  - within: Posts
+    expectVisible:
+      text: No posts yet.
+
+  - releaseRequest: old-posts
+
+  - within: Selected feed output
+    expectValue:
+      label: Date
+      exact: false
+      value: "{{today}}"
+
+  - within: Posts
+    expectHidden:
+      text: Yesterday evidence should stay hidden.

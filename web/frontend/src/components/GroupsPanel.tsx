@@ -33,9 +33,9 @@ export function GroupsPanel({
   }
 
   return (
-    <section className="panel groups-panel">
+    <section className="panel groups-panel" aria-labelledby="groups-title">
       <div className="panel-header">
-        <h2>Groups</h2>
+        <h2 id="groups-title">Groups</h2>
       </div>
       <form
         className="compact-form"
@@ -65,6 +65,7 @@ export function GroupsPanel({
                 className={`row selectable-row ${selected ? "selected-row" : ""}`}
                 key={group.id}
                 type="button"
+                aria-label={group.name}
                 onClick={() => onSelectGroup(group.id)}
               >
                 <div className="title">{group.name}</div>

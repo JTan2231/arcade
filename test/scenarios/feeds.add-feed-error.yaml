@@ -1,0 +1,42 @@
+name: add feed reports source loading errors
+
+setup:
+  accounts:
+    - id: owner
+      displayName: Add Feed Error Owner
+      email: add-feed-error-owner@example.test
+      password: password123
+  loginAs: owner
+  groups:
+    - id: group
+      name: Add Feed Error Dojo
+      owner: owner
+
+steps:
+  - fulfillRequest:
+      method: GET
+      path: /api/groups/*/catalog-sources
+      status: 500
+      json:
+        error: Catalog source load failed
+
+  - visit: /
+
+  - within: Feeds
+    click:
+      role: button
+      name: Add feed
+
+  - within: Add feed
+    expectAlert:
+      text: Catalog source load failed
+
+  - within: Add feed
+    expectDisabled:
+      role: button
+      name: Create
+
+  - within: Add feed
+    click:
+      role: button
+      name: Close

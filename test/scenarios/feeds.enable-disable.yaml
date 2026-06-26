@@ -1,0 +1,54 @@
+name: feed enable and disable updates the selected feed
+
+setup:
+  accounts:
+    - id: owner
+      displayName: Toggle Owner
+      email: toggle-owner@example.test
+      password: password123
+  loginAs: owner
+  groups:
+    - id: group
+      name: Toggle Dojo
+      owner: owner
+
+steps:
+  - visit: /
+
+  - within: Selected feed output
+    expectVisible:
+      text: Daily Thread
+
+  - within: Selected feed output
+    click:
+      role: button
+      name: Disable feed
+
+  - expectStatus:
+      text: Feed disabled
+
+  - within: Feeds
+    expectVisible:
+      text: Disabled
+
+  - within: Posts
+    expectDisabled:
+      role: button
+      name: Post
+
+  - within: Selected feed output
+    click:
+      role: button
+      name: Enable feed
+
+  - expectStatus:
+      text: Feed enabled
+
+  - within: Feeds
+    expectHidden:
+      text: Disabled
+
+  - within: Posts
+    expectEnabled:
+      role: button
+      name: Post

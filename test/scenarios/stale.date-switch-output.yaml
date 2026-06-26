@@ -1,0 +1,86 @@
+name: keep selected date stable when old output requests finish
+
+setup:
+  accounts:
+    - id: owner
+      displayName: Date Switch Output Owner
+      email: date-switch-output-owner@example.test
+      password: password123
+  loginAs: owner
+  groups:
+    - id: group
+      name: Date Switch Output Dojo
+      owner: owner
+  catalogSources:
+    - id: source
+      group: group
+      name: Date Switch Output Source
+      template: https://example.test/{slug}
+      items:
+        - title: Date Output Task
+          data:
+            slug: date-output-task
+  dailyFeeds:
+    - id: feed
+      group: group
+      name: Date Output Practice
+      source: source
+      itemCount: 1
+
+steps:
+  - visit: /
+
+  - within: Feeds
+    click:
+      role: button
+      name: Date Output Practice
+
+  - within: Selected feed output
+    expectVisible:
+      text: Date Output Practice
+
+  - holdRequest:
+      id: old-output
+      method: GET
+      path: /api/groups/*/daily-feeds/*/outputs/{{yesterday}}
+      times: 1
+
+  - holdRequest:
+      id: new-output
+      method: GET
+      path: /api/groups/*/daily-feeds/*/outputs/{{today}}
+      times: 1
+
+  - within: Selected feed output
+    select:
+      label: Date
+      exact: false
+      value: "{{yesterday}}"
+
+  - expectRequest:
+      id: old-output
+
+  - within: Selected feed output
+    select:
+      label: Date
+      exact: false
+      value: "{{today}}"
+
+  - expectRequest:
+      id: new-output
+
+  - releaseRequest: new-output
+
+  - within: Selected feed output
+    expectValue:
+      label: Date
+      exact: false
+      value: "{{today}}"
+
+  - releaseRequest: old-output
+
+  - within: Selected feed output
+    expectValue:
+      label: Date
+      exact: false
+      value: "{{today}}"

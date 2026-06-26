@@ -53,10 +53,12 @@ export function AuthView({ error, onClearError, onLogin, onSignup }: AuthViewPro
 
   return (
     <main className="auth-layout">
-      <section className="panel auth-panel">
+      <section className="panel auth-panel" aria-label="Authentication">
         <div className="auth-tabs" role="tablist" aria-label="Authentication">
           <button
             className={`auth-tab ${mode === "login" ? "active" : "secondary"}`}
+            role="tab"
+            aria-selected={mode === "login"}
             type="button"
             onClick={() => switchMode("login")}
           >
@@ -64,6 +66,8 @@ export function AuthView({ error, onClearError, onLogin, onSignup }: AuthViewPro
           </button>
           <button
             className={`auth-tab ${mode === "signup" ? "active" : "secondary"}`}
+            role="tab"
+            aria-selected={mode === "signup"}
             type="button"
             onClick={() => switchMode("signup")}
           >

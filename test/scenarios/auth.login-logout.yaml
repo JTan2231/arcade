@@ -1,0 +1,45 @@
+name: login and logout through the authentication panel
+
+setup:
+  accounts:
+    - id: user
+      displayName: Login User
+      email: login-user@example.test
+      password: password123
+
+steps:
+  - visit: /
+
+  - within: Authentication
+    fill:
+      label: Email
+      value: login-user@example.test
+
+  - within: Authentication
+    fill:
+      label: Password
+      value: password123
+
+  - within: Authentication
+    click:
+      role: button
+      name: Login
+
+  - expectStatus:
+      text: Signed in
+
+  - within: Arcade workspace
+    expectVisible:
+      text: No groups yet
+
+  - click:
+      role: button
+      name: Logout
+
+  - expectStatus:
+      text: Signed out
+
+  - within: Authentication
+    expectVisible:
+      role: button
+      name: Login

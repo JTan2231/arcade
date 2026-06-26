@@ -1,0 +1,19 @@
+name: fresh anonymous load shows authentication
+
+steps:
+  - visit: /
+
+  - within: Authentication
+    expectVisible:
+      role: tab
+      name: Login
+
+  - within: Authentication
+    expectVisible:
+      role: tab
+      name: Signup
+
+  - within: Authentication
+    expectVisible:
+      role: textbox
+      name: Email

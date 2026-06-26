@@ -1,0 +1,110 @@
+name: add feed loads sources, previews, validates, and creates
+
+setup:
+  accounts:
+    - id: owner
+      displayName: Add Feed Owner
+      email: add-feed-owner@example.test
+      password: password123
+  loginAs: owner
+  groups:
+    - id: group
+      name: Add Feed Dojo
+      owner: owner
+  catalogSources:
+    - id: source
+      group: group
+      name: Add Feed Source
+      template: https://example.test/{slug}
+      items:
+        - title: Alpha Warmup
+          data:
+            slug: alpha-warmup
+        - title: Beta Warmup
+          data:
+            slug: beta-warmup
+
+steps:
+  - visit: /
+
+  - holdRequest:
+      id: sources
+      method: GET
+      path: /api/groups/*/catalog-sources
+      times: 1
+
+  - within: Feeds
+    click:
+      role: button
+      name: Add feed
+
+  - expectRequest:
+      id: sources
+
+  - within: Add feed
+    expectDisabled:
+      role: combobox
+      name: Source
+
+  - within: Add feed
+    expectDisabled:
+      role: button
+      name: Create
+
+  - releaseRequest: sources
+
+  - within: Add feed
+    expectEnabled:
+      role: combobox
+      name: Source
+
+  - within: Add feed
+    expectEnabled:
+      role: button
+      name: Create
+
+  - within: Add feed
+    click:
+      role: button
+      name: Preview
+
+  - within: Add feed
+    expectAlert:
+      text: Name is required
+
+  - within: Add feed
+    fill:
+      label: Name
+      value: Warmup Practice
+
+  - within: Add feed
+    fill:
+      label: Item count
+      value: 1
+
+  - within: Add feed
+    click:
+      role: button
+      name: Preview
+
+  - within: Preview
+    expectVisible:
+      text: 1 selected, 2 eligible
+
+  - within: Add feed
+    click:
+      role: button
+      name: Create
+
+  - expectStatus:
+      text: Feed created
+
+  - within: Feeds
+    expectPressed:
+      role: button
+      name: Warmup Practice
+      pressed: true
+
+  - within: Selected feed output
+    expectVisible:
+      text: Warmup Practice
