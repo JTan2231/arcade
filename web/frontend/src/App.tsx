@@ -102,7 +102,7 @@ export default function App() {
 
   const showToast = useCallback((message: string) => {
     setToastMessage(message);
-    if (toastTimer.current) {
+    if (toastTimer.current !== null) {
       window.clearTimeout(toastTimer.current);
     }
     toastTimer.current = window.setTimeout(() => setToastMessage(null), 2400);
@@ -131,11 +131,15 @@ export default function App() {
       setGroupsLoading(true);
       try {
         const nextGroups = await listGroups();
+        const preferredSelectedId =
+          preferredGroupId != null ? nextGroups.find((group) => group.id === preferredGroupId)?.id : undefined;
+        const currentSelectedId =
+          selectedGroupId !== null ? nextGroups.find((group) => group.id === selectedGroupId)?.id : undefined;
         const selected =
-          (preferredGroupId && nextGroups.find((group) => group.id === preferredGroupId)?.id) ||
-          (selectedGroupId && nextGroups.find((group) => group.id === selectedGroupId)?.id) ||
-          nextGroups.find((group) => group.my_status === "active")?.id ||
-          nextGroups[0]?.id ||
+          preferredSelectedId ??
+          currentSelectedId ??
+          nextGroups.find((group) => group.my_status === "active")?.id ??
+          nextGroups[0]?.id ??
           null;
 
         setGroups(nextGroups);
@@ -228,7 +232,7 @@ export default function App() {
 
     return () => {
       cancelled = true;
-      if (toastTimer.current) {
+      if (toastTimer.current !== null) {
         window.clearTimeout(toastTimer.current);
       }
     };
@@ -277,11 +281,11 @@ export default function App() {
 
         setGroupFeeds(feeds);
         setGroupFeedsLoading(false);
-        const firstFeed = feeds[0] || null;
-        setSelectedFeedId(firstFeed?.id || null);
+        const firstFeed = feeds[0] ?? null;
+        setSelectedFeedId(firstFeed?.id ?? null);
         setSelectedFeedDate(todayDateValue());
 
-        if (firstFeed) {
+        if (firstFeed !== null) {
           await loadFeedOutput({
             groupId: currentGroup.id,
             feedId: firstFeed.id,
@@ -377,7 +381,7 @@ export default function App() {
   }
 
   function handleChangeFeedDate(date: string) {
-    if (!selectedGroup || !selectedFeedId) {
+    if (selectedGroup === null || selectedFeedId === null) {
       return;
     }
 
@@ -469,7 +473,7 @@ export default function App() {
   }
 
   async function handleCreateFeedPost(payload: { evidenceText: string; caption: string }) {
-    if (!selectedGroup || !selectedFeedId || !selectedFeedOutput) {
+    if (selectedGroup === null || selectedFeedId === null || selectedFeedOutput === null) {
       return false;
     }
 
@@ -485,7 +489,7 @@ export default function App() {
       const post = await createGroupFeedPost(selectedGroup.id, selectedFeedId, selectedFeedOutput.date, {
         evidence_kind: "text",
         evidence_text: evidenceText,
-        ...(caption ? { caption } : {}),
+        ...(caption !== "" ? { caption } : {}),
       });
       if (requestId !== feedOutputRequestId.current) {
         return false;
@@ -522,7 +526,7 @@ export default function App() {
       const post = await updateGroupFeedPost(selectedGroup.id, postId, {
         evidence_kind: "text",
         evidence_text: evidenceText,
-        caption: caption || null,
+        caption: caption !== "" ? caption : null,
       });
       if (requestId !== feedOutputRequestId.current) {
         return false;
@@ -596,7 +600,13 @@ export default function App() {
           <h1>Arcade</h1>
           {sessionUser ? <div className="header-user">{sessionUser.display_name}</div> : null}
         </div>
-        <button className="secondary" type="button" onClick={handleLogout}>
+        <button
+          className="secondary"
+          type="button"
+          onClick={() => {
+            void handleLogout();
+          }}
+        >
           Logout
         </button>
       </header>
@@ -624,7 +634,7 @@ export default function App() {
           postsLoading={feedPostsLoading}
           postsError={feedPostsError}
           postSubmitting={feedPostSubmitting}
-          currentUserId={sessionUser?.id || null}
+          currentUserId={sessionUser?.id ?? null}
           onSelectFeed={handleSelectFeed}
           onChangeFeedDate={handleChangeFeedDate}
           onToggleFeedEnabled={handleToggleFeedEnabled}

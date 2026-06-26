@@ -14,6 +14,15 @@ require_command() {
 	fi
 }
 
+usage() {
+	cat <<'EOF'
+Usage: ./ci.sh [all|frontend|backend]
+       ./ci.sh [--all|--frontend|--backend]
+
+Runs all CI checks by default.
+EOF
+}
+
 run_frontend() {
 	require_command bun || return 1
 
@@ -70,24 +79,81 @@ run_backend() {
 tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/arcade-ci.XXXXXX")" || exit 1
 trap 'rm -rf "$tmp_dir"' EXIT INT TERM
 
+target="all"
+if [ "$#" -gt 1 ]; then
+	usage >&2
+	exit 2
+fi
+
+if [ "$#" -eq 1 ]; then
+	case "$1" in
+	all | --all)
+		target="all"
+		;;
+	frontend | front | --frontend | --front)
+		target="frontend"
+		;;
+	backend | back | --backend | --back)
+		target="backend"
+		;;
+	-h | --help)
+		usage
+		exit 0
+		;;
+	*)
+		printf 'Unknown CI target: %s\n\n' "$1" >&2
+		usage >&2
+		exit 2
+		;;
+	esac
+fi
+
 frontend_status=0
 backend_status=0
+run_frontend_checks=0
+run_backend_checks=0
 
-run_frontend || frontend_status=$?
-run_backend || backend_status=$?
+case "$target" in
+all)
+	run_frontend_checks=1
+	run_backend_checks=1
+	;;
+frontend)
+	run_frontend_checks=1
+	;;
+backend)
+	run_backend_checks=1
+	;;
+esac
+
+if [ "$run_frontend_checks" -eq 1 ]; then
+	run_frontend || frontend_status=$?
+fi
+
+if [ "$run_backend_checks" -eq 1 ]; then
+	run_backend || backend_status=$?
+fi
 
 section "CI summary"
 
-if [ "$frontend_status" -eq 0 ]; then
-	printf 'Frontend: passed\n'
+if [ "$run_frontend_checks" -eq 1 ]; then
+	if [ "$frontend_status" -eq 0 ]; then
+		printf 'Frontend: passed\n'
+	else
+		printf 'Frontend: failed\n' >&2
+	fi
 else
-	printf 'Frontend: failed\n' >&2
+	printf 'Frontend: skipped\n'
 fi
 
-if [ "$backend_status" -eq 0 ]; then
-	printf 'Backend: passed\n'
+if [ "$run_backend_checks" -eq 1 ]; then
+	if [ "$backend_status" -eq 0 ]; then
+		printf 'Backend: passed\n'
+	else
+		printf 'Backend: failed\n' >&2
+	fi
 else
-	printf 'Backend: failed\n' >&2
+	printf 'Backend: skipped\n'
 fi
 
 if [ "$frontend_status" -ne 0 ] || [ "$backend_status" -ne 0 ]; then

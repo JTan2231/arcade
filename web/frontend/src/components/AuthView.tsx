@@ -26,8 +26,8 @@ export function AuthView({ error, onClearError, onLogin, onSignup }: AuthViewPro
     setSubmitting(true);
     try {
       await onLogin({
-        email: String(form.get("email") || ""),
-        password: String(form.get("password") || ""),
+        email: formString(form, "email"),
+        password: formString(form, "password"),
         remember_me: form.get("remember_me") === "on",
       });
     } finally {
@@ -41,9 +41,9 @@ export function AuthView({ error, onClearError, onLogin, onSignup }: AuthViewPro
     setSubmitting(true);
     try {
       await onSignup({
-        display_name: String(form.get("display_name") || ""),
-        email: String(form.get("email") || ""),
-        password: String(form.get("password") || ""),
+        display_name: formString(form, "display_name"),
+        email: formString(form, "email"),
+        password: formString(form, "password"),
         remember_me: form.get("remember_me") === "on",
       });
     } finally {
@@ -72,7 +72,12 @@ export function AuthView({ error, onClearError, onLogin, onSignup }: AuthViewPro
         </div>
 
         {mode === "login" ? (
-          <form className="auth-form" onSubmit={handleLogin}>
+          <form
+            className="auth-form"
+            onSubmit={(event) => {
+              void handleLogin(event);
+            }}
+          >
             <label>
               Email
               <input name="email" type="email" autoComplete="email" required />
@@ -90,7 +95,12 @@ export function AuthView({ error, onClearError, onLogin, onSignup }: AuthViewPro
             </button>
           </form>
         ) : (
-          <form className="auth-form" onSubmit={handleSignup}>
+          <form
+            className="auth-form"
+            onSubmit={(event) => {
+              void handleSignup(event);
+            }}
+          >
             <label>
               Display name
               <input name="display_name" autoComplete="name" maxLength={100} required />
@@ -119,4 +129,9 @@ export function AuthView({ error, onClearError, onLogin, onSignup }: AuthViewPro
       </section>
     </main>
   );
+}
+
+function formString(form: FormData, name: string): string {
+  const value = form.get(name);
+  return typeof value === "string" ? value : "";
 }

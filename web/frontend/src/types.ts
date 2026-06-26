@@ -32,7 +32,7 @@ export type CatalogSourceField = {
   source_id: string;
   key: string;
   label: string;
-  value_type: "string" | "number" | string;
+  value_type: "string" | "number";
   is_array: boolean;
   display_order: number;
   created_at: string;
@@ -46,7 +46,7 @@ export type DailyFeedRuleFilter = {
   field_id: string;
   field_key?: string;
   field_label?: string;
-  value_type?: "string" | "number" | string;
+  value_type?: "string" | "number";
   is_array?: boolean;
   position?: number;
   op: string;
@@ -60,7 +60,7 @@ export type DailyFeed = {
   group_name?: string;
   name: string;
   slug: string;
-  kind: "catalog_daily" | "daily_thread" | string;
+  kind: "catalog_daily" | "daily_thread";
   description?: string;
   enabled: boolean;
   source_id?: string;
@@ -82,7 +82,7 @@ type DailyCatalogItem = {
 };
 
 export type DailyFeedAction = {
-  type: "external_url" | "text" | string;
+  type: "external_url" | "text";
   label: string;
   url?: string;
   text?: string;
@@ -110,7 +110,7 @@ export type CatalogSource = {
   id: string;
   group_id?: string;
   slug: string;
-  scope: "group" | "global" | string;
+  scope: "group" | "global";
   name: string;
   template: string;
   created_by_user_id?: string;
@@ -156,7 +156,7 @@ export type GroupFeedPost = {
   author_username: string;
   author_display_name: string;
   author_avatar_url?: string;
-  evidence_kind: "text" | string;
+  evidence_kind: "text";
   evidence_text: string;
   caption?: string;
   deleted_at?: string;

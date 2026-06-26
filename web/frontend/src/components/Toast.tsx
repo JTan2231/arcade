@@ -3,8 +3,10 @@ type ToastProps = {
 };
 
 export function Toast({ message }: ToastProps) {
+  const visible = message !== null && message !== "";
+
   return (
-    <div id="toast" className={message ? "show" : ""} role="status">
+    <div id="toast" className={visible ? "show" : ""} role="status">
       {message}
     </div>
   );

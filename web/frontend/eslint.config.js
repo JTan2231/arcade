@@ -30,7 +30,11 @@ export default tseslint.config(
     },
   },
   js.configs.recommended,
-  ...tseslint.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
+  {
+    files: ["*.config.{js,ts}", "eslint.config.js"],
+    extends: [tseslint.configs.disableTypeChecked],
+  },
   {
     ...jsxA11yRecommended,
     files: ["src/**/*.{tsx,jsx}"],
@@ -46,11 +50,24 @@ export default tseslint.config(
   },
   {
     files: ["src/**/*.{ts,tsx}"],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
     plugins: {
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
     },
     rules: {
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-unsafe-assignment": "error",
+      "@typescript-eslint/no-unsafe-call": "error",
+      "@typescript-eslint/no-unsafe-member-access": "error",
+      "@typescript-eslint/no-unsafe-return": "error",
+      "@typescript-eslint/strict-boolean-expressions": "error",
       "react-hooks/exhaustive-deps": "warn",
       "react-hooks/rules-of-hooks": "error",
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],

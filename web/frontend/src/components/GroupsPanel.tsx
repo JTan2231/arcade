@@ -37,7 +37,12 @@ export function GroupsPanel({
       <div className="panel-header">
         <h2>Groups</h2>
       </div>
-      <form className="compact-form" onSubmit={handleSubmit}>
+      <form
+        className="compact-form"
+        onSubmit={(event) => {
+          void handleSubmit(event);
+        }}
+      >
         <label>
           Name
           <input placeholder="Morning Dojo" required value={name} onChange={(event) => setName(event.target.value)} />

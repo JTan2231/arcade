@@ -11,6 +11,7 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"sort"
@@ -79,7 +80,11 @@ func main() {
 	}
 
 	if endpoint != "" {
-		body, status, err := uploadJSONL(ctx, endpoint, jsonl, dryRun, timeout)
+		importEndpoint, err := normalizeImportEndpoint(endpoint)
+		if err != nil {
+			log.Fatalf("upload endpoint: %v", err)
+		}
+		body, status, err := uploadJSONL(ctx, importEndpoint, jsonl, dryRun, timeout)
 		if err != nil {
 			log.Fatalf("upload JSONL: %v", err)
 		}
@@ -100,6 +105,28 @@ func main() {
 	if jsonlOut == "" {
 		_, _ = os.Stdout.Write(jsonl)
 	}
+}
+
+func normalizeImportEndpoint(raw string) (string, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "", errors.New("endpoint is required")
+	}
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return "", err
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return "", errors.New("endpoint must use http or https")
+	}
+	if parsed.Host == "" {
+		return "", errors.New("endpoint must include a host")
+	}
+	if parsed.Path == "" || parsed.Path == "/" {
+		parsed.Path = "/api/catalog-imports"
+		parsed.RawPath = ""
+	}
+	return parsed.String(), nil
 }
 
 type codeforcesResponse struct {
@@ -324,6 +351,9 @@ func uploadJSONL(ctx context.Context, endpoint string, jsonl []byte, dryRun bool
 	if token == "" {
 		return nil, 0, errors.New("ARCADE_CATALOG_IMPORT_TOKEN is required for upload")
 	}
+	if err := preflightUpload(ctx, endpoint, token, timeout); err != nil {
+		return nil, 0, err
+	}
 
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
@@ -360,4 +390,34 @@ func uploadJSONL(ctx context.Context, endpoint string, jsonl []byte, dryRun bool
 		return nil, response.StatusCode, err
 	}
 	return responseBody, response.StatusCode, nil
+}
+
+func preflightUpload(ctx context.Context, endpoint string, token string, timeout time.Duration) error {
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, nil)
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Authorization", "Bearer "+token)
+
+	client := &http.Client{Timeout: timeout}
+	response, err := client.Do(request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+
+	body, _ := io.ReadAll(io.LimitReader(response.Body, 4096))
+	if response.StatusCode == http.StatusBadRequest && strings.Contains(string(body), "invalid multipart upload") {
+		return nil
+	}
+	if response.StatusCode == http.StatusUnauthorized || response.StatusCode == http.StatusServiceUnavailable {
+		return fmt.Errorf("catalog import preflight failed: HTTP %d: %s", response.StatusCode, strings.TrimSpace(string(body)))
+	}
+	if response.StatusCode == http.StatusMethodNotAllowed || response.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("catalog import preflight failed: HTTP %d at %s; expected /api/catalog-imports", response.StatusCode, endpoint)
+	}
+	if response.StatusCode < 200 || response.StatusCode >= 500 {
+		return fmt.Errorf("catalog import preflight failed: HTTP %d: %s", response.StatusCode, strings.TrimSpace(string(body)))
+	}
+	return nil
 }

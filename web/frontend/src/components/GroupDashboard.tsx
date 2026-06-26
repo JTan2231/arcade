@@ -33,7 +33,7 @@ type GroupDashboardProps = {
   currentUserId: string | null;
   onSelectFeed: (id: string) => void;
   onChangeFeedDate: (date: string) => void;
-  onToggleFeedEnabled: (id: string) => void;
+  onToggleFeedEnabled: (id: string) => Promise<void>;
   onLoadCatalogSources: () => Promise<CatalogSource[]>;
   onPreviewFeed: (payload: CreateDailyFeedRequest) => Promise<DailyFeedPreview>;
   onCreateFeed: (payload: CreateDailyFeedRequest) => Promise<DailyFeed>;
@@ -106,7 +106,9 @@ export function GroupDashboard({
                   className="secondary"
                   type="button"
                   aria-label={feed.enabled ? "Disable feed" : "Enable feed"}
-                  onClick={() => onToggleFeedEnabled(feed.id)}
+                  onClick={() => {
+                    void onToggleFeedEnabled(feed.id);
+                  }}
                 >
                   Manage
                 </button>
@@ -261,7 +263,7 @@ function AddFeedDialog({
           return;
         }
         setSources(loaded);
-        setSourceId((current) => current || loaded[0]?.id || "");
+        setSourceId((current) => (current !== "" ? current : (loaded[0]?.id ?? "")));
       })
       .catch((error) => {
         if (!cancelled) {
@@ -419,7 +421,12 @@ function AddFeedDialog({
   return (
     <div className="modal-backdrop" role="presentation">
       <div className="modal-panel add-feed-dialog" role="dialog" aria-modal="true" aria-labelledby="add-feed-title">
-        <form className="add-feed-form" onSubmit={handleSubmit}>
+        <form
+          className="add-feed-form"
+          onSubmit={(event) => {
+            void handleSubmit(event);
+          }}
+        >
           <div className="modal-header">
             <div>
               <h2 id="add-feed-title">Add feed</h2>
@@ -549,7 +556,14 @@ function AddFeedDialog({
 
           <div className="output-actions">
             {practice ? (
-              <button className="secondary" type="button" disabled={previewLoading || saving} onClick={handlePreview}>
+              <button
+                className="secondary"
+                type="button"
+                disabled={previewLoading || saving}
+                onClick={() => {
+                  void handlePreview();
+                }}
+              >
                 {previewLoading ? "Previewing..." : "Preview"}
               </button>
             ) : null}
@@ -579,7 +593,9 @@ function FilterEditor({
 }) {
   const field = fields.find((candidate) => candidate.id === filter.fieldId) || fields[0] || null;
   const operators = field ? operatorsForField(field) : [];
-  const currentOp = operators.some((operator) => operator.value === filter.op) ? filter.op : operators[0]?.value || "";
+  const currentOp = operators.some((operator) => operator.value === filter.op)
+    ? filter.op
+    : (operators[0]?.value ?? "");
 
   function handleFieldChange(fieldId: string) {
     const nextField = fields.find((candidate) => candidate.id === fieldId);
@@ -678,7 +694,7 @@ function FilterValueInput({
 }
 
 function PreviewPanel({ preview }: { preview: DailyFeedPreview }) {
-  const items = preview.output.items || [];
+  const items = preview.output.items;
   return (
     <section className="preview-panel" aria-label="Preview">
       <div className="row-top">
@@ -694,8 +710,10 @@ function PreviewPanel({ preview }: { preview: DailyFeedPreview }) {
         <div className="stack preview-items">
           {items.map((item) => (
             <div className="row preview-item" key={`${item.position}-${item.item.id}`}>
-              <div className="title">{item.item.title || primitiveDisplay(item.item.data.name) || "Untitled"}</div>
-              <div className="meta">{item.action.url || item.action.text || ""}</div>
+              <div className="title">
+                {firstNonEmpty(item.item.title, primitiveDisplay(item.item.data["name"]), "Untitled")}
+              </div>
+              <div className="meta">{firstNonEmpty(item.action.url, item.action.text)}</div>
             </div>
           ))}
         </div>
@@ -752,7 +770,7 @@ function FeedOutput({
   if (!output) {
     return <div className="empty-state">No output loaded.</div>;
   }
-  const items = output.items || [];
+  const items = output.items;
   const isDailyThread = feed.kind === "daily_thread";
 
   return (
@@ -764,7 +782,7 @@ function FeedOutput({
       {items.length ? (
         <div className="stack output-items">
           {items.map((item) => (
-            <OutputItem item={item} key={`${item.position}-${item.item?.id || item.role}`} />
+            <OutputItem item={item} key={`${item.position}-${firstNonEmpty(item.item.id, item.role)}`} />
           ))}
         </div>
       ) : !isDailyThread ? (
@@ -810,7 +828,7 @@ function FeedPostSection({
   const [formOpen, setFormOpen] = useState(false);
   const [evidenceText, setEvidenceText] = useState("");
   const [caption, setCaption] = useState("");
-  const ownPost = currentUserId ? posts.find((post) => post.author_user_id === currentUserId) || null : null;
+  const ownPost = currentUserId !== null ? (posts.find((post) => post.author_user_id === currentUserId) ?? null) : null;
   const postUnavailable = disabled || loading || Boolean(ownPost);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -844,7 +862,12 @@ function FeedPostSection({
       </div>
 
       {formOpen ? (
-        <form className="feed-post-form" onSubmit={handleSubmit}>
+        <form
+          className="feed-post-form"
+          onSubmit={(event) => {
+            void handleSubmit(event);
+          }}
+        >
           <label>
             Evidence
             <textarea
@@ -874,12 +897,12 @@ function FeedPostSection({
       ) : null}
 
       {loading ? <div className="empty-state">Loading posts...</div> : null}
-      {error ? (
+      {error !== "" ? (
         <div className="form-error" role="alert">
           {error}
         </div>
       ) : null}
-      {!loading && !error && posts.length ? (
+      {!loading && error === "" && posts.length > 0 ? (
         <div className="stack feed-posts-list">
           {posts.map((post) => (
             <FeedPostCard
@@ -892,7 +915,7 @@ function FeedPostSection({
           ))}
         </div>
       ) : null}
-      {!loading && !error && !posts.length ? <div className="empty-state">No posts yet.</div> : null}
+      {!loading && error === "" && posts.length === 0 ? <div className="empty-state">No posts yet.</div> : null}
     </section>
   );
 }
@@ -910,13 +933,13 @@ function FeedPostCard({
 }) {
   const [editing, setEditing] = useState(false);
   const [evidenceText, setEvidenceText] = useState(post.evidence_text);
-  const [caption, setCaption] = useState(post.caption || "");
+  const [caption, setCaption] = useState(post.caption ?? "");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   function beginEdit() {
     setEvidenceText(post.evidence_text);
-    setCaption(post.caption || "");
+    setCaption(post.caption ?? "");
     setEditing(true);
   }
 
@@ -962,7 +985,14 @@ function FeedPostCard({
             <button className="secondary" type="button" disabled={deleting} onClick={beginEdit}>
               Edit
             </button>
-            <button className="danger" type="button" disabled={deleting} onClick={handleDelete}>
+            <button
+              className="danger"
+              type="button"
+              disabled={deleting}
+              onClick={() => {
+                void handleDelete();
+              }}
+            >
               Delete
             </button>
           </div>
@@ -970,7 +1000,12 @@ function FeedPostCard({
       </div>
 
       {editing ? (
-        <form className="feed-post-form edit-post-form" onSubmit={handleUpdate}>
+        <form
+          className="feed-post-form edit-post-form"
+          onSubmit={(event) => {
+            void handleUpdate(event);
+          }}
+        >
           <label>
             Evidence
             <textarea
@@ -1000,7 +1035,9 @@ function FeedPostCard({
       ) : (
         <>
           <EvidenceCodeBlock value={post.evidence_text} />
-          {post.caption ? <div className="post-caption">{post.caption}</div> : null}
+          {post.caption !== undefined && post.caption !== "" ? (
+            <div className="post-caption">{post.caption}</div>
+          ) : null}
         </>
       )}
     </article>
@@ -1040,17 +1077,25 @@ function EvidenceCodeBlock({ value }: { value: string }) {
 }
 
 function OutputItem({ item }: { item: DailyFeedOutputItem }) {
-  const catalogItem = item.item || {};
-  const data = catalogItem.data || {};
-  const rating = primitiveDisplay(data.rating);
-  const tags = Array.isArray(data.tags)
-    ? data.tags
+  const catalogItem = item.item;
+  const data = catalogItem.data;
+  const rating = primitiveDisplay(data["rating"]);
+  const rawTags = data["tags"];
+  const tags = Array.isArray(rawTags)
+    ? rawTags
         .filter((tag): tag is string => typeof tag === "string")
         .slice(0, 4)
         .join(", ")
     : "";
-  const details = [catalogItem.source_name, rating ? `Rating ${rating}` : "", tags].filter(Boolean);
-  const displayTitle = catalogItem.title || primitiveDisplay(data.name) || primitiveDisplay(data.title) || "Untitled";
+  const details = [catalogItem.source_name, rating !== "" ? `Rating ${rating}` : "", tags].filter(
+    (detail): detail is string => detail !== "",
+  );
+  const displayTitle = firstNonEmpty(
+    catalogItem.title,
+    primitiveDisplay(data["name"]),
+    primitiveDisplay(data["title"]),
+    "Untitled",
+  );
 
   return (
     <div className="row output-item">
@@ -1076,18 +1121,18 @@ function OutputItem({ item }: { item: DailyFeedOutputItem }) {
 }
 
 function OutputAction({ action }: { action?: DailyFeedAction }) {
-  if (action?.type === "external_url" && action.url) {
+  if (action?.type === "external_url" && action.url !== undefined && action.url !== "") {
     return (
       <a className="button-link" href={action.url} target="_blank" rel="noreferrer">
-        {action.label || "Open"}
+        {firstNonEmpty(action.label, "Open")}
       </a>
     );
   }
 
-  if (action?.type === "text" && action.text) {
+  if (action?.type === "text" && action.text !== undefined && action.text !== "") {
     return (
       <details className="prompt-details">
-        <summary>{action.label || "Prompt"}</summary>
+        <summary>{firstNonEmpty(action.label, "Prompt")}</summary>
         <pre>{action.text}</pre>
       </details>
     );
@@ -1156,7 +1201,7 @@ function operatorsForField(field: CatalogSourceField): Array<{ value: string; la
 }
 
 function defaultOperatorForField(field: CatalogSourceField): string {
-  return operatorsForField(field)[0]?.value || "";
+  return operatorsForField(field)[0]?.value ?? "";
 }
 
 function draftFilterToRequest(filter: DraftFilter, fields: CatalogSourceField[]): DailyFeedRuleFilter {
@@ -1206,6 +1251,10 @@ function primitiveDisplay(value: unknown): string {
     return String(value);
   }
   return "";
+}
+
+function firstNonEmpty(...values: Array<string | null | undefined>): string {
+  return values.find((value): value is string => value !== undefined && value !== null && value !== "") ?? "";
 }
 
 function formatDateTime(value: string): string {
