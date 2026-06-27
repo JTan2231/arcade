@@ -22,6 +22,8 @@ the JSON shape exposed by the API.
 ```mermaid
 erDiagram
     users ||--o{ user_sessions : authenticates
+    users ||--o{ user_friendships : requests
+    users ||--o{ user_friendships : receives
 
     users ||--o{ groups : creates
     groups ||--o{ group_memberships : has
@@ -47,15 +49,26 @@ erDiagram
 
 ## Identity
 
-`users` stores local account credentials and profile data. Email is normalized
-before storage and enforced uniquely by `lower(email)`. Passwords are stored as
-hashes only; plaintext passwords are never persisted. `username` remains for
-compatibility and display URLs, but login uses email.
+`users` stores local account credentials, profile data, and a shareable friend
+code. Email is normalized before storage and enforced uniquely by
+`lower(email)`. Passwords are stored as hashes only; plaintext passwords are
+never persisted. `username` remains for compatibility and display URLs, but
+login uses email. `friend_code` is stored normalized without separators, is
+unique, and can be rotated without changing existing friendships or group
+memberships.
 
 `user_sessions` stores cookie-backed sessions. Only a SHA-256 hash of the raw
 session token is stored; the browser receives the raw token in the
 `arcade_session` cookie. Sessions track expiration, optional remember-me
 lifetime, revocation, and last-seen metadata.
+
+`user_friendships` stores one durable row per unordered pair of users. The
+`user_low_id` and `user_high_id` columns enforce pair uniqueness, while
+`requester_user_id` and `addressee_user_id` preserve the direction of the
+latest pending request. Friendship status is constrained to `pending`,
+`accepted`, `declined`, or `canceled`. Accepted friendships authorize social
+actions such as group invites; they do not grant group permissions by
+themselves.
 
 ## Group Catalog And Daily Feeds
 
@@ -119,7 +132,10 @@ Visibility is constrained to `public`, `invite_only`, or `private`.
 
 `group_memberships` connects users to groups with a role and lifecycle status.
 Roles are `owner`, `admin`, or `member`; statuses are `invited`, `active`,
-`removed`, or `left`. A user has at most one membership row per group.
+`removed`, or `left`. A user has at most one membership row per group. Social
+group invites reuse `status = 'invited'` and record `invited_by_user_id` plus
+`invited_at`; the friendship requirement is between that inviter and the
+invitee, not between the invitee and every group member.
 
 `divisions` partitions a group or defines a global division when `group_id` is
 null. Slugs are unique within a group via `(group_id, slug)`, and global

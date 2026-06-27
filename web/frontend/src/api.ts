@@ -6,8 +6,13 @@ import type {
   DailyFeed,
   DailyFeedOutput,
   DailyFeedPreview,
+  Friend,
+  FriendRequest,
+  FriendRequests,
   Group,
   GroupFeedPost,
+  GroupInvite,
+  GroupInviteCandidate,
   LoginRequest,
   PatchGroupFeedPostRequest,
   SignupRequest,
@@ -90,6 +95,61 @@ export function logout(options: APIOptions = {}): Promise<null> {
   });
 }
 
+export function rotateFriendCode(options: APIOptions = {}): Promise<User> {
+  return api<User>("/api/me/friend-code/rotate", {
+    ...options,
+    method: "POST",
+    body: "{}",
+  });
+}
+
+export function createFriendRequest(friendCode: string, options: APIOptions = {}): Promise<FriendRequest> {
+  return api<FriendRequest>("/api/friend-requests", {
+    ...options,
+    method: "POST",
+    body: JSON.stringify({ friend_code: friendCode }),
+  });
+}
+
+export function listFriendRequests(options: APIOptions = {}): Promise<FriendRequests> {
+  return api<FriendRequests>("/api/friend-requests", options);
+}
+
+export function acceptFriendRequest(requestID: string, options: APIOptions = {}): Promise<FriendRequest> {
+  return api<FriendRequest>(`/api/friend-requests/${encodeURIComponent(requestID)}/accept`, {
+    ...options,
+    method: "POST",
+    body: "{}",
+  });
+}
+
+export function declineFriendRequest(requestID: string, options: APIOptions = {}): Promise<FriendRequest> {
+  return api<FriendRequest>(`/api/friend-requests/${encodeURIComponent(requestID)}/decline`, {
+    ...options,
+    method: "POST",
+    body: "{}",
+  });
+}
+
+export function cancelFriendRequest(requestID: string, options: APIOptions = {}): Promise<FriendRequest> {
+  return api<FriendRequest>(`/api/friend-requests/${encodeURIComponent(requestID)}/cancel`, {
+    ...options,
+    method: "POST",
+    body: "{}",
+  });
+}
+
+export function listFriends(options: APIOptions = {}): Promise<Friend[]> {
+  return api<Friend[]>("/api/friends", options);
+}
+
+export function deleteFriend(userID: string, options: APIOptions = {}): Promise<null> {
+  return api<null>(`/api/friends/${encodeURIComponent(userID)}`, {
+    ...options,
+    method: "DELETE",
+  });
+}
+
 export function listGroups(options: APIOptions = {}): Promise<Group[]> {
   return api<Group[]>("/api/groups", options);
 }
@@ -99,6 +159,46 @@ export function createGroup(payload: CreateGroupRequest, options: APIOptions = {
     ...options,
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+export function listGroupInvites(options: APIOptions = {}): Promise<GroupInvite[]> {
+  return api<GroupInvite[]>("/api/group-invites", options);
+}
+
+export function listGroupInviteCandidates(groupID: string, options: APIOptions = {}): Promise<GroupInviteCandidate[]> {
+  return api<GroupInviteCandidate[]>(`/api/groups/${encodeURIComponent(groupID)}/invite-candidates`, options);
+}
+
+export function createGroupInvite(groupID: string, userID: string, options: APIOptions = {}): Promise<GroupInvite> {
+  return api<GroupInvite>(`/api/groups/${encodeURIComponent(groupID)}/invites`, {
+    ...options,
+    method: "POST",
+    body: JSON.stringify({ user_id: userID }),
+  });
+}
+
+export function acceptGroupInvite(groupID: string, userID: string, options: APIOptions = {}): Promise<Group> {
+  return api<Group>(`/api/groups/${encodeURIComponent(groupID)}/invites/${encodeURIComponent(userID)}/accept`, {
+    ...options,
+    method: "POST",
+    body: "{}",
+  });
+}
+
+export function declineGroupInvite(groupID: string, userID: string, options: APIOptions = {}): Promise<null> {
+  return api<null>(`/api/groups/${encodeURIComponent(groupID)}/invites/${encodeURIComponent(userID)}/decline`, {
+    ...options,
+    method: "POST",
+    body: "{}",
+  });
+}
+
+export function cancelGroupInvite(groupID: string, userID: string, options: APIOptions = {}): Promise<null> {
+  return api<null>(`/api/groups/${encodeURIComponent(groupID)}/invites/${encodeURIComponent(userID)}/cancel`, {
+    ...options,
+    method: "POST",
+    body: "{}",
   });
 }
 

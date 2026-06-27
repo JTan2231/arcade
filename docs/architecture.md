@@ -51,6 +51,8 @@ Routes are grouped by resource in `Server.Routes()`:
 
 - Auth: signup, login, logout, and session bootstrap.
 - Identity: `/api/me` profile lookup and updates.
+- Friends: friend-code rotation, friend requests, accepted friends, and
+  friend-gated group invite helpers.
 - Catalog: group-owned catalog sources and items.
 - Catalog imports: admin-only normalized JSONL uploads through a shared bearer
   token.
@@ -63,6 +65,7 @@ Routes are grouped by resource in `Server.Routes()`:
 The main persisted entities are:
 
 - `users`: local users with email/password credentials.
+- `user_friendships`: friend requests and accepted mutual friendships.
 - `user_sessions`: hashed session tokens for secure cookie-backed login.
 - `catalog_sources` and `catalog_items`: group-owned or global source templates
   and rows for group daily feeds.
@@ -120,6 +123,10 @@ The browser app source lives in `web/frontend`:
   backend `{ "error": "message" }` error contract. Endpoint calls originate
   from invoked machine actors.
 - `src/components` contains the auth, group list, dashboard, and toast views.
+- The workspace includes a friends panel for friend-code sharing, request
+  management, accepted friends, and pending group invite responses. The
+  selected group dashboard exposes friend-gated invite candidates for active
+  members.
 - `src/styles.css` defines the responsive grid and component styles.
 
 Vite builds generated HTML, CSS, and JavaScript into `web/static`, which remains

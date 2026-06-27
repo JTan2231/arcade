@@ -14,6 +14,7 @@ import type {
   DailyFeedRuleFilter,
   Group,
   GroupFeedPost,
+  GroupInviteCandidate,
 } from "../types";
 
 type GroupDashboardProps = {
@@ -40,6 +41,9 @@ type GroupDashboardProps = {
   addFeedPreviewLoading: boolean;
   addFeedSaving: boolean;
   addFeedError: string;
+  inviteCandidates: GroupInviteCandidate[];
+  inviteCandidatesLoading: boolean;
+  invitingUserId: string | null;
   onSelectFeed: (id: string) => void;
   onChangeFeedDate: (date: string) => void;
   onToggleFeedEnabled: (id: string) => void;
@@ -51,6 +55,8 @@ type GroupDashboardProps = {
   onCreateFeedPost: (payload: { evidenceText: string; caption: string }) => void;
   onUpdateFeedPost: (postId: string, payload: { evidenceText: string; caption: string }) => void;
   onDeleteFeedPost: (postId: string) => void;
+  onInviteFriend: (userId: string) => void;
+  onCancelGroupInvite: (userId: string) => void;
 };
 
 export function GroupDashboard({
@@ -77,6 +83,9 @@ export function GroupDashboard({
   addFeedPreviewLoading,
   addFeedSaving,
   addFeedError,
+  inviteCandidates,
+  inviteCandidatesLoading,
+  invitingUserId,
   onSelectFeed,
   onChangeFeedDate,
   onToggleFeedEnabled,
@@ -88,6 +97,8 @@ export function GroupDashboard({
   onCreateFeedPost,
   onUpdateFeedPost,
   onDeleteFeedPost,
+  onInviteFriend,
+  onCancelGroupInvite,
 }: GroupDashboardProps) {
   if (!group) {
     return (
@@ -116,6 +127,15 @@ export function GroupDashboard({
             onSelectFeed={onSelectFeed}
             onAddFeed={onOpenAddFeed}
           />
+          {group.my_status === "active" ? (
+            <InviteFriends
+              candidates={inviteCandidates}
+              loading={inviteCandidatesLoading}
+              invitingUserId={invitingUserId}
+              onInviteFriend={onInviteFriend}
+              onCancelGroupInvite={onCancelGroupInvite}
+            />
+          ) : null}
         </section>
 
         <section className="dashboard-section feed-output-section" aria-label="Selected feed output">
@@ -180,6 +200,55 @@ export function GroupDashboard({
         />
       ) : null}
     </section>
+  );
+}
+
+function InviteFriends({
+  candidates,
+  loading,
+  invitingUserId,
+  onInviteFriend,
+  onCancelGroupInvite,
+}: {
+  candidates: GroupInviteCandidate[];
+  loading: boolean;
+  invitingUserId: string | null;
+  onInviteFriend: (userId: string) => void;
+  onCancelGroupInvite: (userId: string) => void;
+}) {
+  return (
+    <div className="invite-friends-section" aria-label="Invite friends">
+      <div className="section-title">Invite friends</div>
+      <div className="stack">
+        {loading ? <div className="meta">Loading friends...</div> : null}
+        {!loading && !candidates.length ? <div className="meta">No eligible friends</div> : null}
+        {candidates.map((candidate) => {
+          const pending = candidate.membership_status === "invited";
+          return (
+            <div className="row social-row" key={candidate.user.id}>
+              <div>
+                <div className="title">{candidate.user.display_name || candidate.user.username}</div>
+                <div className="meta">@{candidate.user.username}</div>
+              </div>
+              <button
+                className={pending ? "secondary" : undefined}
+                type="button"
+                disabled={invitingUserId === candidate.user.id}
+                onClick={() => {
+                  if (pending) {
+                    onCancelGroupInvite(candidate.user.id);
+                    return;
+                  }
+                  onInviteFriend(candidate.user.id);
+                }}
+              >
+                {pending ? "Cancel" : "Invite"}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

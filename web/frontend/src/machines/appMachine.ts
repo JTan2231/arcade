@@ -14,6 +14,7 @@ type AppContext = {
 type AppEvent =
   | { type: "LOGIN_SUBMITTED"; payload: LoginRequest }
   | { type: "SIGNUP_SUBMITTED"; payload: SignupRequest }
+  | { type: "USER_UPDATED"; user: User }
   | { type: "LOGOUT_REQUESTED" }
   | { type: "TOAST_DISMISSED" }
   | { type: "AUTH_ERROR_CLEARED" }
@@ -158,6 +159,11 @@ export const appMachine = appSetup.createMachine({
         }),
       },
       on: {
+        USER_UPDATED: {
+          actions: assign(({ event }) => ({
+            user: event.user,
+          })),
+        },
         LOGOUT_REQUESTED: {
           target: "loggingOut",
         },

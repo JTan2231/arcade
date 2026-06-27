@@ -346,20 +346,37 @@ func (s *Server) handleAddGroupMember(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback(r.Context())
 
 	var userID string
-	if err := tx.QueryRow(r.Context(), `
-		insert into users (username, email, display_name, password_hash)
-		values ($1, $2, $3, $4)
-		on conflict (username) do nothing
-		returning id::text
-	`, req.Username, placeholderEmail(req.Username), req.DisplayName, disabledPasswordHash).Scan(&userID); err != nil {
-		if !errors.Is(err, pgx.ErrNoRows) {
+	for attempt := 0; attempt < 6 && userID == ""; attempt++ {
+		friendCode, err := generateFriendCode()
+		if err != nil {
 			handleError(w, err)
 			return
 		}
-		if err := tx.QueryRow(r.Context(), `select id::text from users where username = $1`, req.Username).Scan(&userID); err != nil {
-			handleError(w, err)
-			return
+		err = tx.QueryRow(r.Context(), `
+			insert into users (username, email, display_name, password_hash, friend_code)
+			values ($1, $2, $3, $4, $5)
+			on conflict (username) do nothing
+			returning id::text
+		`, req.Username, placeholderEmail(req.Username), req.DisplayName, disabledPasswordHash, friendCode).Scan(&userID)
+		if err == nil {
+			break
 		}
+		if errors.Is(err, pgx.ErrNoRows) {
+			if err := tx.QueryRow(r.Context(), `select id::text from users where username = $1`, req.Username).Scan(&userID); err != nil {
+				handleError(w, err)
+				return
+			}
+			break
+		}
+		if isUniqueConstraint(err, "users_friend_code_unique") {
+			continue
+		}
+		handleError(w, err)
+		return
+	}
+	if userID == "" {
+		handleError(w, errors.New("create user friend code"))
+		return
 	}
 
 	existing, err := s.groupMemberState(r.Context(), groupID, userID)

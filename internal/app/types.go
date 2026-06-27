@@ -8,8 +8,46 @@ type User struct {
 	Username    string    `json:"username"`
 	DisplayName string    `json:"display_name"`
 	AvatarURL   *string   `json:"avatar_url,omitempty"`
+	FriendCode  string    `json:"friend_code"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type PublicUser struct {
+	ID          string  `json:"id"`
+	Username    string  `json:"username"`
+	DisplayName string  `json:"display_name"`
+	AvatarURL   *string `json:"avatar_url,omitempty"`
+}
+
+type FriendRequest struct {
+	ID        string     `json:"id"`
+	Status    string     `json:"status"`
+	Requester PublicUser `json:"requester"`
+	Addressee PublicUser `json:"addressee"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+}
+
+type FriendRequests struct {
+	Incoming []FriendRequest `json:"incoming"`
+	Outgoing []FriendRequest `json:"outgoing"`
+}
+
+type Friend struct {
+	User         PublicUser `json:"user"`
+	FriendsSince time.Time  `json:"friends_since"`
+}
+
+type GroupInvite struct {
+	Group     Group       `json:"group"`
+	InvitedBy *PublicUser `json:"invited_by,omitempty"`
+	InvitedAt *time.Time  `json:"invited_at,omitempty"`
+}
+
+type GroupInviteCandidate struct {
+	User             PublicUser `json:"user"`
+	MembershipStatus *string    `json:"membership_status,omitempty"`
 }
 
 type Group struct {

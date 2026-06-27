@@ -196,6 +196,12 @@ label {
   padding: 16px;
 }
 
+.sidebar-stack {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
 .panel {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -228,6 +234,67 @@ label {
 .stack {
   display: grid;
   gap: 8px;
+}
+
+.friends-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.friend-code-row {
+  align-items: center;
+  background: #fbfcfe;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 10px;
+}
+
+.friend-code {
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.social-section,
+.invite-friends-section {
+  display: grid;
+  gap: 8px;
+}
+
+.invite-friends-section {
+  border-top: 1px solid var(--line);
+  margin-top: 14px;
+  padding-top: 14px;
+}
+
+.section-title {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.social-row {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.compact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.compact-actions button,
+.social-row button {
+  font-size: 13px;
+  min-height: 32px;
 }
 
 .add-feed-button {
@@ -672,6 +739,10 @@ label {
     padding: 10px;
   }
 
+  .sidebar-stack {
+    gap: 10px;
+  }
+
   .dashboard-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -728,6 +799,16 @@ label {
   }
 
   .post-card-actions {
+    justify-content: flex-start;
+  }
+
+  .friend-code-row,
+  .social-row {
+    align-items: stretch;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .compact-actions {
     justify-content: flex-start;
   }
 }

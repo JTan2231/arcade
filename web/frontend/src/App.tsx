@@ -1,15 +1,42 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMachine, useSelector } from "@xstate/react";
 import type { ActorRefFromLogic } from "xstate";
 
+import {
+  acceptFriendRequest,
+  acceptGroupInvite,
+  cancelFriendRequest,
+  cancelGroupInvite,
+  createFriendRequest,
+  createGroupInvite,
+  declineFriendRequest,
+  declineGroupInvite,
+  deleteFriend,
+  isUnauthorized,
+  listFriendRequests,
+  listFriends,
+  listGroupInviteCandidates,
+  listGroupInvites,
+  rotateFriendCode,
+} from "./api";
 import { AuthView } from "./components/AuthView";
+import { FriendsPanel } from "./components/FriendsPanel";
 import { GroupDashboard } from "./components/GroupDashboard";
 import { GroupsPanel } from "./components/GroupsPanel";
 import { Toast } from "./components/Toast";
+import { errorMessage } from "./errors";
 import { appMachine } from "./machines/appMachine";
 import type { addFeedMachine } from "./machines/addFeedMachine";
 import type { dashboardMachine } from "./machines/dashboardMachine";
-import type { DailyFeed, Group, GroupFeedPost } from "./types";
+import type {
+  DailyFeed,
+  Friend,
+  FriendRequests,
+  Group,
+  GroupFeedPost,
+  GroupInvite,
+  GroupInviteCandidate,
+} from "./types";
 
 type DashboardActorRef = ActorRefFromLogic<typeof dashboardMachine>;
 type AddFeedActorRef = ActorRefFromLogic<typeof addFeedMachine>;
@@ -17,6 +44,13 @@ type AddFeedActorRef = ActorRefFromLogic<typeof addFeedMachine>;
 const EMPTY_GROUPS: Group[] = [];
 const EMPTY_FEEDS: DailyFeed[] = [];
 const EMPTY_POSTS: GroupFeedPost[] = [];
+const EMPTY_FRIENDS: Friend[] = [];
+const EMPTY_GROUP_INVITES: GroupInvite[] = [];
+const EMPTY_INVITE_CANDIDATES: GroupInviteCandidate[] = [];
+const EMPTY_FRIEND_REQUESTS: FriendRequests = {
+  incoming: [],
+  outgoing: [],
+};
 
 export default function App() {
   const [snapshot, send] = useMachine(appMachine);
@@ -25,9 +59,19 @@ export default function App() {
   const dashboardSnapshot = useSelector(dashboardRef, (childSnapshot) => childSnapshot);
   const addFeedRef = dashboardSnapshot?.children["addFeed"] as AddFeedActorRef | undefined;
   const addFeedSnapshot = useSelector(addFeedRef, (childSnapshot) => childSnapshot);
+  const [friendRequests, setFriendRequests] = useState<FriendRequests>(EMPTY_FRIEND_REQUESTS);
+  const [friends, setFriends] = useState<Friend[]>(EMPTY_FRIENDS);
+  const [groupInvites, setGroupInvites] = useState<GroupInvite[]>(EMPTY_GROUP_INVITES);
+  const [inviteCandidates, setInviteCandidates] = useState<GroupInviteCandidate[]>(EMPTY_INVITE_CANDIDATES);
+  const [socialLoading, setSocialLoading] = useState(false);
+  const [inviteCandidatesLoading, setInviteCandidatesLoading] = useState(false);
+  const [socialError, setSocialError] = useState("");
+  const [socialMutating, setSocialMutating] = useState<string | null>(null);
+  const [invitingUserId, setInvitingUserId] = useState<string | null>(null);
 
   const checkingSession = snapshot.matches("checkingSession");
   const signedOut = snapshot.matches("signedOut");
+  const signedIn = snapshot.matches("signedIn");
   const loggingIn = snapshot.matches({ signedOut: "loggingIn" });
   const signingUp = snapshot.matches({ signedOut: "signingUp" });
 
@@ -77,6 +121,207 @@ export default function App() {
     [groups, selectedGroupId],
   );
 
+  const handleSocialError = useCallback(
+    (error: unknown) => {
+      if (isUnauthorized(error)) {
+        send({ type: "UNAUTHORIZED" });
+        return;
+      }
+      const message = errorMessage(error);
+      setSocialError(message);
+      send({ type: "TOAST_REQUESTED", message });
+    },
+    [send],
+  );
+
+  const refreshSocial = useCallback(
+    async (options: { signal?: AbortSignal } = {}) => {
+      setSocialLoading(true);
+      setSocialError("");
+      try {
+        const apiOptions = options.signal === undefined ? {} : { signal: options.signal };
+        const [nextRequests, nextFriends, nextGroupInvites] = await Promise.all([
+          listFriendRequests(apiOptions),
+          listFriends(apiOptions),
+          listGroupInvites(apiOptions),
+        ]);
+        if (options.signal?.aborted === true) {
+          return;
+        }
+        setFriendRequests(nextRequests);
+        setFriends(nextFriends);
+        setGroupInvites(nextGroupInvites);
+      } catch (error) {
+        if (options.signal?.aborted !== true) {
+          handleSocialError(error);
+        }
+      } finally {
+        if (options.signal?.aborted !== true) {
+          setSocialLoading(false);
+        }
+      }
+    },
+    [handleSocialError],
+  );
+
+  const refreshInviteCandidates = useCallback(
+    async (group: Group | null, options: { signal?: AbortSignal } = {}) => {
+      if (group === null || group.my_status !== "active") {
+        setInviteCandidates(EMPTY_INVITE_CANDIDATES);
+        setInviteCandidatesLoading(false);
+        return;
+      }
+      setInviteCandidatesLoading(true);
+      try {
+        const apiOptions = options.signal === undefined ? {} : { signal: options.signal };
+        const nextCandidates = await listGroupInviteCandidates(group.id, apiOptions);
+        if (options.signal?.aborted === true) {
+          return;
+        }
+        setInviteCandidates(nextCandidates);
+      } catch (error) {
+        if (options.signal?.aborted !== true) {
+          handleSocialError(error);
+        }
+      } finally {
+        if (options.signal?.aborted !== true) {
+          setInviteCandidatesLoading(false);
+        }
+      }
+    },
+    [handleSocialError],
+  );
+
+  useEffect(() => {
+    if (!signedIn) {
+      setFriendRequests(EMPTY_FRIEND_REQUESTS);
+      setFriends(EMPTY_FRIENDS);
+      setGroupInvites(EMPTY_GROUP_INVITES);
+      setSocialLoading(false);
+      setSocialError("");
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    void refreshSocial({ signal: controller.signal });
+    return () => controller.abort();
+  }, [refreshSocial, signedIn]);
+
+  useEffect(() => {
+    if (!signedIn) {
+      setInviteCandidates(EMPTY_INVITE_CANDIDATES);
+      setInviteCandidatesLoading(false);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    void refreshInviteCandidates(selectedGroup, { signal: controller.signal });
+    return () => controller.abort();
+  }, [refreshInviteCandidates, selectedGroup, signedIn]);
+
+  async function runSocialMutation(key: string, task: () => Promise<string>) {
+    setSocialMutating(key);
+    setSocialError("");
+    try {
+      const message = await task();
+      send({ type: "TOAST_REQUESTED", message });
+      await refreshSocial();
+      await refreshInviteCandidates(selectedGroup);
+    } catch (error) {
+      handleSocialError(error);
+    } finally {
+      setSocialMutating(null);
+    }
+  }
+
+  function handleAddFriend(friendCode: string) {
+    void runSocialMutation("add-friend", async () => {
+      const request = await createFriendRequest(friendCode);
+      return request.status === "accepted" ? "Friend added" : "Friend request sent";
+    });
+  }
+
+  function handleAcceptFriendRequest(requestId: string) {
+    void runSocialMutation(`accept-request:${requestId}`, async () => {
+      await acceptFriendRequest(requestId);
+      return "Friend added";
+    });
+  }
+
+  function handleDeclineFriendRequest(requestId: string) {
+    void runSocialMutation(`decline-request:${requestId}`, async () => {
+      await declineFriendRequest(requestId);
+      return "Friend request declined";
+    });
+  }
+
+  function handleCancelFriendRequest(requestId: string) {
+    void runSocialMutation(`cancel-request:${requestId}`, async () => {
+      await cancelFriendRequest(requestId);
+      return "Friend request canceled";
+    });
+  }
+
+  function handleDeleteFriend(userId: string) {
+    void runSocialMutation(`delete-friend:${userId}`, async () => {
+      await deleteFriend(userId);
+      return "Friend removed";
+    });
+  }
+
+  function handleRotateFriendCode() {
+    void runSocialMutation("rotate-code", async () => {
+      const user = await rotateFriendCode();
+      send({ type: "USER_UPDATED", user });
+      return "Friend code rotated";
+    });
+  }
+
+  function handleInviteFriend(userId: string) {
+    if (selectedGroup === null) {
+      return;
+    }
+    setInvitingUserId(userId);
+    void runSocialMutation(`invite-friend:${userId}`, async () => {
+      await createGroupInvite(selectedGroup.id, userId);
+      return "Group invite sent";
+    }).finally(() => setInvitingUserId(null));
+  }
+
+  function handleCancelGroupInviteForCandidate(userId: string) {
+    if (selectedGroup === null) {
+      return;
+    }
+    setInvitingUserId(userId);
+    void runSocialMutation(`cancel-group-invite:${userId}`, async () => {
+      await cancelGroupInvite(selectedGroup.id, userId);
+      return "Group invite canceled";
+    }).finally(() => setInvitingUserId(null));
+  }
+
+  function handleAcceptGroupInvite(invite: GroupInvite) {
+    if (context.user === null) {
+      return;
+    }
+    const userId = context.user.id;
+    void runSocialMutation(`accept-group:${invite.group.id}`, async () => {
+      await acceptGroupInvite(invite.group.id, userId);
+      dashboardRef?.send({ type: "GROUPS_REFRESH_REQUESTED", preferredGroupId: invite.group.id });
+      return "Group invite accepted";
+    });
+  }
+
+  function handleDeclineGroupInvite(invite: GroupInvite) {
+    if (context.user === null) {
+      return;
+    }
+    const userId = context.user.id;
+    void runSocialMutation(`decline-group:${invite.group.id}`, async () => {
+      await declineGroupInvite(invite.group.id, userId);
+      return "Group invite declined";
+    });
+  }
+
   const postMutation = dashboardContext?.postMutation ?? null;
   const updatingPostId = postMutation?.kind === "update" ? postMutation.postId : null;
   const deletingPostId = postMutation?.kind === "delete" ? postMutation.postId : null;
@@ -122,14 +367,33 @@ export default function App() {
       </header>
 
       <main className="layout group-layout" aria-label="Arcade workspace">
-        <GroupsPanel
-          groups={groups}
-          selectedGroupId={selectedGroupId}
-          loading={loadingGroups}
-          creating={creatingGroup}
-          onCreateGroup={(name) => dashboardRef?.send({ type: "GROUP_CREATE_SUBMITTED", name })}
-          onSelectGroup={(groupId) => dashboardRef?.send({ type: "GROUP_SELECTED", groupId })}
-        />
+        <div className="sidebar-stack">
+          <GroupsPanel
+            groups={groups}
+            selectedGroupId={selectedGroupId}
+            loading={loadingGroups}
+            creating={creatingGroup}
+            onCreateGroup={(name) => dashboardRef?.send({ type: "GROUP_CREATE_SUBMITTED", name })}
+            onSelectGroup={(groupId) => dashboardRef?.send({ type: "GROUP_SELECTED", groupId })}
+          />
+          <FriendsPanel
+            user={context.user}
+            friendRequests={friendRequests}
+            friends={friends}
+            groupInvites={groupInvites}
+            loading={socialLoading}
+            error={socialError}
+            mutating={socialMutating}
+            onAddFriend={handleAddFriend}
+            onAcceptFriendRequest={handleAcceptFriendRequest}
+            onDeclineFriendRequest={handleDeclineFriendRequest}
+            onCancelFriendRequest={handleCancelFriendRequest}
+            onDeleteFriend={handleDeleteFriend}
+            onRotateFriendCode={handleRotateFriendCode}
+            onAcceptGroupInvite={handleAcceptGroupInvite}
+            onDeclineGroupInvite={handleDeclineGroupInvite}
+          />
+        </div>
         <GroupDashboard
           group={selectedGroup}
           feeds={feeds}
@@ -154,6 +418,9 @@ export default function App() {
           addFeedPreviewLoading={addFeedPreviewing}
           addFeedSaving={addFeedCreating}
           addFeedError={addFeedContext?.error ?? ""}
+          inviteCandidates={inviteCandidates}
+          inviteCandidatesLoading={inviteCandidatesLoading}
+          invitingUserId={invitingUserId}
           onSelectFeed={(feedId) => dashboardRef?.send({ type: "FEED_SELECTED", feedId })}
           onChangeFeedDate={(date) => dashboardRef?.send({ type: "FEED_DATE_CHANGED", date })}
           onToggleFeedEnabled={(feedId) => dashboardRef?.send({ type: "FEED_ENABLED_TOGGLED", feedId })}
@@ -171,6 +438,8 @@ export default function App() {
           onCreateFeedPost={(payload) => dashboardRef?.send({ type: "POST_CREATE_SUBMITTED", payload })}
           onUpdateFeedPost={(postId, payload) => dashboardRef?.send({ type: "POST_UPDATE_SUBMITTED", postId, payload })}
           onDeleteFeedPost={(postId) => dashboardRef?.send({ type: "POST_DELETE_SUBMITTED", postId })}
+          onInviteFriend={handleInviteFriend}
+          onCancelGroupInvite={handleCancelGroupInviteForCandidate}
         />
       </main>
 

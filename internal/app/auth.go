@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/big"
 	"net"
 	"net/http"
 	"net/mail"
@@ -26,6 +27,9 @@ const (
 	normalSessionLifetime   = 12 * time.Hour
 	rememberSessionLifetime = 30 * 24 * time.Hour
 	disabledPasswordHash    = "disabled"
+	friendCodePrefix        = "ARCD"
+	friendCodeRandomChars   = 8
+	friendCodeAlphabet      = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
 )
 
 type contextKey string
@@ -128,7 +132,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	var avatarURL sql.NullString
 	var passwordHash string
 	err = s.db.QueryRow(r.Context(), `
-		select id::text, email, username, display_name, avatar_url, password_hash, created_at, updated_at
+		select id::text, email, username, display_name, avatar_url, friend_code, password_hash, created_at, updated_at
 		from users
 		where lower(email) = lower($1)
 	`, email).Scan(
@@ -137,6 +141,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		&user.Username,
 		&user.DisplayName,
 		&avatarURL,
+		&user.FriendCode,
 		&passwordHash,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -252,6 +257,7 @@ func (s *Server) authenticateRequest(ctx context.Context, r *http.Request) (User
 			u.username,
 			u.display_name,
 			u.avatar_url,
+			u.friend_code,
 			u.created_at,
 			u.updated_at
 		from user_sessions us
@@ -266,6 +272,7 @@ func (s *Server) authenticateRequest(ctx context.Context, r *http.Request) (User
 		&user.Username,
 		&user.DisplayName,
 		&avatarURL,
+		&user.FriendCode,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -302,19 +309,24 @@ func (s *Server) createSignupUser(ctx context.Context, email string, displayName
 			}
 			username = baseUsername + "-" + suffix
 		}
+		friendCode, err := generateFriendCode()
+		if err != nil {
+			return User{}, err
+		}
 
 		var user User
 		var avatarURL sql.NullString
-		err := s.db.QueryRow(ctx, `
-			insert into users (email, username, display_name, password_hash)
-			values ($1, $2, $3, $4)
-			returning id::text, email, username, display_name, avatar_url, created_at, updated_at
-		`, email, username, displayName, passwordHash).Scan(
+		err = s.db.QueryRow(ctx, `
+			insert into users (email, username, display_name, password_hash, friend_code)
+			values ($1, $2, $3, $4, $5)
+			returning id::text, email, username, display_name, avatar_url, friend_code, created_at, updated_at
+		`, email, username, displayName, passwordHash, friendCode).Scan(
 			&user.ID,
 			&user.Email,
 			&user.Username,
 			&user.DisplayName,
 			&avatarURL,
+			&user.FriendCode,
 			&user.CreatedAt,
 			&user.UpdatedAt,
 		)
@@ -323,6 +335,10 @@ func (s *Server) createSignupUser(ctx context.Context, email string, displayName
 			return user, nil
 		}
 		if isUniqueConstraint(err, "users_username_key") {
+			lastErr = err
+			continue
+		}
+		if isUniqueConstraint(err, "users_friend_code_unique") {
 			lastErr = err
 			continue
 		}
@@ -473,6 +489,33 @@ func randomHex(byteCount int) (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(raw), nil
+}
+
+func generateFriendCode() (string, error) {
+	var builder strings.Builder
+	builder.WriteString(friendCodePrefix)
+	max := big.NewInt(int64(len(friendCodeAlphabet)))
+	for range friendCodeRandomChars {
+		index, err := rand.Int(rand.Reader, max)
+		if err != nil {
+			return "", err
+		}
+		builder.WriteByte(friendCodeAlphabet[index.Int64()])
+	}
+	return builder.String(), nil
+}
+
+func normalizeFriendCode(value string) (string, error) {
+	normalized := strings.ToUpper(strings.NewReplacer("-", "", " ", "").Replace(strings.TrimSpace(value)))
+	if normalized == "" {
+		return "", errors.New("friend_code is required")
+	}
+	for _, char := range normalized {
+		if (char < 'A' || char > 'Z') && (char < '0' || char > '9') {
+			return "", errors.New("friend_code must contain only letters and numbers")
+		}
+	}
+	return normalized, nil
 }
 
 func placeholderEmail(username string) string {

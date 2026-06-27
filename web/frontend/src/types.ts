@@ -4,8 +4,46 @@ export type User = {
   username: string;
   display_name: string;
   avatar_url?: string;
+  friend_code: string;
   created_at: string;
   updated_at: string;
+};
+
+type PublicUser = {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_url?: string;
+};
+
+export type FriendRequest = {
+  id: string;
+  status: "pending" | "accepted" | "declined" | "canceled";
+  requester: PublicUser;
+  addressee: PublicUser;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FriendRequests = {
+  incoming: FriendRequest[];
+  outgoing: FriendRequest[];
+};
+
+export type Friend = {
+  user: PublicUser;
+  friends_since: string;
+};
+
+export type GroupInvite = {
+  group: Group;
+  invited_by?: PublicUser;
+  invited_at?: string;
+};
+
+export type GroupInviteCandidate = {
+  user: PublicUser;
+  membership_status?: "invited" | "active" | "removed" | "left";
 };
 
 export type Group = {
