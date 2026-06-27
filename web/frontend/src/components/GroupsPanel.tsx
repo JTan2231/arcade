@@ -1,14 +1,17 @@
 import { FormEvent, useState } from "react";
 
 import type { Group } from "../types";
+import { RowActionMenu } from "./RowActionMenu";
 
 type GroupsPanelProps = {
   groups: Group[];
   selectedGroupId: string | null;
   loading: boolean;
   creating: boolean;
+  deletingGroupId: string | null;
   onCreateGroup: (name: string) => void;
   onSelectGroup: (id: string) => void;
+  onDeleteGroup: (id: string) => void;
 };
 
 export function GroupsPanel({
@@ -16,8 +19,10 @@ export function GroupsPanel({
   selectedGroupId,
   loading,
   creating,
+  deletingGroupId,
   onCreateGroup,
   onSelectGroup,
+  onDeleteGroup,
 }: GroupsPanelProps) {
   const [name, setName] = useState("");
 
@@ -55,16 +60,28 @@ export function GroupsPanel({
             const selected = group.id === selectedGroupId;
 
             return (
-              <button
-                aria-pressed={selected}
-                className={`row selectable-row ${selected ? "selected-row" : ""}`}
-                key={group.id}
-                type="button"
-                aria-label={group.name}
-                onClick={() => onSelectGroup(group.id)}
-              >
-                <div className="title">{group.name}</div>
-              </button>
+              <div className={`row action-row ${selected ? "selected-row" : ""}`} key={group.id}>
+                <button
+                  aria-pressed={selected}
+                  className="row-select-button"
+                  type="button"
+                  aria-label={group.name}
+                  onClick={() => onSelectGroup(group.id)}
+                >
+                  <div className="title">{group.name}</div>
+                </button>
+                <RowActionMenu
+                  label={`Group settings for ${group.name}`}
+                  actions={[
+                    {
+                      label: "Delete",
+                      danger: true,
+                      disabled: group.my_role !== "owner" || deletingGroupId === group.id,
+                      onSelect: () => onDeleteGroup(group.id),
+                    },
+                  ]}
+                />
+              </div>
             );
           })
         ) : (

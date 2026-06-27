@@ -373,8 +373,10 @@ export default function App() {
             selectedGroupId={selectedGroupId}
             loading={loadingGroups}
             creating={creatingGroup}
+            deletingGroupId={dashboardContext?.pendingDeleteGroupId ?? null}
             onCreateGroup={(name) => dashboardRef?.send({ type: "GROUP_CREATE_SUBMITTED", name })}
             onSelectGroup={(groupId) => dashboardRef?.send({ type: "GROUP_SELECTED", groupId })}
+            onDeleteGroup={(groupId) => dashboardRef?.send({ type: "GROUP_DELETE_SUBMITTED", groupId })}
           />
           <FriendsPanel
             user={context.user}
@@ -421,9 +423,12 @@ export default function App() {
           inviteCandidates={inviteCandidates}
           inviteCandidatesLoading={inviteCandidatesLoading}
           invitingUserId={invitingUserId}
+          pendingToggleFeedId={dashboardContext?.pendingToggleFeedId ?? null}
+          pendingDeleteFeedId={dashboardContext?.pendingDeleteFeedId ?? null}
           onSelectFeed={(feedId) => dashboardRef?.send({ type: "FEED_SELECTED", feedId })}
           onChangeFeedDate={(date) => dashboardRef?.send({ type: "FEED_DATE_CHANGED", date })}
           onToggleFeedEnabled={(feedId) => dashboardRef?.send({ type: "FEED_ENABLED_TOGGLED", feedId })}
+          onDeleteFeed={(feedId) => dashboardRef?.send({ type: "FEED_DELETE_SUBMITTED", feedId })}
           onOpenAddFeed={() => dashboardRef?.send({ type: "ADD_FEED_OPENED" })}
           onCloseAddFeed={() => {
             if (addFeedRef !== undefined) {

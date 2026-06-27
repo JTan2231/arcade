@@ -162,6 +162,13 @@ export function createGroup(payload: CreateGroupRequest, options: APIOptions = {
   });
 }
 
+export function deleteGroup(groupID: string, options: APIOptions = {}): Promise<null> {
+  return api<null>(`/api/groups/${encodeURIComponent(groupID)}`, {
+    ...options,
+    method: "DELETE",
+  });
+}
+
 export function listGroupInvites(options: APIOptions = {}): Promise<GroupInvite[]> {
   return api<GroupInvite[]>("/api/group-invites", options);
 }
@@ -316,5 +323,12 @@ export function updateGroupDailyFeed(
     ...options,
     method: "PATCH",
     body: JSON.stringify(payload),
+  });
+}
+
+export function deleteGroupDailyFeed(groupID: string, feedID: string, options: APIOptions = {}): Promise<null> {
+  return api<null>(`/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}`, {
+    ...options,
+    method: "DELETE",
   });
 }

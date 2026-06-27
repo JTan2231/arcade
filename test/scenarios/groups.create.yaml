@@ -76,3 +76,13 @@ steps:
     expectVisible:
       role: button
       name: Daily Thread
+
+  - within: Groups
+    click:
+      role: button
+      name: Group settings for Morning Dojo Preferred
+
+  - within: Groups
+    expectVisible:
+      role: button
+      name: Delete

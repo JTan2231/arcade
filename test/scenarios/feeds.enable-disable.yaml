@@ -47,10 +47,20 @@ steps:
     expectVisible:
       text: Daily Thread
 
-  - within: Selected feed output
+  - within: Feeds
     click:
       role: button
-      name: Disable feed
+      name: Feed settings for Daily Thread
+
+  - within: Feeds
+    expectVisible:
+      role: button
+      name: Delete
+
+  - within: Feeds
+    click:
+      role: button
+      name: Disable
 
   - expectStatus:
       text: Feed disabled
@@ -64,10 +74,15 @@ steps:
       role: button
       name: Post
 
-  - within: Selected feed output
+  - within: Feeds
     click:
       role: button
-      name: Enable feed
+      name: Feed settings for Daily Thread
+
+  - within: Feeds
+    click:
+      role: button
+      name: Enable
 
   - expectStatus:
       text: Feed enabled

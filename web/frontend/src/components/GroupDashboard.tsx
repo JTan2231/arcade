@@ -16,6 +16,7 @@ import type {
   GroupFeedPost,
   GroupInviteCandidate,
 } from "../types";
+import { RowActionMenu, type RowAction } from "./RowActionMenu";
 
 type GroupDashboardProps = {
   group: Group | null;
@@ -44,9 +45,12 @@ type GroupDashboardProps = {
   inviteCandidates: GroupInviteCandidate[];
   inviteCandidatesLoading: boolean;
   invitingUserId: string | null;
+  pendingToggleFeedId: string | null;
+  pendingDeleteFeedId: string | null;
   onSelectFeed: (id: string) => void;
   onChangeFeedDate: (date: string) => void;
   onToggleFeedEnabled: (id: string) => void;
+  onDeleteFeed: (id: string) => void;
   onOpenAddFeed: () => void;
   onCloseAddFeed: () => void;
   onAddFeedDraftChanged: () => void;
@@ -86,9 +90,12 @@ export function GroupDashboard({
   inviteCandidates,
   inviteCandidatesLoading,
   invitingUserId,
+  pendingToggleFeedId,
+  pendingDeleteFeedId,
   onSelectFeed,
   onChangeFeedDate,
   onToggleFeedEnabled,
+  onDeleteFeed,
   onOpenAddFeed,
   onCloseAddFeed,
   onAddFeedDraftChanged,
@@ -124,7 +131,11 @@ export function GroupDashboard({
             error={feedsError}
             manage={manage}
             selectedFeedId={selectedFeedId}
+            pendingToggleFeedId={pendingToggleFeedId}
+            pendingDeleteFeedId={pendingDeleteFeedId}
             onSelectFeed={onSelectFeed}
+            onToggleFeedEnabled={onToggleFeedEnabled}
+            onDeleteFeed={onDeleteFeed}
             onAddFeed={onOpenAddFeed}
           />
           {group.my_status === "active" ? (
@@ -141,18 +152,6 @@ export function GroupDashboard({
         <section className="dashboard-section feed-output-section" aria-label="Selected feed output">
           {feed ? (
             <div className="output-actions feed-output-toolbar">
-              {manage ? (
-                <button
-                  className="secondary"
-                  type="button"
-                  aria-label={feed.enabled ? "Disable feed" : "Enable feed"}
-                  onClick={() => {
-                    onToggleFeedEnabled(feed.id);
-                  }}
-                >
-                  Manage
-                </button>
-              ) : null}
               <label className="date-control">
                 Date
                 <select value={selectedFeedDate} onChange={(event) => onChangeFeedDate(event.target.value)}>
@@ -258,7 +257,11 @@ function FeedList({
   error,
   manage,
   selectedFeedId,
+  pendingToggleFeedId,
+  pendingDeleteFeedId,
   onSelectFeed,
+  onToggleFeedEnabled,
+  onDeleteFeed,
   onAddFeed,
 }: {
   feeds: DailyFeed[];
@@ -266,7 +269,11 @@ function FeedList({
   error: string;
   manage: boolean;
   selectedFeedId: string | null;
+  pendingToggleFeedId: string | null;
+  pendingDeleteFeedId: string | null;
   onSelectFeed: (id: string) => void;
+  onToggleFeedEnabled: (id: string) => void;
+  onDeleteFeed: (id: string) => void;
   onAddFeed: () => void;
 }) {
   if (loading) {
@@ -286,19 +293,44 @@ function FeedList({
       ) : null}
       {feeds.map((feed) => {
         const selected = feed.id === selectedFeedId;
+        const mutating = pendingToggleFeedId === feed.id || pendingDeleteFeedId === feed.id;
+        const actions: RowAction[] = manage
+          ? [
+              {
+                label: feed.enabled ? "Disable" : "Enable",
+                disabled: mutating,
+                onSelect: () => onToggleFeedEnabled(feed.id),
+              },
+              {
+                label: "Delete",
+                danger: true,
+                disabled: mutating,
+                onSelect: () => onDeleteFeed(feed.id),
+              },
+            ]
+          : [
+              {
+                label: "Delete",
+                danger: true,
+                disabled: true,
+                onSelect: () => onDeleteFeed(feed.id),
+              },
+            ];
 
         return (
-          <button
-            aria-pressed={selected}
-            className={`row selectable-row feed-row ${selected ? "selected-row" : ""}`}
-            key={feed.id}
-            type="button"
-            aria-label={feed.name}
-            onClick={() => onSelectFeed(feed.id)}
-          >
-            <div className="title">{feed.name}</div>
-            {!feed.enabled ? <div className="meta">Disabled</div> : null}
-          </button>
+          <div className={`row action-row feed-row ${selected ? "selected-row" : ""}`} key={feed.id}>
+            <button
+              aria-pressed={selected}
+              className="row-select-button"
+              type="button"
+              aria-label={feed.name}
+              onClick={() => onSelectFeed(feed.id)}
+            >
+              <div className="title">{feed.name}</div>
+              {!feed.enabled ? <div className="meta">Disabled</div> : null}
+            </button>
+            <RowActionMenu label={`Feed settings for ${feed.name}`} actions={actions} />
+          </div>
         );
       })}
       {manage ? (
