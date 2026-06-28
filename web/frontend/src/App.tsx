@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
 import { useMachine, useSelector } from "@xstate/react";
 import type { ActorRefFromLogic } from "xstate";
 
@@ -36,10 +36,12 @@ import type {
   GroupFeedPost,
   GroupInvite,
   GroupInviteCandidate,
+  User,
 } from "./types";
 
 type DashboardActorRef = ActorRefFromLogic<typeof dashboardMachine>;
 type AddFeedActorRef = ActorRefFromLogic<typeof addFeedMachine>;
+type AppRoute = "workspace" | "profile";
 
 const EMPTY_GROUPS: Group[] = [];
 const EMPTY_FEEDS: DailyFeed[] = [];
@@ -53,6 +55,7 @@ const EMPTY_FRIEND_REQUESTS: FriendRequests = {
 };
 
 export default function App() {
+  const [route, setRoute] = useState<AppRoute>(() => readAppRoute());
   const [snapshot, send] = useMachine(appMachine);
   const { context } = snapshot;
   const dashboardRef = snapshot.children["dashboard"] as DashboardActorRef | undefined;
@@ -101,6 +104,16 @@ export default function App() {
   const addFeedLoadingSources = matchesTopState(addFeedStateValue, "loadingSources");
   const addFeedPreviewing = matchesTopState(addFeedStateValue, "previewing");
   const addFeedCreating = matchesTopState(addFeedStateValue, "creating");
+  const showingProfile = route === "profile";
+
+  useEffect(() => {
+    function handlePopState() {
+      setRoute(readAppRoute());
+    }
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   useEffect(() => {
     if (context.toastMessage === null) {
@@ -208,7 +221,7 @@ export default function App() {
   }, [refreshSocial, signedIn]);
 
   useEffect(() => {
-    if (!signedIn) {
+    if (!signedIn || showingProfile) {
       setInviteCandidates(EMPTY_INVITE_CANDIDATES);
       setInviteCandidatesLoading(false);
       return undefined;
@@ -217,7 +230,7 @@ export default function App() {
     const controller = new AbortController();
     void refreshInviteCandidates(selectedGroup, { signal: controller.signal });
     return () => controller.abort();
-  }, [refreshInviteCandidates, selectedGroup, signedIn]);
+  }, [refreshInviteCandidates, selectedGroup, showingProfile, signedIn]);
 
   async function runSocialMutation(key: string, task: () => Promise<string>) {
     setSocialMutating(key);
@@ -322,9 +335,27 @@ export default function App() {
     });
   }
 
+  function handleInternalLinkClick(event: MouseEvent<HTMLAnchorElement>, path: string) {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.shiftKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    window.history.pushState(null, "", path);
+    setRoute(readAppRoute());
+  }
+
   const postMutation = dashboardContext?.postMutation ?? null;
   const updatingPostId = postMutation?.kind === "update" ? postMutation.postId : null;
   const deletingPostId = postMutation?.kind === "delete" ? postMutation.postId : null;
+  const profilePath = context.user === null ? "/" : userProfilePath(context.user);
 
   if (checkingSession) {
     return (
@@ -358,94 +389,118 @@ export default function App() {
     <>
       <header className="app-header">
         <div>
-          <h1>Arcade</h1>
-          {context.user !== null ? <div className="header-user">{context.user.display_name}</div> : null}
+          <h1>
+            <a className="app-title-link" href="/" onClick={(event) => handleInternalLinkClick(event, "/")}>
+              Arcade
+            </a>
+          </h1>
+          {context.user !== null ? (
+            <a
+              className="header-user"
+              href={profilePath}
+              onClick={(event) => handleInternalLinkClick(event, profilePath)}
+            >
+              {context.user.display_name}
+            </a>
+          ) : null}
         </div>
         <button className="secondary" type="button" onClick={() => send({ type: "LOGOUT_REQUESTED" })}>
           Logout
         </button>
       </header>
 
-      <main className="layout group-layout" aria-label="Arcade workspace">
-        <div className="sidebar-stack">
-          <GroupsPanel
-            groups={groups}
-            selectedGroupId={selectedGroupId}
-            loading={loadingGroups}
-            creating={creatingGroup}
-            deletingGroupId={dashboardContext?.pendingDeleteGroupId ?? null}
-            onCreateGroup={(name) => dashboardRef?.send({ type: "GROUP_CREATE_SUBMITTED", name })}
-            onSelectGroup={(groupId) => dashboardRef?.send({ type: "GROUP_SELECTED", groupId })}
-            onDeleteGroup={(groupId) => dashboardRef?.send({ type: "GROUP_DELETE_SUBMITTED", groupId })}
-          />
-          <FriendsPanel
-            user={context.user}
-            friendRequests={friendRequests}
-            friends={friends}
-            groupInvites={groupInvites}
-            loading={socialLoading}
-            error={socialError}
-            mutating={socialMutating}
-            onAddFriend={handleAddFriend}
-            onAcceptFriendRequest={handleAcceptFriendRequest}
-            onDeclineFriendRequest={handleDeclineFriendRequest}
-            onCancelFriendRequest={handleCancelFriendRequest}
-            onDeleteFriend={handleDeleteFriend}
-            onRotateFriendCode={handleRotateFriendCode}
-            onAcceptGroupInvite={handleAcceptGroupInvite}
-            onDeclineGroupInvite={handleDeclineGroupInvite}
-          />
-        </div>
-        <GroupDashboard
-          group={selectedGroup}
-          feeds={feeds}
-          feedsLoading={loadingFeeds}
-          feedsError={dashboardContext?.feedsError ?? ""}
-          selectedFeedId={selectedFeedId}
-          selectedFeedDate={dashboardContext?.selectedFeedDate ?? ""}
-          output={dashboardContext?.output ?? null}
-          outputLoading={loadingTodayOutput || loadingDatedOutput}
-          outputError={dashboardContext?.outputError ?? ""}
-          posts={dashboardContext?.posts ?? EMPTY_POSTS}
-          postsLoading={loadingPosts}
-          postsError={dashboardContext?.postsError ?? ""}
-          postSubmitting={creatingPost}
-          updatingPostId={updatingPostId}
-          deletingPostId={deletingPostId}
-          currentUserId={context.user?.id ?? null}
-          addFeedOpen={addFeedOpen}
-          addFeedSources={addFeedContext?.sources ?? []}
-          addFeedSourcesLoading={addFeedLoadingSources}
-          addFeedPreview={addFeedContext?.preview ?? null}
-          addFeedPreviewLoading={addFeedPreviewing}
-          addFeedSaving={addFeedCreating}
-          addFeedError={addFeedContext?.error ?? ""}
-          inviteCandidates={inviteCandidates}
-          inviteCandidatesLoading={inviteCandidatesLoading}
-          invitingUserId={invitingUserId}
-          pendingToggleFeedId={dashboardContext?.pendingToggleFeedId ?? null}
-          pendingDeleteFeedId={dashboardContext?.pendingDeleteFeedId ?? null}
-          onSelectFeed={(feedId) => dashboardRef?.send({ type: "FEED_SELECTED", feedId })}
-          onChangeFeedDate={(date) => dashboardRef?.send({ type: "FEED_DATE_CHANGED", date })}
-          onToggleFeedEnabled={(feedId) => dashboardRef?.send({ type: "FEED_ENABLED_TOGGLED", feedId })}
-          onDeleteFeed={(feedId) => dashboardRef?.send({ type: "FEED_DELETE_SUBMITTED", feedId })}
-          onOpenAddFeed={() => dashboardRef?.send({ type: "ADD_FEED_OPENED" })}
-          onCloseAddFeed={() => {
-            if (addFeedRef !== undefined) {
-              addFeedRef.send({ type: "CLOSED" });
-              return;
-            }
-            dashboardRef?.send({ type: "ADD_FEED_CLOSED" });
-          }}
-          onAddFeedDraftChanged={() => addFeedRef?.send({ type: "DRAFT_CHANGED" })}
-          onPreviewFeed={(payload) => addFeedRef?.send({ type: "PREVIEW_SUBMITTED", payload })}
-          onCreateFeed={(payload) => addFeedRef?.send({ type: "CREATE_SUBMITTED", payload })}
-          onCreateFeedPost={(payload) => dashboardRef?.send({ type: "POST_CREATE_SUBMITTED", payload })}
-          onUpdateFeedPost={(postId, payload) => dashboardRef?.send({ type: "POST_UPDATE_SUBMITTED", postId, payload })}
-          onDeleteFeedPost={(postId) => dashboardRef?.send({ type: "POST_DELETE_SUBMITTED", postId })}
-          onInviteFriend={handleInviteFriend}
-          onCancelGroupInvite={handleCancelGroupInviteForCandidate}
-        />
+      <main
+        className={`layout ${showingProfile ? "profile-layout" : "group-layout"}`}
+        aria-label={showingProfile ? "User profile" : "Arcade workspace"}
+      >
+        {showingProfile ? (
+          <div className="profile-stack">
+            <FriendsPanel
+              user={context.user}
+              friendRequests={friendRequests}
+              friends={friends}
+              groupInvites={groupInvites}
+              loading={socialLoading}
+              error={socialError}
+              mutating={socialMutating}
+              onAddFriend={handleAddFriend}
+              onAcceptFriendRequest={handleAcceptFriendRequest}
+              onDeclineFriendRequest={handleDeclineFriendRequest}
+              onCancelFriendRequest={handleCancelFriendRequest}
+              onDeleteFriend={handleDeleteFriend}
+              onRotateFriendCode={handleRotateFriendCode}
+              onAcceptGroupInvite={handleAcceptGroupInvite}
+              onDeclineGroupInvite={handleDeclineGroupInvite}
+            />
+          </div>
+        ) : (
+          <>
+            <div className="sidebar-stack">
+              <GroupsPanel
+                groups={groups}
+                selectedGroupId={selectedGroupId}
+                loading={loadingGroups}
+                creating={creatingGroup}
+                deletingGroupId={dashboardContext?.pendingDeleteGroupId ?? null}
+                onCreateGroup={(name) => dashboardRef?.send({ type: "GROUP_CREATE_SUBMITTED", name })}
+                onSelectGroup={(groupId) => dashboardRef?.send({ type: "GROUP_SELECTED", groupId })}
+                onDeleteGroup={(groupId) => dashboardRef?.send({ type: "GROUP_DELETE_SUBMITTED", groupId })}
+              />
+            </div>
+            <GroupDashboard
+              group={selectedGroup}
+              feeds={feeds}
+              feedsLoading={loadingFeeds}
+              feedsError={dashboardContext?.feedsError ?? ""}
+              selectedFeedId={selectedFeedId}
+              selectedFeedDate={dashboardContext?.selectedFeedDate ?? ""}
+              output={dashboardContext?.output ?? null}
+              outputLoading={loadingTodayOutput || loadingDatedOutput}
+              outputError={dashboardContext?.outputError ?? ""}
+              posts={dashboardContext?.posts ?? EMPTY_POSTS}
+              postsLoading={loadingPosts}
+              postsError={dashboardContext?.postsError ?? ""}
+              postSubmitting={creatingPost}
+              updatingPostId={updatingPostId}
+              deletingPostId={deletingPostId}
+              currentUserId={context.user?.id ?? null}
+              addFeedOpen={addFeedOpen}
+              addFeedSources={addFeedContext?.sources ?? []}
+              addFeedSourcesLoading={addFeedLoadingSources}
+              addFeedPreview={addFeedContext?.preview ?? null}
+              addFeedPreviewLoading={addFeedPreviewing}
+              addFeedSaving={addFeedCreating}
+              addFeedError={addFeedContext?.error ?? ""}
+              inviteCandidates={inviteCandidates}
+              inviteCandidatesLoading={inviteCandidatesLoading}
+              invitingUserId={invitingUserId}
+              pendingToggleFeedId={dashboardContext?.pendingToggleFeedId ?? null}
+              pendingDeleteFeedId={dashboardContext?.pendingDeleteFeedId ?? null}
+              onSelectFeed={(feedId) => dashboardRef?.send({ type: "FEED_SELECTED", feedId })}
+              onChangeFeedDate={(date) => dashboardRef?.send({ type: "FEED_DATE_CHANGED", date })}
+              onToggleFeedEnabled={(feedId) => dashboardRef?.send({ type: "FEED_ENABLED_TOGGLED", feedId })}
+              onDeleteFeed={(feedId) => dashboardRef?.send({ type: "FEED_DELETE_SUBMITTED", feedId })}
+              onOpenAddFeed={() => dashboardRef?.send({ type: "ADD_FEED_OPENED" })}
+              onCloseAddFeed={() => {
+                if (addFeedRef !== undefined) {
+                  addFeedRef.send({ type: "CLOSED" });
+                  return;
+                }
+                dashboardRef?.send({ type: "ADD_FEED_CLOSED" });
+              }}
+              onAddFeedDraftChanged={() => addFeedRef?.send({ type: "DRAFT_CHANGED" })}
+              onPreviewFeed={(payload) => addFeedRef?.send({ type: "PREVIEW_SUBMITTED", payload })}
+              onCreateFeed={(payload) => addFeedRef?.send({ type: "CREATE_SUBMITTED", payload })}
+              onCreateFeedPost={(payload) => dashboardRef?.send({ type: "POST_CREATE_SUBMITTED", payload })}
+              onUpdateFeedPost={(postId, payload) =>
+                dashboardRef?.send({ type: "POST_UPDATE_SUBMITTED", postId, payload })
+              }
+              onDeleteFeedPost={(postId) => dashboardRef?.send({ type: "POST_DELETE_SUBMITTED", postId })}
+              onInviteFriend={handleInviteFriend}
+              onCancelGroupInvite={handleCancelGroupInviteForCandidate}
+            />
+          </>
+        )}
       </main>
 
       <Toast message={context.toastMessage} />
@@ -458,6 +513,14 @@ function matchesTopState(value: unknown, state: string): boolean {
     return value === state;
   }
   return isStateObject(value) && Object.prototype.hasOwnProperty.call(value, state);
+}
+
+function readAppRoute(): AppRoute {
+  return window.location.pathname.startsWith("/user/") ? "profile" : "workspace";
+}
+
+function userProfilePath(user: User): string {
+  return `/user/${encodeURIComponent(user.display_name)}`;
 }
 
 function matchesChildState(value: unknown, parent: string, child: string): boolean {

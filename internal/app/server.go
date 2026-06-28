@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"path"
 	"regexp"
 	"strings"
 	"time"
@@ -20,6 +21,7 @@ import (
 type Server struct {
 	db                 *pgxpool.Pool
 	static             http.Handler
+	staticFS           fs.FS
 	catalogImportToken string
 }
 
@@ -32,6 +34,7 @@ func NewServer(_ context.Context, db *pgxpool.Pool, config Config) (*Server, err
 	return &Server{
 		db:                 db,
 		static:             http.FileServer(http.FS(staticFS)),
+		staticFS:           staticFS,
 		catalogImportToken: strings.TrimSpace(config.CatalogImportToken),
 	}, nil
 }
@@ -103,9 +106,30 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("PATCH /api/groups/{group_id}/feed-posts/{post_id}", s.handlePatchGroupFeedPost)
 	mux.HandleFunc("DELETE /api/groups/{group_id}/feed-posts/{post_id}", s.handleDeleteGroupFeedPost)
 
-	mux.Handle("GET /", s.static)
+	mux.HandleFunc("GET /", s.handleStatic)
 
 	return s.withRequestLog(s.withAuth(mux))
+}
+
+func (s *Server) handleStatic(w http.ResponseWriter, r *http.Request) {
+	cleanPath := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
+	if cleanPath == "." {
+		cleanPath = ""
+	}
+
+	if cleanPath != "" {
+		info, err := fs.Stat(s.staticFS, cleanPath)
+		if err == nil && !info.IsDir() {
+			s.static.ServeHTTP(w, r)
+			return
+		}
+		if strings.HasPrefix(cleanPath, "assets/") {
+			s.static.ServeHTTP(w, r)
+			return
+		}
+	}
+
+	http.ServeFileFS(w, r, s.staticFS, "index.html")
 }
 
 func (s *Server) withRequestLog(next http.Handler) http.Handler {

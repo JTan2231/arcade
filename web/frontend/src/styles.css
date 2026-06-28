@@ -140,10 +140,22 @@ label {
   margin: 0;
 }
 
+.app-title-link {
+  color: inherit;
+  text-decoration: none;
+}
+
 .header-user {
   color: #dbe5ea;
+  display: inline-block;
   font-size: 13px;
   margin-top: 2px;
+  text-decoration: none;
+}
+
+.header-user:hover {
+  color: white;
+  text-decoration: underline;
 }
 
 .auth-layout {
@@ -196,10 +208,18 @@ label {
   padding: 16px;
 }
 
+.profile-layout {
+  grid-template-columns: minmax(280px, 520px);
+}
+
 .sidebar-stack {
   display: grid;
   gap: 16px;
   align-content: start;
+}
+
+.profile-stack {
+  min-width: 0;
 }
 
 .panel {

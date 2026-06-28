@@ -66,11 +66,13 @@ before:
         status: accepted
 
 steps:
-  - visit: /
+  - visit: /user/Alice%20Friend
 
   - within: Friends
     expectVisible:
       text: Bob Friend
+
+  - visit: /
 
   - within: Feeds
     expectVisible:
