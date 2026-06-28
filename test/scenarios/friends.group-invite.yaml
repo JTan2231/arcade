@@ -74,11 +74,11 @@ steps:
 
   - visit: /
 
-  - within: Feeds
+  - within: Invite friends
     expectVisible:
       text: Bob Friend
 
-  - within: Feeds
+  - within: Invite friends
     click:
       role: button
       name: Invite

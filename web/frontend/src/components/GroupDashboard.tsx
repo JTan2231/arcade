@@ -16,13 +16,10 @@ import type {
   GroupFeedPost,
   GroupInviteCandidate,
 } from "../types";
-import { RowActionMenu, type RowAction } from "./RowActionMenu";
 
 type GroupDashboardProps = {
   group: Group | null;
   feeds: DailyFeed[];
-  feedsLoading: boolean;
-  feedsError: string;
   selectedFeedId: string | null;
   selectedFeedDate: string;
   output: DailyFeedOutput | null;
@@ -45,13 +42,7 @@ type GroupDashboardProps = {
   inviteCandidates: GroupInviteCandidate[];
   inviteCandidatesLoading: boolean;
   invitingUserId: string | null;
-  pendingToggleFeedId: string | null;
-  pendingDeleteFeedId: string | null;
-  onSelectFeed: (id: string) => void;
   onChangeFeedDate: (date: string) => void;
-  onToggleFeedEnabled: (id: string) => void;
-  onDeleteFeed: (id: string) => void;
-  onOpenAddFeed: () => void;
   onCloseAddFeed: () => void;
   onAddFeedDraftChanged: () => void;
   onPreviewFeed: (payload: CreateDailyFeedRequest) => void;
@@ -66,8 +57,6 @@ type GroupDashboardProps = {
 export function GroupDashboard({
   group,
   feeds,
-  feedsLoading,
-  feedsError,
   selectedFeedId,
   selectedFeedDate,
   output,
@@ -90,13 +79,7 @@ export function GroupDashboard({
   inviteCandidates,
   inviteCandidatesLoading,
   invitingUserId,
-  pendingToggleFeedId,
-  pendingDeleteFeedId,
-  onSelectFeed,
   onChangeFeedDate,
-  onToggleFeedEnabled,
-  onDeleteFeed,
-  onOpenAddFeed,
   onCloseAddFeed,
   onAddFeedDraftChanged,
   onPreviewFeed,
@@ -118,41 +101,21 @@ export function GroupDashboard({
     );
   }
 
-  const manage = canManageGroup(group);
   const feed = feeds.find((candidate) => candidate.id === selectedFeedId) || null;
+  const heading = feed ? (output?.title ?? feed.name) : "";
+  const headingDate = output?.date ?? selectedFeedDate;
 
   return (
     <section className="panel group-dashboard-panel">
-      <div className="dashboard-grid">
-        <section className="dashboard-section feeds-section" aria-label="Feeds">
-          <FeedList
-            feeds={feeds}
-            loading={feedsLoading}
-            error={feedsError}
-            manage={manage}
-            selectedFeedId={selectedFeedId}
-            pendingToggleFeedId={pendingToggleFeedId}
-            pendingDeleteFeedId={pendingDeleteFeedId}
-            onSelectFeed={onSelectFeed}
-            onToggleFeedEnabled={onToggleFeedEnabled}
-            onDeleteFeed={onDeleteFeed}
-            onAddFeed={onOpenAddFeed}
-          />
-          {group.my_status === "active" ? (
-            <InviteFriends
-              candidates={inviteCandidates}
-              loading={inviteCandidatesLoading}
-              invitingUserId={invitingUserId}
-              onInviteFriend={onInviteFriend}
-              onCancelGroupInvite={onCancelGroupInvite}
-            />
-          ) : null}
-        </section>
-
+      <div className={`feed-card-grid ${group.my_status !== "active" ? "without-friends-rail" : ""}`}>
         <section className="dashboard-section feed-output-section" aria-label="Selected feed output">
           {feed ? (
-            <div className="output-actions feed-output-toolbar">
-              <label className="date-control">
+            <div className="feed-card-header">
+              <div className="feed-card-title-block">
+                <div className="feed-card-title">{heading}</div>
+                {headingDate ? <div className="meta">{formatDateLabel(headingDate)}</div> : null}
+              </div>
+              <label className="date-control feed-date-control">
                 Date
                 <select value={selectedFeedDate} onChange={(event) => onChangeFeedDate(event.target.value)}>
                   {feedDateOptions(selectedFeedDate, feed.created_at).map((option) => (
@@ -182,6 +145,17 @@ export function GroupDashboard({
             onDeleteFeedPost={onDeleteFeedPost}
           />
         </section>
+        {group.my_status === "active" ? (
+          <aside className="feed-friends-rail">
+            <InviteFriends
+              candidates={inviteCandidates}
+              loading={inviteCandidatesLoading}
+              invitingUserId={invitingUserId}
+              onInviteFriend={onInviteFriend}
+              onCancelGroupInvite={onCancelGroupInvite}
+            />
+          </aside>
+        ) : null}
       </div>
       {addFeedOpen ? (
         <AddFeedDialog
@@ -216,7 +190,7 @@ function InviteFriends({
   onCancelGroupInvite: (userId: string) => void;
 }) {
   return (
-    <div className="invite-friends-section" aria-label="Invite friends">
+    <section className="invite-friends-section" aria-label="Invite friends">
       <div className="section-title">Invite friends</div>
       <div className="stack">
         {loading ? <div className="meta">Loading friends...</div> : null}
@@ -247,98 +221,7 @@ function InviteFriends({
           );
         })}
       </div>
-    </div>
-  );
-}
-
-function FeedList({
-  feeds,
-  loading,
-  error,
-  manage,
-  selectedFeedId,
-  pendingToggleFeedId,
-  pendingDeleteFeedId,
-  onSelectFeed,
-  onToggleFeedEnabled,
-  onDeleteFeed,
-  onAddFeed,
-}: {
-  feeds: DailyFeed[];
-  loading: boolean;
-  error: string;
-  manage: boolean;
-  selectedFeedId: string | null;
-  pendingToggleFeedId: string | null;
-  pendingDeleteFeedId: string | null;
-  onSelectFeed: (id: string) => void;
-  onToggleFeedEnabled: (id: string) => void;
-  onDeleteFeed: (id: string) => void;
-  onAddFeed: () => void;
-}) {
-  if (loading) {
-    return <div className="empty-state">Loading feeds...</div>;
-  }
-  if (error) {
-    return (
-      <div className="form-error" role="alert">
-        {error}
-      </div>
-    );
-  }
-  return (
-    <div className="stack">
-      {!feeds.length ? (
-        <div className="empty-state">{manage ? "No feeds yet." : "No feeds are available for this group."}</div>
-      ) : null}
-      {feeds.map((feed) => {
-        const selected = feed.id === selectedFeedId;
-        const mutating = pendingToggleFeedId === feed.id || pendingDeleteFeedId === feed.id;
-        const actions: RowAction[] = manage
-          ? [
-              {
-                label: feed.enabled ? "Disable" : "Enable",
-                disabled: mutating,
-                onSelect: () => onToggleFeedEnabled(feed.id),
-              },
-              {
-                label: "Delete",
-                danger: true,
-                disabled: mutating,
-                onSelect: () => onDeleteFeed(feed.id),
-              },
-            ]
-          : [
-              {
-                label: "Delete",
-                danger: true,
-                disabled: true,
-                onSelect: () => onDeleteFeed(feed.id),
-              },
-            ];
-
-        return (
-          <div className={`row action-row feed-row ${selected ? "selected-row" : ""}`} key={feed.id}>
-            <button
-              aria-pressed={selected}
-              className="row-select-button"
-              type="button"
-              aria-label={feed.name}
-              onClick={() => onSelectFeed(feed.id)}
-            >
-              <div className="title">{feed.name}</div>
-              {!feed.enabled ? <div className="meta">Disabled</div> : null}
-            </button>
-            <RowActionMenu label={`Feed settings for ${feed.name}`} actions={actions} />
-          </div>
-        );
-      })}
-      {manage ? (
-        <button className="secondary add-feed-button" type="button" onClick={onAddFeed}>
-          Add feed
-        </button>
-      ) : null}
-    </div>
+    </section>
   );
 }
 
@@ -913,10 +796,6 @@ function FeedOutput({
 
   return (
     <>
-      <div className="output-summary">
-        <div className="title">{output.title}</div>
-        <div className="meta">{formatDateLabel(output.date)}</div>
-      </div>
       {items.length ? (
         <div className="stack output-items">
           {items.map((item) => (
@@ -1289,10 +1168,6 @@ function OutputAction({ action }: { action?: DailyFeedAction }) {
   }
 
   return null;
-}
-
-function canManageGroup(group: Group | null): boolean {
-  return group?.my_status === "active" && (group.my_role === "owner" || group.my_role === "admin");
 }
 
 function defaultTimezone(): string {

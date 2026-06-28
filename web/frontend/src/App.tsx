@@ -438,20 +438,28 @@ export default function App() {
             <div className="sidebar-stack">
               <GroupsPanel
                 groups={groups}
+                feeds={feeds}
                 selectedGroupId={selectedGroupId}
+                selectedFeedId={selectedFeedId}
                 loading={loadingGroups}
+                feedsLoading={loadingFeeds}
+                feedsError={dashboardContext?.feedsError ?? ""}
                 creating={creatingGroup}
                 deletingGroupId={dashboardContext?.pendingDeleteGroupId ?? null}
+                pendingToggleFeedId={dashboardContext?.pendingToggleFeedId ?? null}
+                pendingDeleteFeedId={dashboardContext?.pendingDeleteFeedId ?? null}
                 onCreateGroup={(name) => dashboardRef?.send({ type: "GROUP_CREATE_SUBMITTED", name })}
                 onSelectGroup={(groupId) => dashboardRef?.send({ type: "GROUP_SELECTED", groupId })}
                 onDeleteGroup={(groupId) => dashboardRef?.send({ type: "GROUP_DELETE_SUBMITTED", groupId })}
+                onSelectFeed={(feedId) => dashboardRef?.send({ type: "FEED_SELECTED", feedId })}
+                onToggleFeedEnabled={(feedId) => dashboardRef?.send({ type: "FEED_ENABLED_TOGGLED", feedId })}
+                onDeleteFeed={(feedId) => dashboardRef?.send({ type: "FEED_DELETE_SUBMITTED", feedId })}
+                onAddFeed={() => dashboardRef?.send({ type: "ADD_FEED_OPENED" })}
               />
             </div>
             <GroupDashboard
               group={selectedGroup}
               feeds={feeds}
-              feedsLoading={loadingFeeds}
-              feedsError={dashboardContext?.feedsError ?? ""}
               selectedFeedId={selectedFeedId}
               selectedFeedDate={dashboardContext?.selectedFeedDate ?? ""}
               output={dashboardContext?.output ?? null}
@@ -474,13 +482,7 @@ export default function App() {
               inviteCandidates={inviteCandidates}
               inviteCandidatesLoading={inviteCandidatesLoading}
               invitingUserId={invitingUserId}
-              pendingToggleFeedId={dashboardContext?.pendingToggleFeedId ?? null}
-              pendingDeleteFeedId={dashboardContext?.pendingDeleteFeedId ?? null}
-              onSelectFeed={(feedId) => dashboardRef?.send({ type: "FEED_SELECTED", feedId })}
               onChangeFeedDate={(date) => dashboardRef?.send({ type: "FEED_DATE_CHANGED", date })}
-              onToggleFeedEnabled={(feedId) => dashboardRef?.send({ type: "FEED_ENABLED_TOGGLED", feedId })}
-              onDeleteFeed={(feedId) => dashboardRef?.send({ type: "FEED_DELETE_SUBMITTED", feedId })}
-              onOpenAddFeed={() => dashboardRef?.send({ type: "ADD_FEED_OPENED" })}
               onCloseAddFeed={() => {
                 if (addFeedRef !== undefined) {
                   addFeedRef.send({ type: "CLOSED" });
