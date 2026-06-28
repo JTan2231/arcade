@@ -72,6 +72,27 @@ Other CLI options are:
 - `--artifacts-dir DIR`: failure artifact directory relative to the repo root;
   default is `test/artifacts`.
 
+## Locator Diagnostic CLI
+
+The repo root includes `./locator.ts`, a local developer tool that fuzzy-finds
+rendered UI and reports the frontend source that defines it.
+
+```sh
+./locator.ts authentication
+./locator.ts source --scenario test/scenarios/feeds.add-feed.yaml --after-step 9 --within "add feed" --role combobox
+```
+
+By default the locator starts the app with the same disposable server helper as
+the scenario runner, drives either a direct route or a YAML scenario state,
+captures a screenshot of the selected element, and writes `result.json`,
+`runtime-candidates.json`, `source-index.json`, `selected.png`, and `page.png`
+to a new OS temp directory. Use `--artifacts-dir DIR` to choose a destination.
+Use `--base-url URL --no-server` to inspect an already-running server; in that
+mode the caller owns server lifecycle and database state.
+
+Useful narrowing options are `--within NAME`, `--role ROLE`, `--after-step N`,
+`--all`, and `--json`.
+
 ## App And Database Lifecycle
 
 `src/appServer.ts` is the production-style local app launcher used when
