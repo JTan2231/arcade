@@ -155,7 +155,7 @@ export function GroupDashboard({
               <label className="date-control">
                 Date
                 <select value={selectedFeedDate} onChange={(event) => onChangeFeedDate(event.target.value)}>
-                  {feedDateOptions(selectedFeedDate).map((option) => (
+                  {feedDateOptions(selectedFeedDate, feed.created_at).map((option) => (
                     <option value={option.value} key={option.value}>
                       {option.label}
                     </option>

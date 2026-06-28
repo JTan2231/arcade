@@ -203,19 +203,37 @@ label {
 .layout {
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(280px, 360px) minmax(0, 820px);
-  justify-content: center;
   padding: 16px;
+}
+
+.group-layout {
+  grid-template-columns: minmax(220px, 1fr) minmax(0, 820px) minmax(220px, 1fr);
+}
+
+.group-layout .sidebar-stack {
+  grid-column: 1;
+  justify-self: start;
+  max-width: 320px;
+  width: 100%;
+}
+
+.group-layout .group-dashboard-panel {
+  grid-column: 2;
 }
 
 .profile-layout {
   grid-template-columns: minmax(280px, 520px);
+  justify-content: center;
 }
 
 .sidebar-stack {
   display: grid;
   gap: 16px;
   align-content: start;
+}
+
+.groups-panel {
+  min-width: 0;
 }
 
 .profile-stack {
@@ -254,6 +272,12 @@ label {
 .groups-panel-header {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
+}
+
+.groups-panel h2 {
+  font-size: 18px;
+  letter-spacing: 0;
+  margin: 0;
 }
 
 .group-add-form {
@@ -899,6 +923,21 @@ button.confirm-icon-button:hover:not(:disabled) {
 #toast.show {
   opacity: 1;
   transform: translateY(0);
+}
+
+@media (width <= 980px) {
+  .group-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .group-layout .sidebar-stack,
+  .group-layout .group-dashboard-panel {
+    grid-column: auto;
+  }
+
+  .group-layout .sidebar-stack {
+    max-width: none;
+  }
 }
 
 @media (width <= 720px) {

@@ -76,6 +76,12 @@ before:
       capture:
         feed_id: $.id
 
+  - sql:
+      statement: |
+        update group_daily_feeds
+        set created_at = '{{daysAgo:2}}T12:00:00.000Z'::timestamptz
+        where id = '{{feed_id}}'::uuid
+
 steps:
   - visit: /
 

@@ -201,8 +201,15 @@ const requestSchema = z
     },
   );
 
+const sqlSchema = z
+  .object({
+    statement: z.string().min(1),
+  })
+  .strict();
+
 const operationKeys = [
   "request",
+  "sql",
   "visit",
   "click",
   "fill",
@@ -232,6 +239,7 @@ export const scenarioStepSchema = z
     timeout: z.number().int().positive().optional(),
     acceptDialog: acceptDialogSchema.optional(),
     request: requestSchema.optional(),
+    sql: sqlSchema.optional(),
     visit: z.string().min(1).optional(),
     click: roleTargetSchema.optional(),
     fill: fillSchema.optional(),
@@ -329,6 +337,7 @@ export type Scenario = z.infer<typeof scenarioSchema>;
 export type ScenarioStep = z.infer<typeof scenarioStepSchema>;
 export type ScenarioPhase = "before" | "steps" | "after";
 export type RequestPrimitive = NonNullable<ScenarioStep["request"]>;
+export type SQLPrimitive = NonNullable<ScenarioStep["sql"]>;
 export type TextExpectation = z.infer<typeof textExpectationSchema>;
 export type VisibleTarget = z.infer<typeof visibleTargetSchema>;
 

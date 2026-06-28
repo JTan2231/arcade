@@ -9,6 +9,7 @@ import type { RuntimeVariables } from "./interpolation";
 
 export type PrimitiveContext = {
   baseURL: string;
+  databaseURL?: string;
   page: Page;
   isolatedRequest: APIRequestContext;
   variables: RuntimeVariables;
@@ -17,6 +18,7 @@ export type PrimitiveContext = {
 
 export async function createPrimitiveContext(options: {
   baseURL: string;
+  databaseURL?: string;
   page: Page;
   variables: RuntimeVariables;
   network: NetworkController;

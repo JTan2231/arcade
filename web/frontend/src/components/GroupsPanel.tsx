@@ -47,7 +47,7 @@ export function GroupsPanel({
   }
 
   return (
-    <section className="panel groups-panel" aria-labelledby="groups-title">
+    <section className="groups-panel" aria-labelledby="groups-title">
       <div className="panel-header groups-panel-header">
         <h2 id="groups-title">Groups</h2>
         {adding ? (

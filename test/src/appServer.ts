@@ -8,6 +8,7 @@ import { createDisposableDatabase, type DisposableDatabase } from "./database";
 
 export type AppServer = {
   baseURL: string;
+  databaseURL: string;
   logPath: string;
   stop: () => Promise<void>;
 };
@@ -56,6 +57,7 @@ export async function startAppServer(
 
   return {
     baseURL,
+    databaseURL: database.url,
     logPath,
     stop: async () => {
       await stopServer(child, logStream, database);

@@ -27,6 +27,7 @@ import {
 import { initialVariables } from "./interpolation";
 import { NetworkController } from "./networkControls";
 import { executeRequestPrimitive } from "./primitives/request";
+import { executeSQLPrimitive } from "./primitives/sql";
 import {
   formatStepSnippet,
   type LoadedScenario,
@@ -36,6 +37,7 @@ import {
 
 export type ScenarioRunOptions = {
   baseURL: string;
+  databaseURL?: string;
   project: string;
   artifactsDir: string;
   appLogPath?: string;
@@ -113,6 +115,9 @@ export async function runScenario(
   const network = new NetworkController();
   const runtime = await createPrimitiveContext({
     baseURL: options.baseURL,
+    ...(options.databaseURL === undefined
+      ? {}
+      : { databaseURL: options.databaseURL }),
     page,
     variables: initialVariables(loaded.scenario.vars),
     network,
@@ -228,6 +233,8 @@ async function runStepOperation(
 ): Promise<void> {
   if (step.request !== undefined) {
     await executeRequestPrimitive(context, step);
+  } else if (step.sql !== undefined) {
+    await executeSQLPrimitive(context, step);
   } else if (step.visit !== undefined) {
     await visit(context, step.visit);
   } else if (step.click !== undefined) {

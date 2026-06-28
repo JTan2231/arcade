@@ -3,9 +3,9 @@
 Arcade's browser and API scenario tests live under `test/`. The setup is a
 small TypeScript harness that uses Playwright as a browser automation library,
 but it does not run scenario files through Playwright's normal test-file
-runner. YAML scenario files describe user-visible workflows and setup requests;
-`test/src/cli.ts` loads those files, starts the app when needed, and executes
-each scenario through the custom runner.
+runner. YAML scenario files describe user-visible workflows, setup requests, and
+managed-database setup SQL; `test/src/cli.ts` loads those files, starts the app
+when needed, and executes each scenario through the custom runner.
 
 ## Directory Layout
 
@@ -23,7 +23,7 @@ test
   src/actions.ts          Browser actions backed by accessible locators.
   src/assertions.ts       Browser assertions backed by Playwright expect.
   src/networkControls.ts  Request observation, holding, fulfilling, and failure.
-  src/primitives/         Non-UI primitives such as direct API requests.
+  src/primitives/         Non-UI primitives such as direct API requests and setup SQL.
 ```
 
 `test/artifacts/` and `test/node_modules/` are generated local state and are
@@ -159,8 +159,9 @@ Built-in date tokens are:
 - `{{daysAgo:N}}`
 
 Interpolation is applied to paths, labels, role names, text assertions, request
-headers, request bodies, and JSON-like data. Captures can store objects and
-arrays, but only scalar captured values can be interpolated into later steps.
+headers, request bodies, SQL statements, and JSON-like data. Captures can store
+objects and arrays, but only scalar captured values can be interpolated into
+later steps.
 
 ## Browser Primitives
 
@@ -207,6 +208,13 @@ Supported request fields include:
 Captures use the small JSON selector syntax in `src/jsonSelectors.ts`: `$`,
 `.field`, and `[index]`. Capture names must be valid identifiers, and replacing
 an existing variable requires `overwrite: true`.
+
+## SQL Primitive
+
+The `sql` primitive runs an interpolated SQL statement through `psql` against
+the disposable database owned by the harness. It is intended for setup state
+that the public API cannot express. It is unavailable when scenarios run with
+`--base-url`, because the caller owns the database in that mode.
 
 ## Network Controls
 

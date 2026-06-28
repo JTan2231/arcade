@@ -41,6 +41,9 @@ async function main(): Promise<void> {
       try {
         const result = await runScenario(loaded, {
           baseURL,
+          ...(appServer === undefined
+            ? {}
+            : { databaseURL: appServer.databaseURL }),
           project: options.project,
           artifactsDir,
           appLogPath: appServer?.logPath,
