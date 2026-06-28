@@ -40,6 +40,14 @@ Postgres database so `DATABASE_URL` is available.
 Editable frontend source lives in `web/frontend`. Vite builds production assets
 into `web/static`, which is embedded by the Go binary.
 
+To run the API server and Vite dev server together:
+
+```sh
+./run.sh
+```
+
+Open the Vite URL printed by the script. It proxies `/api` to the Go backend.
+
 Run the backend:
 
 ```sh
