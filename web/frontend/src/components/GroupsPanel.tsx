@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 import type { Group } from "../types";
 import { RowActionMenu } from "./RowActionMenu";
@@ -25,6 +25,14 @@ export function GroupsPanel({
   onDeleteGroup,
 }: GroupsPanelProps) {
   const [name, setName] = useState("");
+  const [adding, setAdding] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (adding) {
+      inputRef.current?.focus();
+    }
+  }, [adding]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -35,22 +43,51 @@ export function GroupsPanel({
 
     onCreateGroup(trimmed);
     setName("");
+    setAdding(false);
   }
 
   return (
     <section className="panel groups-panel" aria-labelledby="groups-title">
-      <div className="panel-header">
+      <div className="panel-header groups-panel-header">
         <h2 id="groups-title">Groups</h2>
+        {adding ? (
+          <form className="group-add-form" onSubmit={handleSubmit}>
+            <input
+              aria-label="New group name"
+              disabled={creating}
+              placeholder="New group"
+              ref={inputRef}
+              required
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  setAdding(false);
+                  setName("");
+                }
+              }}
+            />
+            <button
+              aria-label="Create group"
+              className="icon-button confirm-icon-button"
+              type="submit"
+              disabled={creating}
+            >
+              <span aria-hidden="true">✓</span>
+            </button>
+          </form>
+        ) : (
+          <button
+            aria-label="Add group"
+            className="icon-button group-add-button"
+            type="button"
+            disabled={creating}
+            onClick={() => setAdding(true)}
+          >
+            <span aria-hidden="true">+</span>
+          </button>
+        )}
       </div>
-      <form className="compact-form" onSubmit={handleSubmit}>
-        <label>
-          Name
-          <input placeholder="Morning Dojo" required value={name} onChange={(event) => setName(event.target.value)} />
-        </label>
-        <button type="submit" disabled={creating}>
-          Create group
-        </button>
-      </form>
 
       <div className="stack">
         {loading ? (

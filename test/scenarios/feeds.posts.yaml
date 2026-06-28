@@ -29,8 +29,13 @@ steps:
       name: Create account
 
   - within: Groups
+    click:
+      role: button
+      name: Add group
+
+  - within: Groups
     fill:
-      label: Name
+      label: New group name
       value: Posting Dojo
 
   - within: Groups

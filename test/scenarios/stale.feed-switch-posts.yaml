@@ -97,10 +97,19 @@ before:
         new_feed_id: $.id
 
   - request:
+      id: get_old_feed_today
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{old_feed_id}}/today
+      expectStatus: 200
+      capture:
+        feed_date: $.date
+
+  - request:
       id: create_old_feed_post
       client: browser
       method: POST
-      path: /api/groups/{{group_id}}/daily-feeds/{{old_feed_id}}/outputs/{{today}}/posts
+      path: /api/groups/{{group_id}}/daily-feeds/{{old_feed_id}}/outputs/{{feed_date}}/posts
       json:
         evidence_kind: text
         evidence_text: Old feed evidence should stay hidden.
@@ -117,13 +126,13 @@ steps:
   - holdRequest:
       id: old-posts
       method: GET
-      path: /api/groups/*/daily-feeds/*/outputs/{{today}}/posts
+      path: /api/groups/*/daily-feeds/*/outputs/{{feed_date}}/posts
       times: 1
 
   - holdRequest:
       id: new-posts
       method: GET
-      path: /api/groups/*/daily-feeds/*/outputs/{{today}}/posts
+      path: /api/groups/*/daily-feeds/*/outputs/{{feed_date}}/posts
       times: 1
 
   - within: Feeds

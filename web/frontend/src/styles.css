@@ -251,6 +251,24 @@ label {
   margin-bottom: 14px;
 }
 
+.groups-panel-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.group-add-form {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  justify-self: end;
+  max-width: 220px;
+  width: 100%;
+}
+
+.group-add-form input {
+  min-width: 0;
+}
+
 .stack {
   display: grid;
   gap: 8px;
@@ -414,6 +432,25 @@ button.icon-button[aria-expanded="true"] {
   background: #eef2f6;
   border-color: var(--line);
   color: var(--ink);
+}
+
+button.group-add-button,
+button.confirm-icon-button {
+  font-size: 18px;
+  font-weight: 700;
+  min-width: 32px;
+}
+
+button.group-add-button {
+  justify-self: end;
+}
+
+button.confirm-icon-button {
+  color: var(--accent);
+}
+
+button.confirm-icon-button:hover:not(:disabled) {
+  color: var(--accent-strong);
 }
 
 .row-action-menu-dots {

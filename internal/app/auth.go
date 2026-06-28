@@ -192,8 +192,14 @@ func (s *Server) handleAuthSession(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, user)
 }
 
-func (s *Server) withAuth(next http.Handler) http.Handler {
+func (s *Server) withAuth(next *http.ServeMux) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, pattern := next.Handler(r)
+		if pattern == "/api" || pattern == "/api/" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		if !strings.HasPrefix(r.URL.Path, "/api/") || isPublicAPIRoute(r) {
 			next.ServeHTTP(w, r)
 			return

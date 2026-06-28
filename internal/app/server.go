@@ -42,6 +42,9 @@ func NewServer(_ context.Context, db *pgxpool.Pool, config Config) (*Server, err
 func (s *Server) Routes() http.Handler {
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("/api", s.handleAPINotFound)
+	mux.HandleFunc("/api/", s.handleAPINotFound)
+
 	mux.HandleFunc("GET /api/health", s.handleHealth)
 	mux.HandleFunc("POST /api/auth/signup", s.handleSignup)
 	mux.HandleFunc("POST /api/auth/login", s.handleLogin)
@@ -106,9 +109,23 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("PATCH /api/groups/{group_id}/feed-posts/{post_id}", s.handlePatchGroupFeedPost)
 	mux.HandleFunc("DELETE /api/groups/{group_id}/feed-posts/{post_id}", s.handleDeleteGroupFeedPost)
 
-	mux.HandleFunc("GET /", s.handleStatic)
+	staticMux := http.NewServeMux()
+	staticMux.HandleFunc("GET /", s.handleStatic)
 
-	return s.withRequestLog(s.withAuth(mux))
+	apiHandler := s.withAuth(mux)
+	root := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api" || strings.HasPrefix(r.URL.Path, "/api/") {
+			apiHandler.ServeHTTP(w, r)
+			return
+		}
+		staticMux.ServeHTTP(w, r)
+	})
+
+	return s.withRequestLog(root)
+}
+
+func (s *Server) handleAPINotFound(w http.ResponseWriter, _ *http.Request) {
+	writeError(w, http.StatusNotFound, "endpoint not found")
 }
 
 func (s *Server) handleStatic(w http.ResponseWriter, r *http.Request) {
