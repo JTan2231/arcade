@@ -256,7 +256,7 @@ The root `ci.sh` has two testing-related targets:
   `cd test && bun run e2e`.
 
 The default `./ci.sh` target also runs frontend and backend validation before
-scenario checks and E2E.
+scenario checks and E2E, then regenerates generated docs.
 
 E2E requires `go`, `bun`, `psql`, a reachable Postgres server, and installed
 Playwright browser binaries for the chosen project.

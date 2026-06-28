@@ -9,3 +9,5 @@ package.
   applied, tested, and operated.
 - [Testing](testing.md): design and implementation of the TypeScript/YAML
   scenario harness under `test/`.
+- [Generated frontend event handlers](generated/frontend-event-handlers.md):
+  static JSX inventory of frontend handler props by accessible region and label.

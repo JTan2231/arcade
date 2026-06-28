@@ -16,8 +16,8 @@ require_command() {
 
 usage() {
 	cat <<'EOF'
-Usage: ./ci.sh [all|frontend|backend|scenarios|e2e|test]
-       ./ci.sh [--all|--frontend|--backend|--scenarios|--e2e|--test]
+Usage: ./ci.sh [all|frontend|backend|scenarios|e2e|test|generated-docs]
+       ./ci.sh [--all|--frontend|--backend|--scenarios|--e2e|--test|--generated-docs]
 
 Runs all CI checks by default.
 EOF
@@ -98,6 +98,13 @@ run_e2e() {
 	(cd test && bun run e2e) || return 1
 }
 
+run_generated_docs() {
+	require_command bun || return 1
+
+	section "Generated docs: frontend event handler inventory"
+	scripts/generate-frontend-event-docs.sh || return 1
+}
+
 tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/arcade-ci.XXXXXX")" || exit 1
 trap 'rm -rf "$tmp_dir"' EXIT INT TERM
 
@@ -124,6 +131,9 @@ if [ "$#" -eq 1 ]; then
 	e2e | test | --e2e | --test)
 		target="e2e"
 		;;
+	generated-docs | docs | --generated-docs | --docs)
+		target="generated-docs"
+		;;
 	-h | --help)
 		usage
 		exit 0
@@ -140,11 +150,14 @@ frontend_status=0
 backend_status=0
 scenarios_status=0
 e2e_status=0
+generated_docs_status=0
 e2e_blocked_by_scenarios=0
+generated_docs_blocked_by_frontend=0
 run_frontend_checks=0
 run_backend_checks=0
 run_scenario_checks=0
 run_e2e_checks=0
+run_generated_docs_checks=0
 
 case "$target" in
 all)
@@ -152,9 +165,11 @@ all)
 	run_backend_checks=1
 	run_scenario_checks=1
 	run_e2e_checks=1
+	run_generated_docs_checks=1
 	;;
 frontend)
 	run_frontend_checks=1
+	run_generated_docs_checks=1
 	;;
 backend)
 	run_backend_checks=1
@@ -165,6 +180,9 @@ scenarios)
 e2e)
 	run_scenario_checks=1
 	run_e2e_checks=1
+	;;
+generated-docs)
+	run_generated_docs_checks=1
 	;;
 esac
 
@@ -186,6 +204,14 @@ if [ "$run_e2e_checks" -eq 1 ]; then
 		e2e_status=1
 	else
 		run_e2e || e2e_status=$?
+	fi
+fi
+
+if [ "$run_generated_docs_checks" -eq 1 ]; then
+	if [ "$run_frontend_checks" -eq 1 ] && [ "$frontend_status" -ne 0 ]; then
+		generated_docs_blocked_by_frontend=1
+	else
+		run_generated_docs || generated_docs_status=$?
 	fi
 fi
 
@@ -233,7 +259,19 @@ else
 	printf 'E2E: skipped\n'
 fi
 
-if [ "$frontend_status" -ne 0 ] || [ "$backend_status" -ne 0 ] || [ "$scenarios_status" -ne 0 ] || [ "$e2e_status" -ne 0 ]; then
+if [ "$run_generated_docs_checks" -eq 1 ]; then
+	if [ "$generated_docs_blocked_by_frontend" -eq 1 ]; then
+		printf 'Generated docs: skipped because frontend checks failed\n' >&2
+	elif [ "$generated_docs_status" -eq 0 ]; then
+		printf 'Generated docs: passed\n'
+	else
+		printf 'Generated docs: failed\n' >&2
+	fi
+else
+	printf 'Generated docs: skipped\n'
+fi
+
+if [ "$frontend_status" -ne 0 ] || [ "$backend_status" -ne 0 ] || [ "$scenarios_status" -ne 0 ] || [ "$e2e_status" -ne 0 ] || [ "$generated_docs_status" -ne 0 ]; then
 	exit 1
 fi
 
