@@ -1167,8 +1167,7 @@ func dailyFeedOutputDate(schedule DailyFeedSchedule, requestedDate *time.Time) (
 		return time.Time{}, badRequest("schedule timezone is invalid")
 	}
 	if requestedDate != nil {
-		local := requestedDate.In(location)
-		return time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, location), nil
+		return time.Date(requestedDate.Year(), requestedDate.Month(), requestedDate.Day(), 0, 0, 0, 0, location), nil
 	}
 	if schedule.IntervalSeconds <= 0 {
 		return time.Time{}, badRequest("schedule interval_seconds must be positive")

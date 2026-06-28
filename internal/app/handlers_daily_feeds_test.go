@@ -192,6 +192,28 @@ func TestDailyThreadOutputHasNoGeneratedItems(t *testing.T) {
 	}
 }
 
+func TestDailyFeedOutputDateKeepsRequestedCalendarDateInScheduleTimezone(t *testing.T) {
+	requestedDate, err := parseDailyFeedPathDate("2026-06-28")
+	if err != nil {
+		t.Fatalf("parseDailyFeedPathDate returned error: %v", err)
+	}
+
+	date, err := dailyFeedOutputDate(DailyFeedSchedule{
+		Timezone:        "America/Chicago",
+		IntervalSeconds: 86400,
+	}, &requestedDate)
+	if err != nil {
+		t.Fatalf("dailyFeedOutputDate returned error: %v", err)
+	}
+
+	if got := date.Format(dailyFeedDateLayout); got != "2026-06-28" {
+		t.Fatalf("date = %q", got)
+	}
+	if got := date.Location().String(); got != "America/Chicago" {
+		t.Fatalf("location = %q", got)
+	}
+}
+
 func candidateIDs(candidates []dailyCatalogCandidate) []string {
 	ids := make([]string, 0, len(candidates))
 	for _, candidate := range candidates {
