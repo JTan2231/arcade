@@ -266,6 +266,15 @@ The root `ci.sh` has two testing-related targets:
 The default `./ci.sh` target also runs frontend and backend validation before
 scenario checks and E2E, then regenerates generated docs.
 
+Local `ci.sh` invocations run in an isolated temporary worktree by default. The
+outer script snapshots `HEAD` plus the current tracked and untracked non-ignored
+working tree contents, checks out that snapshot as a detached worktree, and then
+runs the checks there with `ARCADE_CI_IN_WORKTREE=1`. This keeps dependency
+installs, frontend builds, scenario artifacts, and other generated files from
+mutating or conflicting with the active checkout, including while `./run.sh` is
+running. Set `ARCADE_CI_IN_WORKTREE=1` explicitly only when you need to run the
+checks directly in the current checkout for debugging.
+
 E2E requires `go`, `bun`, `psql`, a reachable Postgres server, and installed
 Playwright browser binaries for the chosen project.
 

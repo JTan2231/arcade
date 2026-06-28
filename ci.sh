@@ -14,13 +14,47 @@ require_command() {
 	fi
 }
 
+cleanup() {
+	status=$?
+	trap - EXIT INT TERM
+
+	if [ "${ci_worktree_path:-}" != "" ]; then
+		git worktree remove --force "$ci_worktree_path" >/dev/null 2>&1 || {
+			rm -rf "$ci_worktree_path"
+			git worktree prune >/dev/null 2>&1 || true
+		}
+	fi
+
+	rm -rf "$tmp_dir"
+	exit "$status"
+}
+
 usage() {
 	cat <<'EOF'
 Usage: ./ci.sh [all|frontend|backend|scenarios|e2e|test|generated-docs]
        ./ci.sh [--all|--frontend|--backend|--scenarios|--e2e|--test|--generated-docs]
 
-Runs all CI checks by default.
+Runs all CI checks by default in an isolated temporary worktree.
 EOF
+}
+
+run_in_isolated_worktree() {
+	require_command git || return 1
+
+	base_commit="$(git rev-parse --verify HEAD)" || return 1
+	tmp_index="$tmp_dir/snapshot.index"
+	ci_worktree_path="$tmp_dir/worktree"
+
+	section "CI: preparing isolated worktree"
+	GIT_INDEX_FILE="$tmp_index" git read-tree "$base_commit" || return 1
+	GIT_INDEX_FILE="$tmp_index" git add -A -- . || return 1
+	tree="$(GIT_INDEX_FILE="$tmp_index" git write-tree)" || return 1
+	snapshot_commit="$(printf 'arcade ci snapshot\n' | git commit-tree "$tree" -p "$base_commit")" || return 1
+
+	git worktree add --detach "$ci_worktree_path" "$snapshot_commit" || return 1
+
+	section "CI: running checks in isolated worktree"
+	ARCADE_CI_IN_WORKTREE=1 "$ci_worktree_path/ci.sh" "$@"
 }
 
 run_frontend() {
@@ -106,7 +140,7 @@ run_generated_docs() {
 }
 
 tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/arcade-ci.XXXXXX")" || exit 1
-trap 'rm -rf "$tmp_dir"' EXIT INT TERM
+trap cleanup EXIT INT TERM
 
 target="all"
 if [ "$#" -gt 1 ]; then
@@ -144,6 +178,11 @@ if [ "$#" -eq 1 ]; then
 		exit 2
 		;;
 	esac
+fi
+
+if [ "${ARCADE_CI_IN_WORKTREE:-}" != "1" ]; then
+	run_in_isolated_worktree "$@"
+	exit $?
 fi
 
 frontend_status=0
