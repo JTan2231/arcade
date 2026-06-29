@@ -1,0 +1,135 @@
+name: feed metrics create a leaderboard
+
+vars:
+  email: metric-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Metric Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: login_owner
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Metric Dojo
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: list_feeds
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds
+      expectStatus: 200
+      capture:
+        feed_id: $[0].id
+
+steps:
+  - visit: /
+
+  - within: Selected feed output
+    expectVisible:
+      text: Daily Thread
+
+  - within: Metrics
+    click:
+      role: button
+      name: Add metric
+
+  - within: Add metric
+    select:
+      label: Metric
+      exact: false
+      value: post_count
+
+  - within: Add metric
+    fill:
+      label: Name
+      exact: false
+      value: Thread posts
+
+  - within: Add metric
+    select:
+      label: Aggregation
+      exact: false
+      value: count
+
+  - within: Add metric
+    click:
+      role: button
+      name: Save
+
+  - expectStatus:
+      text: Metric added
+
+  - within: Metrics
+    expectVisible:
+      text: Thread posts
+
+  - request:
+      id: list_metrics
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/metrics
+      expectStatus: 200
+      expectJson:
+        - display_name: Thread posts
+          system_key: post_count
+          aggregation: count
+      capture:
+        metric_id: $[0].id
+
+  - within: Posts
+    click:
+      role: button
+      name: Post
+
+  - within: Posts
+    fill:
+      label: Evidence
+      value: Solved a leaderboard sample.
+
+  - within: Posts
+    click:
+      role: button
+      name: Submit
+
+  - expectStatus:
+      text: Post submitted
+
+  - request:
+      id: leaderboard
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/metrics/{{metric_id}}/leaderboard?from={{today}}&to={{today}}
+      expectStatus: 200
+      expectJson:
+        metric:
+          display_name: Thread posts
+        rows:
+          - value: 1
+            raw_value: 1
+            sample_count: 1

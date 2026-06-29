@@ -30,6 +30,7 @@ import type { addFeedMachine } from "./machines/addFeedMachine";
 import type { dashboardMachine } from "./machines/dashboardMachine";
 import type {
   DailyFeed,
+  FeedMetric,
   Friend,
   FriendRequests,
   Group,
@@ -46,6 +47,7 @@ type AppRoute = "workspace" | "profile";
 const EMPTY_GROUPS: Group[] = [];
 const EMPTY_FEEDS: DailyFeed[] = [];
 const EMPTY_POSTS: GroupFeedPost[] = [];
+const EMPTY_METRICS: FeedMetric[] = [];
 const EMPTY_FRIENDS: Friend[] = [];
 const EMPTY_GROUP_INVITES: GroupInvite[] = [];
 const EMPTY_INVITE_CANDIDATES: GroupInviteCandidate[] = [];
@@ -99,7 +101,21 @@ export default function App() {
     "loadingDatedOutput",
   );
   const loadingPosts = matchesGrandchildState(dashboardStateValue, "groupSelected", "feedSelected", "loadingPosts");
+  const loadingMetrics = matchesGrandchildState(dashboardStateValue, "groupSelected", "feedSelected", "loadingMetrics");
+  const loadingLeaderboard = matchesGrandchildState(
+    dashboardStateValue,
+    "groupSelected",
+    "feedSelected",
+    "loadingLeaderboard",
+  );
   const creatingPost = matchesGrandchildState(dashboardStateValue, "groupSelected", "feedSelected", "creatingPost");
+  const creatingMetric = matchesGrandchildState(dashboardStateValue, "groupSelected", "feedSelected", "creatingMetric");
+  const creatingJudgment = matchesGrandchildState(
+    dashboardStateValue,
+    "groupSelected",
+    "feedSelected",
+    "creatingJudgment",
+  );
   const addFeedOpen = matchesChildState(dashboardStateValue, "groupSelected", "addFeed");
   const addFeedLoadingSources = matchesTopState(addFeedStateValue, "loadingSources");
   const addFeedPreviewing = matchesTopState(addFeedStateValue, "previewing");
@@ -355,6 +371,11 @@ export default function App() {
   const postMutation = dashboardContext?.postMutation ?? null;
   const updatingPostId = postMutation?.kind === "update" ? postMutation.postId : null;
   const deletingPostId = postMutation?.kind === "delete" ? postMutation.postId : null;
+  const metricMutation = dashboardContext?.metricMutation ?? null;
+  const updatingMetricId = metricMutation?.kind === "update" ? metricMutation.metricId : null;
+  const deletingMetricId = metricMutation?.kind === "delete" ? metricMutation.metricId : null;
+  const judgmentMutation = dashboardContext?.judgmentMutation ?? null;
+  const judgingPostId = creatingJudgment ? (judgmentMutation?.postId ?? null) : null;
   const profilePath = context.user === null ? "/" : userProfilePath(context.user);
 
   if (checkingSession) {
@@ -468,9 +489,19 @@ export default function App() {
               posts={dashboardContext?.posts ?? EMPTY_POSTS}
               postsLoading={loadingPosts}
               postsError={dashboardContext?.postsError ?? ""}
+              metrics={dashboardContext?.metrics ?? EMPTY_METRICS}
+              selectedMetricId={dashboardContext?.selectedMetricId ?? null}
+              metricLeaderboard={dashboardContext?.metricLeaderboard ?? null}
+              metricsLoading={loadingMetrics}
+              leaderboardLoading={loadingLeaderboard}
+              metricsError={dashboardContext?.metricsError ?? ""}
               postSubmitting={creatingPost}
               updatingPostId={updatingPostId}
               deletingPostId={deletingPostId}
+              metricSubmitting={creatingMetric}
+              updatingMetricId={updatingMetricId}
+              deletingMetricId={deletingMetricId}
+              judgingPostId={judgingPostId}
               currentUserId={context.user?.id ?? null}
               addFeedOpen={addFeedOpen}
               addFeedSources={addFeedContext?.sources ?? []}
@@ -498,6 +529,21 @@ export default function App() {
                 dashboardRef?.send({ type: "POST_UPDATE_SUBMITTED", postId, payload })
               }
               onDeleteFeedPost={(postId) => dashboardRef?.send({ type: "POST_DELETE_SUBMITTED", postId })}
+              onSelectMetric={(metricId) => dashboardRef?.send({ type: "METRIC_SELECTED", metricId })}
+              onCreateMetric={(payload) => dashboardRef?.send({ type: "METRIC_CREATE_SUBMITTED", payload })}
+              onUpdateMetric={(metricId, payload) =>
+                dashboardRef?.send({ type: "METRIC_UPDATE_SUBMITTED", metricId, payload })
+              }
+              onDeleteMetric={(metricId) => dashboardRef?.send({ type: "METRIC_DELETE_SUBMITTED", metricId })}
+              onCreateMetricJudgment={(metricId, postId, payload) =>
+                dashboardRef?.send({
+                  type: "JUDGMENT_CREATE_SUBMITTED",
+                  metricId,
+                  postId,
+                  value: payload.value,
+                  note: payload.note ?? "",
+                })
+              }
               onInviteFriend={handleInviteFriend}
               onCancelGroupInvite={handleCancelGroupInviteForCandidate}
             />

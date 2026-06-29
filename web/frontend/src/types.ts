@@ -9,7 +9,7 @@ export type User = {
   updated_at: string;
 };
 
-type PublicUser = {
+export type PublicUser = {
   id: string;
   username: string;
   display_name: string;
@@ -212,6 +212,83 @@ export type PatchGroupFeedPostRequest = {
   evidence_kind?: "text";
   evidence_text?: string;
   caption?: string | null;
+};
+
+export type FeedMetricKey =
+  | "judged"
+  | "post_count"
+  | "average_post_length_words"
+  | "missed_days"
+  | "current_streak"
+  | "typical_posting_window";
+
+export type SystemMetricKey = Exclude<FeedMetricKey, "judged">;
+
+export type MetricAggregation = "sum" | "average" | "latest" | "count" | "max" | "min";
+
+export type FeedMetric = {
+  id: string;
+  group_id: string;
+  feed_id: string;
+  system_key: FeedMetricKey;
+  judgment_prompt?: string;
+  aggregation: MetricAggregation;
+  display_name: string;
+  created_by_user_id?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FeedMetricJudgment = {
+  id: string;
+  metric_id: string;
+  group_id: string;
+  post_id: string;
+  subject_user_id: string;
+  evaluator_user_id: string;
+  value: number;
+  note?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MetricLeaderboard = {
+  metric: FeedMetric;
+  from: string;
+  to: string;
+  rows: MetricLeaderboardRow[];
+};
+
+export type MetricLeaderboardRow = {
+  rank: number | null;
+  user: PublicUser;
+  value: number | string;
+  raw_value: number | null;
+  sample_count: number;
+};
+
+export type CreateFeedMetricRequest = {
+  system_key: FeedMetricKey;
+  judgment_prompt?: string;
+  aggregation: MetricAggregation;
+  display_name: string;
+};
+
+export type PatchFeedMetricRequest = {
+  judgment_prompt?: string;
+  aggregation?: MetricAggregation;
+  display_name?: string;
+};
+
+export type CreateFeedMetricJudgmentRequest = {
+  post_id: string;
+  value: number;
+  note?: string;
+};
+
+export type PatchFeedMetricJudgmentRequest = {
+  value?: number;
+  note?: string | null;
 };
 
 export type LoginRequest = {

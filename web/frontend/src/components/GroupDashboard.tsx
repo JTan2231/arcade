@@ -6,15 +6,25 @@ import type {
   CatalogSource,
   CatalogSourceField,
   CreateDailyFeedRequest,
+  CreateFeedMetricJudgmentRequest,
+  CreateFeedMetricRequest,
   DailyFeed,
   DailyFeedAction,
   DailyFeedOutput,
   DailyFeedOutputItem,
   DailyFeedPreview,
   DailyFeedRuleFilter,
+  FeedMetric,
+  FeedMetricKey,
   Group,
   GroupFeedPost,
   GroupInviteCandidate,
+  MetricAggregation,
+  MetricLeaderboard,
+  MetricLeaderboardRow,
+  PatchFeedMetricRequest,
+  PublicUser,
+  SystemMetricKey,
 } from "../types";
 
 type GroupDashboardProps = {
@@ -28,9 +38,19 @@ type GroupDashboardProps = {
   posts: GroupFeedPost[];
   postsLoading: boolean;
   postsError: string;
+  metrics: FeedMetric[];
+  selectedMetricId: string | null;
+  metricLeaderboard: MetricLeaderboard | null;
+  metricsLoading: boolean;
+  leaderboardLoading: boolean;
+  metricsError: string;
   postSubmitting: boolean;
   updatingPostId: string | null;
   deletingPostId: string | null;
+  metricSubmitting: boolean;
+  updatingMetricId: string | null;
+  deletingMetricId: string | null;
+  judgingPostId: string | null;
   currentUserId: string | null;
   addFeedOpen: boolean;
   addFeedSources: CatalogSource[];
@@ -50,6 +70,15 @@ type GroupDashboardProps = {
   onCreateFeedPost: (payload: { evidenceText: string; caption: string }) => void;
   onUpdateFeedPost: (postId: string, payload: { evidenceText: string; caption: string }) => void;
   onDeleteFeedPost: (postId: string) => void;
+  onSelectMetric: (metricId: string) => void;
+  onCreateMetric: (payload: CreateFeedMetricRequest) => void;
+  onUpdateMetric: (metricId: string, payload: PatchFeedMetricRequest) => void;
+  onDeleteMetric: (metricId: string) => void;
+  onCreateMetricJudgment: (
+    metricId: string,
+    postId: string,
+    payload: Omit<CreateFeedMetricJudgmentRequest, "post_id">,
+  ) => void;
   onInviteFriend: (userId: string) => void;
   onCancelGroupInvite: (userId: string) => void;
 };
@@ -65,9 +94,19 @@ export function GroupDashboard({
   posts,
   postsLoading,
   postsError,
+  metrics,
+  selectedMetricId,
+  metricLeaderboard,
+  metricsLoading,
+  leaderboardLoading,
+  metricsError,
   postSubmitting,
   updatingPostId,
   deletingPostId,
+  metricSubmitting,
+  updatingMetricId,
+  deletingMetricId,
+  judgingPostId,
   currentUserId,
   addFeedOpen,
   addFeedSources,
@@ -87,6 +126,11 @@ export function GroupDashboard({
   onCreateFeedPost,
   onUpdateFeedPost,
   onDeleteFeedPost,
+  onSelectMetric,
+  onCreateMetric,
+  onUpdateMetric,
+  onDeleteMetric,
+  onCreateMetricJudgment,
   onInviteFriend,
   onCancelGroupInvite,
 }: GroupDashboardProps) {
@@ -104,6 +148,8 @@ export function GroupDashboard({
   const feed = feeds.find((candidate) => candidate.id === selectedFeedId) || null;
   const heading = feed ? (output?.title ?? feed.name) : "";
   const headingDate = output?.date ?? selectedFeedDate;
+  const canManageMetrics = group.my_role === "owner" || group.my_role === "admin";
+  const judgedMetrics = metrics.filter((metric) => metric.system_key === "judged");
 
   return (
     <section className="panel group-dashboard-panel">
@@ -140,9 +186,30 @@ export function GroupDashboard({
             updatingPostId={updatingPostId}
             deletingPostId={deletingPostId}
             currentUserId={currentUserId}
+            judgedMetrics={judgedMetrics}
+            canJudge={canManageMetrics}
+            judgingPostId={judgingPostId}
             onCreateFeedPost={onCreateFeedPost}
             onUpdateFeedPost={onUpdateFeedPost}
             onDeleteFeedPost={onDeleteFeedPost}
+            onCreateMetricJudgment={onCreateMetricJudgment}
+          />
+          <MetricsSection
+            feed={feed}
+            metrics={metrics}
+            selectedMetricId={selectedMetricId}
+            leaderboard={metricLeaderboard}
+            metricsLoading={metricsLoading}
+            leaderboardLoading={leaderboardLoading}
+            error={metricsError}
+            canManage={canManageMetrics}
+            metricSubmitting={metricSubmitting}
+            updatingMetricId={updatingMetricId}
+            deletingMetricId={deletingMetricId}
+            onSelectMetric={onSelectMetric}
+            onCreateMetric={onCreateMetric}
+            onUpdateMetric={onUpdateMetric}
+            onDeleteMetric={onDeleteMetric}
           />
         </section>
         {group.my_status === "active" ? (
@@ -744,6 +811,446 @@ function PreviewPanel({ preview }: { preview: DailyFeedPreview }) {
   );
 }
 
+const systemMetricOptions: Array<{
+  key: SystemMetricKey;
+  label: string;
+  aggregations: MetricAggregation[];
+  defaultAggregation: MetricAggregation;
+}> = [
+  { key: "post_count", label: "Post count", aggregations: ["count", "sum"], defaultAggregation: "count" },
+  {
+    key: "average_post_length_words",
+    label: "Average post length",
+    aggregations: ["average", "max", "min"],
+    defaultAggregation: "average",
+  },
+  { key: "missed_days", label: "Missed days", aggregations: ["count", "sum"], defaultAggregation: "count" },
+  { key: "current_streak", label: "Current streak", aggregations: ["latest", "max"], defaultAggregation: "latest" },
+  {
+    key: "typical_posting_window",
+    label: "Typical posting window",
+    aggregations: ["latest"],
+    defaultAggregation: "latest",
+  },
+];
+
+const judgedAggregations: MetricAggregation[] = ["average", "sum", "latest", "count", "max", "min"];
+
+function MetricsSection({
+  feed,
+  metrics,
+  selectedMetricId,
+  leaderboard,
+  metricsLoading,
+  leaderboardLoading,
+  error,
+  canManage,
+  metricSubmitting,
+  updatingMetricId,
+  deletingMetricId,
+  onSelectMetric,
+  onCreateMetric,
+  onUpdateMetric,
+  onDeleteMetric,
+}: {
+  feed: DailyFeed | null;
+  metrics: FeedMetric[];
+  selectedMetricId: string | null;
+  leaderboard: MetricLeaderboard | null;
+  metricsLoading: boolean;
+  leaderboardLoading: boolean;
+  error: string;
+  canManage: boolean;
+  metricSubmitting: boolean;
+  updatingMetricId: string | null;
+  deletingMetricId: string | null;
+  onSelectMetric: (metricId: string) => void;
+  onCreateMetric: (payload: CreateFeedMetricRequest) => void;
+  onUpdateMetric: (metricId: string, payload: PatchFeedMetricRequest) => void;
+  onDeleteMetric: (metricId: string) => void;
+}) {
+  const [dialogMode, setDialogMode] = useState<"create" | "edit" | null>(null);
+  const selectedMetric = metrics.find((metric) => metric.id === selectedMetricId) ?? null;
+  const editingMetric = dialogMode === "edit" ? selectedMetric : null;
+
+  if (!feed) {
+    return null;
+  }
+
+  function handleDeleteMetric(metric: FeedMetric) {
+    if (deletingMetricId !== null || !window.confirm(`Delete ${metric.display_name}?`)) {
+      return;
+    }
+    onDeleteMetric(metric.id);
+  }
+
+  return (
+    <section className="metrics-section" aria-label="Metrics">
+      <div className="section-header-row">
+        <div>
+          <div className="section-title">Metrics</div>
+          {selectedMetric ? (
+            <div className="meta">
+              {metricKeyLabel(selectedMetric.system_key)} · {aggregationLabel(selectedMetric.aggregation)}
+            </div>
+          ) : null}
+        </div>
+        {canManage ? (
+          <button
+            className="secondary"
+            type="button"
+            disabled={metricSubmitting}
+            onClick={() => setDialogMode("create")}
+          >
+            Add metric
+          </button>
+        ) : null}
+      </div>
+
+      {metricsLoading ? <div className="empty-state">Loading metrics...</div> : null}
+      {error ? (
+        <div className="form-error" role="alert">
+          {error}
+        </div>
+      ) : null}
+
+      {!metricsLoading && metrics.length === 0 && !error ? (
+        <div className="empty-state">No metrics configured.</div>
+      ) : null}
+
+      {metrics.length > 0 ? (
+        <div className="metric-layout">
+          <div className="metric-list" aria-label="Configured metrics">
+            {metrics.map((metric) => (
+              <button
+                className={`metric-select-button ${metric.id === selectedMetricId ? "selected-row" : ""}`}
+                key={metric.id}
+                type="button"
+                onClick={() => onSelectMetric(metric.id)}
+              >
+                <span className="title">{metric.display_name}</span>
+                <span className="meta">{metricKeyLabel(metric.system_key)}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="leaderboard-panel">
+            {selectedMetric ? (
+              <div className="leaderboard-header">
+                <div>
+                  <div className="title">{selectedMetric.display_name}</div>
+                  {selectedMetric.judgment_prompt !== undefined && selectedMetric.judgment_prompt !== "" ? (
+                    <div className="meta">{selectedMetric.judgment_prompt}</div>
+                  ) : null}
+                </div>
+                {canManage ? (
+                  <div className="compact-actions">
+                    <button
+                      className="secondary"
+                      type="button"
+                      disabled={updatingMetricId === selectedMetric.id}
+                      onClick={() => setDialogMode("edit")}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="danger"
+                      type="button"
+                      disabled={deletingMetricId === selectedMetric.id}
+                      onClick={() => handleDeleteMetric(selectedMetric)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {leaderboardLoading ? <div className="empty-state">Loading leaderboard...</div> : null}
+            {!leaderboardLoading && leaderboard ? <LeaderboardTable leaderboard={leaderboard} /> : null}
+          </div>
+        </div>
+      ) : null}
+
+      {dialogMode ? (
+        <MetricDialog
+          mode={dialogMode}
+          metric={editingMetric}
+          saving={dialogMode === "create" ? metricSubmitting : updatingMetricId === editingMetric?.id}
+          onClose={() => setDialogMode(null)}
+          onCreate={(payload) => {
+            onCreateMetric(payload);
+            setDialogMode(null);
+          }}
+          onUpdate={(metricId, payload) => {
+            onUpdateMetric(metricId, payload);
+            setDialogMode(null);
+          }}
+        />
+      ) : null}
+    </section>
+  );
+}
+
+function LeaderboardTable({ leaderboard }: { leaderboard: MetricLeaderboard }) {
+  if (leaderboard.rows.length === 0) {
+    return <div className="empty-state">No active members.</div>;
+  }
+  return (
+    <table className="leaderboard-table">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Member</th>
+          <th>Value</th>
+          <th>Samples</th>
+        </tr>
+      </thead>
+      <tbody>
+        {leaderboard.rows.map((row) => (
+          <tr key={row.user.id}>
+            <td>{leaderboardRankDisplay(row)}</td>
+            <td>{publicUserDisplayName(row.user)}</td>
+            <td>{row.value}</td>
+            <td>{row.sample_count}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function leaderboardRankDisplay(row: MetricLeaderboardRow): string | number {
+  return row.rank ?? "-";
+}
+
+function publicUserDisplayName(user: PublicUser): string {
+  return user.display_name || user.username;
+}
+
+function MetricDialog({
+  mode,
+  metric,
+  saving,
+  onClose,
+  onCreate,
+  onUpdate,
+}: {
+  mode: "create" | "edit";
+  metric: FeedMetric | null;
+  saving: boolean;
+  onClose: () => void;
+  onCreate: (payload: CreateFeedMetricRequest) => void;
+  onUpdate: (metricId: string, payload: PatchFeedMetricRequest) => void;
+}) {
+  const editing = mode === "edit" && metric !== null;
+  const initialKind = metric?.system_key === "judged" ? "judged" : "system";
+  const initialSystemKey =
+    metric?.system_key !== undefined && metric.system_key !== "judged" ? metric.system_key : "post_count";
+  const [kind, setKind] = useState<"system" | "judged">(initialKind);
+  const [systemKey, setSystemKey] = useState<SystemMetricKey>(initialSystemKey);
+  const [displayName, setDisplayName] = useState(metric?.display_name ?? defaultMetricDisplayName(initialSystemKey));
+  const [aggregation, setAggregation] = useState<MetricAggregation>(
+    metric?.aggregation ?? defaultAggregationForMetricKey(initialSystemKey),
+  );
+  const [judgmentPrompt, setJudgmentPrompt] = useState(metric?.judgment_prompt ?? "");
+  const [validationError, setValidationError] = useState("");
+
+  const metricKey: FeedMetricKey = editing ? metric.system_key : kind === "judged" ? "judged" : systemKey;
+  const allowedAggregations = aggregationsForMetricKey(metricKey);
+
+  useEffect(() => {
+    if (!allowedAggregations.includes(aggregation)) {
+      setAggregation(defaultAggregationForMetricKey(metricKey));
+    }
+  }, [aggregation, allowedAggregations, metricKey]);
+
+  function handleSystemKeyChange(nextKey: SystemMetricKey) {
+    setSystemKey(nextKey);
+    setAggregation(defaultAggregationForMetricKey(nextKey));
+    if (mode === "create") {
+      setDisplayName(defaultMetricDisplayName(nextKey));
+    }
+  }
+
+  function handleKindChange(nextKind: "system" | "judged") {
+    setKind(nextKind);
+    const nextKey: FeedMetricKey = nextKind === "judged" ? "judged" : systemKey;
+    setAggregation(defaultAggregationForMetricKey(nextKey));
+    if (mode === "create") {
+      setDisplayName(nextKind === "judged" ? "" : defaultMetricDisplayName(systemKey));
+    }
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedDisplayName = displayName.trim();
+    const trimmedPrompt = judgmentPrompt.trim();
+    if (trimmedDisplayName === "") {
+      setValidationError("Name is required");
+      return;
+    }
+    if (metricKey === "judged" && trimmedPrompt === "") {
+      setValidationError("Prompt is required");
+      return;
+    }
+    setValidationError("");
+
+    if (editing) {
+      onUpdate(metric.id, {
+        display_name: trimmedDisplayName,
+        aggregation,
+        ...(metricKey === "judged" ? { judgment_prompt: trimmedPrompt } : {}),
+      });
+      return;
+    }
+
+    onCreate({
+      system_key: metricKey,
+      display_name: trimmedDisplayName,
+      aggregation,
+      ...(metricKey === "judged" ? { judgment_prompt: trimmedPrompt } : {}),
+    });
+  }
+
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <div className="modal-panel metric-dialog" role="dialog" aria-modal="true" aria-labelledby="metric-dialog-title">
+        <form className="metric-form" onSubmit={handleSubmit}>
+          <div className="modal-header">
+            <div>
+              <h2 id="metric-dialog-title">{editing ? "Edit metric" : "Add metric"}</h2>
+              <div className="meta">{metricKeyLabel(metricKey)}</div>
+            </div>
+            <button className="secondary" type="button" onClick={onClose}>
+              Close
+            </button>
+          </div>
+
+          {!editing ? (
+            <label>
+              Type
+              <select value={kind} onChange={(event) => handleKindChange(event.target.value as "system" | "judged")}>
+                <option value="system">Calculated</option>
+                <option value="judged">Judged</option>
+              </select>
+            </label>
+          ) : null}
+
+          {kind === "system" && !editing ? (
+            <label>
+              Metric
+              <select
+                value={systemKey}
+                onChange={(event) => handleSystemKeyChange(event.target.value as SystemMetricKey)}
+              >
+                {systemMetricOptions.map((option) => (
+                  <option key={option.key} value={option.key}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
+          <div className="form-grid two-column">
+            <label>
+              Name
+              <input
+                value={displayName}
+                onChange={(event) => {
+                  setDisplayName(event.target.value);
+                  setValidationError("");
+                }}
+              />
+            </label>
+            <label>
+              Aggregation
+              <select value={aggregation} onChange={(event) => setAggregation(event.target.value as MetricAggregation)}>
+                {allowedAggregations.map((candidate) => (
+                  <option key={candidate} value={candidate}>
+                    {aggregationLabel(candidate)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {metricKey === "judged" ? (
+            <label>
+              Prompt
+              <textarea
+                value={judgmentPrompt}
+                onChange={(event) => {
+                  setJudgmentPrompt(event.target.value);
+                  setValidationError("");
+                }}
+              />
+            </label>
+          ) : null}
+
+          {validationError ? (
+            <div className="form-error" role="alert">
+              {validationError}
+            </div>
+          ) : null}
+
+          <div className="output-actions">
+            <button className="secondary" type="button" disabled={saving} onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" disabled={saving}>
+              {saving ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function metricKeyLabel(key: FeedMetricKey): string {
+  if (key === "judged") {
+    return "Judged";
+  }
+  return systemMetricOptions.find((option) => option.key === key)?.label ?? key;
+}
+
+function aggregationLabel(aggregation: MetricAggregation): string {
+  switch (aggregation) {
+    case "sum":
+      return "Sum";
+    case "average":
+      return "Average";
+    case "latest":
+      return "Latest";
+    case "count":
+      return "Count";
+    case "max":
+      return "Max";
+    case "min":
+      return "Min";
+  }
+}
+
+function aggregationsForMetricKey(key: FeedMetricKey): MetricAggregation[] {
+  if (key === "judged") {
+    return judgedAggregations;
+  }
+  return systemMetricOptions.find((option) => option.key === key)?.aggregations ?? ["average"];
+}
+
+function defaultAggregationForMetricKey(key: FeedMetricKey): MetricAggregation {
+  if (key === "judged") {
+    return "average";
+  }
+  return systemMetricOptions.find((option) => option.key === key)?.defaultAggregation ?? "average";
+}
+
+function defaultMetricDisplayName(key: SystemMetricKey): string {
+  return systemMetricOptions.find((option) => option.key === key)?.label ?? "";
+}
+
 function FeedOutput({
   feed,
   output,
@@ -756,9 +1263,13 @@ function FeedOutput({
   updatingPostId,
   deletingPostId,
   currentUserId,
+  judgedMetrics,
+  canJudge,
+  judgingPostId,
   onCreateFeedPost,
   onUpdateFeedPost,
   onDeleteFeedPost,
+  onCreateMetricJudgment,
 }: {
   feed: DailyFeed | null;
   output: DailyFeedOutput | null;
@@ -771,9 +1282,17 @@ function FeedOutput({
   updatingPostId: string | null;
   deletingPostId: string | null;
   currentUserId: string | null;
+  judgedMetrics: FeedMetric[];
+  canJudge: boolean;
+  judgingPostId: string | null;
   onCreateFeedPost: (payload: { evidenceText: string; caption: string }) => void;
   onUpdateFeedPost: (postId: string, payload: { evidenceText: string; caption: string }) => void;
   onDeleteFeedPost: (postId: string) => void;
+  onCreateMetricJudgment: (
+    metricId: string,
+    postId: string,
+    payload: Omit<CreateFeedMetricJudgmentRequest, "post_id">,
+  ) => void;
 }) {
   if (!feed) {
     return <div className="empty-state">Select a feed to view its daily output.</div>;
@@ -815,9 +1334,13 @@ function FeedOutput({
         updatingPostId={updatingPostId}
         deletingPostId={deletingPostId}
         currentUserId={currentUserId}
+        judgedMetrics={judgedMetrics}
+        canJudge={canJudge}
+        judgingPostId={judgingPostId}
         onCreateFeedPost={onCreateFeedPost}
         onUpdateFeedPost={onUpdateFeedPost}
         onDeleteFeedPost={onDeleteFeedPost}
+        onCreateMetricJudgment={onCreateMetricJudgment}
       />
     </>
   );
@@ -832,9 +1355,13 @@ function FeedPostSection({
   updatingPostId,
   deletingPostId,
   currentUserId,
+  judgedMetrics,
+  canJudge,
+  judgingPostId,
   onCreateFeedPost,
   onUpdateFeedPost,
   onDeleteFeedPost,
+  onCreateMetricJudgment,
 }: {
   disabled: boolean;
   posts: GroupFeedPost[];
@@ -844,9 +1371,17 @@ function FeedPostSection({
   updatingPostId: string | null;
   deletingPostId: string | null;
   currentUserId: string | null;
+  judgedMetrics: FeedMetric[];
+  canJudge: boolean;
+  judgingPostId: string | null;
   onCreateFeedPost: (payload: { evidenceText: string; caption: string }) => void;
   onUpdateFeedPost: (postId: string, payload: { evidenceText: string; caption: string }) => void;
   onDeleteFeedPost: (postId: string) => void;
+  onCreateMetricJudgment: (
+    metricId: string,
+    postId: string,
+    payload: Omit<CreateFeedMetricJudgmentRequest, "post_id">,
+  ) => void;
 }) {
   const [formOpen, setFormOpen] = useState(false);
   const [evidenceText, setEvidenceText] = useState("");
@@ -933,8 +1468,12 @@ function FeedPostSection({
               post={post}
               saving={updatingPostId === post.id}
               deleting={deletingPostId === post.id}
+              judgedMetrics={judgedMetrics}
+              canJudge={canJudge && currentUserId !== post.author_user_id}
+              judging={judgingPostId === post.id}
               onUpdateFeedPost={onUpdateFeedPost}
               onDeleteFeedPost={onDeleteFeedPost}
+              onCreateMetricJudgment={onCreateMetricJudgment}
             />
           ))}
         </div>
@@ -949,15 +1488,27 @@ function FeedPostCard({
   mine,
   saving,
   deleting,
+  judgedMetrics,
+  canJudge,
+  judging,
   onUpdateFeedPost,
   onDeleteFeedPost,
+  onCreateMetricJudgment,
 }: {
   post: GroupFeedPost;
   mine: boolean;
   saving: boolean;
   deleting: boolean;
+  judgedMetrics: FeedMetric[];
+  canJudge: boolean;
+  judging: boolean;
   onUpdateFeedPost: (postId: string, payload: { evidenceText: string; caption: string }) => void;
   onDeleteFeedPost: (postId: string) => void;
+  onCreateMetricJudgment: (
+    metricId: string,
+    postId: string,
+    payload: Omit<CreateFeedMetricJudgmentRequest, "post_id">,
+  ) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [evidenceText, setEvidenceText] = useState(post.evidence_text);
@@ -1068,7 +1619,91 @@ function FeedPostCard({
           ) : null}
         </>
       )}
+      {canJudge && !editing && judgedMetrics.length > 0 ? (
+        <div className="post-judgment-list" aria-label={`Score ${post.author_display_name || post.author_username}`}>
+          {judgedMetrics.map((metric) => (
+            <MetricJudgmentForm
+              disabled={judging || saving || deleting}
+              key={metric.id}
+              metric={metric}
+              onSubmit={(payload) => onCreateMetricJudgment(metric.id, post.id, payload)}
+            />
+          ))}
+        </div>
+      ) : null}
     </article>
+  );
+}
+
+function MetricJudgmentForm({
+  metric,
+  disabled,
+  onSubmit,
+}: {
+  metric: FeedMetric;
+  disabled: boolean;
+  onSubmit: (payload: Omit<CreateFeedMetricJudgmentRequest, "post_id">) => void;
+}) {
+  const [value, setValue] = useState("");
+  const [note, setNote] = useState("");
+  const [error, setError] = useState("");
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const parsedValue = Number(value);
+    if (!Number.isFinite(parsedValue) || parsedValue < 0) {
+      setError("Score must be a non-negative number");
+      return;
+    }
+    setError("");
+    onSubmit({
+      value: parsedValue,
+      ...(note.trim() !== "" ? { note: note.trim() } : {}),
+    });
+  }
+
+  return (
+    <form className="metric-judgment-form" onSubmit={handleSubmit}>
+      <div>
+        <div className="title">{metric.display_name}</div>
+        {metric.judgment_prompt !== undefined && metric.judgment_prompt !== "" ? (
+          <div className="meta">{metric.judgment_prompt}</div>
+        ) : null}
+      </div>
+      <div className="metric-judgment-grid">
+        <label>
+          Score
+          <input
+            min="0"
+            step="any"
+            type="number"
+            value={value}
+            onChange={(event) => {
+              setValue(event.target.value);
+              setError("");
+            }}
+          />
+        </label>
+        <label>
+          Note
+          <input
+            value={note}
+            onChange={(event) => {
+              setNote(event.target.value);
+              setError("");
+            }}
+          />
+        </label>
+        <button type="submit" disabled={disabled || value.trim() === ""}>
+          Save
+        </button>
+      </div>
+      {error ? (
+        <div className="form-error" role="alert">
+          {error}
+        </div>
+      ) : null}
+    </form>
   );
 }
 

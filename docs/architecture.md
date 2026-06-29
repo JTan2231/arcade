@@ -59,6 +59,8 @@ Routes are grouped by resource in `Server.Routes()`:
 - Groups: groups and group memberships.
 - Divisions: group-scoped divisions and optional user-rating rules.
 - Dailies: group-owned daily feed definitions and deterministic feed outputs.
+- Feed metrics: feed-owned score definitions, judged score writes, and
+  computed leaderboards.
 
 ## Domain Model
 
@@ -74,6 +76,8 @@ The main persisted entities are:
 - `group_daily_feeds`: durable group-owned daily feed definitions.
 - `group_daily_feed_instances` and `group_feed_posts`: durable member posts
   attached to one feed on one date.
+- `group_daily_feed_metrics` and `group_daily_feed_metric_judgments`:
+  feed-owned system or judged score definitions and persisted human judgments.
 
 ## Daily Feeds
 
@@ -105,6 +109,31 @@ The current daily feed model follows these rules:
 
 The generator uses feed configuration and catalog item data only.
 
+## Feed Metrics
+
+Feed metric management and leaderboard generation live in
+`internal/app/handlers_feed_metrics.go`.
+
+Metric routes sit under a selected group daily feed:
+
+- `/api/groups/{group_id}/daily-feeds/{feed_id}/metrics`
+- `/api/groups/{group_id}/daily-feeds/{feed_id}/metrics/{metric_id}`
+- `/api/groups/{group_id}/daily-feeds/{feed_id}/metrics/{metric_id}/leaderboard`
+- `/api/groups/{group_id}/daily-feeds/{feed_id}/metrics/{metric_id}/judgments`
+- `/api/groups/{group_id}/metric-judgments/{judgment_id}`
+
+Owners and admins create, update, and delete metric definitions. Active group
+members can read metrics and leaderboards for feeds they can see. Owners and
+admins can judge other members' non-deleted posts for judged metrics; the
+backend rejects self-judgment and posts outside the metric feed.
+
+System metrics are implemented through a curated Go registry instead of
+user-authored formulas. The registry owns allowed aggregations, default
+display names, rankability, ranking direction, and computation functions for
+`post_count`, `average_post_length_words`, `missed_days`, `current_streak`, and
+`typical_posting_window`. Judged metric values are persisted separately and
+aggregated from `group_daily_feed_metric_judgments`.
+
 ## Frontend Shape
 
 The browser app source lives in `web/frontend`:
@@ -116,7 +145,8 @@ The browser app source lives in `web/frontend`:
   logout, current user state, unauthorized recovery, and toast messages.
 - `src/machines/dashboardMachine.ts` owns authenticated workspace state:
   groups, group selection, feed loading/selection, output and post loading,
-  feed toggling, and post mutations.
+  feed toggling, post mutations, feed metric loading/selection, leaderboard
+  loading, metric mutations, and judged score saves.
 - `src/machines/addFeedMachine.ts` owns the Add Feed dialog remote workflow:
   source loading, preview, creation, and dialog-scoped errors.
 - `src/api.ts` wraps same-origin JSON requests to `/api/*` and preserves the
@@ -127,6 +157,9 @@ The browser app source lives in `web/frontend`:
   management, accepted friends, and pending group invite responses. The
   selected group dashboard exposes friend-gated invite candidates for active
   members.
+- The selected feed dashboard includes a metric and leaderboard section. Judged
+  metrics show prompt-driven score controls on post cards for group owners and
+  admins.
 - `src/styles.css` defines the responsive grid and component styles.
 
 Vite builds generated HTML, CSS, and JavaScript into `web/static`, which remains

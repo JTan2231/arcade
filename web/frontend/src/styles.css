@@ -858,6 +858,107 @@ button.confirm-icon-button:hover:not(:disabled) {
   padding: 14px;
 }
 
+.metrics-section {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+}
+
+.metric-layout {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+}
+
+.metric-list {
+  display: grid;
+  gap: 6px;
+}
+
+button.metric-select-button {
+  align-items: flex-start;
+  background: #fbfcfe;
+  border-color: var(--line);
+  color: var(--ink);
+  display: grid;
+  justify-content: stretch;
+  min-height: 58px;
+  padding: 9px 10px;
+  text-align: left;
+}
+
+button.metric-select-button:hover:not(:disabled) {
+  background: #f5f8fb;
+  border-color: #b9c6d3;
+}
+
+button.metric-select-button.selected-row {
+  background: #f3fbfa;
+  border-color: #81b8b2;
+}
+
+.leaderboard-panel {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.leaderboard-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.leaderboard-table {
+  border-collapse: collapse;
+  font-size: 13px;
+  width: 100%;
+}
+
+.leaderboard-table th,
+.leaderboard-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 8px;
+  text-align: left;
+}
+
+.leaderboard-table th {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.metric-form {
+  display: grid;
+  gap: 12px;
+}
+
+.metric-judgment-list {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.metric-judgment-form {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.metric-judgment-grid {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(100px, 140px) minmax(0, 1fr) auto;
+}
+
 .feed-posts-section {
   display: grid;
   gap: 10px;
@@ -1164,7 +1265,9 @@ button.confirm-icon-button:hover:not(:disabled) {
 
   .two-column,
   .three-column,
-  .filter-row {
+  .filter-row,
+  .metric-layout,
+  .metric-judgment-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -1192,6 +1295,10 @@ button.confirm-icon-button:hover:not(:disabled) {
 
   .post-card-actions {
     justify-content: flex-start;
+  }
+
+  .leaderboard-header {
+    display: grid;
   }
 
   .friend-code-row,

@@ -2,17 +2,26 @@ import { assign, fromPromise, sendParent, setup } from "xstate";
 import type { DoneActorEvent, ErrorActorEvent, EventObject } from "xstate";
 
 import {
+  createFeedMetric,
+  createFeedMetricJudgment,
   createGroup,
   createGroupFeedPost,
+  deleteFeedMetricJudgment,
+  deleteFeedMetric,
   deleteGroup,
   deleteGroupDailyFeed,
   deleteGroupFeedPost,
+  getFeedMetric,
   getGroupDailyFeedOutput,
   getGroupDailyFeedToday,
+  getMetricLeaderboard,
   isUnauthorized,
+  listFeedMetrics,
   listGroupDailyFeeds,
   listGroupFeedPosts,
   listGroups,
+  updateFeedMetric,
+  updateFeedMetricJudgment,
   updateGroupDailyFeed,
   updateGroupFeedPost,
 } from "../api";
@@ -20,7 +29,17 @@ import { todayDateValue } from "../dates";
 import { errorMessage } from "../errors";
 import type { AddFeedOutputEvent } from "./addFeedMachine";
 import { addFeedMachine } from "./addFeedMachine";
-import type { DailyFeed, DailyFeedOutput, Group, GroupFeedPost, User } from "../types";
+import type {
+  CreateFeedMetricRequest,
+  DailyFeed,
+  DailyFeedOutput,
+  FeedMetric,
+  Group,
+  GroupFeedPost,
+  MetricLeaderboard,
+  PatchFeedMetricRequest,
+  User,
+} from "../types";
 
 type PostPayload = {
   evidenceText: string;
@@ -44,6 +63,28 @@ type PostMutation =
       postId: string;
     };
 
+type MetricMutation =
+  | {
+      kind: "create";
+      payload: CreateFeedMetricRequest;
+    }
+  | {
+      kind: "update";
+      metricId: string;
+      payload: PatchFeedMetricRequest;
+    }
+  | {
+      kind: "delete";
+      metricId: string;
+    };
+
+type JudgmentMutation = {
+  metricId: string;
+  postId: string;
+  value: number;
+  note: string;
+};
+
 export type DashboardContext = {
   groups: Group[];
   selectedGroupId: string | null;
@@ -60,11 +101,18 @@ export type DashboardContext = {
   posts: GroupFeedPost[];
   postsError: string;
 
+  metrics: FeedMetric[];
+  selectedMetricId: string | null;
+  metricLeaderboard: MetricLeaderboard | null;
+  metricsError: string;
+
   pendingGroupName: string;
   pendingToggleFeedId: string | null;
   pendingDeleteGroupId: string | null;
   pendingDeleteFeedId: string | null;
   postMutation: PostMutation | null;
+  metricMutation: MetricMutation | null;
+  judgmentMutation: JudgmentMutation | null;
 };
 
 type DashboardInput = {
@@ -83,6 +131,11 @@ type DashboardUserEvent =
   | { type: "POST_CREATE_SUBMITTED"; payload: PostPayload }
   | { type: "POST_UPDATE_SUBMITTED"; postId: string; payload: PostPayload }
   | { type: "POST_DELETE_SUBMITTED"; postId: string }
+  | { type: "METRIC_SELECTED"; metricId: string }
+  | { type: "METRIC_CREATE_SUBMITTED"; payload: CreateFeedMetricRequest }
+  | { type: "METRIC_UPDATE_SUBMITTED"; metricId: string; payload: PatchFeedMetricRequest }
+  | { type: "METRIC_DELETE_SUBMITTED"; metricId: string }
+  | { type: "JUDGMENT_CREATE_SUBMITTED"; metricId: string; postId: string; value: number; note: string }
   | { type: "ADD_FEED_OPENED" }
   | { type: "ADD_FEED_CLOSED" };
 
@@ -97,6 +150,15 @@ type FeedInput = {
 
 type DatedFeedInput = FeedInput & {
   date: string;
+};
+
+type MetricInput = FeedInput & {
+  metricId: string;
+};
+
+type MetricLeaderboardInput = MetricInput & {
+  from: string;
+  to: string;
 };
 
 type ToggleFeedInput = {
@@ -125,6 +187,36 @@ type DeletePostOutput = {
   postId: string;
 };
 
+type CreateMetricInput = FeedInput & {
+  payload: CreateFeedMetricRequest;
+};
+
+type UpdateMetricInput = MetricInput & {
+  payload: PatchFeedMetricRequest;
+};
+
+type DeleteMetricOutput = {
+  metricId: string;
+};
+
+type CreateJudgmentInput = MetricInput & {
+  postId: string;
+  value: number;
+  note: string;
+};
+
+type UpdateJudgmentInput = {
+  groupId: string;
+  judgmentId: string;
+  value?: number;
+  note?: string | null;
+};
+
+type DeleteJudgmentInput = {
+  groupId: string;
+  judgmentId: string;
+};
+
 const dashboardSetup = setup({
   types: {
     context: {} as DashboardContext,
@@ -137,6 +229,8 @@ const dashboardSetup = setup({
     hasSelectedFeed: ({ context }) => context.selectedGroupId !== null && context.selectedFeedId !== null,
     hasLoadedOutput: ({ context }) =>
       context.selectedGroupId !== null && context.selectedFeedId !== null && context.output !== null,
+    hasSelectedMetric: ({ context }) =>
+      context.selectedGroupId !== null && context.selectedFeedId !== null && context.selectedMetricId !== null,
     hasRestorableFeed: ({ context }) => context.selectedGroupId !== null && context.selectedFeedId !== null,
     hasRestorableGroup: ({ context }) => context.selectedGroupId !== null,
   },
@@ -161,6 +255,24 @@ const dashboardSetup = setup({
     ),
     listGroupFeedPosts: fromPromise<GroupFeedPost[], DatedFeedInput>(({ input, signal }) =>
       listGroupFeedPosts(input.groupId, input.feedId, input.date, { signal }),
+    ),
+    listFeedMetrics: fromPromise<FeedMetric[], FeedInput>(({ input, signal }) =>
+      listFeedMetrics(input.groupId, input.feedId, { signal }),
+    ),
+    getFeedMetric: fromPromise<FeedMetric, MetricInput>(({ input, signal }) =>
+      getFeedMetric(input.groupId, input.feedId, input.metricId, { signal }),
+    ),
+    getMetricLeaderboard: fromPromise<MetricLeaderboard, MetricLeaderboardInput>(({ input, signal }) =>
+      getMetricLeaderboard(
+        input.groupId,
+        input.feedId,
+        input.metricId,
+        {
+          from: input.from,
+          to: input.to,
+        },
+        { signal },
+      ),
     ),
     toggleFeed: fromPromise<DailyFeed, ToggleFeedInput>(({ input, signal }) =>
       updateGroupDailyFeed(input.groupId, input.feed.id, { enabled: !input.feed.enabled }, { signal }),
@@ -200,6 +312,43 @@ const dashboardSetup = setup({
         return { postId: input.postId };
       },
     ),
+    createFeedMetric: fromPromise<FeedMetric, CreateMetricInput>(({ input, signal }) =>
+      createFeedMetric(input.groupId, input.feedId, input.payload, { signal }),
+    ),
+    updateFeedMetric: fromPromise<FeedMetric, UpdateMetricInput>(({ input, signal }) =>
+      updateFeedMetric(input.groupId, input.feedId, input.metricId, input.payload, { signal }),
+    ),
+    deleteFeedMetric: fromPromise<DeleteMetricOutput, MetricInput>(async ({ input, signal }) => {
+      await deleteFeedMetric(input.groupId, input.feedId, input.metricId, { signal });
+      return { metricId: input.metricId };
+    }),
+    createFeedMetricJudgment: fromPromise<unknown, CreateJudgmentInput>(({ input, signal }) =>
+      createFeedMetricJudgment(
+        input.groupId,
+        input.feedId,
+        input.metricId,
+        {
+          post_id: input.postId,
+          value: input.value,
+          ...(input.note.trim() !== "" ? { note: input.note.trim() } : {}),
+        },
+        { signal },
+      ),
+    ),
+    updateFeedMetricJudgment: fromPromise<unknown, UpdateJudgmentInput>(({ input, signal }) =>
+      updateFeedMetricJudgment(
+        input.groupId,
+        input.judgmentId,
+        {
+          ...(input.value !== undefined ? { value: input.value } : {}),
+          ...(input.note !== undefined ? { note: input.note } : {}),
+        },
+        { signal },
+      ),
+    ),
+    deleteFeedMetricJudgment: fromPromise<unknown, DeleteJudgmentInput>(async ({ input, signal }) => {
+      await deleteFeedMetricJudgment(input.groupId, input.judgmentId, { signal });
+    }),
   },
 });
 
@@ -250,6 +399,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
         posts: [],
         postsError: "",
         postMutation: null,
+        ...resetMetricContext(),
       })),
     },
     FEED_DATE_CHANGED: {
@@ -263,6 +413,8 @@ export const dashboardMachine = dashboardSetup.createMachine({
         posts: [],
         postsError: "",
         postMutation: null,
+        metricLeaderboard: null,
+        metricsError: "",
       })),
     },
     FEED_ENABLED_TOGGLED: {
@@ -299,6 +451,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
           posts: [],
           postsError: "",
           postMutation: null,
+          ...resetMetricContext(),
           pendingToggleFeedId: null,
           pendingDeleteFeedId: null,
         })),
@@ -342,6 +495,66 @@ export const dashboardMachine = dashboardSetup.createMachine({
         postMutation: {
           kind: "delete",
           postId: event.postId,
+        },
+      })),
+    },
+    METRIC_SELECTED: {
+      guard: ({ context, event }) => context.metrics.some((metric) => metric.id === event.metricId),
+      target: ".groupSelected.feedSelected.loadingLeaderboard",
+      reenter: true,
+      actions: assign(({ event }) => ({
+        selectedMetricId: event.metricId,
+        metricLeaderboard: null,
+        metricsError: "",
+      })),
+    },
+    METRIC_CREATE_SUBMITTED: {
+      guard: { type: "hasSelectedFeed" },
+      target: ".groupSelected.feedSelected.creatingMetric",
+      actions: assign(({ event }) => ({
+        metricMutation: {
+          kind: "create",
+          payload: event.payload,
+        },
+      })),
+    },
+    METRIC_UPDATE_SUBMITTED: {
+      guard: ({ context, event }) => context.metrics.some((metric) => metric.id === event.metricId),
+      target: ".groupSelected.feedSelected.updatingMetric",
+      actions: assign(({ event }) => ({
+        metricMutation: {
+          kind: "update",
+          metricId: event.metricId,
+          payload: event.payload,
+        },
+      })),
+    },
+    METRIC_DELETE_SUBMITTED: {
+      guard: ({ context, event }) => context.metrics.some((metric) => metric.id === event.metricId),
+      target: ".groupSelected.feedSelected.deletingMetric",
+      actions: assign(({ event }) => ({
+        metricMutation: {
+          kind: "delete",
+          metricId: event.metricId,
+        },
+      })),
+    },
+    JUDGMENT_CREATE_SUBMITTED: {
+      guard: ({ context, event }) =>
+        context.selectedGroupId !== null &&
+        context.selectedFeedId !== null &&
+        context.metrics.some((metric) => metric.id === event.metricId) &&
+        Number.isFinite(event.value) &&
+        event.value >= 0,
+      target: ".groupSelected.feedSelected.creatingJudgment",
+      actions: assign(({ event }) => ({
+        selectedMetricId: event.metricId,
+        metricLeaderboard: null,
+        judgmentMutation: {
+          metricId: event.metricId,
+          postId: event.postId,
+          value: event.value,
+          note: event.note.trim(),
         },
       })),
     },
@@ -436,6 +649,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                     posts: [],
                     postsError: "",
                     postMutation: null,
+                    ...resetMetricContext(),
                     pendingToggleFeedId: null,
                     pendingDeleteFeedId: null,
                   };
@@ -453,6 +667,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   posts: [],
                   postsError: "",
                   postMutation: null,
+                  ...resetMetricContext(),
                   pendingToggleFeedId: null,
                   pendingDeleteFeedId: null,
                 })),
@@ -472,6 +687,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   posts: [],
                   postsError: "",
                   postMutation: null,
+                  ...resetMetricContext(),
                   pendingToggleFeedId: null,
                   pendingDeleteFeedId: null,
                 })),
@@ -555,7 +771,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   date: requireOutputDate(context),
                 }),
                 onDone: {
-                  target: "ready",
+                  target: "loadingMetrics",
                   actions: assign(({ event }) => ({
                     posts: event.output,
                     postsError: "",
@@ -565,11 +781,95 @@ export const dashboardMachine = dashboardSetup.createMachine({
                 onError: [
                   unauthorizedToParentTransition(),
                   {
-                    target: "ready",
+                    target: "loadingMetrics",
                     actions: assign(({ event }) => ({
                       posts: [],
                       postsError: errorMessage(event.error),
                       postMutation: null,
+                    })),
+                  },
+                ],
+              },
+            },
+            loadingMetrics: {
+              invoke: {
+                src: "listFeedMetrics",
+                input: ({ context }) => ({
+                  groupId: requireSelectedGroupId(context),
+                  feedId: requireSelectedFeedId(context),
+                }),
+                onDone: [
+                  {
+                    target: "loadingLeaderboard",
+                    guard: ({ event }) => event.output.length > 0,
+                    actions: assign(({ context, event }) => {
+                      const selectedMetricId = chooseMetricId(event.output, context.selectedMetricId);
+                      return {
+                        metrics: event.output,
+                        selectedMetricId,
+                        metricLeaderboard: null,
+                        metricsError: "",
+                        metricMutation: null,
+                        judgmentMutation: null,
+                      };
+                    }),
+                  },
+                  {
+                    target: "ready",
+                    actions: assign(({ event }) => ({
+                      metrics: event.output,
+                      selectedMetricId: null,
+                      metricLeaderboard: null,
+                      metricsError: "",
+                      metricMutation: null,
+                      judgmentMutation: null,
+                    })),
+                  },
+                ],
+                onError: [
+                  unauthorizedToParentTransition(),
+                  {
+                    target: "ready",
+                    actions: assign(({ event }) => ({
+                      metrics: [],
+                      selectedMetricId: null,
+                      metricLeaderboard: null,
+                      metricsError: errorMessage(event.error),
+                      metricMutation: null,
+                      judgmentMutation: null,
+                    })),
+                  },
+                ],
+              },
+            },
+            loadingLeaderboard: {
+              invoke: {
+                src: "getMetricLeaderboard",
+                input: ({ context }) => ({
+                  groupId: requireSelectedGroupId(context),
+                  feedId: requireSelectedFeedId(context),
+                  metricId: requireSelectedMetricId(context),
+                  from: context.selectedFeedDate,
+                  to: context.selectedFeedDate,
+                }),
+                onDone: {
+                  target: "ready",
+                  actions: assign(({ event }) => ({
+                    metricLeaderboard: event.output,
+                    metricsError: "",
+                    metricMutation: null,
+                    judgmentMutation: null,
+                  })),
+                },
+                onError: [
+                  unauthorizedToParentTransition(),
+                  {
+                    target: "ready",
+                    actions: assign(({ event }) => ({
+                      metricLeaderboard: null,
+                      metricsError: errorMessage(event.error),
+                      metricMutation: null,
+                      judgmentMutation: null,
                     })),
                   },
                 ],
@@ -588,17 +888,32 @@ export const dashboardMachine = dashboardSetup.createMachine({
                     caption: mutation.caption,
                   };
                 },
-                onDone: {
-                  target: "ready",
-                  actions: [
-                    assign(({ context, event }) => ({
-                      posts: upsertPost(context.posts, event.output),
-                      postsError: "",
-                      postMutation: null,
-                    })),
-                    sendToastToParent("Post submitted"),
-                  ],
-                },
+                onDone: [
+                  {
+                    target: "loadingLeaderboard",
+                    guard: { type: "hasSelectedMetric" },
+                    actions: [
+                      assign(({ context, event }) => ({
+                        posts: upsertPost(context.posts, event.output),
+                        postsError: "",
+                        postMutation: null,
+                        metricLeaderboard: null,
+                      })),
+                      sendToastToParent("Post submitted"),
+                    ],
+                  },
+                  {
+                    target: "ready",
+                    actions: [
+                      assign(({ context, event }) => ({
+                        posts: upsertPost(context.posts, event.output),
+                        postsError: "",
+                        postMutation: null,
+                      })),
+                      sendToastToParent("Post submitted"),
+                    ],
+                  },
+                ],
                 onError: mutationErrorTransitions(),
               },
             },
@@ -614,17 +929,32 @@ export const dashboardMachine = dashboardSetup.createMachine({
                     caption: mutation.caption,
                   };
                 },
-                onDone: {
-                  target: "ready",
-                  actions: [
-                    assign(({ context, event }) => ({
-                      posts: context.posts.map((post) => (post.id === event.output.id ? event.output : post)),
-                      postsError: "",
-                      postMutation: null,
-                    })),
-                    sendToastToParent("Post updated"),
-                  ],
-                },
+                onDone: [
+                  {
+                    target: "loadingLeaderboard",
+                    guard: { type: "hasSelectedMetric" },
+                    actions: [
+                      assign(({ context, event }) => ({
+                        posts: context.posts.map((post) => (post.id === event.output.id ? event.output : post)),
+                        postsError: "",
+                        postMutation: null,
+                        metricLeaderboard: null,
+                      })),
+                      sendToastToParent("Post updated"),
+                    ],
+                  },
+                  {
+                    target: "ready",
+                    actions: [
+                      assign(({ context, event }) => ({
+                        posts: context.posts.map((post) => (post.id === event.output.id ? event.output : post)),
+                        postsError: "",
+                        postMutation: null,
+                      })),
+                      sendToastToParent("Post updated"),
+                    ],
+                  },
+                ],
                 onError: mutationErrorTransitions(),
               },
             },
@@ -638,18 +968,163 @@ export const dashboardMachine = dashboardSetup.createMachine({
                     postId: mutation.postId,
                   };
                 },
+                onDone: [
+                  {
+                    target: "loadingLeaderboard",
+                    guard: { type: "hasSelectedMetric" },
+                    actions: [
+                      assign(({ context, event }) => ({
+                        posts: context.posts.filter((post) => post.id !== event.output.postId),
+                        postsError: "",
+                        postMutation: null,
+                        metricLeaderboard: null,
+                      })),
+                      sendToastToParent("Post deleted"),
+                    ],
+                  },
+                  {
+                    target: "ready",
+                    actions: [
+                      assign(({ context, event }) => ({
+                        posts: context.posts.filter((post) => post.id !== event.output.postId),
+                        postsError: "",
+                        postMutation: null,
+                      })),
+                      sendToastToParent("Post deleted"),
+                    ],
+                  },
+                ],
+                onError: mutationErrorTransitions(),
+              },
+            },
+            creatingMetric: {
+              invoke: {
+                src: "createFeedMetric",
+                input: ({ context }) => ({
+                  groupId: requireSelectedGroupId(context),
+                  feedId: requireSelectedFeedId(context),
+                  payload: requireMetricMutation(context, "create").payload,
+                }),
                 onDone: {
-                  target: "ready",
+                  target: "loadingLeaderboard",
                   actions: [
                     assign(({ context, event }) => ({
-                      posts: context.posts.filter((post) => post.id !== event.output.postId),
-                      postsError: "",
-                      postMutation: null,
+                      metrics: upsertMetric(context.metrics, event.output),
+                      selectedMetricId: event.output.id,
+                      metricLeaderboard: null,
+                      metricsError: "",
+                      metricMutation: null,
                     })),
-                    sendToastToParent("Post deleted"),
+                    sendToastToParent("Metric added"),
                   ],
                 },
-                onError: mutationErrorTransitions(),
+                onError: metricMutationErrorTransitions(),
+              },
+            },
+            updatingMetric: {
+              invoke: {
+                src: "updateFeedMetric",
+                input: ({ context }) => {
+                  const mutation = requireMetricMutation(context, "update");
+                  return {
+                    groupId: requireSelectedGroupId(context),
+                    feedId: requireSelectedFeedId(context),
+                    metricId: mutation.metricId,
+                    payload: mutation.payload,
+                  };
+                },
+                onDone: {
+                  target: "loadingLeaderboard",
+                  actions: [
+                    assign(({ context, event }) => ({
+                      metrics: replaceMetric(context.metrics, event.output),
+                      selectedMetricId: event.output.id,
+                      metricLeaderboard: null,
+                      metricsError: "",
+                      metricMutation: null,
+                    })),
+                    sendToastToParent("Metric updated"),
+                  ],
+                },
+                onError: metricMutationErrorTransitions(),
+              },
+            },
+            deletingMetric: {
+              invoke: {
+                src: "deleteFeedMetric",
+                input: ({ context }) => {
+                  const mutation = requireMetricMutation(context, "delete");
+                  return {
+                    groupId: requireSelectedGroupId(context),
+                    feedId: requireSelectedFeedId(context),
+                    metricId: mutation.metricId,
+                  };
+                },
+                onDone: [
+                  {
+                    target: "loadingLeaderboard",
+                    guard: ({ context, event }) => removeMetric(context.metrics, event.output.metricId).length > 0,
+                    actions: [
+                      assign(({ context, event }) => {
+                        const metrics = removeMetric(context.metrics, event.output.metricId);
+                        return {
+                          metrics,
+                          selectedMetricId: selectedMetricAfterDelete(
+                            metrics,
+                            context.selectedMetricId,
+                            event.output.metricId,
+                          ),
+                          metricLeaderboard: null,
+                          metricsError: "",
+                          metricMutation: null,
+                        };
+                      }),
+                      sendToastToParent("Metric deleted"),
+                    ],
+                  },
+                  {
+                    target: "ready",
+                    actions: [
+                      assign(({ context, event }) => ({
+                        metrics: removeMetric(context.metrics, event.output.metricId),
+                        selectedMetricId: null,
+                        metricLeaderboard: null,
+                        metricsError: "",
+                        metricMutation: null,
+                      })),
+                      sendToastToParent("Metric deleted"),
+                    ],
+                  },
+                ],
+                onError: metricMutationErrorTransitions(),
+              },
+            },
+            creatingJudgment: {
+              invoke: {
+                src: "createFeedMetricJudgment",
+                input: ({ context }) => {
+                  const mutation = requireJudgmentMutation(context);
+                  return {
+                    groupId: requireSelectedGroupId(context),
+                    feedId: requireSelectedFeedId(context),
+                    metricId: mutation.metricId,
+                    postId: mutation.postId,
+                    value: mutation.value,
+                    note: mutation.note,
+                  };
+                },
+                onDone: {
+                  target: "loadingLeaderboard",
+                  actions: [
+                    assign({
+                      metricLeaderboard: null,
+                      metricsError: "",
+                      judgmentMutation: null,
+                    }),
+                    sendToastToParent("Score saved"),
+                  ],
+                },
+                onError: judgmentMutationErrorTransitions(),
               },
             },
             ready: {},
@@ -722,6 +1197,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                       posts: [],
                       postsError: "",
                       postMutation: null,
+                      ...resetMetricContext(),
                       pendingToggleFeedId: null,
                       pendingDeleteFeedId: null,
                     };
@@ -741,6 +1217,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                     posts: [],
                     postsError: "",
                     postMutation: null,
+                    ...resetMetricContext(),
                     pendingToggleFeedId: null,
                     pendingDeleteFeedId: null,
                   })),
@@ -789,9 +1266,24 @@ function resetSelectedGroupContext(): Omit<
     outputError: "",
     posts: [],
     postsError: "",
+    ...resetMetricContext(),
     pendingToggleFeedId: null,
     pendingDeleteFeedId: null,
     postMutation: null,
+  };
+}
+
+function resetMetricContext(): Pick<
+  DashboardContext,
+  "metrics" | "selectedMetricId" | "metricLeaderboard" | "metricsError" | "metricMutation" | "judgmentMutation"
+> {
+  return {
+    metrics: [],
+    selectedMetricId: null,
+    metricLeaderboard: null,
+    metricsError: "",
+    metricMutation: null,
+    judgmentMutation: null,
   };
 }
 
@@ -807,6 +1299,13 @@ function chooseGroupId(groups: Group[], preferredGroupId: string | null, current
     groups[0]?.id ??
     null
   );
+}
+
+function chooseMetricId(metrics: FeedMetric[], currentMetricId: string | null): string | null {
+  if (currentMetricId !== null && metrics.some((metric) => metric.id === currentMetricId)) {
+    return currentMetricId;
+  }
+  return metrics[0]?.id ?? null;
 }
 
 function closeAddFeedTransitions() {
@@ -907,6 +1406,26 @@ function mutationErrorTransitions() {
   ] as const;
 }
 
+function metricMutationErrorTransitions() {
+  return [
+    unauthorizedToParentTransition(),
+    {
+      target: "ready",
+      actions: [clearMetricMutationOnError(), sendErrorToastToParent()],
+    },
+  ] as const;
+}
+
+function judgmentMutationErrorTransitions() {
+  return [
+    unauthorizedToParentTransition(),
+    {
+      target: "ready",
+      actions: [clearJudgmentMutationOnError(), sendErrorToastToParent()],
+    },
+  ] as const;
+}
+
 function unauthorizedToParentTransition() {
   return {
     guard: { type: "isUnauthorizedError" },
@@ -960,6 +1479,18 @@ function clearPostMutationOnError() {
   });
 }
 
+function clearMetricMutationOnError() {
+  return assign<DashboardContext, ErrorActorEvent, undefined, DashboardEvent, never>({
+    metricMutation: null,
+  });
+}
+
+function clearJudgmentMutationOnError() {
+  return assign<DashboardContext, ErrorActorEvent, undefined, DashboardEvent, never>({
+    judgmentMutation: null,
+  });
+}
+
 function clearPendingDeleteGroupIdOnError() {
   return assign<DashboardContext, ErrorActorEvent, undefined, DashboardEvent, never>({
     pendingDeleteGroupId: null,
@@ -984,6 +1515,13 @@ function requireSelectedFeedId(context: DashboardContext): string {
     throw new Error("No feed selected");
   }
   return context.selectedFeedId;
+}
+
+function requireSelectedMetricId(context: DashboardContext): string {
+  if (context.selectedMetricId === null) {
+    throw new Error("No metric selected");
+  }
+  return context.selectedMetricId;
 }
 
 function requireOutputDate(context: DashboardContext): string {
@@ -1026,6 +1564,24 @@ function requirePostMutation<TKind extends PostMutation["kind"]>(
   return mutation as Extract<PostMutation, { kind: TKind }>;
 }
 
+function requireMetricMutation<TKind extends MetricMutation["kind"]>(
+  context: DashboardContext,
+  kind: TKind,
+): Extract<MetricMutation, { kind: TKind }> {
+  const mutation = context.metricMutation;
+  if (mutation === null || mutation.kind !== kind) {
+    throw new Error("Metric mutation is missing");
+  }
+  return mutation as Extract<MetricMutation, { kind: TKind }>;
+}
+
+function requireJudgmentMutation(context: DashboardContext): JudgmentMutation {
+  if (context.judgmentMutation === null) {
+    throw new Error("Judgment mutation is missing");
+  }
+  return context.judgmentMutation;
+}
+
 function replaceFeed(feeds: DailyFeed[], updated: DailyFeed): DailyFeed[] {
   return feeds.map((feed) => (feed.id === updated.id ? updated : feed));
 }
@@ -1036,4 +1592,35 @@ function removeFeed(feeds: DailyFeed[], feedId: string): DailyFeed[] {
 
 function upsertPost(posts: GroupFeedPost[], post: GroupFeedPost): GroupFeedPost[] {
   return [post, ...posts.filter((candidate) => candidate.id !== post.id)];
+}
+
+function upsertMetric(metrics: FeedMetric[], metric: FeedMetric): FeedMetric[] {
+  return [...metrics.filter((candidate) => candidate.id !== metric.id), metric].sort(metricSort);
+}
+
+function replaceMetric(metrics: FeedMetric[], metric: FeedMetric): FeedMetric[] {
+  return metrics.map((candidate) => (candidate.id === metric.id ? metric : candidate)).sort(metricSort);
+}
+
+function removeMetric(metrics: FeedMetric[], metricId: string): FeedMetric[] {
+  return metrics.filter((metric) => metric.id !== metricId);
+}
+
+function selectedMetricAfterDelete(
+  metrics: FeedMetric[],
+  selectedMetricId: string | null,
+  deletedMetricId: string,
+): string | null {
+  if (selectedMetricId !== deletedMetricId && metrics.some((metric) => metric.id === selectedMetricId)) {
+    return selectedMetricId;
+  }
+  return metrics[0]?.id ?? null;
+}
+
+function metricSort(left: FeedMetric, right: FeedMetric): number {
+  const byName = left.display_name.localeCompare(right.display_name, undefined, { sensitivity: "base" });
+  if (byName !== 0) {
+    return byName;
+  }
+  return left.id.localeCompare(right.id);
 }

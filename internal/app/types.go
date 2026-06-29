@@ -189,6 +189,47 @@ type GroupFeedPost struct {
 	UpdatedAt         time.Time  `json:"updated_at"`
 }
 
+type FeedMetric struct {
+	ID              string    `json:"id"`
+	GroupID         string    `json:"group_id"`
+	FeedID          string    `json:"feed_id"`
+	SystemKey       string    `json:"system_key"`
+	JudgmentPrompt  *string   `json:"judgment_prompt,omitempty"`
+	Aggregation     string    `json:"aggregation"`
+	DisplayName     string    `json:"display_name"`
+	CreatedByUserID *string   `json:"created_by_user_id,omitempty"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}
+
+type FeedMetricJudgment struct {
+	ID              string    `json:"id"`
+	MetricID        string    `json:"metric_id"`
+	GroupID         string    `json:"group_id"`
+	PostID          string    `json:"post_id"`
+	SubjectUserID   string    `json:"subject_user_id"`
+	EvaluatorUserID string    `json:"evaluator_user_id"`
+	Value           float64   `json:"value"`
+	Note            *string   `json:"note,omitempty"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}
+
+type MetricLeaderboard struct {
+	Metric FeedMetric             `json:"metric"`
+	From   string                 `json:"from"`
+	To     string                 `json:"to"`
+	Rows   []MetricLeaderboardRow `json:"rows"`
+}
+
+type MetricLeaderboardRow struct {
+	Rank        *int       `json:"rank"`
+	User        PublicUser `json:"user"`
+	Value       any        `json:"value"`
+	RawValue    *float64   `json:"raw_value"`
+	SampleCount int        `json:"sample_count"`
+}
+
 type CatalogSource struct {
 	ID                string               `json:"id"`
 	GroupID           *string              `json:"group_id,omitempty"`

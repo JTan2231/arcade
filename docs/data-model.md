@@ -38,9 +38,13 @@ erDiagram
     group_daily_feeds ||--o{ feed_rule_filters : filters
     catalog_source_fields ||--o{ feed_rule_filters : constrains
 
+    group_daily_feeds ||--o{ group_daily_feed_metrics : scores
+    group_daily_feed_metrics ||--o{ group_daily_feed_metric_judgments : collects
     group_daily_feeds ||--o{ group_daily_feed_instances : materializes
     group_daily_feed_instances ||--o{ group_feed_posts : receives
     users ||--o{ group_feed_posts : authors
+    group_feed_posts ||--o{ group_daily_feed_metric_judgments : judged
+    users ||--o{ group_daily_feed_metric_judgments : evaluates
 
     groups ||--o{ divisions : contains
     users ||--o{ divisions : creates
@@ -124,6 +128,30 @@ currently requires plaintext evidence with `evidence_kind = 'text'`; `caption`
 is optional and separate from evidence. Posts are soft deleted with
 `deleted_at`, and the unique `(feed_instance_id, author_user_id)` rule means a
 later post by the same member reuses and reactivates the existing row.
+
+## Feed Metrics And Leaderboards
+
+`group_daily_feed_metrics` stores score definitions owned by a single daily
+feed. A metric either names a curated system computation such as `post_count`,
+`missed_days`, or `current_streak`, or uses `system_key = 'judged'` with a
+plain-language `judgment_prompt`. The table stores display name, aggregation,
+creator audit metadata, and a denormalized `group_id` permission boundary.
+Built-in system metric values are computed on demand and are not stored.
+
+`group_daily_feed_metric_judgments` stores human judgments for judged metrics.
+Each row connects one metric, one group feed post, the judged post author as
+`subject_user_id`, and the evaluator. The application copies the subject from
+`group_feed_posts.author_user_id`; clients cannot choose it. One evaluator can
+keep one judgment per metric/post pair, and later writes replace that evaluator's
+value and note.
+
+Leaderboards are computed views over active group members. System metrics read
+feed posts, feed instances, and feed schedules. Schedule-based metrics such as
+`missed_days` and `current_streak` generate expected feed dates from
+`group_daily_feeds.schedule_starts_at`, `schedule_timezone`, and
+`schedule_interval_seconds`; they do not infer expected dates from
+`group_daily_feed_instances`, because instances are only created after durable
+member content exists.
 
 ## Groups And Divisions
 

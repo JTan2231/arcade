@@ -1,11 +1,15 @@
 import type {
   CatalogSource,
   CreateDailyFeedRequest,
+  CreateFeedMetricJudgmentRequest,
+  CreateFeedMetricRequest,
   CreateGroupFeedPostRequest,
   CreateGroupRequest,
   DailyFeed,
   DailyFeedOutput,
   DailyFeedPreview,
+  FeedMetric,
+  FeedMetricJudgment,
   Friend,
   FriendRequest,
   FriendRequests,
@@ -14,6 +18,9 @@ import type {
   GroupInvite,
   GroupInviteCandidate,
   LoginRequest,
+  MetricLeaderboard,
+  PatchFeedMetricJudgmentRequest,
+  PatchFeedMetricRequest,
   PatchGroupFeedPostRequest,
   SignupRequest,
   User,
@@ -308,6 +315,127 @@ export function updateGroupFeedPost(
 
 export function deleteGroupFeedPost(groupID: string, postID: string, options: APIOptions = {}): Promise<null> {
   return api<null>(`/api/groups/${encodeURIComponent(groupID)}/feed-posts/${encodeURIComponent(postID)}`, {
+    ...options,
+    method: "DELETE",
+  });
+}
+
+export function listFeedMetrics(groupID: string, feedID: string, options: APIOptions = {}): Promise<FeedMetric[]> {
+  return api<FeedMetric[]>(
+    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/metrics`,
+    options,
+  );
+}
+
+export function createFeedMetric(
+  groupID: string,
+  feedID: string,
+  payload: CreateFeedMetricRequest,
+  options: APIOptions = {},
+): Promise<FeedMetric> {
+  return api<FeedMetric>(
+    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/metrics`,
+    {
+      ...options,
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function getFeedMetric(
+  groupID: string,
+  feedID: string,
+  metricID: string,
+  options: APIOptions = {},
+): Promise<FeedMetric> {
+  return api<FeedMetric>(
+    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/metrics/${encodeURIComponent(metricID)}`,
+    options,
+  );
+}
+
+export function updateFeedMetric(
+  groupID: string,
+  feedID: string,
+  metricID: string,
+  payload: PatchFeedMetricRequest,
+  options: APIOptions = {},
+): Promise<FeedMetric> {
+  return api<FeedMetric>(
+    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/metrics/${encodeURIComponent(metricID)}`,
+    {
+      ...options,
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function deleteFeedMetric(
+  groupID: string,
+  feedID: string,
+  metricID: string,
+  options: APIOptions = {},
+): Promise<null> {
+  return api<null>(
+    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/metrics/${encodeURIComponent(metricID)}`,
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+}
+
+export function getMetricLeaderboard(
+  groupID: string,
+  feedID: string,
+  metricID: string,
+  range: { from: string; to: string },
+  options: APIOptions = {},
+): Promise<MetricLeaderboard> {
+  const params = new URLSearchParams({ from: range.from, to: range.to });
+  return api<MetricLeaderboard>(
+    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/metrics/${encodeURIComponent(metricID)}/leaderboard?${params.toString()}`,
+    options,
+  );
+}
+
+export function createFeedMetricJudgment(
+  groupID: string,
+  feedID: string,
+  metricID: string,
+  payload: CreateFeedMetricJudgmentRequest,
+  options: APIOptions = {},
+): Promise<FeedMetricJudgment> {
+  return api<FeedMetricJudgment>(
+    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/metrics/${encodeURIComponent(metricID)}/judgments`,
+    {
+      ...options,
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function updateFeedMetricJudgment(
+  groupID: string,
+  judgmentID: string,
+  payload: PatchFeedMetricJudgmentRequest,
+  options: APIOptions = {},
+): Promise<FeedMetricJudgment> {
+  return api<FeedMetricJudgment>(
+    `/api/groups/${encodeURIComponent(groupID)}/metric-judgments/${encodeURIComponent(judgmentID)}`,
+    {
+      ...options,
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function deleteFeedMetricJudgment(groupID: string, judgmentID: string, options: APIOptions = {}): Promise<null> {
+  return api<null>(`/api/groups/${encodeURIComponent(groupID)}/metric-judgments/${encodeURIComponent(judgmentID)}`, {
     ...options,
     method: "DELETE",
   });
