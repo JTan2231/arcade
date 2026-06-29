@@ -382,7 +382,7 @@ func (s *Server) handleGetMetricLeaderboard(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	from, to, err := parseMetricLeaderboardRange(r)
+	from, to, err := feedLifetimeMetricLeaderboardRange(feed, time.Now())
 	if err != nil {
 		handleError(w, err)
 		return
@@ -925,27 +925,6 @@ func (s *Server) canJudgeMetric(ctx context.Context, userID string, groupID stri
 	return post, nil
 }
 
-func parseMetricLeaderboardRange(r *http.Request) (time.Time, time.Time, error) {
-	rawFrom := strings.TrimSpace(r.URL.Query().Get("from"))
-	rawTo := strings.TrimSpace(r.URL.Query().Get("to"))
-	if rawFrom == "" || rawTo == "" {
-		return time.Time{}, time.Time{}, badRequest("from and to are required")
-	}
-
-	from, err := parseDailyFeedPathDate(rawFrom)
-	if err != nil {
-		return time.Time{}, time.Time{}, err
-	}
-	to, err := parseDailyFeedPathDate(rawTo)
-	if err != nil {
-		return time.Time{}, time.Time{}, err
-	}
-	if from.After(to) {
-		return time.Time{}, time.Time{}, badRequest("from must be before or equal to to")
-	}
-	return from, to, nil
-}
-
 func (s *Server) listActiveGroupMembers(ctx context.Context, groupID string) ([]PublicUser, error) {
 	rows, err := s.db.Query(ctx, `
 		select
@@ -1220,6 +1199,37 @@ func computeTypicalPostingWindowMetricSamples(ctx context.Context, s *Server, in
 		})
 	}
 	return samples, nil
+}
+
+func feedLifetimeMetricLeaderboardRange(feed DailyFeed, now time.Time) (time.Time, time.Time, error) {
+	timezone := feed.Schedule.Timezone
+	if timezone == "" {
+		timezone = "UTC"
+	}
+	location, err := time.LoadLocation(timezone)
+	if err != nil {
+		return time.Time{}, time.Time{}, badRequest("schedule timezone is invalid")
+	}
+	if now.IsZero() {
+		now = time.Now()
+	}
+
+	start := feed.CreatedAt
+	if start.IsZero() {
+		start = feed.Schedule.StartsAt
+	}
+	if start.IsZero() {
+		start = now
+	}
+
+	fromLocal := start.In(location)
+	toLocal := now.In(location)
+	from := time.Date(fromLocal.Year(), fromLocal.Month(), fromLocal.Day(), 0, 0, 0, 0, location)
+	to := time.Date(toLocal.Year(), toLocal.Month(), toLocal.Day(), 0, 0, 0, 0, location)
+	if to.Before(from) {
+		to = from
+	}
+	return from, to, nil
 }
 
 func (s *Server) feedPostDateSet(ctx context.Context, groupID string, feedID string, from time.Time, to time.Time) (map[string]bool, error) {

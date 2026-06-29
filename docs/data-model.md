@@ -145,13 +145,14 @@ Each row connects one metric, one group feed post, the judged post author as
 keep one judgment per metric/post pair, and later writes replace that evaluator's
 value and note.
 
-Leaderboards are computed views over active group members. System metrics read
-feed posts, feed instances, and feed schedules. Schedule-based metrics such as
-`missed_days` and `current_streak` generate expected feed dates from
-`group_daily_feeds.schedule_starts_at`, `schedule_timezone`, and
-`schedule_interval_seconds`; they do not infer expected dates from
-`group_daily_feed_instances`, because instances are only created after durable
-member content exists.
+Leaderboards are computed views over active group members across the feed's
+lifetime, from the feed creation date through the current date in the feed
+schedule timezone. System metrics read feed posts, feed instances, and feed
+schedules. Schedule-based metrics such as `missed_days` and `current_streak`
+generate expected feed dates from `group_daily_feeds.schedule_starts_at`,
+`schedule_timezone`, and `schedule_interval_seconds`; they do not infer expected
+dates from `group_daily_feed_instances`, because instances are only created
+after durable member content exists.
 
 ## Groups And Divisions
 

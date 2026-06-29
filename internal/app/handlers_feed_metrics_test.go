@@ -72,6 +72,25 @@ func TestScheduledFeedDatesUsesFeedCadence(t *testing.T) {
 	}
 }
 
+func TestFeedLifetimeMetricLeaderboardRangeUsesFeedCreatedDate(t *testing.T) {
+	from, to, err := feedLifetimeMetricLeaderboardRange(DailyFeed{
+		CreatedAt: time.Date(2026, 6, 2, 3, 30, 0, 0, time.UTC),
+		Schedule: DailyFeedSchedule{
+			Timezone: "America/Chicago",
+		},
+	}, time.Date(2026, 6, 29, 16, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("feedLifetimeMetricLeaderboardRange returned error: %v", err)
+	}
+
+	if got := from.Format(dailyFeedDateLayout); got != "2026-06-01" {
+		t.Fatalf("from = %q, want 2026-06-01", got)
+	}
+	if got := to.Format(dailyFeedDateLayout); got != "2026-06-29" {
+		t.Fatalf("to = %q, want 2026-06-29", got)
+	}
+}
+
 func TestBuildMetricLeaderboardRowsRanksTiesAndUnrankedRows(t *testing.T) {
 	metric := FeedMetric{
 		SystemKey:   feedMetricKeyJudged,

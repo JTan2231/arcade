@@ -391,12 +391,10 @@ export function getMetricLeaderboard(
   groupID: string,
   feedID: string,
   metricID: string,
-  range: { from: string; to: string },
   options: APIOptions = {},
 ): Promise<MetricLeaderboard> {
-  const params = new URLSearchParams({ from: range.from, to: range.to });
   return api<MetricLeaderboard>(
-    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/metrics/${encodeURIComponent(metricID)}/leaderboard?${params.toString()}`,
+    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/metrics/${encodeURIComponent(metricID)}/leaderboard`,
     options,
   );
 }

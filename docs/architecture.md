@@ -131,8 +131,10 @@ System metrics are implemented through a curated Go registry instead of
 user-authored formulas. The registry owns allowed aggregations, default
 display names, rankability, ranking direction, and computation functions for
 `post_count`, `average_post_length_words`, `missed_days`, `current_streak`, and
-`typical_posting_window`. Judged metric values are persisted separately and
-aggregated from `group_daily_feed_metric_judgments`.
+`typical_posting_window`. Leaderboards compute across the feed's lifetime, from
+the feed creation date through the current date in the feed schedule timezone.
+Judged metric values are persisted separately and aggregated from
+`group_daily_feed_metric_judgments`.
 
 ## Frontend Shape
 

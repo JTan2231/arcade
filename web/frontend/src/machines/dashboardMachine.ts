@@ -156,11 +156,6 @@ type MetricInput = FeedInput & {
   metricId: string;
 };
 
-type MetricLeaderboardInput = MetricInput & {
-  from: string;
-  to: string;
-};
-
 type ToggleFeedInput = {
   groupId: string;
   feed: DailyFeed;
@@ -262,17 +257,8 @@ const dashboardSetup = setup({
     getFeedMetric: fromPromise<FeedMetric, MetricInput>(({ input, signal }) =>
       getFeedMetric(input.groupId, input.feedId, input.metricId, { signal }),
     ),
-    getMetricLeaderboard: fromPromise<MetricLeaderboard, MetricLeaderboardInput>(({ input, signal }) =>
-      getMetricLeaderboard(
-        input.groupId,
-        input.feedId,
-        input.metricId,
-        {
-          from: input.from,
-          to: input.to,
-        },
-        { signal },
-      ),
+    getMetricLeaderboard: fromPromise<MetricLeaderboard, MetricInput>(({ input, signal }) =>
+      getMetricLeaderboard(input.groupId, input.feedId, input.metricId, { signal }),
     ),
     toggleFeed: fromPromise<DailyFeed, ToggleFeedInput>(({ input, signal }) =>
       updateGroupDailyFeed(input.groupId, input.feed.id, { enabled: !input.feed.enabled }, { signal }),
@@ -849,8 +835,6 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   groupId: requireSelectedGroupId(context),
                   feedId: requireSelectedFeedId(context),
                   metricId: requireSelectedMetricId(context),
-                  from: context.selectedFeedDate,
-                  to: context.selectedFeedDate,
                 }),
                 onDone: {
                   target: "ready",
