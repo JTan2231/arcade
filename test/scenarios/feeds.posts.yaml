@@ -49,8 +49,10 @@ steps:
       name: Daily Thread
 
   - within: Selected feed output
-    expectVisible:
-      text: Daily Thread
+    expectValue:
+      label: Date
+      exact: false
+      value: "{{today}}"
 
   - within: Posts
     click:

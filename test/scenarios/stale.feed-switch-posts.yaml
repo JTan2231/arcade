@@ -41,20 +41,36 @@ before:
         group_id: $.id
 
   - request:
-      id: create_source
+      id: create_old_source
       client: browser
       method: POST
       path: /api/groups/{{group_id}}/catalog-sources
       json:
-        name: Feed Switch Posts Source
+        name: Feed Switch Posts Old Source
         template: https://example.test/{slug}
         items:
-          - title: Posts Task
+          - title: Posts Old Task
             data:
-              slug: posts-task
+              slug: posts-old-task
       expectStatus: 201
       capture:
-        source_id: $.id
+        old_source_id: $.id
+
+  - request:
+      id: create_new_source
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/catalog-sources
+      json:
+        name: Feed Switch Posts New Source
+        template: https://example.test/{slug}
+        items:
+          - title: Posts New Task
+            data:
+              slug: posts-new-task
+      expectStatus: 201
+      capture:
+        new_source_id: $.id
 
   - request:
       id: create_old_feed
@@ -65,7 +81,7 @@ before:
         name: Post Old Practice
         kind: catalog_daily
         enabled: true
-        source_id: "{{source_id}}"
+        source_id: "{{old_source_id}}"
         item_count: 1
         filters: []
         schedule:
@@ -85,7 +101,7 @@ before:
         name: Post New Practice
         kind: catalog_daily
         enabled: true
-        source_id: "{{source_id}}"
+        source_id: "{{new_source_id}}"
         item_count: 1
         filters: []
         schedule:
@@ -120,8 +136,10 @@ steps:
   - visit: /
 
   - within: Selected feed output
-    expectVisible:
-      text: Daily Thread
+    expectValue:
+      label: Date
+      exact: false
+      value: "{{today}}"
 
   - holdRequest:
       id: old-posts
@@ -155,7 +173,7 @@ steps:
 
   - within: Selected feed output
     expectVisible:
-      text: Post New Practice
+      text: Posts New Task
 
   - within: Posts
     expectVisible:
@@ -165,7 +183,7 @@ steps:
 
   - within: Selected feed output
     expectVisible:
-      text: Post New Practice
+      text: Posts New Task
 
   - within: Posts
     expectHidden:

@@ -702,22 +702,10 @@ button.confirm-icon-button:hover:not(:disabled) {
 
 .feed-card-header {
   align-items: start;
-  display: grid;
+  display: flex;
   gap: 12px;
-  grid-template-columns: minmax(0, 1fr) minmax(160px, 180px);
+  justify-content: flex-end;
   margin-bottom: 12px;
-}
-
-.feed-card-title-block {
-  min-width: 0;
-}
-
-.feed-card-title {
-  color: var(--ink);
-  font-size: 20px;
-  font-weight: 800;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
 }
 
 .feed-date-control {
@@ -1088,7 +1076,8 @@ button.metric-select-button.selected-row {
   align-items: flex-start;
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
+  padding-bottom: 2px;
 }
 
 .output-item-main {
@@ -1112,44 +1101,23 @@ button.metric-select-button.selected-row {
   width: 28px;
 }
 
-.output-item-side {
-  align-items: flex-end;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.output-item-title-link {
+  color: var(--accent-strong);
+  display: inline;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
 }
 
-.pill {
-  background: #eef2f6;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--ink);
-  font-size: 12px;
-  line-height: 1;
-  padding: 5px 8px;
-  white-space: nowrap;
-}
-
-.button-link {
-  align-items: center;
-  background: var(--accent);
-  border: 1px solid var(--accent);
-  border-radius: 6px;
-  color: white;
-  display: inline-flex;
-  font-size: 13px;
-  min-height: 32px;
-  padding: 0 10px;
-  text-decoration: none;
-}
-
-.button-link:hover {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
+.output-item-title-link:hover {
+  color: var(--accent);
+  text-decoration-thickness: 2px;
 }
 
 .prompt-details {
-  max-width: 240px;
+  max-width: min(100%, 42rem);
 }
 
 .prompt-details summary {
@@ -1225,10 +1193,6 @@ button.metric-select-button.selected-row {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .feed-card-header {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .feed-date-control {
     justify-self: stretch;
   }
@@ -1278,15 +1242,6 @@ button.metric-select-button.selected-row {
   .row-top {
     align-items: flex-start;
     display: grid;
-  }
-
-  .output-item {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .output-item-side {
-    align-items: flex-start;
-    flex-flow: row wrap;
   }
 
   .post-card-header {

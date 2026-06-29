@@ -92,7 +92,7 @@ steps:
 
   - within: Selected feed output
     expectVisible:
-      text: Date Output Practice
+      text: Date Output Task
 
   - holdRequest:
       id: old-output

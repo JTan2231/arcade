@@ -103,7 +103,7 @@ steps:
 
   - within: Selected feed output
     expectVisible:
-      text: Date Posts Practice
+      text: Date Posts Task
 
   - holdRequest:
       id: old-posts

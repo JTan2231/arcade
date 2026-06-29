@@ -119,7 +119,7 @@ type DailyCatalogItem = {
   data: Record<string, unknown>;
 };
 
-export type DailyFeedAction = {
+type DailyFeedAction = {
   type: "external_url" | "text";
   label: string;
   url?: string;

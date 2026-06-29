@@ -51,8 +51,10 @@ steps:
   - visit: /
 
   - within: Selected feed output
-    expectVisible:
-      text: Daily Thread
+    expectValue:
+      label: Date
+      exact: false
+      value: "{{today}}"
 
   - within: Metrics
     click:

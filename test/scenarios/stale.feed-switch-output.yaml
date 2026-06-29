@@ -41,20 +41,36 @@ before:
         group_id: $.id
 
   - request:
-      id: create_source
+      id: create_old_source
       client: browser
       method: POST
       path: /api/groups/{{group_id}}/catalog-sources
       json:
-        name: Feed Switch Output Source
+        name: Feed Switch Output Old Source
         template: https://example.test/{slug}
         items:
-          - title: Output Task
+          - title: Output Old Task
             data:
-              slug: output-task
+              slug: output-old-task
       expectStatus: 201
       capture:
-        source_id: $.id
+        old_source_id: $.id
+
+  - request:
+      id: create_new_source
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/catalog-sources
+      json:
+        name: Feed Switch Output New Source
+        template: https://example.test/{slug}
+        items:
+          - title: Output New Task
+            data:
+              slug: output-new-task
+      expectStatus: 201
+      capture:
+        new_source_id: $.id
 
   - request:
       id: create_old_feed
@@ -65,7 +81,7 @@ before:
         name: Output Old Practice
         kind: catalog_daily
         enabled: true
-        source_id: "{{source_id}}"
+        source_id: "{{old_source_id}}"
         item_count: 1
         filters: []
         schedule:
@@ -85,7 +101,7 @@ before:
         name: Output New Practice
         kind: catalog_daily
         enabled: true
-        source_id: "{{source_id}}"
+        source_id: "{{new_source_id}}"
         item_count: 1
         filters: []
         schedule:
@@ -100,8 +116,10 @@ steps:
   - visit: /
 
   - within: Selected feed output
-    expectVisible:
-      text: Daily Thread
+    expectValue:
+      label: Date
+      exact: false
+      value: "{{today}}"
 
   - holdRequest:
       id: old-output
@@ -135,14 +153,14 @@ steps:
 
   - within: Selected feed output
     expectVisible:
-      text: Output New Practice
+      text: Output New Task
 
   - releaseRequest: old-output
 
   - within: Selected feed output
     expectVisible:
-      text: Output New Practice
+      text: Output New Task
 
   - within: Selected feed output
     expectHidden:
-      text: Output Old Practice
+      text: Output Old Task

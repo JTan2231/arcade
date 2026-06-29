@@ -9,7 +9,6 @@ import type {
   CreateFeedMetricJudgmentRequest,
   CreateFeedMetricRequest,
   DailyFeed,
-  DailyFeedAction,
   DailyFeedOutput,
   DailyFeedOutputItem,
   DailyFeedPreview,
@@ -146,8 +145,6 @@ export function GroupDashboard({
   }
 
   const feed = feeds.find((candidate) => candidate.id === selectedFeedId) || null;
-  const heading = feed ? (output?.title ?? feed.name) : "";
-  const headingDate = output?.date ?? selectedFeedDate;
   const canManageMetrics = group.my_role === "owner" || group.my_role === "admin";
   const judgedMetrics = metrics.filter((metric) => metric.system_key === "judged");
 
@@ -157,10 +154,6 @@ export function GroupDashboard({
         <section className="dashboard-section feed-output-section" aria-label="Selected feed output">
           {feed ? (
             <div className="feed-card-header">
-              <div className="feed-card-title-block">
-                <div className="feed-card-title">{heading}</div>
-                {headingDate ? <div className="meta">{formatDateLabel(headingDate)}</div> : null}
-              </div>
               <label className="date-control feed-date-control">
                 Date
                 <select value={selectedFeedDate} onChange={(event) => onChangeFeedDate(event.target.value)}>
@@ -1751,9 +1744,7 @@ function OutputItem({ item }: { item: DailyFeedOutputItem }) {
         .slice(0, 4)
         .join(", ")
     : "";
-  const details = [catalogItem.source_name, rating !== "" ? `Rating ${rating}` : "", tags].filter(
-    (detail): detail is string => detail !== "",
-  );
+  const details = [rating !== "" ? `Rating ${rating}` : "", tags].filter((detail): detail is string => detail !== "");
   const displayTitle = firstNonEmpty(
     catalogItem.title,
     primitiveDisplay(data["name"]),
@@ -1762,47 +1753,39 @@ function OutputItem({ item }: { item: DailyFeedOutputItem }) {
   );
 
   return (
-    <div className="row output-item">
+    <div className="output-item">
       <div className="output-item-main">
         <div className="item-position">{item.position}</div>
         <div>
-          <div className="title">{displayTitle}</div>
+          <OutputItemTitle item={item} title={displayTitle} />
           {details.map((detail) => (
             <div className="meta" key={detail}>
               {detail}
             </div>
           ))}
-          <div className="meta">{item.reason || ""}</div>
+          {item.action?.type === "text" && item.action.text !== undefined && item.action.text !== "" ? (
+            <details className="prompt-details">
+              <summary>{firstNonEmpty(item.action.label, "Prompt")}</summary>
+              <pre>{item.action.text}</pre>
+            </details>
+          ) : null}
         </div>
-      </div>
-      <div className="output-item-side">
-        <span className="pill">{item.role || "target"}</span>
-        <span className="pill">{item.points || 0} pts</span>
-        <OutputAction action={item.action} />
       </div>
     </div>
   );
 }
 
-function OutputAction({ action }: { action?: DailyFeedAction }) {
+function OutputItemTitle({ item, title }: { item: DailyFeedOutputItem; title: string }) {
+  const action = item.action;
   if (action?.type === "external_url" && action.url !== undefined && action.url !== "") {
     return (
-      <a className="button-link" href={action.url} target="_blank" rel="noreferrer">
-        {firstNonEmpty(action.label, "Open")}
+      <a className="output-item-title-link" href={action.url} target="_blank" rel="noreferrer">
+        {title}
       </a>
     );
   }
 
-  if (action?.type === "text" && action.text !== undefined && action.text !== "") {
-    return (
-      <details className="prompt-details">
-        <summary>{firstNonEmpty(action.label, "Prompt")}</summary>
-        <pre>{action.text}</pre>
-      </details>
-    );
-  }
-
-  return null;
+  return <div className="title">{title}</div>;
 }
 
 function defaultTimezone(): string {
