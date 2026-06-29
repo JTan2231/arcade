@@ -9,5 +9,7 @@ package.
   applied, tested, and operated.
 - [Testing](testing.md): design and implementation of the TypeScript/YAML
   scenario harness under `test/`, plus the local locator diagnostic CLI.
+- [Frontend style](frontend-style.md): color tokens, palette usage rules, and
+  frontend visual validation notes.
 - [Generated frontend event handlers](generated/frontend-event-handlers.md):
   static JSX inventory of frontend handler props by accessible region and label.
