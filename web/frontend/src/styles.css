@@ -734,12 +734,20 @@ button.confirm-icon-button:hover:not(:disabled) {
   min-width: 0;
 }
 
+.feed-output-section {
+  align-items: start;
+  display: grid;
+  gap: 12px 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 240px);
+}
+
 .feed-card-header {
   align-items: start;
   display: flex;
   gap: 12px;
+  grid-column: 2;
+  grid-row: 1;
   justify-content: flex-end;
-  margin-bottom: 12px;
 }
 
 .feed-date-control {
@@ -884,6 +892,7 @@ button.confirm-icon-button:hover:not(:disabled) {
   border-top: 1px solid var(--color-border);
   display: grid;
   gap: 10px;
+  grid-column: 1 / -1;
   margin-top: 14px;
   padding-top: 14px;
 }
@@ -983,8 +992,8 @@ button.metric-select-button.selected-row {
 
 .feed-posts-section {
   display: grid;
+  grid-column: 1 / -1;
   gap: 10px;
-  margin-top: 8px;
 }
 
 .feed-posts-header {
@@ -994,6 +1003,12 @@ button.metric-select-button.selected-row {
   justify-content: flex-start;
 }
 
+.feed-post-button {
+  font-size: 13px;
+  min-height: 32px;
+  padding: 0 10px;
+}
+
 .feed-post-form {
   background: var(--color-surface-subtle);
   border: 1px solid var(--color-border);
@@ -1001,6 +1016,11 @@ button.metric-select-button.selected-row {
   display: grid;
   gap: 10px;
   padding: 10px;
+}
+
+.output-items {
+  grid-column: 1;
+  grid-row: 1;
 }
 
 .evidence-textarea {
@@ -1014,6 +1034,10 @@ button.metric-select-button.selected-row {
 .feed-post-card {
   display: grid;
   gap: 8px;
+}
+
+.feed-posts-empty {
+  color: var(--color-text-muted);
 }
 
 .post-card-header {
@@ -1110,6 +1134,7 @@ button.metric-select-button.selected-row {
   align-items: flex-start;
   display: grid;
   gap: 12px;
+  grid-column: 1;
   grid-template-columns: minmax(0, 1fr);
   padding-bottom: 2px;
 }
@@ -1117,22 +1142,8 @@ button.metric-select-button.selected-row {
 .output-item-main {
   display: grid;
   gap: 10px;
-  grid-template-columns: 32px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
-}
-
-.item-position {
-  align-items: center;
-  background: var(--color-accent-badge-surface);
-  border: 1px solid var(--color-accent-badge-border);
-  border-radius: 999px;
-  color: var(--color-accent-hover);
-  display: inline-flex;
-  font-size: 13px;
-  font-weight: 700;
-  height: 28px;
-  justify-content: center;
-  width: 28px;
 }
 
 .output-item-title-link {
@@ -1225,6 +1236,19 @@ button.metric-select-button.selected-row {
 
   .feed-card-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .feed-output-section {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .feed-card-header {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .output-items {
+    grid-row: auto;
   }
 
   .feed-date-control {

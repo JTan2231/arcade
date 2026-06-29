@@ -131,4 +131,4 @@ steps:
 
   - within: Posts
     expectVisible:
-      text: No posts yet.
+      text: There's nothing here...

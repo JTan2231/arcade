@@ -1404,9 +1404,38 @@ function FeedPostSection({
 
   return (
     <section className="feed-posts-section" aria-label="Posts">
+      {loading ? <div className="empty-state">Loading posts...</div> : null}
+      {error !== "" ? (
+        <div className="form-error" role="alert">
+          {error}
+        </div>
+      ) : null}
+      {!loading && error === "" && posts.length > 0 ? (
+        <div className="stack feed-posts-list">
+          {posts.map((post) => (
+            <FeedPostCard
+              key={post.id}
+              mine={currentUserId === post.author_user_id}
+              post={post}
+              saving={updatingPostId === post.id}
+              deleting={deletingPostId === post.id}
+              judgedMetrics={judgedMetrics}
+              canJudge={canJudge && currentUserId !== post.author_user_id}
+              judging={judgingPostId === post.id}
+              onUpdateFeedPost={onUpdateFeedPost}
+              onDeleteFeedPost={onDeleteFeedPost}
+              onCreateMetricJudgment={onCreateMetricJudgment}
+            />
+          ))}
+        </div>
+      ) : null}
+      {!loading && error === "" && posts.length === 0 ? (
+        <div className="feed-posts-empty">There&apos;s nothing here...</div>
+      ) : null}
+
       <div className="feed-posts-header">
         <button
-          className="secondary"
+          className="secondary feed-post-button"
           type="button"
           disabled={postUnavailable}
           title={ownPost ? "You already posted in this thread." : undefined}
@@ -1445,33 +1474,6 @@ function FeedPostSection({
           </div>
         </form>
       ) : null}
-
-      {loading ? <div className="empty-state">Loading posts...</div> : null}
-      {error !== "" ? (
-        <div className="form-error" role="alert">
-          {error}
-        </div>
-      ) : null}
-      {!loading && error === "" && posts.length > 0 ? (
-        <div className="stack feed-posts-list">
-          {posts.map((post) => (
-            <FeedPostCard
-              key={post.id}
-              mine={currentUserId === post.author_user_id}
-              post={post}
-              saving={updatingPostId === post.id}
-              deleting={deletingPostId === post.id}
-              judgedMetrics={judgedMetrics}
-              canJudge={canJudge && currentUserId !== post.author_user_id}
-              judging={judgingPostId === post.id}
-              onUpdateFeedPost={onUpdateFeedPost}
-              onDeleteFeedPost={onDeleteFeedPost}
-              onCreateMetricJudgment={onCreateMetricJudgment}
-            />
-          ))}
-        </div>
-      ) : null}
-      {!loading && error === "" && posts.length === 0 ? <div className="empty-state">No posts yet.</div> : null}
     </section>
   );
 }
@@ -1755,7 +1757,6 @@ function OutputItem({ item }: { item: DailyFeedOutputItem }) {
   return (
     <div className="output-item">
       <div className="output-item-main">
-        <div className="item-position">{item.position}</div>
         <div>
           <OutputItemTitle item={item} title={displayTitle} />
           {details.map((detail) => (
