@@ -99,9 +99,8 @@ has a label, value type (`string` or `number`), cardinality flag, and display
 order; operator semantics stay in application code.
 
 `group_daily_feeds` stores the durable daily feed definition owned by a group.
-Each feed has a unique slug within its group, a kind, an enabled flag,
-visibility (`public` or `private`), a default visibility for future posts,
-explicit schedule columns (`schedule_starts_at`, `schedule_timezone`, and
+Each feed has a unique slug within its group, a kind, an enabled flag, explicit
+schedule columns (`schedule_starts_at`, `schedule_timezone`, and
 `schedule_interval_seconds`), and optional practice-feed source/count columns.
 The `catalog_daily` kind selects items from exactly one available
 `catalog_sources` row. A source is available when it either belongs to the feed
@@ -128,9 +127,8 @@ when durable member content exists for that feed instance. The row carries
 keys keeping it consistent with `group_daily_feeds`.
 
 `group_feed_posts` stores one member-authored response per feed instance. A post
-currently requires plaintext evidence with `evidence_kind = 'text'`, has
-visibility (`public` or `private`), and `caption` is optional and separate from
-evidence. Posts are soft deleted with
+currently requires plaintext evidence with `evidence_kind = 'text'`, and
+`caption` is optional and separate from evidence. Posts are soft deleted with
 `deleted_at`, and the unique `(feed_instance_id, author_user_id)` rule means a
 later post by the same member reuses and reactivates the existing row.
 
@@ -178,9 +176,12 @@ to older outputs do not extend the streak.
 ## Groups And Divisions
 
 `groups` represents a social or team scope. Group slugs are globally unique.
-Visibility is constrained to `public` or `private`. Invites are represented by
-membership rows with `status = 'invited'`; invite state is not a group
-visibility mode.
+Visibility defaults to `public` and is constrained to `public` or `private`.
+Invites are represented by membership rows with `status = 'invited'`; invite
+state is not a group visibility mode. Group visibility is the only
+public/private content setting: when a group is public, its enabled feeds and
+non-deleted posts are public; when a group is private, public group, feed, and
+post routes return 404.
 
 `group_memberships` connects users to groups with a role and lifecycle status.
 Roles are `owner`, `admin`, or `member`; statuses are `invited`, `active`,

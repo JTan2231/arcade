@@ -53,8 +53,6 @@ before:
         name: Public Practice
         kind: catalog_daily
         enabled: true
-        visibility: public
-        default_post_visibility: public
         source_id: "{{source_id}}"
         item_count: 1
         schedule:
@@ -79,6 +77,65 @@ before:
         post_id: $.id
 
   - request:
+      id: create_private_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Private URL Group
+        visibility: private
+      expectStatus: 201
+      capture:
+        private_group_id: $.id
+
+  - request:
+      id: create_private_source
+      client: browser
+      method: POST
+      path: /api/groups/{{private_group_id}}/catalog-sources
+      json:
+        name: Private URL Source
+        template: https://example.test/{slug}
+        items:
+          - title: Hidden Item
+            data:
+              slug: hidden-item
+      expectStatus: 201
+      capture:
+        private_source_id: $.id
+
+  - request:
+      id: create_private_feed
+      client: browser
+      method: POST
+      path: /api/groups/{{private_group_id}}/daily-feeds
+      json:
+        name: Private Practice
+        kind: catalog_daily
+        enabled: true
+        source_id: "{{private_source_id}}"
+        item_count: 1
+        schedule:
+          starts_at: "{{today}}T00:00:00Z"
+          timezone: UTC
+          interval_seconds: 86400
+      expectStatus: 201
+      capture:
+        private_feed_id: $.id
+
+  - request:
+      id: create_private_post
+      client: browser
+      method: POST
+      path: /api/groups/{{private_group_id}}/daily-feeds/{{private_feed_id}}/outputs/{{today}}/posts
+      json:
+        evidence_kind: text
+        evidence_text: Private proof for members only.
+      expectStatus: 201
+      capture:
+        private_post_id: $.id
+
+  - request:
       id: logout_owner
       client: browser
       method: POST
@@ -94,6 +151,7 @@ steps:
       expectJson:
         name: Public URL Group
         feeds:
+          - name: Daily Thread
           - name: Public Practice
 
   - request:
@@ -117,6 +175,18 @@ steps:
         evidence_text: Public proof for the public page.
         feed:
           name: Public Practice
+
+  - request:
+      id: private_feed_api
+      method: GET
+      path: /api/public/feeds/{{private_feed_id}}/outputs/{{today}}
+      expectStatus: 404
+
+  - request:
+      id: private_post_api
+      method: GET
+      path: /api/public/posts/{{private_post_id}}
+      expectStatus: 404
 
   - visit: /g/public-url-group
 

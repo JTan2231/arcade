@@ -63,7 +63,6 @@ type CreatePostPayload = {
 type UpdatePostPayload = {
   evidenceText?: string;
   caption?: string;
-  visibility?: Visibility;
   tagIds?: string[];
 };
 
@@ -78,7 +77,6 @@ type PostMutation =
       postId: string;
       evidenceText?: string;
       caption?: string;
-      visibility?: Visibility;
       tagIds?: string[];
     }
   | {
@@ -185,8 +183,6 @@ type DashboardUserEvent =
   | { type: "FEED_SELECTED"; feedId: string }
   | { type: "FEED_DATE_CHANGED"; date: string }
   | { type: "FEED_ENABLED_TOGGLED"; feedId: string }
-  | { type: "FEED_VISIBILITY_TOGGLED"; feedId: string }
-  | { type: "FEED_DEFAULT_POST_VISIBILITY_TOGGLED"; feedId: string }
   | { type: "FEED_DELETE_SUBMITTED"; feedId: string }
   | { type: "POST_CREATE_SUBMITTED"; payload: CreatePostPayload }
   | { type: "POST_UPDATE_SUBMITTED"; postId: string; payload: UpdatePostPayload }
@@ -263,7 +259,6 @@ type UpdatePostInput = {
   postId: string;
   evidenceText?: string;
   caption?: string;
-  visibility?: Visibility;
   tagIds?: string[];
 };
 
@@ -401,22 +396,6 @@ const dashboardSetup = setup({
     toggleFeed: fromPromise<DailyFeed, ToggleFeedInput>(({ input, signal }) =>
       updateGroupDailyFeed(input.groupId, input.feed.id, { enabled: !input.feed.enabled }, { signal }),
     ),
-    toggleFeedVisibility: fromPromise<DailyFeed, ToggleFeedInput>(({ input, signal }) =>
-      updateGroupDailyFeed(
-        input.groupId,
-        input.feed.id,
-        { visibility: input.feed.visibility === "public" ? "private" : "public" },
-        { signal },
-      ),
-    ),
-    toggleFeedDefaultPostVisibility: fromPromise<DailyFeed, ToggleFeedInput>(({ input, signal }) =>
-      updateGroupDailyFeed(
-        input.groupId,
-        input.feed.id,
-        { default_post_visibility: input.feed.default_post_visibility === "public" ? "private" : "public" },
-        { signal },
-      ),
-    ),
     deleteFeed: fromPromise<DeleteFeedOutput, FeedInput>(async ({ input, signal }) => {
       await deleteGroupDailyFeed(input.groupId, input.feedId, { signal });
       return { feedId: input.feedId };
@@ -446,7 +425,6 @@ const dashboardSetup = setup({
               }
             : {}),
           ...(input.caption !== undefined ? { caption: input.caption !== "" ? input.caption : null } : {}),
-          ...(input.visibility !== undefined ? { visibility: input.visibility } : {}),
           ...(input.tagIds !== undefined ? { tag_ids: input.tagIds } : {}),
         },
         { signal },
@@ -615,22 +593,6 @@ export const dashboardMachine = dashboardSetup.createMachine({
         pendingToggleFeedId: event.feedId,
       })),
     },
-    FEED_VISIBILITY_TOGGLED: {
-      guard: ({ context, event }) =>
-        context.selectedGroupId !== null && context.feeds.some((feed) => feed.id === event.feedId),
-      target: ".groupSelected.togglingFeedVisibility",
-      actions: assign(({ event }) => ({
-        pendingToggleFeedId: event.feedId,
-      })),
-    },
-    FEED_DEFAULT_POST_VISIBILITY_TOGGLED: {
-      guard: ({ context, event }) =>
-        context.selectedGroupId !== null && context.feeds.some((feed) => feed.id === event.feedId),
-      target: ".groupSelected.togglingFeedDefaultPostVisibility",
-      actions: assign(({ event }) => ({
-        pendingToggleFeedId: event.feedId,
-      })),
-    },
     FEED_DELETE_SUBMITTED: {
       guard: ({ context, event }) =>
         context.selectedGroupId !== null && context.feeds.some((feed) => feed.id === event.feedId),
@@ -695,7 +657,6 @@ export const dashboardMachine = dashboardSetup.createMachine({
               }
             : {}),
           ...(event.payload.caption !== undefined ? { caption: event.payload.caption.trim() } : {}),
-          ...(event.payload.visibility !== undefined ? { visibility: event.payload.visibility } : {}),
           ...(event.payload.tagIds !== undefined ? { tagIds: event.payload.tagIds } : {}),
         },
       })),
@@ -1208,9 +1169,6 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   if (mutation.caption !== undefined) {
                     input.caption = mutation.caption;
                   }
-                  if (mutation.visibility !== undefined) {
-                    input.visibility = mutation.visibility;
-                  }
                   if (mutation.tagIds !== undefined) {
                     input.tagIds = mutation.tagIds;
                   }
@@ -1636,68 +1594,6 @@ export const dashboardMachine = dashboardSetup.createMachine({
             ],
           },
         },
-        togglingFeedVisibility: {
-          invoke: {
-            src: "toggleFeedVisibility",
-            input: ({ context }) => ({
-              groupId: requireSelectedGroupId(context),
-              feed: requirePendingToggleFeed(context),
-            }),
-            onDone: {
-              target: "feedSelected.ready",
-              actions: [
-                assign(({ context, event }) => ({
-                  feeds: replaceFeed(context.feeds, event.output),
-                  pendingToggleFeedId: null,
-                })),
-                sendFeedVisibilityToastToParent(),
-              ],
-            },
-            onError: [
-              unauthorizedToParentTransition(),
-              {
-                target: "feedSelected.ready",
-                actions: [
-                  assign({
-                    pendingToggleFeedId: null,
-                  }),
-                  sendErrorToastToParent(),
-                ],
-              },
-            ],
-          },
-        },
-        togglingFeedDefaultPostVisibility: {
-          invoke: {
-            src: "toggleFeedDefaultPostVisibility",
-            input: ({ context }) => ({
-              groupId: requireSelectedGroupId(context),
-              feed: requirePendingToggleFeed(context),
-            }),
-            onDone: {
-              target: "feedSelected.ready",
-              actions: [
-                assign(({ context, event }) => ({
-                  feeds: replaceFeed(context.feeds, event.output),
-                  pendingToggleFeedId: null,
-                })),
-                sendFeedDefaultPostVisibilityToastToParent(),
-              ],
-            },
-            onError: [
-              unauthorizedToParentTransition(),
-              {
-                target: "feedSelected.ready",
-                actions: [
-                  assign({
-                    pendingToggleFeedId: null,
-                  }),
-                  sendErrorToastToParent(),
-                ],
-              },
-            ],
-          },
-        },
         deletingFeed: {
           invoke: {
             src: "deleteFeed",
@@ -1862,12 +1758,7 @@ function validPostUpdatePayload(payload: UpdatePostPayload): boolean {
   if (payload.evidenceText !== undefined && payload.evidenceText.trim() === "") {
     return false;
   }
-  return (
-    payload.evidenceText !== undefined ||
-    payload.caption !== undefined ||
-    payload.visibility !== undefined ||
-    payload.tagIds !== undefined
-  );
+  return payload.evidenceText !== undefined || payload.caption !== undefined || payload.tagIds !== undefined;
 }
 
 function closeAddFeedTransitions() {
@@ -2059,23 +1950,6 @@ function sendErrorToastToParent() {
 function sendToggleToastToParent() {
   return sendParent<DashboardContext, DoneActorEvent<DailyFeed>, undefined, DashboardOutputEvent, DashboardEvent>(
     ({ event }) => toastRequested(event.output.enabled ? "Feed enabled" : "Feed disabled"),
-  );
-}
-
-function sendFeedVisibilityToastToParent() {
-  return sendParent<DashboardContext, DoneActorEvent<DailyFeed>, undefined, DashboardOutputEvent, DashboardEvent>(
-    ({ event }) => toastRequested(event.output.visibility === "public" ? "Feed is public" : "Feed is private"),
-  );
-}
-
-function sendFeedDefaultPostVisibilityToastToParent() {
-  return sendParent<DashboardContext, DoneActorEvent<DailyFeed>, undefined, DashboardOutputEvent, DashboardEvent>(
-    ({ event }) =>
-      toastRequested(
-        event.output.default_post_visibility === "public"
-          ? "New posts default to public"
-          : "New posts default to private",
-      ),
   );
 }
 

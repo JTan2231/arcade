@@ -21,8 +21,6 @@ type GroupsPanelProps = {
   onDeleteGroup: (id: string) => void;
   onSelectFeed: (id: string) => void;
   onToggleFeedEnabled: (id: string) => void;
-  onToggleFeedVisibility: (id: string) => void;
-  onToggleFeedDefaultPostVisibility: (id: string) => void;
   onCopyPublicFeedLink: (id: string) => void;
   onDeleteFeed: (id: string) => void;
   onAddFeed: () => void;
@@ -46,8 +44,6 @@ export function GroupsPanel({
   onDeleteGroup,
   onSelectFeed,
   onToggleFeedEnabled,
-  onToggleFeedVisibility,
-  onToggleFeedDefaultPostVisibility,
   onCopyPublicFeedLink,
   onDeleteFeed,
   onAddFeed,
@@ -150,10 +146,9 @@ export function GroupsPanel({
                     selectedFeedId={selectedFeedId}
                     pendingToggleFeedId={pendingToggleFeedId}
                     pendingDeleteFeedId={pendingDeleteFeedId}
+                    publicLinksAvailable={group.visibility === "public"}
                     onSelectFeed={onSelectFeed}
                     onToggleFeedEnabled={onToggleFeedEnabled}
-                    onToggleFeedVisibility={onToggleFeedVisibility}
-                    onToggleFeedDefaultPostVisibility={onToggleFeedDefaultPostVisibility}
                     onCopyPublicFeedLink={onCopyPublicFeedLink}
                     onDeleteFeed={onDeleteFeed}
                     onAddFeed={onAddFeed}
@@ -178,10 +173,9 @@ function FeedSublist({
   selectedFeedId,
   pendingToggleFeedId,
   pendingDeleteFeedId,
+  publicLinksAvailable,
   onSelectFeed,
   onToggleFeedEnabled,
-  onToggleFeedVisibility,
-  onToggleFeedDefaultPostVisibility,
   onCopyPublicFeedLink,
   onDeleteFeed,
   onAddFeed,
@@ -193,10 +187,9 @@ function FeedSublist({
   selectedFeedId: string | null;
   pendingToggleFeedId: string | null;
   pendingDeleteFeedId: string | null;
+  publicLinksAvailable: boolean;
   onSelectFeed: (id: string) => void;
   onToggleFeedEnabled: (id: string) => void;
-  onToggleFeedVisibility: (id: string) => void;
-  onToggleFeedDefaultPostVisibility: (id: string) => void;
   onCopyPublicFeedLink: (id: string) => void;
   onDeleteFeed: (id: string) => void;
   onAddFeed: () => void;
@@ -231,6 +224,14 @@ function FeedSublist({
       {feeds.map((feed) => {
         const selected = feed.id === selectedFeedId;
         const mutating = pendingToggleFeedId === feed.id || pendingDeleteFeedId === feed.id;
+        const copyPublicLinkAction: RowAction | null =
+          publicLinksAvailable && feed.enabled
+            ? {
+                label: "Copy public link",
+                disabled: mutating,
+                onSelect: () => onCopyPublicFeedLink(feed.id),
+              }
+            : null;
         const actions: RowAction[] = manage
           ? [
               {
@@ -238,25 +239,7 @@ function FeedSublist({
                 disabled: mutating,
                 onSelect: () => onToggleFeedEnabled(feed.id),
               },
-              {
-                label: feed.visibility === "public" ? "Make private" : "Make public",
-                disabled: mutating,
-                onSelect: () => onToggleFeedVisibility(feed.id),
-              },
-              ...(feed.visibility === "public"
-                ? [
-                    {
-                      label: "Copy public link",
-                      disabled: mutating,
-                      onSelect: () => onCopyPublicFeedLink(feed.id),
-                    },
-                  ]
-                : []),
-              {
-                label: feed.default_post_visibility === "public" ? "New posts private" : "New posts public",
-                disabled: mutating,
-                onSelect: () => onToggleFeedDefaultPostVisibility(feed.id),
-              },
+              ...(copyPublicLinkAction === null ? [] : [copyPublicLinkAction]),
               {
                 label: "Delete",
                 danger: true,
@@ -264,14 +247,9 @@ function FeedSublist({
                 onSelect: () => onDeleteFeed(feed.id),
               },
             ]
-          : [
-              {
-                label: "Delete",
-                danger: true,
-                disabled: true,
-                onSelect: () => onDeleteFeed(feed.id),
-              },
-            ];
+          : copyPublicLinkAction === null
+            ? []
+            : [copyPublicLinkAction];
 
         return (
           <div className="feed-branch" key={feed.id}>
@@ -284,13 +262,9 @@ function FeedSublist({
                 onClick={() => onSelectFeed(feed.id)}
               >
                 <div className="title">{feed.name}</div>
-                <div className="meta">
-                  {[!feed.enabled ? "Disabled" : "", feed.visibility === "public" ? "Public" : ""]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </div>
+                <div className="meta">{!feed.enabled ? "Disabled" : ""}</div>
               </button>
-              <RowActionMenu label={`Feed settings for ${feed.name}`} actions={actions} />
+              {actions.length > 0 ? <RowActionMenu label={`Feed settings for ${feed.name}`} actions={actions} /> : null}
             </div>
           </div>
         );

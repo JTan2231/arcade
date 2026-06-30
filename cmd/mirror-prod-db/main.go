@@ -186,8 +186,6 @@ var mirrorTables = []mirrorTable{
 			"schedule_starts_at",
 			"schedule_timezone",
 			"schedule_interval_seconds",
-			"visibility",
-			"default_post_visibility",
 		},
 	},
 	{
@@ -228,7 +226,6 @@ var mirrorTables = []mirrorTable{
 			"deleted_at",
 			"created_at",
 			"updated_at",
-			"visibility",
 		},
 	},
 	{

@@ -139,8 +139,6 @@ export type DailyFeed = {
   kind: "catalog_daily" | "daily_thread";
   description?: string;
   enabled: boolean;
-  visibility: Visibility;
-  default_post_visibility: Visibility;
   source_id?: string;
   source_name?: string;
   item_count?: number;
@@ -263,8 +261,6 @@ export type CreateDailyFeedRequest = {
   kind: "catalog_daily" | "daily_thread";
   description?: string;
   enabled: boolean;
-  visibility?: Visibility;
-  default_post_visibility?: Visibility;
   source_id?: string;
   item_count?: number;
   schedule: DailyFeedSchedule;
@@ -284,7 +280,6 @@ export type GroupFeedPost = {
   evidence_kind: "text";
   evidence_text: string;
   caption?: string;
-  visibility: Visibility;
   tags: GroupPostTag[];
   deleted_at?: string;
   created_at: string;
@@ -307,14 +302,12 @@ export type CreateGroupFeedPostRequest = {
   evidence_kind: "text";
   evidence_text: string;
   caption?: string;
-  visibility?: Visibility;
 };
 
 export type PatchGroupFeedPostRequest = {
   evidence_kind?: "text";
   evidence_text?: string;
   caption?: string | null;
-  visibility?: Visibility;
   tag_ids?: string[];
 };
 

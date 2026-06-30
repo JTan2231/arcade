@@ -163,41 +163,6 @@ func TestDailyThreadRejectsPracticeFields(t *testing.T) {
 	}
 }
 
-func TestDailyThreadVisibilityDefaults(t *testing.T) {
-	server := &Server{}
-	input, err := server.normalizeCreateDailyFeed(context.Background(), "group", createDailyFeedRequest{
-		Kind: dailyFeedKindDailyThread,
-	})
-	if err != nil {
-		t.Fatalf("normalizeCreateDailyFeed returned error: %v", err)
-	}
-	if input.Visibility != "private" {
-		t.Fatalf("visibility = %q, want private", input.Visibility)
-	}
-	if input.DefaultPostVisibility != "private" {
-		t.Fatalf("default post visibility = %q, want private", input.DefaultPostVisibility)
-	}
-}
-
-func TestDailyThreadVisibilityValidation(t *testing.T) {
-	server := &Server{}
-	_, err := server.normalizeCreateDailyFeed(context.Background(), "group", createDailyFeedRequest{
-		Kind:       dailyFeedKindDailyThread,
-		Visibility: "invite_only",
-	})
-	if err == nil {
-		t.Fatal("expected invalid visibility to be rejected")
-	}
-
-	_, err = server.normalizeCreateDailyFeed(context.Background(), "group", createDailyFeedRequest{
-		Kind:                  dailyFeedKindDailyThread,
-		DefaultPostVisibility: "invite_only",
-	})
-	if err == nil {
-		t.Fatal("expected invalid default post visibility to be rejected")
-	}
-}
-
 func TestDailyThreadOutputHasNoGeneratedItems(t *testing.T) {
 	server := &Server{}
 	requestedDate := time.Date(2026, 6, 24, 12, 0, 0, 0, time.UTC)

@@ -121,24 +121,22 @@ type DivisionRule struct {
 }
 
 type DailyFeed struct {
-	ID                    string                `json:"id"`
-	GroupID               string                `json:"group_id"`
-	GroupName             *string               `json:"group_name,omitempty"`
-	Name                  string                `json:"name"`
-	Slug                  string                `json:"slug"`
-	Kind                  string                `json:"kind"`
-	Description           *string               `json:"description,omitempty"`
-	Enabled               bool                  `json:"enabled"`
-	Visibility            string                `json:"visibility"`
-	DefaultPostVisibility string                `json:"default_post_visibility"`
-	SourceID              *string               `json:"source_id,omitempty"`
-	SourceName            *string               `json:"source_name,omitempty"`
-	ItemCount             *int                  `json:"item_count,omitempty"`
-	Schedule              DailyFeedSchedule     `json:"schedule"`
-	Filters               []DailyFeedRuleFilter `json:"filters"`
-	CreatedByUserID       *string               `json:"created_by_user_id,omitempty"`
-	CreatedAt             time.Time             `json:"created_at"`
-	UpdatedAt             time.Time             `json:"updated_at"`
+	ID              string                `json:"id"`
+	GroupID         string                `json:"group_id"`
+	GroupName       *string               `json:"group_name,omitempty"`
+	Name            string                `json:"name"`
+	Slug            string                `json:"slug"`
+	Kind            string                `json:"kind"`
+	Description     *string               `json:"description,omitempty"`
+	Enabled         bool                  `json:"enabled"`
+	SourceID        *string               `json:"source_id,omitempty"`
+	SourceName      *string               `json:"source_name,omitempty"`
+	ItemCount       *int                  `json:"item_count,omitempty"`
+	Schedule        DailyFeedSchedule     `json:"schedule"`
+	Filters         []DailyFeedRuleFilter `json:"filters"`
+	CreatedByUserID *string               `json:"created_by_user_id,omitempty"`
+	CreatedAt       time.Time             `json:"created_at"`
+	UpdatedAt       time.Time             `json:"updated_at"`
 }
 
 type DailyFeedSchedule struct {
@@ -233,7 +231,6 @@ type GroupFeedPost struct {
 	EvidenceKind      string         `json:"evidence_kind"`
 	EvidenceText      string         `json:"evidence_text"`
 	Caption           *string        `json:"caption,omitempty"`
-	Visibility        string         `json:"visibility"`
 	Tags              []GroupPostTag `json:"tags"`
 	DeletedAt         *time.Time     `json:"deleted_at,omitempty"`
 	CreatedAt         time.Time      `json:"created_at"`

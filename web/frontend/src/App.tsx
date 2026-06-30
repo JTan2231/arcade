@@ -509,10 +509,6 @@ export default function App() {
                 onDeleteGroup={(groupId) => dashboardRef?.send({ type: "GROUP_DELETE_SUBMITTED", groupId })}
                 onSelectFeed={(feedId) => dashboardRef?.send({ type: "FEED_SELECTED", feedId })}
                 onToggleFeedEnabled={(feedId) => dashboardRef?.send({ type: "FEED_ENABLED_TOGGLED", feedId })}
-                onToggleFeedVisibility={(feedId) => dashboardRef?.send({ type: "FEED_VISIBILITY_TOGGLED", feedId })}
-                onToggleFeedDefaultPostVisibility={(feedId) =>
-                  dashboardRef?.send({ type: "FEED_DEFAULT_POST_VISIBILITY_TOGGLED", feedId })
-                }
                 onCopyPublicFeedLink={(feedId) => void copyPublicPath(`/f/${feedId}`, "Feed link copied")}
                 onDeleteFeed={(feedId) => dashboardRef?.send({ type: "FEED_DELETE_SUBMITTED", feedId })}
                 onAddFeed={() => dashboardRef?.send({ type: "ADD_FEED_OPENED" })}

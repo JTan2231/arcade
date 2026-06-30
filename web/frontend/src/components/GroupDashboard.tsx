@@ -24,7 +24,6 @@ import type {
   PatchFeedMetricRequest,
   PublicUser,
   SystemMetricKey,
-  Visibility,
 } from "../types";
 
 type CreateFeedPostPayload = {
@@ -35,7 +34,6 @@ type CreateFeedPostPayload = {
 type UpdateFeedPostPayload = {
   evidenceText?: string;
   caption?: string;
-  visibility?: Visibility;
   tagIds?: string[];
 };
 
@@ -154,6 +152,7 @@ export function GroupDashboard({
   const feed = feeds.find((candidate) => candidate.id === selectedFeedId) || null;
   const canManageMetrics = group.my_role === "owner" || group.my_role === "admin";
   const canManagePostTags = group.my_role === "owner" || group.my_role === "admin";
+  const publicLinksAvailable = group.visibility === "public";
   const judgedMetrics = metrics.filter((metric) => metric.system_key === "judged");
 
   return (
@@ -187,10 +186,10 @@ export function GroupDashboard({
           updatingPostId={updatingPostId}
           deletingPostId={deletingPostId}
           currentUserId={currentUserId}
+          publicLinksAvailable={publicLinksAvailable}
           judgedMetrics={judgedMetrics}
           canJudge={canManageMetrics}
           canManagePostTags={canManagePostTags}
-          canManagePosts={canManageMetrics}
           judgingPostId={judgingPostId}
           onCreateFeedPost={onCreateFeedPost}
           onUpdateFeedPost={onUpdateFeedPost}
@@ -1207,10 +1206,10 @@ function FeedOutput({
   updatingPostId,
   deletingPostId,
   currentUserId,
+  publicLinksAvailable,
   judgedMetrics,
   canJudge,
   canManagePostTags,
-  canManagePosts,
   judgingPostId,
   onCreateFeedPost,
   onUpdateFeedPost,
@@ -1230,10 +1229,10 @@ function FeedOutput({
   updatingPostId: string | null;
   deletingPostId: string | null;
   currentUserId: string | null;
+  publicLinksAvailable: boolean;
   judgedMetrics: FeedMetric[];
   canJudge: boolean;
   canManagePostTags: boolean;
-  canManagePosts: boolean;
   judgingPostId: string | null;
   onCreateFeedPost: (payload: CreateFeedPostPayload) => void;
   onUpdateFeedPost: (postId: string, payload: UpdateFeedPostPayload) => void;
@@ -1286,10 +1285,10 @@ function FeedOutput({
         updatingPostId={updatingPostId}
         deletingPostId={deletingPostId}
         currentUserId={currentUserId}
+        publicLinksAvailable={publicLinksAvailable}
         judgedMetrics={judgedMetrics}
         canJudge={canJudge}
         canManagePostTags={canManagePostTags}
-        canManagePosts={canManagePosts}
         judgingPostId={judgingPostId}
         onCreateFeedPost={onCreateFeedPost}
         onUpdateFeedPost={onUpdateFeedPost}
@@ -1311,10 +1310,10 @@ function FeedPostSection({
   updatingPostId,
   deletingPostId,
   currentUserId,
+  publicLinksAvailable,
   judgedMetrics,
   canJudge,
   canManagePostTags,
-  canManagePosts,
   judgingPostId,
   onCreateFeedPost,
   onUpdateFeedPost,
@@ -1331,10 +1330,10 @@ function FeedPostSection({
   updatingPostId: string | null;
   deletingPostId: string | null;
   currentUserId: string | null;
+  publicLinksAvailable: boolean;
   judgedMetrics: FeedMetric[];
   canJudge: boolean;
   canManagePostTags: boolean;
-  canManagePosts: boolean;
   judgingPostId: string | null;
   onCreateFeedPost: (payload: CreateFeedPostPayload) => void;
   onUpdateFeedPost: (postId: string, payload: UpdateFeedPostPayload) => void;
@@ -1387,8 +1386,8 @@ function FeedPostSection({
             <FeedPostCard
               key={post.id}
               canTag={currentUserId === post.author_user_id || canManagePostTags}
-              canModerate={canManagePosts}
               mine={currentUserId === post.author_user_id}
+              publicLinksAvailable={publicLinksAvailable}
               post={post}
               activePostTags={activePostTags}
               saving={updatingPostId === post.id}
@@ -1457,8 +1456,8 @@ function FeedPostCard({
   post,
   activePostTags,
   canTag,
-  canModerate,
   mine,
+  publicLinksAvailable,
   saving,
   deleting,
   judgedMetrics,
@@ -1472,8 +1471,8 @@ function FeedPostCard({
   post: GroupFeedPost;
   activePostTags: GroupPostTag[];
   canTag: boolean;
-  canModerate: boolean;
   mine: boolean;
+  publicLinksAvailable: boolean;
   saving: boolean;
   deleting: boolean;
   judgedMetrics: FeedMetric[];
@@ -1575,24 +1574,14 @@ function FeedPostCard({
   }
 
   const taggable = canTag && activePostTags.length > 0;
-  const publicPost = post.visibility === "public";
-  const canChangeVisibility = mine || (canModerate && publicPost);
-  const postActionsVisible = taggable || mine || canChangeVisibility || publicPost;
+  const postActionsVisible = taggable || mine || publicLinksAvailable;
 
   return (
     <article className="row feed-post-card">
       <div className="post-card-header">
         <div>
           <div className="title">{post.author_display_name || post.author_username}</div>
-          <div className="meta">
-            {formatDateTime(post.created_at)}
-            {publicPost ? (
-              <>
-                {" "}
-                · <span aria-label="Post visibility">Public</span>
-              </>
-            ) : null}
-          </div>
+          <div className="meta">{formatDateTime(post.created_at)}</div>
         </div>
         {postActionsVisible && !editing ? (
           <div className="post-card-actions">
@@ -1601,17 +1590,7 @@ function FeedPostCard({
                 Tag
               </button>
             ) : null}
-            {canChangeVisibility ? (
-              <button
-                className="secondary"
-                type="button"
-                disabled={saving || deleting}
-                onClick={() => onUpdateFeedPost(post.id, { visibility: publicPost ? "private" : "public" })}
-              >
-                {publicPost ? "Make private" : "Make public"}
-              </button>
-            ) : null}
-            {publicPost ? (
+            {publicLinksAvailable ? (
               <button
                 className="secondary"
                 type="button"

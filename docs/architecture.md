@@ -113,10 +113,10 @@ The current daily feed model follows these rules:
   member can own at most one post on that instance. Feed post read responses are
   hydrated with attached group post tags ordered by name,
   including archived tags that remain attached to historical posts.
-- Feed and post visibility are independent from membership reads. Authenticated
-  active members can continue reading private group content through member
-  routes, while public routes expose only explicitly public, enabled feeds and
-  explicitly public, non-deleted posts.
+- Group visibility controls public reads for the group, its enabled feeds, and
+  non-deleted posts. Authenticated active members continue reading private group
+  content through member routes, while public routes return 404 for private
+  groups.
 - Group post tags are a group-managed vocabulary. Owners and admins create,
   rename, archive, and unarchive tag definitions under
   `/api/groups/{group_id}/post-tags`; post authors can attach active tags to

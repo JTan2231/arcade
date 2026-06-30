@@ -521,7 +521,7 @@ export function deleteFeedMetricJudgment(groupID: string, judgmentID: string, op
 export function updateGroupDailyFeed(
   groupID: string,
   feedID: string,
-  payload: Partial<Pick<DailyFeed, "enabled" | "visibility" | "default_post_visibility">>,
+  payload: Partial<Pick<DailyFeed, "enabled">>,
   options: APIOptions = {},
 ): Promise<DailyFeed> {
   return api<DailyFeed>(`/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}`, {

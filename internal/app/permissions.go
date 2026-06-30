@@ -98,10 +98,6 @@ func validGroupVisibility(visibility string) bool {
 	}
 }
 
-func validPublicPrivateVisibility(visibility string) bool {
-	return validGroupVisibility(visibility)
-}
-
 type groupMemberState struct {
 	Role   string
 	Status string

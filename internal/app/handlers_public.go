@@ -76,7 +76,6 @@ func (s *Server) getPublicGroup(ctx context.Context, slug string) (PublicGroup, 
 		from group_daily_feeds
 		where group_id = $1
 		  and enabled
-		  and visibility = 'public'
 		order by name, id
 	`, group.ID)
 	if err != nil {
@@ -101,13 +100,16 @@ func (s *Server) getPublicFeed(ctx context.Context, feedID string, requestedDate
 	if err != nil {
 		return PublicFeed{}, err
 	}
-	if feed.Visibility != "public" || !feed.Enabled {
+	if !feed.Enabled {
 		return PublicFeed{}, errNotFound("daily feed")
 	}
 
 	group, err := s.getPublicParentGroup(ctx, feed.GroupID)
 	if err != nil {
 		return PublicFeed{}, err
+	}
+	if group.Visibility != "public" {
+		return PublicFeed{}, errNotFound("daily feed")
 	}
 
 	output, err := s.generateDailyFeedOutputForFeed(ctx, feed, requestedDate)
@@ -231,7 +233,7 @@ func firstNonEmptyString(values ...string) string {
 func (s *Server) getPublicPost(ctx context.Context, postID string) (PublicPost, error) {
 	post, err := scanPublicPost(s.db.QueryRow(ctx, publicPostSelectSQL()+`
 		where p.id = $1
-		  and p.visibility = 'public'
+		  and g.visibility = 'public'
 		  and p.deleted_at is null
 	`, postID))
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -251,7 +253,7 @@ func (s *Server) listPublicFeedPosts(ctx context.Context, feedID string, feedDat
 	rows, err := s.db.Query(ctx, publicPostSelectSQL()+`
 		where i.feed_id = $1
 		  and i.feed_date = $2
-		  and p.visibility = 'public'
+		  and g.visibility = 'public'
 		  and p.deleted_at is null
 		order by p.created_at desc
 	`, feedID, feedDate)
