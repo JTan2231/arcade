@@ -35,6 +35,19 @@ The root `railpack.json` makes Railway's Railpack builder install Bun.
 `./cmd/arcade`, and pins the start command and healthcheck. Attach a Railway
 Postgres database so `DATABASE_URL` is available.
 
+To inspect production data without allowing accidental writes, use the read-only
+Postgres wrapper with a production URL:
+
+```sh
+DATABASE_URL='postgres://...' scripts/prod-db-readonly.sh
+```
+
+The wrapper also accepts `psql` arguments, for example:
+
+```sh
+DATABASE_URL='postgres://...' scripts/prod-db-readonly.sh -c 'select now();'
+```
+
 ## Frontend Development
 
 Editable frontend source lives in `web/frontend`. Vite builds production assets
