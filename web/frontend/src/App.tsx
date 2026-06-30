@@ -564,7 +564,12 @@ export default function App() {
   if (publicRoute !== null && !publicRouteUsesWorkspace) {
     return (
       <>
-        <PublicPage route={publicRoute} signedIn={signedIn} />
+        <PublicPage
+          onCopyPublicPostLink={(postId) => void copyPublicPath(postPath(postId), "Post link copied")}
+          onNavigate={setAppPath}
+          route={publicRoute}
+          signedIn={signedIn}
+        />
         <Toast message={context.toastMessage} />
       </>
     );

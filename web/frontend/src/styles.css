@@ -271,6 +271,16 @@ label {
   grid-column: 2;
 }
 
+.public-route-layout {
+  grid-template-columns: minmax(0, 1040px);
+  justify-content: center;
+}
+
+.public-route-layout .group-dashboard-panel {
+  grid-column: 1;
+  width: 100%;
+}
+
 .profile-layout {
   grid-template-columns: minmax(280px, 520px);
   justify-content: center;
@@ -873,6 +883,31 @@ button.confirm-icon-button:hover:not(:disabled) {
   display: grid;
   gap: 12px 16px;
   grid-template-columns: minmax(0, 1fr) minmax(160px, 180px);
+}
+
+.feed-route-header {
+  align-items: start;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  gap: 12px;
+  grid-column: 1 / -1;
+  justify-content: space-between;
+  padding-bottom: 12px;
+}
+
+.feed-route-header h2 {
+  font-size: 20px;
+  letter-spacing: 0;
+  margin: 2px 0 0;
+}
+
+.feed-route-header p {
+  color: var(--color-text-muted);
+  margin: 6px 0 0;
+}
+
+.feed-select-control {
+  flex: 0 0 180px;
 }
 
 .feed-card-header {
@@ -1483,6 +1518,15 @@ button.metric-select-button.selected-row {
 
   .feed-output-section {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .feed-route-header {
+    display: grid;
+  }
+
+  .feed-select-control {
+    flex-basis: auto;
+    justify-self: stretch;
   }
 
   .feed-card-header {

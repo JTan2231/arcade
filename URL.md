@@ -90,6 +90,11 @@ those columns and indexes without editing the existing migration.
 
 ## Frontend
 
+Public group, feed, and post routes render the same selected group/feed dashboard
+surface used by members. Public or nonmember viewers do not get the user-specific
+group sidebar, and write/management controls are disabled or omitted according
+to membership capability rather than by switching to a different page design.
+
 Group settings exposes one visibility control:
 
 ```text

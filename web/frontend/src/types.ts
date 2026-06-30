@@ -68,14 +68,20 @@ export type PublicGroup = {
   description?: string;
   visibility: "public";
   feeds: PublicGroupFeed[];
+  created_at: string;
+  updated_at: string;
 };
 
-type PublicGroupFeed = {
+export type PublicGroupFeed = {
   id: string;
   name: string;
   slug: string;
   kind: "catalog_daily" | "daily_thread";
   description?: string;
+  enabled: boolean;
+  schedule: DailyFeedSchedule;
+  created_at: string;
+  updated_at: string;
 };
 
 type PublicParentGroup = {
@@ -221,10 +227,16 @@ export type PublicFeed = {
   id: string;
   group: PublicParentGroup;
   name: string;
+  slug: string;
+  kind: "catalog_daily" | "daily_thread";
   description?: string;
+  enabled: boolean;
+  schedule: DailyFeedSchedule;
   date: string;
   items: PublicFeedOutputItem[];
   posts: PublicPost[];
+  created_at: string;
+  updated_at: string;
 };
 
 export type CatalogSource = {

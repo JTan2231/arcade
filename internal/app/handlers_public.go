@@ -58,10 +58,10 @@ func (s *Server) getPublicGroup(ctx context.Context, slug string) (PublicGroup, 
 	var group PublicGroup
 	var description sql.NullString
 	err := s.db.QueryRow(ctx, `
-		select id::text, name, slug, description, visibility
+		select id::text, name, slug, description, visibility, created_at, updated_at
 		from groups
 		where slug = $1 and visibility = 'public'
-	`, slug).Scan(&group.ID, &group.Name, &group.Slug, &description, &group.Visibility)
+	`, slug).Scan(&group.ID, &group.Name, &group.Slug, &description, &group.Visibility, &group.CreatedAt, &group.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return PublicGroup{}, errNotFound("group")
 	}
@@ -72,7 +72,18 @@ func (s *Server) getPublicGroup(ctx context.Context, slug string) (PublicGroup, 
 	group.Feeds = []PublicGroupFeed{}
 
 	rows, err := s.db.Query(ctx, `
-		select id::text, name, slug, kind, description
+		select
+			id::text,
+			name,
+			slug,
+			kind,
+			description,
+			enabled,
+			schedule_starts_at,
+			schedule_timezone,
+			schedule_interval_seconds,
+			created_at,
+			updated_at
 		from group_daily_feeds
 		where group_id = $1
 		  and enabled
@@ -86,7 +97,19 @@ func (s *Server) getPublicGroup(ctx context.Context, slug string) (PublicGroup, 
 	for rows.Next() {
 		var feed PublicGroupFeed
 		var feedDescription sql.NullString
-		if err := rows.Scan(&feed.ID, &feed.Name, &feed.Slug, &feed.Kind, &feedDescription); err != nil {
+		if err := rows.Scan(
+			&feed.ID,
+			&feed.Name,
+			&feed.Slug,
+			&feed.Kind,
+			&feedDescription,
+			&feed.Enabled,
+			&feed.Schedule.StartsAt,
+			&feed.Schedule.Timezone,
+			&feed.Schedule.IntervalSeconds,
+			&feed.CreatedAt,
+			&feed.UpdatedAt,
+		); err != nil {
 			return PublicGroup{}, err
 		}
 		feed.Description = nullStringPtr(feedDescription)
@@ -130,10 +153,16 @@ func (s *Server) getPublicFeed(ctx context.Context, feedID string, requestedDate
 		ID:          feed.ID,
 		Group:       group,
 		Name:        feed.Name,
+		Slug:        feed.Slug,
+		Kind:        feed.Kind,
 		Description: feed.Description,
+		Enabled:     feed.Enabled,
+		Schedule:    feed.Schedule,
 		Date:        output.Date,
 		Items:       publicFeedOutputItems(output.Items),
 		Posts:       posts,
+		CreatedAt:   feed.CreatedAt,
+		UpdatedAt:   feed.UpdatedAt,
 	}, nil
 }
 

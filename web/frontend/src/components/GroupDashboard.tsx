@@ -88,6 +88,9 @@ type GroupDashboardProps = {
     postId: string,
     payload: Omit<CreateFeedMetricJudgmentRequest, "post_id">,
   ) => void;
+  readOnly?: boolean;
+  standalone?: boolean;
+  onSelectFeed?: (feedId: string) => void;
 };
 
 export function GroupDashboard({
@@ -137,6 +140,9 @@ export function GroupDashboard({
   onUpdateMetric,
   onDeleteMetric,
   onCreateMetricJudgment,
+  readOnly = false,
+  standalone = false,
+  onSelectFeed,
 }: GroupDashboardProps) {
   if (!group) {
     return (
@@ -150,14 +156,41 @@ export function GroupDashboard({
   }
 
   const feed = feeds.find((candidate) => candidate.id === selectedFeedId) || null;
-  const canManageMetrics = group.my_role === "owner" || group.my_role === "admin";
-  const canManagePostTags = group.my_role === "owner" || group.my_role === "admin";
+  const activeMember = group.my_status === "active";
+  const canPost = !readOnly && activeMember;
+  const canManageMetrics = !readOnly && activeMember && (group.my_role === "owner" || group.my_role === "admin");
+  const canManagePostTags = !readOnly && activeMember && (group.my_role === "owner" || group.my_role === "admin");
   const publicLinksAvailable = group.visibility === "public";
   const judgedMetrics = metrics.filter((metric) => metric.system_key === "judged");
 
   return (
     <section className="panel group-dashboard-panel">
       <section className="dashboard-section feed-output-section" aria-label="Selected feed output">
+        {standalone ? (
+          <div className="feed-route-header">
+            <div>
+              <div className="section-title">{group.name}</div>
+              <h2>{feed?.name ?? "No feed selected"}</h2>
+              {feed?.description !== undefined && feed.description !== "" ? (
+                <p>{feed.description}</p>
+              ) : group.description !== undefined && group.description !== "" ? (
+                <p>{group.description}</p>
+              ) : null}
+            </div>
+            {feeds.length > 1 && onSelectFeed !== undefined ? (
+              <label className="date-control feed-select-control">
+                Feed
+                <select value={selectedFeedId ?? ""} onChange={(event) => onSelectFeed(event.target.value)}>
+                  {feeds.map((candidate) => (
+                    <option value={candidate.id} key={candidate.id}>
+                      {candidate.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+          </div>
+        ) : null}
         {feed ? (
           <div className="feed-card-header">
             <label className="date-control feed-date-control">
@@ -188,6 +221,7 @@ export function GroupDashboard({
           currentUserId={currentUserId}
           publicLinksAvailable={publicLinksAvailable}
           judgedMetrics={judgedMetrics}
+          canPost={canPost}
           canJudge={canManageMetrics}
           canManagePostTags={canManagePostTags}
           judgingPostId={judgingPostId}
@@ -197,23 +231,25 @@ export function GroupDashboard({
           onDeleteFeedPost={onDeleteFeedPost}
           onCreateMetricJudgment={onCreateMetricJudgment}
         />
-        <MetricsSection
-          feed={feed}
-          metrics={metrics}
-          selectedMetricId={selectedMetricId}
-          leaderboard={metricLeaderboard}
-          metricsLoading={metricsLoading}
-          leaderboardLoading={leaderboardLoading}
-          error={metricsError}
-          canManage={canManageMetrics}
-          metricSubmitting={metricSubmitting}
-          updatingMetricId={updatingMetricId}
-          deletingMetricId={deletingMetricId}
-          onSelectMetric={onSelectMetric}
-          onCreateMetric={onCreateMetric}
-          onUpdateMetric={onUpdateMetric}
-          onDeleteMetric={onDeleteMetric}
-        />
+        {!readOnly ? (
+          <MetricsSection
+            feed={feed}
+            metrics={metrics}
+            selectedMetricId={selectedMetricId}
+            leaderboard={metricLeaderboard}
+            metricsLoading={metricsLoading}
+            leaderboardLoading={leaderboardLoading}
+            error={metricsError}
+            canManage={canManageMetrics}
+            metricSubmitting={metricSubmitting}
+            updatingMetricId={updatingMetricId}
+            deletingMetricId={deletingMetricId}
+            onSelectMetric={onSelectMetric}
+            onCreateMetric={onCreateMetric}
+            onUpdateMetric={onUpdateMetric}
+            onDeleteMetric={onDeleteMetric}
+          />
+        ) : null}
       </section>
       {addFeedOpen ? (
         <AddFeedDialog
@@ -1208,6 +1244,7 @@ function FeedOutput({
   currentUserId,
   publicLinksAvailable,
   judgedMetrics,
+  canPost,
   canJudge,
   canManagePostTags,
   judgingPostId,
@@ -1231,6 +1268,7 @@ function FeedOutput({
   currentUserId: string | null;
   publicLinksAvailable: boolean;
   judgedMetrics: FeedMetric[];
+  canPost: boolean;
   canJudge: boolean;
   canManagePostTags: boolean;
   judgingPostId: string | null;
@@ -1287,6 +1325,7 @@ function FeedOutput({
         currentUserId={currentUserId}
         publicLinksAvailable={publicLinksAvailable}
         judgedMetrics={judgedMetrics}
+        canPost={canPost}
         canJudge={canJudge}
         canManagePostTags={canManagePostTags}
         judgingPostId={judgingPostId}
@@ -1312,6 +1351,7 @@ function FeedPostSection({
   currentUserId,
   publicLinksAvailable,
   judgedMetrics,
+  canPost,
   canJudge,
   canManagePostTags,
   judgingPostId,
@@ -1332,6 +1372,7 @@ function FeedPostSection({
   currentUserId: string | null;
   publicLinksAvailable: boolean;
   judgedMetrics: FeedMetric[];
+  canPost: boolean;
   canJudge: boolean;
   canManagePostTags: boolean;
   judgingPostId: string | null;
@@ -1350,7 +1391,12 @@ function FeedPostSection({
   const [caption, setCaption] = useState("");
   const activePostTags = postTags.filter((tag) => tag.archived_at === undefined);
   const ownPost = currentUserId !== null ? (posts.find((post) => post.author_user_id === currentUserId) ?? null) : null;
-  const postUnavailable = disabled || loading || Boolean(ownPost);
+  const postUnavailable = !canPost || disabled || loading || Boolean(ownPost);
+  const postButtonTitle = !canPost
+    ? "Active group membership required to post."
+    : ownPost
+      ? "You already posted in this thread."
+      : undefined;
 
   useEffect(() => {
     if (ownPost === null || !formOpen || submitting) {
@@ -1412,7 +1458,7 @@ function FeedPostSection({
           className="secondary feed-post-button"
           type="button"
           disabled={postUnavailable}
-          title={ownPost ? "You already posted in this thread." : undefined}
+          title={postButtonTitle}
           onClick={() => setFormOpen((open) => !open)}
         >
           Post

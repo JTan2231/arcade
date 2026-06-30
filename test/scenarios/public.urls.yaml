@@ -190,35 +190,40 @@ steps:
 
   - visit: /g/public-url-group
 
-  - within: Public group
+  - within: Arcade workspace
     expectVisible:
       text: Public URL Group
 
-  - within: Public group
+  - within: Selected feed output
     expectVisible:
-      text: Public Practice
+      text: Daily Thread
 
   - visit: /f/{{feed_id}}/{{today}}
 
-  - within: Public feed
+  - within: Arcade workspace
     expectVisible:
       text: Public Practice
 
-  - within: Public feed
+  - within: Selected feed output
     expectVisible:
       text: Visible Item
 
-  - within: Public posts
+  - within: Posts
     expectVisible:
       text: Public proof for the public page.
+
+  - within: Posts
+    expectVisible:
+      role: button
+      name: Post
 
   - visit: /p/{{post_id}}
 
-  - within: Public post
+  - within: Selected feed output
     expectVisible:
       text: Public proof for the public page.
 
-  - within: Public post
+  - within: Posts
     expectVisible:
       text: Shared for everyone.
 

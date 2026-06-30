@@ -1,13 +1,28 @@
 import { useEffect, useState, type ReactNode } from "react";
 
 import { getPublicFeed, getPublicFeedOutput, getPublicGroup, getPublicPost, isNotFound } from "../api";
-import { formatDateLabel } from "../dates";
 import { errorMessage } from "../errors";
-import type { PublicFeed, PublicFeedOutputItem, PublicGroup, PublicPost, PublicRoute } from "../types";
+import type {
+  DailyFeed,
+  DailyFeedOutput,
+  DailyFeedOutputItem,
+  Group,
+  GroupFeedPost,
+  GroupPostTag,
+  PublicFeed,
+  PublicFeedOutputItem,
+  PublicGroup,
+  PublicGroupFeed,
+  PublicPost,
+  PublicRoute,
+} from "../types";
+import { GroupDashboard } from "./GroupDashboard";
 
 type PublicPageProps = {
   route: PublicRoute;
   signedIn: boolean;
+  onCopyPublicPostLink: (postId: string) => void;
+  onNavigate: (path: string, mode?: "push" | "replace") => void;
 };
 
 type LoadState<T> =
@@ -16,28 +31,89 @@ type LoadState<T> =
   | { status: "not-found" }
   | { status: "error"; message: string };
 
-export function PublicPage({ route, signedIn }: PublicPageProps) {
+type PublicDashboardData = {
+  group: Group;
+  feeds: DailyFeed[];
+  selectedFeedId: string | null;
+  selectedFeedDate: string;
+  output: DailyFeedOutput | null;
+  posts: GroupFeedPost[];
+};
+
+const EMPTY_POSTS: GroupFeedPost[] = [];
+const EMPTY_POST_TAGS: GroupPostTag[] = [];
+
+export function PublicPage({ route, signedIn, onCopyPublicPostLink, onNavigate }: PublicPageProps) {
   switch (route.kind) {
     case "group":
-      return <PublicGroupPage signedIn={signedIn} slug={route.slug} />;
+      return (
+        <PublicGroupPage
+          onCopyPublicPostLink={onCopyPublicPostLink}
+          onNavigate={onNavigate}
+          signedIn={signedIn}
+          slug={route.slug}
+        />
+      );
     case "feed":
-      return <PublicFeedPage date={route.date} feedId={route.feedId} signedIn={signedIn} />;
+      return (
+        <PublicFeedPage
+          date={route.date}
+          feedId={route.feedId}
+          onCopyPublicPostLink={onCopyPublicPostLink}
+          onNavigate={onNavigate}
+          signedIn={signedIn}
+        />
+      );
     case "post":
-      return <PublicPostPage postId={route.postId} signedIn={signedIn} />;
+      return (
+        <PublicPostPage
+          onCopyPublicPostLink={onCopyPublicPostLink}
+          onNavigate={onNavigate}
+          postId={route.postId}
+          signedIn={signedIn}
+        />
+      );
   }
 }
 
-function PublicGroupPage({ slug, signedIn }: { slug: string; signedIn: boolean }) {
-  const [state, setState] = useState<LoadState<PublicGroup>>({ status: "loading" });
+function PublicGroupPage({
+  slug,
+  signedIn,
+  onCopyPublicPostLink,
+  onNavigate,
+}: {
+  slug: string;
+  signedIn: boolean;
+  onCopyPublicPostLink: (postId: string) => void;
+  onNavigate: (path: string, mode?: "push" | "replace") => void;
+}) {
+  const [state, setState] = useState<LoadState<PublicDashboardData>>({ status: "loading" });
 
   useEffect(() => {
     const controller = new AbortController();
     setState({ status: "loading" });
+
     getPublicGroup(slug, { signal: controller.signal })
-      .then((group) => {
-        if (!controller.signal.aborted) {
-          setState({ status: "ready", data: group });
+      .then(async (group) => {
+        if (controller.signal.aborted) {
+          return;
         }
+        if (group.feeds.length === 0) {
+          setState({ status: "ready", data: publicGroupToEmptyDashboard(group) });
+          return;
+        }
+
+        const firstFeed = group.feeds[0];
+        if (firstFeed === undefined) {
+          setState({ status: "ready", data: publicGroupToEmptyDashboard(group) });
+          return;
+        }
+
+        const feed = await getPublicFeed(firstFeed.id, { signal: controller.signal });
+        if (controller.signal.aborted) {
+          return;
+        }
+        setState({ status: "ready", data: publicFeedToDashboard(feed, group) });
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) {
@@ -45,44 +121,34 @@ function PublicGroupPage({ slug, signedIn }: { slug: string; signedIn: boolean }
         }
         setState(isNotFound(error) ? { status: "not-found" } : { status: "error", message: errorMessage(error) });
       });
+
     return () => controller.abort();
   }, [slug]);
 
   return (
-    <PublicShell signedIn={signedIn}>
-      {state.status === "loading" ? <PublicLoading label="Loading group..." /> : null}
-      {state.status === "not-found" ? <PublicNotFound /> : null}
-      {state.status === "error" ? <PublicError message={state.message} /> : null}
-      {state.status === "ready" ? (
-        <section className="public-page" aria-label="Public group">
-          <header className="public-page-header">
-            <div>
-              <h2>{state.data.name}</h2>
-              {state.data.description !== undefined ? <p>{state.data.description}</p> : null}
-            </div>
-          </header>
-          <section className="public-section" aria-label="Public feeds">
-            <div className="section-title">Public feeds</div>
-            {state.data.feeds.length === 0 ? <div className="empty-state">No public feeds.</div> : null}
-            {state.data.feeds.length > 0 ? (
-              <div className="stack">
-                {state.data.feeds.map((feed) => (
-                  <a className="public-list-link" href={`/f/${encodeURIComponent(feed.id)}`} key={feed.id}>
-                    <span className="title">{feed.name}</span>
-                    {feed.description !== undefined ? <span className="meta">{feed.description}</span> : null}
-                  </a>
-                ))}
-              </div>
-            ) : null}
-          </section>
-        </section>
-      ) : null}
-    </PublicShell>
+    <PublicDashboardView
+      onCopyPublicPostLink={onCopyPublicPostLink}
+      onNavigate={onNavigate}
+      signedIn={signedIn}
+      state={state}
+    />
   );
 }
 
-function PublicFeedPage({ feedId, date, signedIn }: { feedId: string; date: string | null; signedIn: boolean }) {
-  const [state, setState] = useState<LoadState<PublicFeed>>({ status: "loading" });
+function PublicFeedPage({
+  feedId,
+  date,
+  signedIn,
+  onCopyPublicPostLink,
+  onNavigate,
+}: {
+  feedId: string;
+  date: string | null;
+  signedIn: boolean;
+  onCopyPublicPostLink: (postId: string) => void;
+  onNavigate: (path: string, mode?: "push" | "replace") => void;
+}) {
+  const [state, setState] = useState<LoadState<PublicDashboardData>>({ status: "loading" });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -91,10 +157,11 @@ function PublicFeedPage({ feedId, date, signedIn }: { feedId: string; date: stri
       date === null
         ? getPublicFeed(feedId, { signal: controller.signal })
         : getPublicFeedOutput(feedId, date, { signal: controller.signal });
+
     request
       .then((feed) => {
         if (!controller.signal.aborted) {
-          setState({ status: "ready", data: feed });
+          setState({ status: "ready", data: publicFeedToDashboard(feed) });
         }
       })
       .catch((error: unknown) => {
@@ -103,29 +170,55 @@ function PublicFeedPage({ feedId, date, signedIn }: { feedId: string; date: stri
         }
         setState(isNotFound(error) ? { status: "not-found" } : { status: "error", message: errorMessage(error) });
       });
+
     return () => controller.abort();
   }, [date, feedId]);
 
   return (
-    <PublicShell signedIn={signedIn}>
-      {state.status === "loading" ? <PublicLoading label="Loading feed..." /> : null}
-      {state.status === "not-found" ? <PublicNotFound /> : null}
-      {state.status === "error" ? <PublicError message={state.message} /> : null}
-      {state.status === "ready" ? <PublicFeedArticle feed={state.data} /> : null}
-    </PublicShell>
+    <PublicDashboardView
+      onCopyPublicPostLink={onCopyPublicPostLink}
+      onNavigate={onNavigate}
+      signedIn={signedIn}
+      state={state}
+    />
   );
 }
 
-function PublicPostPage({ postId, signedIn }: { postId: string; signedIn: boolean }) {
-  const [state, setState] = useState<LoadState<PublicPost>>({ status: "loading" });
+function PublicPostPage({
+  postId,
+  signedIn,
+  onCopyPublicPostLink,
+  onNavigate,
+}: {
+  postId: string;
+  signedIn: boolean;
+  onCopyPublicPostLink: (postId: string) => void;
+  onNavigate: (path: string, mode?: "push" | "replace") => void;
+}) {
+  const [state, setState] = useState<LoadState<PublicDashboardData>>({ status: "loading" });
 
   useEffect(() => {
     const controller = new AbortController();
     setState({ status: "loading" });
+
     getPublicPost(postId, { signal: controller.signal })
-      .then((post) => {
-        if (!controller.signal.aborted) {
-          setState({ status: "ready", data: post });
+      .then(async (post) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+        try {
+          const feed = await getPublicFeedOutput(post.feed.id, post.feed_date, { signal: controller.signal });
+          if (!controller.signal.aborted) {
+            setState({ status: "ready", data: publicFeedToDashboard(feed) });
+          }
+        } catch (error) {
+          if (!controller.signal.aborted) {
+            setState(
+              isNotFound(error)
+                ? { status: "ready", data: publicPostToDashboard(post) }
+                : { status: "error", message: errorMessage(error) },
+            );
+          }
         }
       })
       .catch((error: unknown) => {
@@ -134,18 +227,98 @@ function PublicPostPage({ postId, signedIn }: { postId: string; signedIn: boolea
         }
         setState(isNotFound(error) ? { status: "not-found" } : { status: "error", message: errorMessage(error) });
       });
+
     return () => controller.abort();
   }, [postId]);
 
   return (
+    <PublicDashboardView
+      onCopyPublicPostLink={onCopyPublicPostLink}
+      onNavigate={onNavigate}
+      signedIn={signedIn}
+      state={state}
+    />
+  );
+}
+
+function PublicDashboardView({
+  state,
+  signedIn,
+  onCopyPublicPostLink,
+  onNavigate,
+}: {
+  state: LoadState<PublicDashboardData>;
+  signedIn: boolean;
+  onCopyPublicPostLink: (postId: string) => void;
+  onNavigate: (path: string, mode?: "push" | "replace") => void;
+}) {
+  return (
     <PublicShell signedIn={signedIn}>
-      {state.status === "loading" ? <PublicLoading label="Loading post..." /> : null}
-      {state.status === "not-found" ? <PublicNotFound /> : null}
-      {state.status === "error" ? <PublicError message={state.message} /> : null}
+      {state.status === "loading" ? <PublicStatusPanel>Loading...</PublicStatusPanel> : null}
+      {state.status === "not-found" ? <PublicStatusPanel>This public page was not found.</PublicStatusPanel> : null}
+      {state.status === "error" ? (
+        <PublicStatusPanel>
+          <div className="form-error" role="alert">
+            {state.message}
+          </div>
+        </PublicStatusPanel>
+      ) : null}
       {state.status === "ready" ? (
-        <section className="public-page" aria-label="Public post">
-          <PublicPostCard post={state.data} />
-        </section>
+        <GroupDashboard
+          addFeedError=""
+          addFeedOpen={false}
+          addFeedPreview={null}
+          addFeedPreviewLoading={false}
+          addFeedSaving={false}
+          addFeedSources={[]}
+          addFeedSourcesLoading={false}
+          currentUserId={null}
+          deletingMetricId={null}
+          deletingPostId={null}
+          feeds={state.data.feeds}
+          group={state.data.group}
+          judgingPostId={null}
+          leaderboardLoading={false}
+          metricLeaderboard={null}
+          metricSubmitting={false}
+          metrics={[]}
+          metricsError=""
+          metricsLoading={false}
+          onAddFeedDraftChanged={noop}
+          onChangeFeedDate={(date) => {
+            if (state.data.selectedFeedId !== null) {
+              onNavigate(feedPath(state.data.selectedFeedId, date));
+            }
+          }}
+          onCloseAddFeed={noop}
+          onCopyPublicPostLink={onCopyPublicPostLink}
+          onCreateFeed={noop}
+          onCreateFeedPost={noop}
+          onCreateMetric={noop}
+          onCreateMetricJudgment={noop}
+          onDeleteFeedPost={noop}
+          onDeleteMetric={noop}
+          onPreviewFeed={noop}
+          onSelectFeed={(feedId) => onNavigate(feedPath(feedId))}
+          onSelectMetric={noop}
+          onUpdateFeedPost={noop}
+          onUpdateMetric={noop}
+          output={state.data.output}
+          outputError=""
+          outputLoading={false}
+          postSubmitting={false}
+          postTags={EMPTY_POST_TAGS}
+          posts={state.data.posts}
+          postsError=""
+          postsLoading={false}
+          readOnly
+          selectedFeedDate={state.data.selectedFeedDate}
+          selectedFeedId={state.data.selectedFeedId}
+          selectedMetricId={null}
+          standalone
+          updatingMetricId={null}
+          updatingPostId={null}
+        />
       ) : null}
     </PublicShell>
   );
@@ -167,123 +340,239 @@ function PublicShell({ children, signedIn }: { children: ReactNode; signedIn: bo
           {signedIn ? "Open app" : "Sign in"}
         </a>
       </header>
-      <main className="public-layout" aria-label="Public page">
+      <main className="layout group-layout public-route-layout" aria-label="Arcade workspace">
         {children}
       </main>
     </>
   );
 }
 
-function PublicFeedArticle({ feed }: { feed: PublicFeed }) {
-  const showGroupLink = feed.group.visibility === "public";
+function PublicStatusPanel({ children }: { children: ReactNode }) {
   return (
-    <section className="public-page" aria-label="Public feed">
-      <header className="public-page-header">
-        <div>
-          <h2>{feed.name}</h2>
-          <div className="meta">
-            {showGroupLink ? (
-              <a href={`/g/${encodeURIComponent(feed.group.slug)}`}>{feed.group.name}</a>
-            ) : (
-              feed.group.name
-            )}{" "}
-            · {formatDateLabel(feed.date)}
-          </div>
-          {feed.description !== undefined ? <p>{feed.description}</p> : null}
-        </div>
-      </header>
-      <section className="public-section" aria-label="Feed output">
-        <div className="section-title">Output</div>
-        {feed.items.length === 0 ? <div className="empty-state">No generated items for this date.</div> : null}
-        {feed.items.length > 0 ? (
-          <div className="stack">
-            {feed.items.map((item) => (
-              <PublicOutputItem item={item} key={item.position} />
-            ))}
-          </div>
-        ) : null}
-      </section>
-      <section className="public-section" aria-label="Public posts">
-        <div className="section-title">Posts</div>
-        {feed.posts.length === 0 ? <div className="empty-state">No public posts.</div> : null}
-        {feed.posts.length > 0 ? (
-          <div className="stack">
-            {feed.posts.map((post) => (
-              <PublicPostCard post={post} key={post.id} compact />
-            ))}
-          </div>
-        ) : null}
-      </section>
+    <section className="panel group-dashboard-panel">
+      <div className="empty-state">{children}</div>
     </section>
   );
 }
 
-function PublicOutputItem({ item }: { item: PublicFeedOutputItem }) {
-  return (
-    <div className="public-output-item">
-      <div className="title">{item.title}</div>
-      {item.action.type === "link" && item.action.url !== undefined ? (
-        <a href={item.action.url} target="_blank" rel="noreferrer">
-          {item.action.label || "Open"}
-        </a>
-      ) : null}
-      {item.action.type === "text" && item.action.text !== undefined ? (
-        <details className="prompt-details">
-          <summary>{item.action.label || "Prompt"}</summary>
-          <pre>{item.action.text}</pre>
-        </details>
-      ) : null}
-    </div>
-  );
+function publicGroupToEmptyDashboard(group: PublicGroup): PublicDashboardData {
+  return {
+    group: publicGroupToGroup(group),
+    feeds: [],
+    selectedFeedId: null,
+    selectedFeedDate: "",
+    output: null,
+    posts: EMPTY_POSTS,
+  };
 }
 
-function PublicPostCard({ post, compact = false }: { post: PublicPost; compact?: boolean }) {
-  return (
-    <section className="public-post-card" aria-label={compact ? `Post by ${publicUserName(post.author)}` : undefined}>
-      <div className="post-card-header">
-        <div>
-          <div className="title">{publicUserName(post.author)}</div>
-          <div className="meta">
-            {post.feed.name} · {formatDateLabel(post.feed_date)}
-          </div>
-        </div>
-        {compact ? (
-          <a className="public-post-link" href={`/p/${encodeURIComponent(post.id)}`}>
-            Open post
-          </a>
-        ) : null}
-      </div>
-      <pre className="post-evidence-code">{post.evidence_text}</pre>
-      {post.caption !== undefined && post.caption !== "" ? <div className="post-caption">{post.caption}</div> : null}
-      {post.tags.length > 0 ? (
-        <div className="post-tag-list" aria-label="Post tags">
-          {post.tags.map((tag) => (
-            <span className="post-tag-pill" key={tag.id}>
-              {tag.name}
-            </span>
-          ))}
-        </div>
-      ) : null}
-    </section>
-  );
+function publicFeedToDashboard(feed: PublicFeed, group?: PublicGroup): PublicDashboardData {
+  const feeds =
+    group === undefined
+      ? [publicFeedToDailyFeed(feed)]
+      : group.feeds.map((candidate) => publicGroupFeedToDailyFeed(group, candidate));
+
+  return {
+    group: group === undefined ? publicFeedGroupToGroup(feed) : publicGroupToGroup(group),
+    feeds,
+    selectedFeedId: feed.id,
+    selectedFeedDate: feed.date,
+    output: publicFeedToOutput(feed),
+    posts: feed.posts.map(publicPostToGroupPost),
+  };
 }
 
-function PublicLoading({ label }: { label: string }) {
-  return <div className="empty-state">{label}</div>;
+function publicPostToDashboard(post: PublicPost): PublicDashboardData {
+  const feed = publicPostFeedToDailyFeed(post);
+  return {
+    group: publicParentGroupToGroup(post.group, post.created_at, post.updated_at),
+    feeds: [feed],
+    selectedFeedId: feed.id,
+    selectedFeedDate: post.feed_date,
+    output: {
+      feed_id: post.feed.id,
+      group_id: post.group.id,
+      group_name: post.group.name,
+      date: post.feed_date,
+      title: post.feed.name,
+      items: [],
+    },
+    posts: [publicPostToGroupPost(post)],
+  };
 }
 
-function PublicNotFound() {
-  return <div className="empty-state">This public page was not found.</div>;
+function publicGroupToGroup(group: PublicGroup): Group {
+  const converted: Group = {
+    id: group.id,
+    name: group.name,
+    slug: group.slug,
+    visibility: group.visibility,
+    created_by_user_id: "",
+    created_at: group.created_at,
+    updated_at: group.updated_at,
+  };
+  if (group.description !== undefined) {
+    converted.description = group.description;
+  }
+  return converted;
 }
 
-function PublicError({ message }: { message: string }) {
-  return (
-    <div className="form-error" role="alert">
-      {message}
-    </div>
-  );
+function publicFeedGroupToGroup(feed: PublicFeed): Group {
+  return publicParentGroupToGroup(feed.group, feed.created_at, feed.updated_at);
 }
 
-function publicUserName(user: PublicPost["author"]): string {
-  return user.display_name || user.username;
+function publicParentGroupToGroup(group: PublicFeed["group"], createdAt: string, updatedAt: string): Group {
+  return {
+    id: group.id,
+    name: group.name,
+    slug: group.slug,
+    visibility: group.visibility,
+    created_by_user_id: "",
+    created_at: createdAt,
+    updated_at: updatedAt,
+  };
+}
+
+function publicGroupFeedToDailyFeed(group: PublicGroup, feed: PublicGroupFeed): DailyFeed {
+  const converted: DailyFeed = {
+    id: feed.id,
+    group_id: group.id,
+    group_name: group.name,
+    name: feed.name,
+    slug: feed.slug,
+    kind: feed.kind,
+    enabled: feed.enabled,
+    schedule: feed.schedule,
+    filters: [],
+    created_at: feed.created_at,
+    updated_at: feed.updated_at,
+  };
+  if (feed.description !== undefined) {
+    converted.description = feed.description;
+  }
+  return converted;
+}
+
+function publicFeedToDailyFeed(feed: PublicFeed): DailyFeed {
+  const converted: DailyFeed = {
+    id: feed.id,
+    group_id: feed.group.id,
+    group_name: feed.group.name,
+    name: feed.name,
+    slug: feed.slug,
+    kind: feed.kind,
+    enabled: feed.enabled,
+    schedule: feed.schedule,
+    filters: [],
+    created_at: feed.created_at,
+    updated_at: feed.updated_at,
+  };
+  if (feed.description !== undefined) {
+    converted.description = feed.description;
+  }
+  return converted;
+}
+
+function publicPostFeedToDailyFeed(post: PublicPost): DailyFeed {
+  return {
+    id: post.feed.id,
+    group_id: post.group.id,
+    group_name: post.group.name,
+    name: post.feed.name,
+    slug: post.feed.id,
+    kind: "daily_thread",
+    enabled: false,
+    schedule: {
+      starts_at: `${post.feed_date}T00:00:00Z`,
+      timezone: "UTC",
+      interval_seconds: 86400,
+    },
+    filters: [],
+    created_at: post.created_at,
+    updated_at: post.updated_at,
+  };
+}
+
+function publicFeedToOutput(feed: PublicFeed): DailyFeedOutput {
+  return {
+    feed_id: feed.id,
+    group_id: feed.group.id,
+    group_name: feed.group.name,
+    date: feed.date,
+    title: feed.name,
+    items: feed.items.map((item) => publicOutputItemToDailyItem(feed, item)),
+  };
+}
+
+function publicOutputItemToDailyItem(feed: PublicFeed, item: PublicFeedOutputItem): DailyFeedOutputItem {
+  const action =
+    item.action.type === "link"
+      ? {
+          type: "external_url" as const,
+          label: item.action.label,
+          ...(item.action.url !== undefined ? { url: item.action.url } : {}),
+        }
+      : {
+          type: "text" as const,
+          label: item.action.label,
+          ...(item.action.text !== undefined ? { text: item.action.text } : {}),
+        };
+
+  return {
+    position: item.position,
+    role: `public-${item.position}`,
+    points: 1,
+    reason: "",
+    item: {
+      id: `${feed.id}:${item.position}`,
+      source_id: "",
+      source_name: feed.name,
+      title: item.title,
+      data: {
+        name: item.title,
+      },
+    },
+    action,
+  };
+}
+
+function publicPostToGroupPost(post: PublicPost): GroupFeedPost {
+  const converted: GroupFeedPost = {
+    id: post.id,
+    group_id: post.group.id,
+    feed_instance_id: `${post.feed.id}:${post.feed_date}`,
+    feed_id: post.feed.id,
+    feed_date: post.feed_date,
+    author_user_id: post.author.id,
+    author_username: post.author.username,
+    author_display_name: post.author.display_name,
+    evidence_kind: post.evidence_kind,
+    evidence_text: post.evidence_text,
+    tags: post.tags.map((tag, index) => ({
+      id: tag.id,
+      group_id: post.group.id,
+      name: tag.name,
+      display_order: index,
+      created_at: post.created_at,
+      updated_at: post.updated_at,
+    })),
+    created_at: post.created_at,
+    updated_at: post.updated_at,
+  };
+  if (post.author.avatar_url !== undefined) {
+    converted.author_avatar_url = post.author.avatar_url;
+  }
+  if (post.caption !== undefined) {
+    converted.caption = post.caption;
+  }
+  return converted;
+}
+
+function feedPath(feedId: string, date: string | null = null): string {
+  const encodedFeedId = encodeURIComponent(feedId);
+  return date === null || date === "" ? `/f/${encodedFeedId}` : `/f/${encodedFeedId}/${encodeURIComponent(date)}`;
+}
+
+function noop() {
+  return undefined;
 }
