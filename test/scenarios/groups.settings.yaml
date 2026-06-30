@@ -1,0 +1,91 @@
+name: group settings manages tags and members
+
+vars:
+  email: settings-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      client: browser
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Settings Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Settings Group
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: add_member
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/members
+      json:
+        display_name: Member One
+        role: member
+        status: active
+      expectStatus: 201
+
+steps:
+  - visit: /
+
+  - within: Groups
+    click:
+      role: button
+      name: Group settings for Settings Group
+
+  - within: Groups
+    click:
+      role: button
+      name: Settings
+
+  - within: Group members
+    expectVisible:
+      text: Member One
+
+  - within: Post tags
+    fill:
+      label: Tag name
+      value: Milestone
+
+  - within: Post tags
+    click:
+      role: button
+      name: Add tag
+
+  - expectStatus:
+      text: Tag added
+
+  - request:
+      id: list_tags
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/post-tags?include_archived=true
+      expectStatus: 200
+      expectJson:
+        - name: Milestone
+
+  - within: Group members
+    click:
+      role: button
+      name: Remove Member One
+
+  - expectStatus:
+      text: Member removed
+
+  - within: Group members
+    expectHidden:
+      text: Member One

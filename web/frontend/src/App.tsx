@@ -22,6 +22,7 @@ import {
 import { AuthView } from "./components/AuthView";
 import { FriendsPanel } from "./components/FriendsPanel";
 import { GroupDashboard } from "./components/GroupDashboard";
+import { GroupSettingsDialog } from "./components/GroupSettingsDialog";
 import { GroupsPanel } from "./components/GroupsPanel";
 import { Toast } from "./components/Toast";
 import { errorMessage } from "./errors";
@@ -37,6 +38,7 @@ import type {
   GroupFeedPost,
   GroupInvite,
   GroupInviteCandidate,
+  GroupMember,
   GroupPostTag,
   User,
 } from "./types";
@@ -49,6 +51,7 @@ const EMPTY_GROUPS: Group[] = [];
 const EMPTY_FEEDS: DailyFeed[] = [];
 const EMPTY_POSTS: GroupFeedPost[] = [];
 const EMPTY_POST_TAGS: GroupPostTag[] = [];
+const EMPTY_GROUP_MEMBERS: GroupMember[] = [];
 const EMPTY_METRICS: FeedMetric[] = [];
 const EMPTY_FRIENDS: Friend[] = [];
 const EMPTY_GROUP_INVITES: GroupInvite[] = [];
@@ -377,6 +380,8 @@ export default function App() {
   const postTagMutation = dashboardContext?.postTagMutation ?? null;
   const updatingPostTagId = postTagMutation?.kind === "update" ? postTagMutation.tagId : null;
   const deletingPostTagId = postTagMutation?.kind === "delete" ? postTagMutation.tagId : null;
+  const groupMemberMutation = dashboardContext?.groupMemberMutation ?? null;
+  const removingMemberUserId = groupMemberMutation?.userId ?? null;
   const metricMutation = dashboardContext?.metricMutation ?? null;
   const updatingMetricId = metricMutation?.kind === "update" ? metricMutation.metricId : null;
   const deletingMetricId = metricMutation?.kind === "delete" ? metricMutation.metricId : null;
@@ -477,6 +482,7 @@ export default function App() {
                 pendingDeleteFeedId={dashboardContext?.pendingDeleteFeedId ?? null}
                 onCreateGroup={(name) => dashboardRef?.send({ type: "GROUP_CREATE_SUBMITTED", name })}
                 onSelectGroup={(groupId) => dashboardRef?.send({ type: "GROUP_SELECTED", groupId })}
+                onOpenGroupSettings={(groupId) => dashboardRef?.send({ type: "GROUP_SETTINGS_OPENED", groupId })}
                 onDeleteGroup={(groupId) => dashboardRef?.send({ type: "GROUP_DELETE_SUBMITTED", groupId })}
                 onSelectFeed={(feedId) => dashboardRef?.send({ type: "FEED_SELECTED", feedId })}
                 onToggleFeedEnabled={(feedId) => dashboardRef?.send({ type: "FEED_ENABLED_TOGGLED", feedId })}
@@ -494,7 +500,6 @@ export default function App() {
               outputError={dashboardContext?.outputError ?? ""}
               posts={dashboardContext?.posts ?? EMPTY_POSTS}
               postTags={dashboardContext?.postTags ?? EMPTY_POST_TAGS}
-              postTagsError={dashboardContext?.postTagsError ?? ""}
               postsLoading={loadingPosts}
               postsError={dashboardContext?.postsError ?? ""}
               metrics={dashboardContext?.metrics ?? EMPTY_METRICS}
@@ -504,11 +509,8 @@ export default function App() {
               leaderboardLoading={loadingLeaderboard}
               metricsError={dashboardContext?.metricsError ?? ""}
               postSubmitting={creatingPost}
-              postTagSubmitting={creatingPostTag}
               updatingPostId={updatingPostId}
               deletingPostId={deletingPostId}
-              updatingPostTagId={updatingPostTagId}
-              deletingPostTagId={deletingPostTagId}
               metricSubmitting={creatingMetric}
               updatingMetricId={updatingMetricId}
               deletingMetricId={deletingMetricId}
@@ -521,9 +523,6 @@ export default function App() {
               addFeedPreviewLoading={addFeedPreviewing}
               addFeedSaving={addFeedCreating}
               addFeedError={addFeedContext?.error ?? ""}
-              inviteCandidates={inviteCandidates}
-              inviteCandidatesLoading={inviteCandidatesLoading}
-              invitingUserId={invitingUserId}
               onChangeFeedDate={(date) => dashboardRef?.send({ type: "FEED_DATE_CHANGED", date })}
               onCloseAddFeed={() => {
                 if (addFeedRef !== undefined) {
@@ -540,11 +539,6 @@ export default function App() {
                 dashboardRef?.send({ type: "POST_UPDATE_SUBMITTED", postId, payload })
               }
               onDeleteFeedPost={(postId) => dashboardRef?.send({ type: "POST_DELETE_SUBMITTED", postId })}
-              onCreatePostTag={(payload) => dashboardRef?.send({ type: "POST_TAG_CREATE_SUBMITTED", payload })}
-              onUpdatePostTag={(tagId, payload) =>
-                dashboardRef?.send({ type: "POST_TAG_UPDATE_SUBMITTED", tagId, payload })
-              }
-              onDeletePostTag={(tagId) => dashboardRef?.send({ type: "POST_TAG_DELETE_SUBMITTED", tagId })}
               onSelectMetric={(metricId) => dashboardRef?.send({ type: "METRIC_SELECTED", metricId })}
               onCreateMetric={(payload) => dashboardRef?.send({ type: "METRIC_CREATE_SUBMITTED", payload })}
               onUpdateMetric={(metricId, payload) =>
@@ -560,9 +554,34 @@ export default function App() {
                   note: payload.note ?? "",
                 })
               }
-              onInviteFriend={handleInviteFriend}
-              onCancelGroupInvite={handleCancelGroupInviteForCandidate}
             />
+            {dashboardContext?.groupSettingsOpen === true && selectedGroup !== null ? (
+              <GroupSettingsDialog
+                currentUserId={context.user?.id ?? null}
+                deletingTagId={deletingPostTagId}
+                group={selectedGroup}
+                inviteCandidates={inviteCandidates}
+                inviteCandidatesLoading={inviteCandidatesLoading}
+                invitingUserId={invitingUserId}
+                loading={loadingFeeds}
+                members={dashboardContext.groupMembers ?? EMPTY_GROUP_MEMBERS}
+                membersError={dashboardContext.groupMembersError}
+                removingMemberUserId={removingMemberUserId}
+                tagError={dashboardContext.postTagsError}
+                tagSaving={creatingPostTag}
+                tags={dashboardContext.postTags ?? EMPTY_POST_TAGS}
+                updatingTagId={updatingPostTagId}
+                onCancelGroupInvite={handleCancelGroupInviteForCandidate}
+                onClose={() => dashboardRef?.send({ type: "GROUP_SETTINGS_CLOSED" })}
+                onCreateTag={(payload) => dashboardRef?.send({ type: "POST_TAG_CREATE_SUBMITTED", payload })}
+                onDeleteTag={(tagId) => dashboardRef?.send({ type: "POST_TAG_DELETE_SUBMITTED", tagId })}
+                onInviteFriend={handleInviteFriend}
+                onRemoveMember={(userId) => dashboardRef?.send({ type: "GROUP_MEMBER_REMOVE_SUBMITTED", userId })}
+                onUpdateTag={(tagId, payload) =>
+                  dashboardRef?.send({ type: "POST_TAG_UPDATE_SUBMITTED", tagId, payload })
+                }
+              />
+            ) : null}
           </>
         )}
       </main>

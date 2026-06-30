@@ -17,6 +17,7 @@ type GroupsPanelProps = {
   pendingDeleteFeedId: string | null;
   onCreateGroup: (name: string) => void;
   onSelectGroup: (id: string) => void;
+  onOpenGroupSettings: (id: string) => void;
   onDeleteGroup: (id: string) => void;
   onSelectFeed: (id: string) => void;
   onToggleFeedEnabled: (id: string) => void;
@@ -38,6 +39,7 @@ export function GroupsPanel({
   pendingDeleteFeedId,
   onCreateGroup,
   onSelectGroup,
+  onOpenGroupSettings,
   onDeleteGroup,
   onSelectFeed,
   onToggleFeedEnabled,
@@ -115,6 +117,7 @@ export function GroupsPanel({
         ) : groups.length ? (
           groups.map((group) => {
             const selected = group.id === selectedGroupId;
+            const actions = groupActions(group, deletingGroupId, onOpenGroupSettings, onDeleteGroup);
 
             return (
               <div className="group-tree-node" key={group.id}>
@@ -128,17 +131,9 @@ export function GroupsPanel({
                   >
                     <div className="title">{group.name}</div>
                   </button>
-                  <RowActionMenu
-                    label={`Group settings for ${group.name}`}
-                    actions={[
-                      {
-                        label: "Delete",
-                        danger: true,
-                        disabled: group.my_role !== "owner" || deletingGroupId === group.id,
-                        onSelect: () => onDeleteGroup(group.id),
-                      },
-                    ]}
-                  />
+                  {actions.length > 0 ? (
+                    <RowActionMenu label={`Group settings for ${group.name}`} actions={actions} />
+                  ) : null}
                 </div>
                 {selected ? (
                   <FeedSublist
@@ -275,4 +270,28 @@ function FeedSublist({
 
 function canManageGroup(group: Group | null): boolean {
   return group?.my_status === "active" && (group.my_role === "owner" || group.my_role === "admin");
+}
+
+function groupActions(
+  group: Group,
+  deletingGroupId: string | null,
+  onOpenGroupSettings: (id: string) => void,
+  onDeleteGroup: (id: string) => void,
+): RowAction[] {
+  const actions: RowAction[] = [];
+  if (canManageGroup(group)) {
+    actions.push({
+      label: "Settings",
+      onSelect: () => onOpenGroupSettings(group.id),
+    });
+  }
+  if (group.my_status === "active" && group.my_role === "owner") {
+    actions.push({
+      label: "Delete",
+      danger: true,
+      disabled: deletingGroupId === group.id,
+      onSelect: () => onDeleteGroup(group.id),
+    });
+  }
+  return actions;
 }

@@ -18,6 +18,7 @@ import type {
   GroupFeedPost,
   GroupInvite,
   GroupInviteCandidate,
+  GroupMember,
   GroupPostTag,
   LoginRequest,
   MetricLeaderboard,
@@ -174,6 +175,17 @@ export function createGroup(payload: CreateGroupRequest, options: APIOptions = {
 
 export function deleteGroup(groupID: string, options: APIOptions = {}): Promise<null> {
   return api<null>(`/api/groups/${encodeURIComponent(groupID)}`, {
+    ...options,
+    method: "DELETE",
+  });
+}
+
+export function listGroupMembers(groupID: string, options: APIOptions = {}): Promise<GroupMember[]> {
+  return api<GroupMember[]>(`/api/groups/${encodeURIComponent(groupID)}/members`, options);
+}
+
+export function deleteGroupMember(groupID: string, userID: string, options: APIOptions = {}): Promise<null> {
+  return api<null>(`/api/groups/${encodeURIComponent(groupID)}/members/${encodeURIComponent(userID)}`, {
     ...options,
     method: "DELETE",
   });

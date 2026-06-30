@@ -8,7 +8,6 @@ import type {
   CreateDailyFeedRequest,
   CreateFeedMetricJudgmentRequest,
   CreateFeedMetricRequest,
-  CreateGroupPostTagRequest,
   DailyFeed,
   DailyFeedOutput,
   DailyFeedOutputItem,
@@ -18,13 +17,11 @@ import type {
   FeedMetricKey,
   Group,
   GroupFeedPost,
-  GroupInviteCandidate,
   GroupPostTag,
   MetricAggregation,
   MetricLeaderboard,
   MetricLeaderboardRow,
   PatchFeedMetricRequest,
-  PatchGroupPostTagRequest,
   PublicUser,
   SystemMetricKey,
 } from "../types";
@@ -50,7 +47,6 @@ type GroupDashboardProps = {
   outputError: string;
   posts: GroupFeedPost[];
   postTags: GroupPostTag[];
-  postTagsError: string;
   postsLoading: boolean;
   postsError: string;
   metrics: FeedMetric[];
@@ -60,11 +56,8 @@ type GroupDashboardProps = {
   leaderboardLoading: boolean;
   metricsError: string;
   postSubmitting: boolean;
-  postTagSubmitting: boolean;
   updatingPostId: string | null;
   deletingPostId: string | null;
-  updatingPostTagId: string | null;
-  deletingPostTagId: string | null;
   metricSubmitting: boolean;
   updatingMetricId: string | null;
   deletingMetricId: string | null;
@@ -77,9 +70,6 @@ type GroupDashboardProps = {
   addFeedPreviewLoading: boolean;
   addFeedSaving: boolean;
   addFeedError: string;
-  inviteCandidates: GroupInviteCandidate[];
-  inviteCandidatesLoading: boolean;
-  invitingUserId: string | null;
   onChangeFeedDate: (date: string) => void;
   onCloseAddFeed: () => void;
   onAddFeedDraftChanged: () => void;
@@ -88,9 +78,6 @@ type GroupDashboardProps = {
   onCreateFeedPost: (payload: CreateFeedPostPayload) => void;
   onUpdateFeedPost: (postId: string, payload: UpdateFeedPostPayload) => void;
   onDeleteFeedPost: (postId: string) => void;
-  onCreatePostTag: (payload: CreateGroupPostTagRequest) => void;
-  onUpdatePostTag: (tagId: string, payload: PatchGroupPostTagRequest) => void;
-  onDeletePostTag: (tagId: string) => void;
   onSelectMetric: (metricId: string) => void;
   onCreateMetric: (payload: CreateFeedMetricRequest) => void;
   onUpdateMetric: (metricId: string, payload: PatchFeedMetricRequest) => void;
@@ -100,8 +87,6 @@ type GroupDashboardProps = {
     postId: string,
     payload: Omit<CreateFeedMetricJudgmentRequest, "post_id">,
   ) => void;
-  onInviteFriend: (userId: string) => void;
-  onCancelGroupInvite: (userId: string) => void;
 };
 
 export function GroupDashboard({
@@ -114,7 +99,6 @@ export function GroupDashboard({
   outputError,
   posts,
   postTags,
-  postTagsError,
   postsLoading,
   postsError,
   metrics,
@@ -124,11 +108,8 @@ export function GroupDashboard({
   leaderboardLoading,
   metricsError,
   postSubmitting,
-  postTagSubmitting,
   updatingPostId,
   deletingPostId,
-  updatingPostTagId,
-  deletingPostTagId,
   metricSubmitting,
   updatingMetricId,
   deletingMetricId,
@@ -141,9 +122,6 @@ export function GroupDashboard({
   addFeedPreviewLoading,
   addFeedSaving,
   addFeedError,
-  inviteCandidates,
-  inviteCandidatesLoading,
-  invitingUserId,
   onChangeFeedDate,
   onCloseAddFeed,
   onAddFeedDraftChanged,
@@ -152,16 +130,11 @@ export function GroupDashboard({
   onCreateFeedPost,
   onUpdateFeedPost,
   onDeleteFeedPost,
-  onCreatePostTag,
-  onUpdatePostTag,
-  onDeletePostTag,
   onSelectMetric,
   onCreateMetric,
   onUpdateMetric,
   onDeleteMetric,
   onCreateMetricJudgment,
-  onInviteFriend,
-  onCancelGroupInvite,
 }: GroupDashboardProps) {
   if (!group) {
     return (
@@ -181,87 +154,62 @@ export function GroupDashboard({
 
   return (
     <section className="panel group-dashboard-panel">
-      <div className={`feed-card-grid ${group.my_status !== "active" ? "without-friends-rail" : ""}`}>
-        <section className="dashboard-section feed-output-section" aria-label="Selected feed output">
-          {feed ? (
-            <div className="feed-card-header">
-              <label className="date-control feed-date-control">
-                Date
-                <select value={selectedFeedDate} onChange={(event) => onChangeFeedDate(event.target.value)}>
-                  {feedDateOptions(selectedFeedDate, feed.created_at).map((option) => (
-                    <option value={option.value} key={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          ) : null}
-
-          <FeedOutput
-            feed={feed}
-            output={output}
-            loading={outputLoading}
-            error={outputError}
-            posts={posts}
-            postTags={postTags}
-            postsLoading={postsLoading}
-            postsError={postsError}
-            postSubmitting={postSubmitting}
-            updatingPostId={updatingPostId}
-            deletingPostId={deletingPostId}
-            currentUserId={currentUserId}
-            judgedMetrics={judgedMetrics}
-            canJudge={canManageMetrics}
-            canManagePostTags={canManagePostTags}
-            judgingPostId={judgingPostId}
-            onCreateFeedPost={onCreateFeedPost}
-            onUpdateFeedPost={onUpdateFeedPost}
-            onDeleteFeedPost={onDeleteFeedPost}
-            onCreateMetricJudgment={onCreateMetricJudgment}
-          />
-          <MetricsSection
-            feed={feed}
-            metrics={metrics}
-            selectedMetricId={selectedMetricId}
-            leaderboard={metricLeaderboard}
-            metricsLoading={metricsLoading}
-            leaderboardLoading={leaderboardLoading}
-            error={metricsError}
-            canManage={canManageMetrics}
-            metricSubmitting={metricSubmitting}
-            updatingMetricId={updatingMetricId}
-            deletingMetricId={deletingMetricId}
-            onSelectMetric={onSelectMetric}
-            onCreateMetric={onCreateMetric}
-            onUpdateMetric={onUpdateMetric}
-            onDeleteMetric={onDeleteMetric}
-          />
-        </section>
-        {group.my_status === "active" ? (
-          <aside className="feed-friends-rail">
-            {canManagePostTags ? (
-              <PostTagManager
-                deletingTagId={deletingPostTagId}
-                error={postTagsError}
-                saving={postTagSubmitting}
-                tags={postTags}
-                updatingTagId={updatingPostTagId}
-                onCreateTag={onCreatePostTag}
-                onDeleteTag={onDeletePostTag}
-                onUpdateTag={onUpdatePostTag}
-              />
-            ) : null}
-            <InviteFriends
-              candidates={inviteCandidates}
-              loading={inviteCandidatesLoading}
-              invitingUserId={invitingUserId}
-              onInviteFriend={onInviteFriend}
-              onCancelGroupInvite={onCancelGroupInvite}
-            />
-          </aside>
+      <section className="dashboard-section feed-output-section" aria-label="Selected feed output">
+        {feed ? (
+          <div className="feed-card-header">
+            <label className="date-control feed-date-control">
+              Date
+              <select value={selectedFeedDate} onChange={(event) => onChangeFeedDate(event.target.value)}>
+                {feedDateOptions(selectedFeedDate, feed.created_at).map((option) => (
+                  <option value={option.value} key={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         ) : null}
-      </div>
+
+        <FeedOutput
+          feed={feed}
+          output={output}
+          loading={outputLoading}
+          error={outputError}
+          posts={posts}
+          postTags={postTags}
+          postsLoading={postsLoading}
+          postsError={postsError}
+          postSubmitting={postSubmitting}
+          updatingPostId={updatingPostId}
+          deletingPostId={deletingPostId}
+          currentUserId={currentUserId}
+          judgedMetrics={judgedMetrics}
+          canJudge={canManageMetrics}
+          canManagePostTags={canManagePostTags}
+          judgingPostId={judgingPostId}
+          onCreateFeedPost={onCreateFeedPost}
+          onUpdateFeedPost={onUpdateFeedPost}
+          onDeleteFeedPost={onDeleteFeedPost}
+          onCreateMetricJudgment={onCreateMetricJudgment}
+        />
+        <MetricsSection
+          feed={feed}
+          metrics={metrics}
+          selectedMetricId={selectedMetricId}
+          leaderboard={metricLeaderboard}
+          metricsLoading={metricsLoading}
+          leaderboardLoading={leaderboardLoading}
+          error={metricsError}
+          canManage={canManageMetrics}
+          metricSubmitting={metricSubmitting}
+          updatingMetricId={updatingMetricId}
+          deletingMetricId={deletingMetricId}
+          onSelectMetric={onSelectMetric}
+          onCreateMetric={onCreateMetric}
+          onUpdateMetric={onUpdateMetric}
+          onDeleteMetric={onDeleteMetric}
+        />
+      </section>
       {addFeedOpen ? (
         <AddFeedDialog
           feeds={feeds}
@@ -278,221 +226,6 @@ export function GroupDashboard({
         />
       ) : null}
     </section>
-  );
-}
-
-function InviteFriends({
-  candidates,
-  loading,
-  invitingUserId,
-  onInviteFriend,
-  onCancelGroupInvite,
-}: {
-  candidates: GroupInviteCandidate[];
-  loading: boolean;
-  invitingUserId: string | null;
-  onInviteFriend: (userId: string) => void;
-  onCancelGroupInvite: (userId: string) => void;
-}) {
-  return (
-    <section className="invite-friends-section" aria-label="Invite friends">
-      <div className="section-title">Invite friends</div>
-      <div className="stack">
-        {loading ? <div className="meta">Loading friends...</div> : null}
-        {!loading && !candidates.length ? <div className="meta">No eligible friends</div> : null}
-        {candidates.map((candidate) => {
-          const pending = candidate.membership_status === "invited";
-          return (
-            <div className="row social-row" key={candidate.user.id}>
-              <div>
-                <div className="title">{candidate.user.display_name || candidate.user.username}</div>
-                <div className="meta">@{candidate.user.username}</div>
-              </div>
-              <button
-                className={pending ? "secondary" : undefined}
-                type="button"
-                disabled={invitingUserId === candidate.user.id}
-                onClick={() => {
-                  if (pending) {
-                    onCancelGroupInvite(candidate.user.id);
-                    return;
-                  }
-                  onInviteFriend(candidate.user.id);
-                }}
-              >
-                {pending ? "Cancel" : "Invite"}
-              </button>
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-function PostTagManager({
-  tags,
-  error,
-  saving,
-  updatingTagId,
-  deletingTagId,
-  onCreateTag,
-  onUpdateTag,
-  onDeleteTag,
-}: {
-  tags: GroupPostTag[];
-  error: string;
-  saving: boolean;
-  updatingTagId: string | null;
-  deletingTagId: string | null;
-  onCreateTag: (payload: CreateGroupPostTagRequest) => void;
-  onUpdateTag: (tagId: string, payload: PatchGroupPostTagRequest) => void;
-  onDeleteTag: (tagId: string) => void;
-}) {
-  const [name, setName] = useState("");
-  const [formError, setFormError] = useState("");
-
-  function handleCreate(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const trimmedName = name.trim();
-    if (trimmedName === "") {
-      setFormError("Tag name is required");
-      return;
-    }
-    setFormError("");
-    onCreateTag({ name: trimmedName });
-    setName("");
-  }
-
-  return (
-    <section className="post-tag-manager" aria-label="Post tags">
-      <div className="section-title">Post tags</div>
-      {error !== "" ? (
-        <div className="form-error" role="alert">
-          {error}
-        </div>
-      ) : null}
-      <form className="post-tag-create-form" onSubmit={handleCreate}>
-        <label>
-          Tag name
-          <input
-            maxLength={48}
-            value={name}
-            onChange={(event) => {
-              setName(event.target.value);
-              setFormError("");
-            }}
-          />
-        </label>
-        <button type="submit" disabled={saving || name.trim() === ""}>
-          Add tag
-        </button>
-      </form>
-      {formError !== "" ? (
-        <div className="form-error" role="alert">
-          {formError}
-        </div>
-      ) : null}
-      <div className="post-tag-manager-list">
-        {tags.length === 0 ? <div className="meta">No tags</div> : null}
-        {tags.map((tag) => (
-          <PostTagManagerRow
-            deleting={deletingTagId === tag.id}
-            key={tag.id}
-            tag={tag}
-            updating={updatingTagId === tag.id}
-            onDeleteTag={onDeleteTag}
-            onUpdateTag={onUpdateTag}
-          />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function PostTagManagerRow({
-  tag,
-  updating,
-  deleting,
-  onUpdateTag,
-  onDeleteTag,
-}: {
-  tag: GroupPostTag;
-  updating: boolean;
-  deleting: boolean;
-  onUpdateTag: (tagId: string, payload: PatchGroupPostTagRequest) => void;
-  onDeleteTag: (tagId: string) => void;
-}) {
-  const [name, setName] = useState(tag.name);
-  const [formError, setFormError] = useState("");
-  const archived = tag.archived_at !== undefined;
-  const busy = updating || deleting;
-  const trimmedName = name.trim();
-  const changed = trimmedName !== tag.name;
-
-  useEffect(() => {
-    if (busy) {
-      return;
-    }
-    setName(tag.name);
-  }, [busy, tag.name]);
-
-  function handleSave(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (trimmedName === "") {
-      setFormError("Tag name is required");
-      return;
-    }
-    const payload: PatchGroupPostTagRequest = {};
-    if (trimmedName !== tag.name) {
-      payload.name = trimmedName;
-    }
-    if (Object.keys(payload).length === 0) {
-      return;
-    }
-    setFormError("");
-    onUpdateTag(tag.id, payload);
-  }
-
-  return (
-    <form className={`post-tag-manager-row ${archived ? "archived" : ""}`} onSubmit={handleSave}>
-      <label>
-        Name
-        <input
-          maxLength={48}
-          value={name}
-          onChange={(event) => {
-            setName(event.target.value);
-            setFormError("");
-          }}
-        />
-      </label>
-      <div className="post-tag-manager-actions">
-        <button type="submit" className="secondary" disabled={busy || !changed || trimmedName === ""}>
-          Save
-        </button>
-        {archived ? (
-          <button
-            type="button"
-            className="secondary"
-            disabled={busy}
-            onClick={() => onUpdateTag(tag.id, { archived: false })}
-          >
-            Unarchive
-          </button>
-        ) : (
-          <button type="button" className="danger" disabled={busy} onClick={() => onDeleteTag(tag.id)}>
-            Archive
-          </button>
-        )}
-      </div>
-      {archived ? <div className="meta">Archived</div> : null}
-      {formError !== "" ? (
-        <div className="form-error" role="alert">
-          {formError}
-        </div>
-      ) : null}
-    </form>
   );
 }
 

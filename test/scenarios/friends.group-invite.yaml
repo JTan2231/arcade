@@ -74,6 +74,16 @@ steps:
 
   - visit: /
 
+  - within: Groups
+    click:
+      role: button
+      name: Group settings for Friends Invite Group
+
+  - within: Groups
+    click:
+      role: button
+      name: Settings
+
   - within: Invite friends
     expectVisible:
       text: Bob Friend

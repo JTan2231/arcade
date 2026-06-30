@@ -771,17 +771,6 @@ button.confirm-icon-button:hover:not(:disabled) {
   min-height: 420px;
 }
 
-.feed-card-grid {
-  align-items: start;
-  display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(0, 1fr) minmax(210px, 240px);
-}
-
-.feed-card-grid.without-friends-rail {
-  grid-template-columns: minmax(0, 1fr);
-}
-
 .dashboard-section {
   min-width: 0;
 }
@@ -790,7 +779,7 @@ button.confirm-icon-button:hover:not(:disabled) {
   align-items: start;
   display: grid;
   gap: 12px 16px;
-  grid-template-columns: minmax(0, 1fr) minmax(210px, 240px);
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 180px);
 }
 
 .feed-card-header {
@@ -806,21 +795,48 @@ button.confirm-icon-button:hover:not(:disabled) {
   justify-self: end;
 }
 
-.feed-friends-rail {
-  border-left: 1px solid var(--color-border);
-  min-width: 0;
-  padding-left: 14px;
-}
-
-.feed-friends-rail .invite-friends-section {
-  border-top: 0;
-  margin-top: 0;
-  padding-top: 0;
-}
-
 .date-control {
   min-width: 160px;
   width: 180px;
+}
+
+.group-settings-dialog {
+  display: grid;
+  gap: 14px;
+  width: min(880px, 100%);
+}
+
+.group-settings-grid {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+}
+
+.group-members-manager {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.group-member-list {
+  display: grid;
+  gap: 8px;
+}
+
+.group-member-row {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.group-member-summary {
+  min-width: 0;
+}
+
+.group-settings-invite-section {
+  grid-column: 1 / -1;
 }
 
 .output-actions {
@@ -1359,10 +1375,6 @@ button.metric-select-button.selected-row {
     gap: 10px;
   }
 
-  .feed-card-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .feed-output-section {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1378,13 +1390,6 @@ button.metric-select-button.selected-row {
 
   .feed-date-control {
     justify-self: stretch;
-  }
-
-  .feed-friends-rail {
-    border-left: 0;
-    border-top: 1px solid var(--color-border);
-    padding-left: 0;
-    padding-top: 14px;
   }
 
   .date-control {
@@ -1414,7 +1419,9 @@ button.metric-select-button.selected-row {
   .three-column,
   .filter-row,
   .metric-layout,
-  .metric-judgment-grid {
+  .metric-judgment-grid,
+  .group-settings-grid,
+  .group-member-row {
     grid-template-columns: minmax(0, 1fr);
   }
 

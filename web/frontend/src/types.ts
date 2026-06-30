@@ -59,6 +59,18 @@ export type Group = {
   updated_at: string;
 };
 
+export type GroupMember = {
+  user_id: string;
+  username: string;
+  display_name: string;
+  avatar_url?: string;
+  role: "owner" | "admin" | "member";
+  status: "invited" | "active" | "removed" | "left";
+  joined_at?: string;
+  created_at: string;
+  updated_at: string;
+};
+
 type DailyFeedSchedule = {
   starts_at: string;
   timezone: string;

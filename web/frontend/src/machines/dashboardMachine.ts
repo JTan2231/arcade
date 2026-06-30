@@ -12,6 +12,7 @@ import {
   deleteGroup,
   deleteGroupDailyFeed,
   deleteGroupFeedPost,
+  deleteGroupMember,
   deleteGroupPostTag,
   getFeedMetric,
   getGroupDailyFeedOutput,
@@ -22,6 +23,7 @@ import {
   listFeedMetrics,
   listGroupDailyFeeds,
   listGroupFeedPosts,
+  listGroupMembers,
   listGroupPostTags,
   listGroups,
   updateFeedMetric,
@@ -42,6 +44,7 @@ import type {
   FeedMetric,
   Group,
   GroupFeedPost,
+  GroupMember,
   GroupPostTag,
   MetricLeaderboard,
   PatchFeedMetricRequest,
@@ -93,6 +96,10 @@ type PostTagMutation =
       tagId: string;
     };
 
+type GroupMemberMutation = {
+  userId: string;
+};
+
 type MetricMutation =
   | {
       kind: "create";
@@ -130,6 +137,9 @@ export type DashboardContext = {
 
   postTags: GroupPostTag[];
   postTagsError: string;
+  groupMembers: GroupMember[];
+  groupMembersError: string;
+  groupSettingsOpen: boolean;
   posts: GroupFeedPost[];
   postsError: string;
 
@@ -144,6 +154,7 @@ export type DashboardContext = {
   pendingDeleteFeedId: string | null;
   postMutation: PostMutation | null;
   postTagMutation: PostTagMutation | null;
+  groupMemberMutation: GroupMemberMutation | null;
   metricMutation: MetricMutation | null;
   judgmentMutation: JudgmentMutation | null;
 };
@@ -156,6 +167,8 @@ type DashboardUserEvent =
   | { type: "GROUPS_REFRESH_REQUESTED"; preferredGroupId?: string | null }
   | { type: "GROUP_CREATE_SUBMITTED"; name: string }
   | { type: "GROUP_SELECTED"; groupId: string }
+  | { type: "GROUP_SETTINGS_OPENED"; groupId: string }
+  | { type: "GROUP_SETTINGS_CLOSED" }
   | { type: "GROUP_DELETE_SUBMITTED"; groupId: string }
   | { type: "FEED_SELECTED"; feedId: string }
   | { type: "FEED_DATE_CHANGED"; date: string }
@@ -167,6 +180,7 @@ type DashboardUserEvent =
   | { type: "POST_TAG_CREATE_SUBMITTED"; payload: CreateGroupPostTagRequest }
   | { type: "POST_TAG_UPDATE_SUBMITTED"; tagId: string; payload: PatchGroupPostTagRequest }
   | { type: "POST_TAG_DELETE_SUBMITTED"; tagId: string }
+  | { type: "GROUP_MEMBER_REMOVE_SUBMITTED"; userId: string }
   | { type: "METRIC_SELECTED"; metricId: string }
   | { type: "METRIC_CREATE_SUBMITTED"; payload: CreateFeedMetricRequest }
   | { type: "METRIC_UPDATE_SUBMITTED"; metricId: string; payload: PatchFeedMetricRequest }
@@ -187,12 +201,15 @@ type FeedInput = {
 type GroupWorkspaceInput = {
   groupId: string;
   includeArchivedPostTags: boolean;
+  includeGroupMembers: boolean;
 };
 
 type GroupWorkspaceOutput = {
   feeds: DailyFeed[];
   postTags: GroupPostTag[];
   postTagsError: string;
+  groupMembers: GroupMember[];
+  groupMembersError: string;
 };
 
 type DatedFeedInput = FeedInput & {
@@ -210,6 +227,10 @@ type ToggleFeedInput = {
 
 type DeleteGroupOutput = {
   groupId: string;
+};
+
+type DeleteGroupMemberOutput = {
+  userId: string;
 };
 
 type DeleteFeedOutput = {
@@ -298,21 +319,43 @@ const dashboardSetup = setup({
       await deleteGroup(input.groupId, { signal });
       return { groupId: input.groupId };
     }),
+    deleteGroupMember: fromPromise<DeleteGroupMemberOutput, { groupId: string; userId: string }>(
+      async ({ input, signal }) => {
+        await deleteGroupMember(input.groupId, input.userId, { signal });
+        return { userId: input.userId };
+      },
+    ),
     loadGroupWorkspace: fromPromise<GroupWorkspaceOutput, GroupWorkspaceInput>(async ({ input, signal }) => {
       const feeds = await listGroupDailyFeeds(input.groupId, { signal });
+      let postTags: GroupPostTag[] = [];
+      let postTagsError = "";
       try {
-        const postTags = await listGroupPostTags(
+        postTags = await listGroupPostTags(
           input.groupId,
           { includeArchived: input.includeArchivedPostTags },
           { signal },
         );
-        return { feeds, postTags, postTagsError: "" };
       } catch (error) {
         if (isUnauthorized(error)) {
           throw error;
         }
-        return { feeds, postTags: [], postTagsError: errorMessage(error) };
+        postTagsError = errorMessage(error);
       }
+
+      let groupMembers: GroupMember[] = [];
+      let groupMembersError = "";
+      if (input.includeGroupMembers) {
+        try {
+          groupMembers = await listGroupMembers(input.groupId, { signal });
+        } catch (error) {
+          if (isUnauthorized(error)) {
+            throw error;
+          }
+          groupMembersError = errorMessage(error);
+        }
+      }
+
+      return { feeds, postTags, postTagsError, groupMembers, groupMembersError };
     }),
     getGroupDailyFeedToday: fromPromise<DailyFeedOutput, FeedInput>(({ input, signal }) =>
       getGroupDailyFeedToday(input.groupId, input.feedId, { signal }),
@@ -458,6 +501,29 @@ export const dashboardMachine = dashboardSetup.createMachine({
         ...resetSelectedGroupContext(),
         selectedGroupId: event.groupId,
       })),
+    },
+    GROUP_SETTINGS_OPENED: [
+      {
+        guard: ({ context, event }) => event.groupId === context.selectedGroupId,
+        actions: assign({
+          groupSettingsOpen: true,
+        }),
+      },
+      {
+        guard: ({ context, event }) => context.groups.some((group) => group.id === event.groupId),
+        target: ".groupSelected.loadingFeeds",
+        reenter: true,
+        actions: assign(({ event }) => ({
+          ...resetSelectedGroupContext(),
+          selectedGroupId: event.groupId,
+          groupSettingsOpen: true,
+        })),
+      },
+    ],
+    GROUP_SETTINGS_CLOSED: {
+      actions: assign({
+        groupSettingsOpen: false,
+      }),
     },
     FEED_SELECTED: {
       guard: ({ context, event }) =>
@@ -610,6 +676,16 @@ export const dashboardMachine = dashboardSetup.createMachine({
         },
       })),
     },
+    GROUP_MEMBER_REMOVE_SUBMITTED: {
+      guard: ({ context, event }) =>
+        context.selectedGroupId !== null && context.groupMembers.some((member) => member.user_id === event.userId),
+      target: ".groupSelected.removingGroupMember",
+      actions: assign(({ event }) => ({
+        groupMemberMutation: {
+          userId: event.userId,
+        },
+      })),
+    },
     METRIC_SELECTED: {
       guard: ({ context, event }) => context.metrics.some((metric) => metric.id === event.metricId),
       target: ".groupSelected.feedSelected.loadingLeaderboard",
@@ -746,7 +822,8 @@ export const dashboardMachine = dashboardSetup.createMachine({
             src: "loadGroupWorkspace",
             input: ({ context }) => ({
               groupId: requireSelectedGroupId(context),
-              includeArchivedPostTags: selectedGroupCanManagePostTags(context),
+              includeArchivedPostTags: selectedGroupCanManage(context),
+              includeGroupMembers: selectedGroupCanManage(context),
             }),
             onDone: [
               {
@@ -758,6 +835,8 @@ export const dashboardMachine = dashboardSetup.createMachine({
                     feeds: event.output.feeds,
                     postTags: event.output.postTags,
                     postTagsError: event.output.postTagsError,
+                    groupMembers: event.output.groupMembers,
+                    groupMembersError: event.output.groupMembersError,
                     selectedFeedId: firstFeed?.id ?? null,
                     selectedFeedDate: todayDateValue(),
                     feedsError: "",
@@ -767,6 +846,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                     postsError: "",
                     postMutation: null,
                     postTagMutation: null,
+                    groupMemberMutation: null,
                     ...resetMetricContext(),
                     pendingToggleFeedId: null,
                     pendingDeleteFeedId: null,
@@ -779,6 +859,8 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   feeds: event.output.feeds,
                   postTags: event.output.postTags,
                   postTagsError: event.output.postTagsError,
+                  groupMembers: event.output.groupMembers,
+                  groupMembersError: event.output.groupMembersError,
                   selectedFeedId: null,
                   selectedFeedDate: todayDateValue(),
                   feedsError: "",
@@ -788,6 +870,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   postsError: "",
                   postMutation: null,
                   postTagMutation: null,
+                  groupMemberMutation: null,
                   ...resetMetricContext(),
                   pendingToggleFeedId: null,
                   pendingDeleteFeedId: null,
@@ -802,6 +885,8 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   feeds: [],
                   postTags: [],
                   postTagsError: "",
+                  groupMembers: [],
+                  groupMembersError: "",
                   selectedFeedId: null,
                   selectedFeedDate: todayDateValue(),
                   feedsError: errorMessage(event.error),
@@ -811,6 +896,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   postsError: "",
                   postMutation: null,
                   postTagMutation: null,
+                  groupMemberMutation: null,
                   ...resetMetricContext(),
                   pendingToggleFeedId: null,
                   pendingDeleteFeedId: null,
@@ -1372,6 +1458,44 @@ export const dashboardMachine = dashboardSetup.createMachine({
             onError: postTagMutationErrorTransitions(),
           },
         },
+        removingGroupMember: {
+          invoke: {
+            src: "deleteGroupMember",
+            input: ({ context }) => {
+              const mutation = requireGroupMemberMutation(context);
+              return {
+                groupId: requireSelectedGroupId(context),
+                userId: mutation.userId,
+              };
+            },
+            onDone: [
+              {
+                target: "feedSelected.ready",
+                guard: { type: "hasRestorableFeed" },
+                actions: [
+                  assign(({ context, event }) => ({
+                    groupMembers: context.groupMembers.filter((member) => member.user_id !== event.output.userId),
+                    groupMembersError: "",
+                    groupMemberMutation: null,
+                  })),
+                  sendToastToParent("Member removed"),
+                ],
+              },
+              {
+                target: "noFeed",
+                actions: [
+                  assign(({ context, event }) => ({
+                    groupMembers: context.groupMembers.filter((member) => member.user_id !== event.output.userId),
+                    groupMembersError: "",
+                    groupMemberMutation: null,
+                  })),
+                  sendToastToParent("Member removed"),
+                ],
+              },
+            ],
+            onError: groupMemberMutationErrorTransitions(),
+          },
+        },
         togglingFeed: {
           invoke: {
             src: "toggleFeed",
@@ -1508,6 +1632,9 @@ function resetSelectedGroupContext(): Omit<
     outputError: "",
     postTags: [],
     postTagsError: "",
+    groupMembers: [],
+    groupMembersError: "",
+    groupSettingsOpen: false,
     posts: [],
     postsError: "",
     ...resetMetricContext(),
@@ -1515,6 +1642,7 @@ function resetSelectedGroupContext(): Omit<
     pendingDeleteFeedId: null,
     postMutation: null,
     postTagMutation: null,
+    groupMemberMutation: null,
   };
 }
 
@@ -1553,9 +1681,9 @@ function chooseMetricId(metrics: FeedMetric[], currentMetricId: string | null): 
   return metrics[0]?.id ?? null;
 }
 
-function selectedGroupCanManagePostTags(context: DashboardContext): boolean {
+function selectedGroupCanManage(context: DashboardContext): boolean {
   const group = context.groups.find((candidate) => candidate.id === context.selectedGroupId);
-  return group?.my_role === "owner" || group?.my_role === "admin";
+  return group?.my_status === "active" && (group.my_role === "owner" || group.my_role === "admin");
 }
 
 function validPostUpdatePayload(payload: UpdatePostPayload): boolean {
@@ -1678,6 +1806,21 @@ function postTagMutationErrorTransitions() {
   ] as const;
 }
 
+function groupMemberMutationErrorTransitions() {
+  return [
+    unauthorizedToParentTransition(),
+    {
+      target: "feedSelected.ready",
+      guard: { type: "hasRestorableFeed" },
+      actions: [clearGroupMemberMutationOnError(), sendErrorToastToParent()],
+    },
+    {
+      target: "noFeed",
+      actions: [clearGroupMemberMutationOnError(), sendErrorToastToParent()],
+    },
+  ] as const;
+}
+
 function metricMutationErrorTransitions() {
   return [
     unauthorizedToParentTransition(),
@@ -1754,6 +1897,12 @@ function clearPostMutationOnError() {
 function clearPostTagMutationOnError() {
   return assign<DashboardContext, ErrorActorEvent, undefined, DashboardEvent, never>({
     postTagMutation: null,
+  });
+}
+
+function clearGroupMemberMutationOnError() {
+  return assign<DashboardContext, ErrorActorEvent, undefined, DashboardEvent, never>({
+    groupMemberMutation: null,
   });
 }
 
@@ -1851,6 +2000,13 @@ function requirePostTagMutation<TKind extends PostTagMutation["kind"]>(
     throw new Error("Post tag mutation is missing");
   }
   return mutation as Extract<PostTagMutation, { kind: TKind }>;
+}
+
+function requireGroupMemberMutation(context: DashboardContext): GroupMemberMutation {
+  if (context.groupMemberMutation === null) {
+    throw new Error("Group member mutation is missing");
+  }
+  return context.groupMemberMutation;
 }
 
 function requireMetricMutation<TKind extends MetricMutation["kind"]>(
