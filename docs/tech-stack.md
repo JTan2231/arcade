@@ -69,7 +69,8 @@ upload the result with the same token.
 Production group/feed/source data can be mirrored into the local database with
 `scripts/mirror-prod-to-local.sh`. The wrapper runs `go run
 ./cmd/mirror-prod-db`, connects to production in read-only mode, runs local
-migrations without starting the HTTP server, truncates the mirrored local app
+migrations without starting the HTTP server, validates the configured mirror
+tables and columns against both live schemas, truncates the mirrored local app
 tables, and copies users, friendships, groups, memberships, divisions, catalog
 sources/items/fields, daily feeds, feed filters, feed posts, post tags, and feed
 metrics. It intentionally excludes `user_sessions`. By default it replaces user

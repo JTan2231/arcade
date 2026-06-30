@@ -190,3 +190,84 @@ func TestMissingVersions(t *testing.T) {
 		t.Fatalf("missingVersions() = %q", got)
 	}
 }
+
+func TestValidateMirrorSchemaRejectsMissingConfiguredProductionColumn(t *testing.T) {
+	tables := []mirrorTable{{name: "group_daily_feeds", columns: []string{"id", "audience"}}}
+	prodSchema := testDatabaseSchema("group_daily_feeds", "id")
+	localSchema := testDatabaseSchema("group_daily_feeds", "id", "audience")
+
+	err := validateMirrorSchema(tables, prodSchema, localSchema)
+	if err == nil {
+		t.Fatal("validateMirrorSchema succeeded with missing production column")
+	}
+	if !strings.Contains(err.Error(), "configured columns missing in production: audience") {
+		t.Fatalf("validateMirrorSchema error = %q", err)
+	}
+}
+
+func TestValidateMirrorSchemaRejectsMissingConfiguredLocalColumn(t *testing.T) {
+	tables := []mirrorTable{{name: "group_daily_feeds", columns: []string{"id", "audience"}}}
+	prodSchema := testDatabaseSchema("group_daily_feeds", "id", "audience")
+	localSchema := testDatabaseSchema("group_daily_feeds", "id")
+
+	err := validateMirrorSchema(tables, prodSchema, localSchema)
+	if err == nil {
+		t.Fatal("validateMirrorSchema succeeded with missing local column")
+	}
+	if !strings.Contains(err.Error(), "configured columns missing in local target: audience") {
+		t.Fatalf("validateMirrorSchema error = %q", err)
+	}
+}
+
+func TestValidateMirrorSchemaRejectsSharedUnmirroredColumn(t *testing.T) {
+	tables := []mirrorTable{{name: "group_daily_feeds", columns: []string{"id"}}}
+	prodSchema := testDatabaseSchema("group_daily_feeds", "id", "new_shared_column")
+	localSchema := testDatabaseSchema("group_daily_feeds", "id", "new_shared_column")
+	localSchema["group_daily_feeds"]["new_shared_column"] = databaseColumn{nullable: true}
+
+	err := validateMirrorSchema(tables, prodSchema, localSchema)
+	if err == nil {
+		t.Fatal("validateMirrorSchema succeeded with unmirrored shared column")
+	}
+	if !strings.Contains(err.Error(), "columns exist in both schemas but are not configured for mirroring: new_shared_column") {
+		t.Fatalf("validateMirrorSchema error = %q", err)
+	}
+}
+
+func TestValidateMirrorSchemaRejectsUnmirroredRequiredLocalColumn(t *testing.T) {
+	tables := []mirrorTable{{name: "group_daily_feeds", columns: []string{"id"}}}
+	prodSchema := testDatabaseSchema("group_daily_feeds", "id")
+	localSchema := testDatabaseSchema("group_daily_feeds", "id", "new_required_column")
+
+	err := validateMirrorSchema(tables, prodSchema, localSchema)
+	if err == nil {
+		t.Fatal("validateMirrorSchema succeeded with unmirrored required local column")
+	}
+	if !strings.Contains(err.Error(), "local columns are required but not mirrored: new_required_column") {
+		t.Fatalf("validateMirrorSchema error = %q", err)
+	}
+}
+
+func TestValidateMirrorSchemaAllowsDefaultableLocalOnlyColumns(t *testing.T) {
+	tables := []mirrorTable{{name: "group_daily_feeds", columns: []string{"id"}}}
+	prodSchema := testDatabaseSchema("group_daily_feeds", "id")
+	localSchema := testDatabaseSchema("group_daily_feeds", "id")
+	localSchema["group_daily_feeds"]["new_nullable_column"] = databaseColumn{nullable: true}
+	localSchema["group_daily_feeds"]["new_defaulted_column"] = databaseColumn{hasDefault: true}
+	localSchema["group_daily_feeds"]["new_identity_column"] = databaseColumn{identity: true}
+	localSchema["group_daily_feeds"]["new_generated_column"] = databaseColumn{generated: true}
+
+	if err := validateMirrorSchema(tables, prodSchema, localSchema); err != nil {
+		t.Fatalf("validateMirrorSchema() = %v", err)
+	}
+}
+
+func testDatabaseSchema(table string, columns ...string) databaseSchema {
+	schema := databaseSchema{
+		table: make(tableSchema, len(columns)),
+	}
+	for _, column := range columns {
+		schema[table][column] = databaseColumn{}
+	}
+	return schema
+}

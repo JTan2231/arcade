@@ -355,6 +355,9 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout io.Writer, 
 	if err := checkMigrationCompatibility(ctx, prodConn, localDB, stderr); err != nil {
 		return err
 	}
+	if err := checkMirrorSchemaCompatibility(ctx, prodConn, localDB); err != nil {
+		return err
+	}
 
 	if !opts.yes {
 		if err := confirm(stdin, stdout); err != nil {
@@ -486,6 +489,17 @@ type queryer interface {
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 }
 
+type databaseSchema map[string]tableSchema
+
+type tableSchema map[string]databaseColumn
+
+type databaseColumn struct {
+	nullable   bool
+	hasDefault bool
+	identity   bool
+	generated  bool
+}
+
 func migrationVersions(ctx context.Context, db queryer) ([]string, error) {
 	rows, err := db.Query(ctx, `select version from schema_migrations order by version`)
 	if err != nil {
@@ -518,6 +532,146 @@ func missingVersions(required []string, actual []string) []string {
 	}
 	sort.Strings(missing)
 	return missing
+}
+
+func checkMirrorSchemaCompatibility(ctx context.Context, prod queryer, local queryer) error {
+	prodSchema, err := readMirrorSchema(ctx, prod, mirrorTables)
+	if err != nil {
+		return fmt.Errorf("read production mirror schema: %w", err)
+	}
+	localSchema, err := readMirrorSchema(ctx, local, mirrorTables)
+	if err != nil {
+		return fmt.Errorf("read local mirror schema: %w", err)
+	}
+	return validateMirrorSchema(mirrorTables, prodSchema, localSchema)
+}
+
+func readMirrorSchema(ctx context.Context, db queryer, tables []mirrorTable) (databaseSchema, error) {
+	rows, err := db.Query(ctx, `
+select
+	table_name,
+	column_name,
+	is_nullable = 'YES' as nullable,
+	column_default is not null as has_default,
+	is_identity = 'YES' as identity_column,
+	is_generated <> 'NEVER' as generated_column
+from information_schema.columns
+where table_schema = 'public'
+  and table_name = any($1::text[])
+order by table_name, ordinal_position`, tableNames(tables))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	schema := make(databaseSchema)
+	for rows.Next() {
+		var tableName string
+		var columnName string
+		var column databaseColumn
+		if err := rows.Scan(
+			&tableName,
+			&columnName,
+			&column.nullable,
+			&column.hasDefault,
+			&column.identity,
+			&column.generated,
+		); err != nil {
+			return nil, err
+		}
+		if schema[tableName] == nil {
+			schema[tableName] = make(tableSchema)
+		}
+		schema[tableName][columnName] = column
+	}
+	return schema, rows.Err()
+}
+
+func validateMirrorSchema(tables []mirrorTable, prodSchema databaseSchema, localSchema databaseSchema) error {
+	var problems []string
+	for _, table := range tables {
+		prodTable, prodOK := prodSchema[table.name]
+		localTable, localOK := localSchema[table.name]
+
+		if !prodOK {
+			problems = append(problems, fmt.Sprintf("%s: table missing in production", table.name))
+		} else if missing := missingMirrorColumns(table.columns, prodTable); len(missing) > 0 {
+			problems = append(problems, fmt.Sprintf("%s: configured columns missing in production: %s", table.name, strings.Join(missing, ", ")))
+		}
+
+		if !localOK {
+			problems = append(problems, fmt.Sprintf("%s: table missing in local target", table.name))
+			continue
+		}
+		if missing := missingMirrorColumns(table.columns, localTable); len(missing) > 0 {
+			problems = append(problems, fmt.Sprintf("%s: configured columns missing in local target: %s", table.name, strings.Join(missing, ", ")))
+		}
+		if prodOK {
+			if extra := unmirroredSharedColumns(table.columns, prodTable, localTable); len(extra) > 0 {
+				problems = append(problems, fmt.Sprintf("%s: columns exist in both schemas but are not configured for mirroring: %s", table.name, strings.Join(extra, ", ")))
+			}
+		}
+		if required := unmirroredRequiredColumns(table.columns, localTable); len(required) > 0 {
+			problems = append(problems, fmt.Sprintf("%s: local columns are required but not mirrored: %s", table.name, strings.Join(required, ", ")))
+		}
+	}
+
+	if len(problems) > 0 {
+		return errors.New("mirror schema mismatch:\n  " + strings.Join(problems, "\n  "))
+	}
+	return nil
+}
+
+func missingMirrorColumns(columns []string, schema tableSchema) []string {
+	var missing []string
+	for _, column := range columns {
+		if _, ok := schema[column]; !ok {
+			missing = append(missing, column)
+		}
+	}
+	return missing
+}
+
+func unmirroredSharedColumns(columns []string, prodSchema tableSchema, localSchema tableSchema) []string {
+	mirrored := columnSet(columns)
+	var extra []string
+	for column := range prodSchema {
+		if mirrored[column] {
+			continue
+		}
+		if _, ok := localSchema[column]; ok {
+			extra = append(extra, column)
+		}
+	}
+	sort.Strings(extra)
+	return extra
+}
+
+func unmirroredRequiredColumns(columns []string, schema tableSchema) []string {
+	mirrored := columnSet(columns)
+	var required []string
+	for name, column := range schema {
+		if mirrored[name] {
+			continue
+		}
+		if column.requiresExplicitInsert() {
+			required = append(required, name)
+		}
+	}
+	sort.Strings(required)
+	return required
+}
+
+func columnSet(columns []string) map[string]bool {
+	set := make(map[string]bool, len(columns))
+	for _, column := range columns {
+		set[column] = true
+	}
+	return set
+}
+
+func (c databaseColumn) requiresExplicitInsert() bool {
+	return !c.nullable && !c.hasDefault && !c.identity && !c.generated
 }
 
 func confirm(input io.Reader, output io.Writer) error {
