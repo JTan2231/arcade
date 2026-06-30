@@ -105,8 +105,62 @@ func TestUserSelectSQLSanitizesAuthByDefault(t *testing.T) {
 func TestUserSelectSQLCanSetSharedLocalPassword(t *testing.T) {
 	query := userSelectSQL(mirrorOptions{localPassword: "bcrypt'quote"})
 
-	if !strings.Contains(query, "'bcrypt''quote' as password_hash") {
-		t.Fatalf("shared password hash was not SQL-quoted in %s", query)
+	if strings.Contains(query, "bcrypt") {
+		t.Fatalf("shared password hash leaked into production query %s", query)
+	}
+	if !strings.Contains(query, "'disabled' as password_hash") {
+		t.Fatalf("shared password query should use placeholder disabled hash in %s", query)
+	}
+}
+
+func TestCopyValueOverrideSetsSharedLocalPassword(t *testing.T) {
+	values := []any{"id", "username", "display", nil, "created", "updated", "email", "disabled", "friend"}
+	override := copyValueOverride(mirrorTable{name: "users"}, mirrorOptions{localPassword: "hashed-local-password"})
+	if override == nil {
+		t.Fatal("copyValueOverride returned nil")
+	}
+
+	override(values)
+
+	if values[7] != "hashed-local-password" {
+		t.Fatalf("password hash value = %v", values[7])
+	}
+	if values[6] != "email" || values[8] != "friend" {
+		t.Fatalf("override changed neighboring values: %#v", values)
+	}
+}
+
+func TestGroupDailyFeedsMirrorColumnsMatchCurrentSchema(t *testing.T) {
+	var columns []string
+	for _, table := range mirrorTables {
+		if table.name == "group_daily_feeds" {
+			columns = table.columns
+			break
+		}
+	}
+	if columns == nil {
+		t.Fatal("group_daily_feeds is not mirrored")
+	}
+
+	want := []string{
+		"id",
+		"group_id",
+		"name",
+		"slug",
+		"description",
+		"enabled",
+		"created_by_user_id",
+		"created_at",
+		"updated_at",
+		"kind",
+		"source_id",
+		"item_count",
+		"schedule_starts_at",
+		"schedule_timezone",
+		"schedule_interval_seconds",
+	}
+	if strings.Join(columns, ",") != strings.Join(want, ",") {
+		t.Fatalf("group_daily_feeds columns = %#v, want %#v", columns, want)
 	}
 }
 

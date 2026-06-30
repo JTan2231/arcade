@@ -177,10 +177,6 @@ var mirrorTables = []mirrorTable{
 			"slug",
 			"description",
 			"enabled",
-			"audience",
-			"schedule",
-			"rules_schema_version",
-			"rules",
 			"created_by_user_id",
 			"created_at",
 			"updated_at",
@@ -452,7 +448,7 @@ func countProductionRows(ctx context.Context, prod *pgx.Conn) (map[string]int64,
 	counts := make(map[string]int64, len(mirrorTables))
 	for _, table := range mirrorTables {
 		var count int64
-		if err := prod.QueryRow(ctx, fmt.Sprintf("select count(*) from %s", quoteIdent(table.name))).Scan(&count); err != nil {
+		if err := prod.QueryRow(ctx, fmt.Sprintf("select count(*) from %s", qualifiedTableName(table.name))).Scan(&count); err != nil {
 			return nil, fmt.Errorf("count production %s: %w", table.name, err)
 		}
 		counts[table.name] = count
@@ -577,7 +573,10 @@ func copyTable(ctx context.Context, prod *pgx.Conn, tx pgx.Tx, table mirrorTable
 	}
 	defer rows.Close()
 
-	count, err := tx.CopyFrom(ctx, pgx.Identifier{table.name}, table.columns, &rowsCopySource{rows: rows})
+	count, err := tx.CopyFrom(ctx, tableIdentifier(table.name), table.columns, &rowsCopySource{
+		rows:     rows,
+		override: copyValueOverride(table, opts),
+	})
 	if err != nil {
 		return count, fmt.Errorf("copy local %s: %w", table.name, err)
 	}
@@ -585,9 +584,10 @@ func copyTable(ctx context.Context, prod *pgx.Conn, tx pgx.Tx, table mirrorTable
 }
 
 type rowsCopySource struct {
-	rows   pgx.Rows
-	values []any
-	err    error
+	rows     pgx.Rows
+	override func([]any)
+	values   []any
+	err      error
 }
 
 func (s *rowsCopySource) Next() bool {
@@ -595,6 +595,9 @@ func (s *rowsCopySource) Next() bool {
 		return false
 	}
 	s.values, s.err = s.rows.Values()
+	if s.err == nil && s.override != nil {
+		s.override(s.values)
+	}
 	return s.err == nil
 }
 
@@ -609,6 +612,17 @@ func (s *rowsCopySource) Err() error {
 	return s.rows.Err()
 }
 
+func copyValueOverride(table mirrorTable, opts mirrorOptions) func([]any) {
+	if table.name != "users" || opts.localPassword == "" || opts.preserveUserAuth {
+		return nil
+	}
+	return func(values []any) {
+		if len(values) > 7 {
+			values[7] = opts.localPassword
+		}
+	}
+}
+
 func (t mirrorTable) selectQuery(opts mirrorOptions) string {
 	if t.selectSQL != nil {
 		return t.selectSQL(opts)
@@ -618,7 +632,7 @@ func (t mirrorTable) selectQuery(opts mirrorOptions) string {
 	for _, column := range t.columns {
 		columns = append(columns, quoteIdent(column))
 	}
-	return fmt.Sprintf("select %s from %s", strings.Join(columns, ", "), quoteIdent(t.name))
+	return fmt.Sprintf("select %s from %s", strings.Join(columns, ", "), qualifiedTableName(t.name))
 }
 
 func userSelectSQL(opts mirrorOptions) string {
@@ -630,15 +644,14 @@ func userSelectSQL(opts mirrorOptions) string {
 		email = "email"
 		passwordHash = "password_hash"
 		friendCode = "friend_code"
-	} else if opts.localPassword != "" {
-		passwordHash = quoteLiteral(opts.localPassword)
 	}
 
 	return fmt.Sprintf(
-		`select id, username, display_name, avatar_url, created_at, updated_at, %s as email, %s as password_hash, %s as friend_code from users`,
+		`select id, username, display_name, avatar_url, created_at, updated_at, %s as email, %s as password_hash, %s as friend_code from %s`,
 		email,
 		passwordHash,
 		friendCode,
+		qualifiedTableName("users"),
 	)
 }
 
@@ -646,7 +659,7 @@ func truncateSQL() string {
 	tables := append([]string{"user_sessions"}, tableNames(mirrorTables)...)
 	quoted := make([]string, 0, len(tables))
 	for _, table := range tables {
-		quoted = append(quoted, quoteIdent(table))
+		quoted = append(quoted, qualifiedTableName(table))
 	}
 	return "truncate table " + strings.Join(quoted, ", ") + " restart identity cascade"
 }
@@ -661,6 +674,14 @@ func tableNames(tables []mirrorTable) []string {
 
 func quoteIdent(identifier string) string {
 	return `"` + strings.ReplaceAll(identifier, `"`, `""`) + `"`
+}
+
+func qualifiedTableName(table string) string {
+	return quoteIdent("public") + "." + quoteIdent(table)
+}
+
+func tableIdentifier(table string) pgx.Identifier {
+	return pgx.Identifier{"public", table}
 }
 
 func quoteLiteral(value string) string {
