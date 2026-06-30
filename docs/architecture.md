@@ -59,6 +59,7 @@ Routes are grouped by resource in `Server.Routes()`:
 - Groups: groups and group memberships.
 - Divisions: group-scoped divisions and optional user-rating rules.
 - Dailies: group-owned daily feed definitions and deterministic feed outputs.
+- Post tags: group-owned feed post tag definitions and post tag attachments.
 - Feed metrics: feed-owned score definitions, judged score writes, and
   computed leaderboards.
 
@@ -76,6 +77,8 @@ The main persisted entities are:
 - `group_daily_feeds`: durable group-owned daily feed definitions.
 - `group_daily_feed_instances` and `group_feed_posts`: durable member posts
   attached to one feed on one date.
+- `group_post_tags` and `group_feed_post_tags`: group-managed post metadata
+  definitions and durable tag attachments.
 - `group_daily_feed_metrics` and `group_daily_feed_metric_judgments`:
   feed-owned system or judged score definitions and persisted human judgments.
 
@@ -105,7 +108,14 @@ The current daily feed model follows these rules:
   APIs.
 - Member posts are stored separately from generated output. The first post for a
   feed/date lazily creates a `group_daily_feed_instances` row, and each active
-  member can own at most one post on that instance.
+  member can own at most one post on that instance. Feed post read responses are
+  hydrated with attached group post tags ordered by display order and name,
+  including archived tags that remain attached to historical posts.
+- Group post tags are a group-managed vocabulary. Owners and admins create,
+  rename, reorder, archive, and unarchive tag definitions under
+  `/api/groups/{group_id}/post-tags`; members can attach active tags to their
+  own posts when creating or editing a feed post. Arcade creates no default
+  tags.
 
 The generator uses feed configuration and catalog item data only.
 
@@ -147,8 +157,9 @@ The browser app source lives in `web/frontend`:
   logout, current user state, unauthorized recovery, and toast messages.
 - `src/machines/dashboardMachine.ts` owns authenticated workspace state:
   groups, group selection, feed loading/selection, output and post loading,
-  feed toggling, post mutations, feed metric loading/selection, leaderboard
-  loading, metric mutations, and judged score saves.
+  group post tag loading/mutations, feed toggling, post mutations, feed metric
+  loading/selection, leaderboard loading, metric mutations, and judged score
+  saves.
 - `src/machines/addFeedMachine.ts` owns the Add Feed dialog remote workflow:
   source loading, preview, creation, and dialog-scoped errors.
 - `src/api.ts` wraps same-origin JSON requests to `/api/*` and preserves the
@@ -168,10 +179,12 @@ Vite builds generated HTML, CSS, and JavaScript into `web/static`, which remains
 the Go embed target. Do not hand-edit generated files in `web/static`; change
 the React source and run `cd web/frontend && bun run build`.
 
-The main group surface loads `/api/groups/{group_id}/daily-feeds` and
+The main group surface loads `/api/groups/{group_id}/daily-feeds`,
+`/api/groups/{group_id}/post-tags`, and
 `/api/groups/{group_id}/daily-feeds/{feed_id}/today` or
 `/api/groups/{group_id}/daily-feeds/{feed_id}/outputs/{date}`. Owners and
-admins can toggle feed enabled state through
+admins request archived tag definitions for the tag manager and can toggle feed
+enabled state through
 `PATCH /api/groups/{group_id}/daily-feeds/{feed_id}`. The same surface exposes
 an owner/admin-only Add feed flow backed by group catalog sources, source field
 metadata, `POST /api/groups/{group_id}/daily-feeds/preview`, and

@@ -2,6 +2,11 @@ package app
 
 import "testing"
 
+const (
+	testTagIDOne = "11111111-1111-4111-8111-111111111111"
+	testTagIDTwo = "22222222-2222-4222-8222-222222222222"
+)
+
 func TestNormalizeCreateGroupFeedPostRequest(t *testing.T) {
 	caption := "  Optional note.  "
 	payload, err := normalizeCreateGroupFeedPostRequest(createGroupFeedPostRequest{
@@ -20,6 +25,51 @@ func TestNormalizeCreateGroupFeedPostRequest(t *testing.T) {
 	}
 	if payload.Caption == nil || *payload.Caption != "Optional note." {
 		t.Fatalf("caption = %#v", payload.Caption)
+	}
+}
+
+func TestNormalizeCreateGroupFeedPostRequestAcceptsOmittedTagIDs(t *testing.T) {
+	payload, err := normalizeCreateGroupFeedPostRequest(createGroupFeedPostRequest{
+		EvidenceKind: "text",
+		EvidenceText: "proof",
+	})
+	if err != nil {
+		t.Fatalf("normalizeCreateGroupFeedPostRequest returned error: %v", err)
+	}
+	if len(payload.TagIDs) != 0 {
+		t.Fatalf("tag IDs = %#v", payload.TagIDs)
+	}
+}
+
+func TestNormalizeCreateGroupFeedPostRequestDeduplicatesTagIDs(t *testing.T) {
+	payload, err := normalizeCreateGroupFeedPostRequest(createGroupFeedPostRequest{
+		EvidenceKind: "text",
+		EvidenceText: "proof",
+		TagIDs: stringSliceField{
+			testTagIDOne,
+			"  " + testTagIDOne + "  ",
+			testTagIDTwo,
+		},
+	})
+	if err != nil {
+		t.Fatalf("normalizeCreateGroupFeedPostRequest returned error: %v", err)
+	}
+	if len(payload.TagIDs) != 2 {
+		t.Fatalf("tag IDs = %#v", payload.TagIDs)
+	}
+	if payload.TagIDs[0] != testTagIDOne || payload.TagIDs[1] != testTagIDTwo {
+		t.Fatalf("tag IDs = %#v", payload.TagIDs)
+	}
+}
+
+func TestNormalizeCreateGroupFeedPostRequestRejectsEmptyTagIDs(t *testing.T) {
+	_, err := normalizeCreateGroupFeedPostRequest(createGroupFeedPostRequest{
+		EvidenceKind: "text",
+		EvidenceText: "proof",
+		TagIDs:       stringSliceField{testTagIDOne, " "},
+	})
+	if err == nil {
+		t.Fatal("expected empty tag ID to be rejected")
 	}
 }
 
@@ -75,6 +125,39 @@ func TestNormalizePatchGroupFeedPostRequestAllowsCaptionClear(t *testing.T) {
 	}
 	if patch.Caption != nil {
 		t.Fatalf("caption = %#v", patch.Caption)
+	}
+}
+
+func TestNormalizePatchGroupFeedPostRequestAcceptsOnlyTagIDs(t *testing.T) {
+	patch, err := normalizePatchGroupFeedPostRequest(patchGroupFeedPostRequest{
+		TagIDs: optionalStringSliceField{
+			Set:   true,
+			Value: []string{testTagIDOne},
+		},
+	})
+	if err != nil {
+		t.Fatalf("normalizePatchGroupFeedPostRequest returned error: %v", err)
+	}
+	if !patch.TagIDsSet {
+		t.Fatal("tag IDs were not marked as set")
+	}
+	if len(patch.TagIDs) != 1 || patch.TagIDs[0] != testTagIDOne {
+		t.Fatalf("tag IDs = %#v", patch.TagIDs)
+	}
+}
+
+func TestNormalizePatchGroupFeedPostRequestAcceptsEmptyTagIDs(t *testing.T) {
+	patch, err := normalizePatchGroupFeedPostRequest(patchGroupFeedPostRequest{
+		TagIDs: optionalStringSliceField{Set: true, Value: []string{}},
+	})
+	if err != nil {
+		t.Fatalf("normalizePatchGroupFeedPostRequest returned error: %v", err)
+	}
+	if !patch.TagIDsSet {
+		t.Fatal("tag IDs were not marked as set")
+	}
+	if len(patch.TagIDs) != 0 {
+		t.Fatalf("tag IDs = %#v", patch.TagIDs)
 	}
 }
 

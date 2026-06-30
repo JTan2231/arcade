@@ -1,0 +1,78 @@
+name: composer can attach a group post tag
+
+vars:
+  email: tag-composer@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Tag Composer
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: login_owner
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Composer Tag Dojo
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: create_tag
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/post-tags
+      json:
+        name: Active
+        display_order: 1
+      expectStatus: 201
+
+steps:
+  - visit: /
+
+  - within: Posts
+    click:
+      role: button
+      name: Post
+
+  - within: Posts
+    check:
+      label: Active
+
+  - within: Posts
+    fill:
+      label: Evidence
+      value: Tagged from the composer.
+
+  - within: Posts
+    click:
+      role: button
+      name: Submit
+
+  - expectStatus:
+      text: Post submitted
+
+  - within: Posts
+    expectVisible:
+      text: Active

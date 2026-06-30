@@ -197,7 +197,20 @@ export type GroupFeedPost = {
   evidence_kind: "text";
   evidence_text: string;
   caption?: string;
+  tags: GroupPostTag[];
   deleted_at?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type GroupPostTag = {
+  id: string;
+  group_id: string;
+  name: string;
+  display_order: number;
+  archived_at?: string;
+  created_by_user_id?: string;
+  updated_by_user_id?: string;
   created_at: string;
   updated_at: string;
 };
@@ -206,12 +219,25 @@ export type CreateGroupFeedPostRequest = {
   evidence_kind: "text";
   evidence_text: string;
   caption?: string;
+  tag_ids?: string[];
 };
 
 export type PatchGroupFeedPostRequest = {
   evidence_kind?: "text";
   evidence_text?: string;
   caption?: string | null;
+  tag_ids?: string[];
+};
+
+export type CreateGroupPostTagRequest = {
+  name: string;
+  display_order?: number;
+};
+
+export type PatchGroupPostTagRequest = {
+  name?: string;
+  display_order?: number;
+  archived?: boolean;
 };
 
 export type FeedMetricKey =

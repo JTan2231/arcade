@@ -1,6 +1,7 @@
 package app
 
 import (
+	"net/url"
 	"testing"
 	"time"
 )
@@ -88,6 +89,37 @@ func TestFeedLifetimeMetricLeaderboardRangeUsesFeedCreatedDate(t *testing.T) {
 	}
 	if got := to.Format(dailyFeedDateLayout); got != "2026-06-29" {
 		t.Fatalf("to = %q, want 2026-06-29", got)
+	}
+}
+
+func TestMetricLeaderboardRangeHonorsExplicitQuery(t *testing.T) {
+	from, to, err := metricLeaderboardRange(DailyFeed{
+		CreatedAt: time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC),
+		Schedule: DailyFeedSchedule{
+			Timezone: "UTC",
+		},
+	}, url.Values{
+		"from": []string{"2026-06-29"},
+		"to":   []string{"2026-06-29"},
+	}, time.Date(2026, 6, 30, 3, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatalf("metricLeaderboardRange returned error: %v", err)
+	}
+
+	if got := from.Format(dailyFeedDateLayout); got != "2026-06-29" {
+		t.Fatalf("from = %q, want 2026-06-29", got)
+	}
+	if got := to.Format(dailyFeedDateLayout); got != "2026-06-29" {
+		t.Fatalf("to = %q, want 2026-06-29", got)
+	}
+}
+
+func TestMetricLeaderboardRangeRejectsPartialExplicitQuery(t *testing.T) {
+	_, _, err := metricLeaderboardRange(DailyFeed{}, url.Values{
+		"from": []string{"2026-06-29"},
+	}, time.Date(2026, 6, 30, 3, 0, 0, 0, time.UTC))
+	if err == nil {
+		t.Fatal("expected partial explicit range to fail")
 	}
 }
 

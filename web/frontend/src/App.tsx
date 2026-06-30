@@ -37,6 +37,7 @@ import type {
   GroupFeedPost,
   GroupInvite,
   GroupInviteCandidate,
+  GroupPostTag,
   User,
 } from "./types";
 
@@ -47,6 +48,7 @@ type AppRoute = "workspace" | "profile";
 const EMPTY_GROUPS: Group[] = [];
 const EMPTY_FEEDS: DailyFeed[] = [];
 const EMPTY_POSTS: GroupFeedPost[] = [];
+const EMPTY_POST_TAGS: GroupPostTag[] = [];
 const EMPTY_METRICS: FeedMetric[] = [];
 const EMPTY_FRIENDS: Friend[] = [];
 const EMPTY_GROUP_INVITES: GroupInvite[] = [];
@@ -109,6 +111,7 @@ export default function App() {
     "loadingLeaderboard",
   );
   const creatingPost = matchesGrandchildState(dashboardStateValue, "groupSelected", "feedSelected", "creatingPost");
+  const creatingPostTag = matchesChildState(dashboardStateValue, "groupSelected", "creatingPostTag");
   const creatingMetric = matchesGrandchildState(dashboardStateValue, "groupSelected", "feedSelected", "creatingMetric");
   const creatingJudgment = matchesGrandchildState(
     dashboardStateValue,
@@ -371,6 +374,9 @@ export default function App() {
   const postMutation = dashboardContext?.postMutation ?? null;
   const updatingPostId = postMutation?.kind === "update" ? postMutation.postId : null;
   const deletingPostId = postMutation?.kind === "delete" ? postMutation.postId : null;
+  const postTagMutation = dashboardContext?.postTagMutation ?? null;
+  const updatingPostTagId = postTagMutation?.kind === "update" ? postTagMutation.tagId : null;
+  const deletingPostTagId = postTagMutation?.kind === "delete" ? postTagMutation.tagId : null;
   const metricMutation = dashboardContext?.metricMutation ?? null;
   const updatingMetricId = metricMutation?.kind === "update" ? metricMutation.metricId : null;
   const deletingMetricId = metricMutation?.kind === "delete" ? metricMutation.metricId : null;
@@ -487,6 +493,8 @@ export default function App() {
               outputLoading={loadingTodayOutput || loadingDatedOutput}
               outputError={dashboardContext?.outputError ?? ""}
               posts={dashboardContext?.posts ?? EMPTY_POSTS}
+              postTags={dashboardContext?.postTags ?? EMPTY_POST_TAGS}
+              postTagsError={dashboardContext?.postTagsError ?? ""}
               postsLoading={loadingPosts}
               postsError={dashboardContext?.postsError ?? ""}
               metrics={dashboardContext?.metrics ?? EMPTY_METRICS}
@@ -496,8 +504,11 @@ export default function App() {
               leaderboardLoading={loadingLeaderboard}
               metricsError={dashboardContext?.metricsError ?? ""}
               postSubmitting={creatingPost}
+              postTagSubmitting={creatingPostTag}
               updatingPostId={updatingPostId}
               deletingPostId={deletingPostId}
+              updatingPostTagId={updatingPostTagId}
+              deletingPostTagId={deletingPostTagId}
               metricSubmitting={creatingMetric}
               updatingMetricId={updatingMetricId}
               deletingMetricId={deletingMetricId}
@@ -529,6 +540,11 @@ export default function App() {
                 dashboardRef?.send({ type: "POST_UPDATE_SUBMITTED", postId, payload })
               }
               onDeleteFeedPost={(postId) => dashboardRef?.send({ type: "POST_DELETE_SUBMITTED", postId })}
+              onCreatePostTag={(payload) => dashboardRef?.send({ type: "POST_TAG_CREATE_SUBMITTED", payload })}
+              onUpdatePostTag={(tagId, payload) =>
+                dashboardRef?.send({ type: "POST_TAG_UPDATE_SUBMITTED", tagId, payload })
+              }
+              onDeletePostTag={(tagId) => dashboardRef?.send({ type: "POST_TAG_DELETE_SUBMITTED", tagId })}
               onSelectMetric={(metricId) => dashboardRef?.send({ type: "METRIC_SELECTED", metricId })}
               onCreateMetric={(payload) => dashboardRef?.send({ type: "METRIC_CREATE_SUBMITTED", payload })}
               onUpdateMetric={(metricId, payload) =>

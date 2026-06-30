@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"net/http"
+	"net/url"
 	"slices"
 	"sort"
 	"strings"
@@ -382,7 +383,7 @@ func (s *Server) handleGetMetricLeaderboard(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	from, to, err := feedLifetimeMetricLeaderboardRange(feed, time.Now())
+	from, to, err := metricLeaderboardRange(feed, r.URL.Query(), time.Now())
 	if err != nil {
 		handleError(w, err)
 		return
@@ -1228,6 +1229,30 @@ func feedLifetimeMetricLeaderboardRange(feed DailyFeed, now time.Time) (time.Tim
 	to := time.Date(toLocal.Year(), toLocal.Month(), toLocal.Day(), 0, 0, 0, 0, location)
 	if to.Before(from) {
 		to = from
+	}
+	return from, to, nil
+}
+
+func metricLeaderboardRange(feed DailyFeed, query url.Values, now time.Time) (time.Time, time.Time, error) {
+	fromRaw := strings.TrimSpace(query.Get("from"))
+	toRaw := strings.TrimSpace(query.Get("to"))
+	if fromRaw == "" && toRaw == "" {
+		return feedLifetimeMetricLeaderboardRange(feed, now)
+	}
+	if fromRaw == "" || toRaw == "" {
+		return time.Time{}, time.Time{}, badRequest("from and to are required together")
+	}
+
+	from, err := time.Parse(dailyFeedDateLayout, fromRaw)
+	if err != nil {
+		return time.Time{}, time.Time{}, badRequest("from must use YYYY-MM-DD")
+	}
+	to, err := time.Parse(dailyFeedDateLayout, toRaw)
+	if err != nil {
+		return time.Time{}, time.Time{}, badRequest("to must use YYYY-MM-DD")
+	}
+	if to.Before(from) {
+		return time.Time{}, time.Time{}, badRequest("from must be before or equal to to")
 	}
 	return from, to, nil
 }

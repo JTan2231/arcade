@@ -8,6 +8,7 @@ import type {
   CreateDailyFeedRequest,
   CreateFeedMetricJudgmentRequest,
   CreateFeedMetricRequest,
+  CreateGroupPostTagRequest,
   DailyFeed,
   DailyFeedOutput,
   DailyFeedOutputItem,
@@ -18,13 +19,21 @@ import type {
   Group,
   GroupFeedPost,
   GroupInviteCandidate,
+  GroupPostTag,
   MetricAggregation,
   MetricLeaderboard,
   MetricLeaderboardRow,
   PatchFeedMetricRequest,
+  PatchGroupPostTagRequest,
   PublicUser,
   SystemMetricKey,
 } from "../types";
+
+type FeedPostPayload = {
+  evidenceText: string;
+  caption: string;
+  tagIds?: string[];
+};
 
 type GroupDashboardProps = {
   group: Group | null;
@@ -35,6 +44,8 @@ type GroupDashboardProps = {
   outputLoading: boolean;
   outputError: string;
   posts: GroupFeedPost[];
+  postTags: GroupPostTag[];
+  postTagsError: string;
   postsLoading: boolean;
   postsError: string;
   metrics: FeedMetric[];
@@ -44,8 +55,11 @@ type GroupDashboardProps = {
   leaderboardLoading: boolean;
   metricsError: string;
   postSubmitting: boolean;
+  postTagSubmitting: boolean;
   updatingPostId: string | null;
   deletingPostId: string | null;
+  updatingPostTagId: string | null;
+  deletingPostTagId: string | null;
   metricSubmitting: boolean;
   updatingMetricId: string | null;
   deletingMetricId: string | null;
@@ -66,9 +80,12 @@ type GroupDashboardProps = {
   onAddFeedDraftChanged: () => void;
   onPreviewFeed: (payload: CreateDailyFeedRequest) => void;
   onCreateFeed: (payload: CreateDailyFeedRequest) => void;
-  onCreateFeedPost: (payload: { evidenceText: string; caption: string }) => void;
-  onUpdateFeedPost: (postId: string, payload: { evidenceText: string; caption: string }) => void;
+  onCreateFeedPost: (payload: FeedPostPayload) => void;
+  onUpdateFeedPost: (postId: string, payload: FeedPostPayload) => void;
   onDeleteFeedPost: (postId: string) => void;
+  onCreatePostTag: (payload: CreateGroupPostTagRequest) => void;
+  onUpdatePostTag: (tagId: string, payload: PatchGroupPostTagRequest) => void;
+  onDeletePostTag: (tagId: string) => void;
   onSelectMetric: (metricId: string) => void;
   onCreateMetric: (payload: CreateFeedMetricRequest) => void;
   onUpdateMetric: (metricId: string, payload: PatchFeedMetricRequest) => void;
@@ -91,6 +108,8 @@ export function GroupDashboard({
   outputLoading,
   outputError,
   posts,
+  postTags,
+  postTagsError,
   postsLoading,
   postsError,
   metrics,
@@ -100,8 +119,11 @@ export function GroupDashboard({
   leaderboardLoading,
   metricsError,
   postSubmitting,
+  postTagSubmitting,
   updatingPostId,
   deletingPostId,
+  updatingPostTagId,
+  deletingPostTagId,
   metricSubmitting,
   updatingMetricId,
   deletingMetricId,
@@ -125,6 +147,9 @@ export function GroupDashboard({
   onCreateFeedPost,
   onUpdateFeedPost,
   onDeleteFeedPost,
+  onCreatePostTag,
+  onUpdatePostTag,
+  onDeletePostTag,
   onSelectMetric,
   onCreateMetric,
   onUpdateMetric,
@@ -146,6 +171,7 @@ export function GroupDashboard({
 
   const feed = feeds.find((candidate) => candidate.id === selectedFeedId) || null;
   const canManageMetrics = group.my_role === "owner" || group.my_role === "admin";
+  const canManagePostTags = group.my_role === "owner" || group.my_role === "admin";
   const judgedMetrics = metrics.filter((metric) => metric.system_key === "judged");
 
   return (
@@ -173,6 +199,7 @@ export function GroupDashboard({
             loading={outputLoading}
             error={outputError}
             posts={posts}
+            postTags={postTags}
             postsLoading={postsLoading}
             postsError={postsError}
             postSubmitting={postSubmitting}
@@ -207,6 +234,18 @@ export function GroupDashboard({
         </section>
         {group.my_status === "active" ? (
           <aside className="feed-friends-rail">
+            {canManagePostTags ? (
+              <PostTagManager
+                deletingTagId={deletingPostTagId}
+                error={postTagsError}
+                saving={postTagSubmitting}
+                tags={postTags}
+                updatingTagId={updatingPostTagId}
+                onCreateTag={onCreatePostTag}
+                onDeleteTag={onDeletePostTag}
+                onUpdateTag={onUpdatePostTag}
+              />
+            ) : null}
             <InviteFriends
               candidates={inviteCandidates}
               loading={inviteCandidatesLoading}
@@ -282,6 +321,215 @@ function InviteFriends({
         })}
       </div>
     </section>
+  );
+}
+
+function PostTagManager({
+  tags,
+  error,
+  saving,
+  updatingTagId,
+  deletingTagId,
+  onCreateTag,
+  onUpdateTag,
+  onDeleteTag,
+}: {
+  tags: GroupPostTag[];
+  error: string;
+  saving: boolean;
+  updatingTagId: string | null;
+  deletingTagId: string | null;
+  onCreateTag: (payload: CreateGroupPostTagRequest) => void;
+  onUpdateTag: (tagId: string, payload: PatchGroupPostTagRequest) => void;
+  onDeleteTag: (tagId: string) => void;
+}) {
+  const [name, setName] = useState("");
+  const [displayOrder, setDisplayOrder] = useState("");
+  const [formError, setFormError] = useState("");
+
+  function handleCreate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedName = name.trim();
+    if (trimmedName === "") {
+      setFormError("Tag name is required");
+      return;
+    }
+    const parsedOrder = parsePostTagOrder(displayOrder);
+    if (parsedOrder === null) {
+      setFormError("Order must be a non-negative integer");
+      return;
+    }
+    setFormError("");
+    onCreateTag({ name: trimmedName, display_order: parsedOrder });
+    setName("");
+    setDisplayOrder("");
+  }
+
+  return (
+    <section className="post-tag-manager" aria-label="Post tags">
+      <div className="section-title">Post tags</div>
+      {error !== "" ? (
+        <div className="form-error" role="alert">
+          {error}
+        </div>
+      ) : null}
+      <form className="post-tag-create-form" onSubmit={handleCreate}>
+        <label>
+          Tag name
+          <input
+            maxLength={48}
+            value={name}
+            onChange={(event) => {
+              setName(event.target.value);
+              setFormError("");
+            }}
+          />
+        </label>
+        <label>
+          Order
+          <input
+            min="0"
+            step="1"
+            type="number"
+            value={displayOrder}
+            onChange={(event) => {
+              setDisplayOrder(event.target.value);
+              setFormError("");
+            }}
+          />
+        </label>
+        <button type="submit" disabled={saving || name.trim() === ""}>
+          Add tag
+        </button>
+      </form>
+      {formError !== "" ? (
+        <div className="form-error" role="alert">
+          {formError}
+        </div>
+      ) : null}
+      <div className="post-tag-manager-list">
+        {tags.length === 0 ? <div className="meta">No tags</div> : null}
+        {tags.map((tag) => (
+          <PostTagManagerRow
+            deleting={deletingTagId === tag.id}
+            key={tag.id}
+            tag={tag}
+            updating={updatingTagId === tag.id}
+            onDeleteTag={onDeleteTag}
+            onUpdateTag={onUpdateTag}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PostTagManagerRow({
+  tag,
+  updating,
+  deleting,
+  onUpdateTag,
+  onDeleteTag,
+}: {
+  tag: GroupPostTag;
+  updating: boolean;
+  deleting: boolean;
+  onUpdateTag: (tagId: string, payload: PatchGroupPostTagRequest) => void;
+  onDeleteTag: (tagId: string) => void;
+}) {
+  const [name, setName] = useState(tag.name);
+  const [displayOrder, setDisplayOrder] = useState(String(tag.display_order));
+  const [formError, setFormError] = useState("");
+  const archived = tag.archived_at !== undefined;
+  const busy = updating || deleting;
+  const parsedOrder = parsePostTagOrder(displayOrder);
+  const trimmedName = name.trim();
+  const changed = trimmedName !== tag.name || parsedOrder !== tag.display_order;
+
+  useEffect(() => {
+    if (busy) {
+      return;
+    }
+    setName(tag.name);
+    setDisplayOrder(String(tag.display_order));
+  }, [busy, tag.display_order, tag.name]);
+
+  function handleSave(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (trimmedName === "") {
+      setFormError("Tag name is required");
+      return;
+    }
+    if (parsedOrder === null) {
+      setFormError("Order must be a non-negative integer");
+      return;
+    }
+    const payload: PatchGroupPostTagRequest = {};
+    if (trimmedName !== tag.name) {
+      payload.name = trimmedName;
+    }
+    if (parsedOrder !== tag.display_order) {
+      payload.display_order = parsedOrder;
+    }
+    if (Object.keys(payload).length === 0) {
+      return;
+    }
+    setFormError("");
+    onUpdateTag(tag.id, payload);
+  }
+
+  return (
+    <form className={`post-tag-manager-row ${archived ? "archived" : ""}`} onSubmit={handleSave}>
+      <label>
+        Name
+        <input
+          maxLength={48}
+          value={name}
+          onChange={(event) => {
+            setName(event.target.value);
+            setFormError("");
+          }}
+        />
+      </label>
+      <label>
+        Order
+        <input
+          min="0"
+          step="1"
+          type="number"
+          value={displayOrder}
+          onChange={(event) => {
+            setDisplayOrder(event.target.value);
+            setFormError("");
+          }}
+        />
+      </label>
+      <div className="post-tag-manager-actions">
+        <button type="submit" className="secondary" disabled={busy || !changed || trimmedName === ""}>
+          Save
+        </button>
+        {archived ? (
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy}
+            onClick={() => onUpdateTag(tag.id, { archived: false })}
+          >
+            Unarchive
+          </button>
+        ) : (
+          <button type="button" className="danger" disabled={busy} onClick={() => onDeleteTag(tag.id)}>
+            Archive
+          </button>
+        )}
+      </div>
+      {archived ? <div className="meta">Archived</div> : null}
+      {formError !== "" ? (
+        <div className="form-error" role="alert">
+          {formError}
+        </div>
+      ) : null}
+    </form>
   );
 }
 
@@ -1250,6 +1498,7 @@ function FeedOutput({
   loading,
   error,
   posts,
+  postTags,
   postsLoading,
   postsError,
   postSubmitting,
@@ -1269,6 +1518,7 @@ function FeedOutput({
   loading: boolean;
   error: string;
   posts: GroupFeedPost[];
+  postTags: GroupPostTag[];
   postsLoading: boolean;
   postsError: string;
   postSubmitting: boolean;
@@ -1278,8 +1528,8 @@ function FeedOutput({
   judgedMetrics: FeedMetric[];
   canJudge: boolean;
   judgingPostId: string | null;
-  onCreateFeedPost: (payload: { evidenceText: string; caption: string }) => void;
-  onUpdateFeedPost: (postId: string, payload: { evidenceText: string; caption: string }) => void;
+  onCreateFeedPost: (payload: FeedPostPayload) => void;
+  onUpdateFeedPost: (postId: string, payload: FeedPostPayload) => void;
   onDeleteFeedPost: (postId: string) => void;
   onCreateMetricJudgment: (
     metricId: string,
@@ -1321,6 +1571,7 @@ function FeedOutput({
         key={`${feed.id}-${output.date}`}
         disabled={!feed.enabled}
         posts={posts}
+        postTags={postTags}
         loading={postsLoading}
         error={postsError}
         submitting={postSubmitting}
@@ -1342,6 +1593,7 @@ function FeedOutput({
 function FeedPostSection({
   disabled,
   posts,
+  postTags,
   loading,
   error,
   submitting,
@@ -1358,6 +1610,7 @@ function FeedPostSection({
 }: {
   disabled: boolean;
   posts: GroupFeedPost[];
+  postTags: GroupPostTag[];
   loading: boolean;
   error: string;
   submitting: boolean;
@@ -1367,8 +1620,8 @@ function FeedPostSection({
   judgedMetrics: FeedMetric[];
   canJudge: boolean;
   judgingPostId: string | null;
-  onCreateFeedPost: (payload: { evidenceText: string; caption: string }) => void;
-  onUpdateFeedPost: (postId: string, payload: { evidenceText: string; caption: string }) => void;
+  onCreateFeedPost: (payload: FeedPostPayload) => void;
+  onUpdateFeedPost: (postId: string, payload: FeedPostPayload) => void;
   onDeleteFeedPost: (postId: string) => void;
   onCreateMetricJudgment: (
     metricId: string,
@@ -1379,6 +1632,8 @@ function FeedPostSection({
   const [formOpen, setFormOpen] = useState(false);
   const [evidenceText, setEvidenceText] = useState("");
   const [caption, setCaption] = useState("");
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const activePostTags = postTags.filter((tag) => tag.archived_at === undefined);
   const ownPost = currentUserId !== null ? (posts.find((post) => post.author_user_id === currentUserId) ?? null) : null;
   const postUnavailable = disabled || loading || Boolean(ownPost);
 
@@ -1389,6 +1644,7 @@ function FeedPostSection({
 
     setEvidenceText("");
     setCaption("");
+    setSelectedTagIds([]);
     setFormOpen(false);
   }, [formOpen, ownPost, submitting]);
 
@@ -1399,7 +1655,7 @@ function FeedPostSection({
       return;
     }
 
-    onCreateFeedPost({ evidenceText: trimmedEvidence, caption });
+    onCreateFeedPost({ evidenceText: trimmedEvidence, caption, tagIds: selectedTagIds });
   }
 
   return (
@@ -1417,6 +1673,7 @@ function FeedPostSection({
               key={post.id}
               mine={currentUserId === post.author_user_id}
               post={post}
+              activePostTags={activePostTags}
               saving={updatingPostId === post.id}
               deleting={deletingPostId === post.id}
               judgedMetrics={judgedMetrics}
@@ -1464,6 +1721,12 @@ function FeedPostSection({
               onChange={(event) => setCaption(event.target.value)}
             />
           </label>
+          <PostTagChecklist
+            disabled={submitting}
+            selectedTagIds={selectedTagIds}
+            tags={activePostTags}
+            onSelectionChange={setSelectedTagIds}
+          />
           <div className="output-actions">
             <button className="secondary" type="button" onClick={() => setFormOpen(false)}>
               Cancel
@@ -1480,6 +1743,7 @@ function FeedPostSection({
 
 function FeedPostCard({
   post,
+  activePostTags,
   mine,
   saving,
   deleting,
@@ -1491,13 +1755,14 @@ function FeedPostCard({
   onCreateMetricJudgment,
 }: {
   post: GroupFeedPost;
+  activePostTags: GroupPostTag[];
   mine: boolean;
   saving: boolean;
   deleting: boolean;
   judgedMetrics: FeedMetric[];
   canJudge: boolean;
   judging: boolean;
-  onUpdateFeedPost: (postId: string, payload: { evidenceText: string; caption: string }) => void;
+  onUpdateFeedPost: (postId: string, payload: FeedPostPayload) => void;
   onDeleteFeedPost: (postId: string) => void;
   onCreateMetricJudgment: (
     metricId: string,
@@ -1508,6 +1773,10 @@ function FeedPostCard({
   const [editing, setEditing] = useState(false);
   const [evidenceText, setEvidenceText] = useState(post.evidence_text);
   const [caption, setCaption] = useState(post.caption ?? "");
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(() => selectedActivePostTagIDs(post, activePostTags));
+  const [initialEditTagIds, setInitialEditTagIds] = useState<string[]>(() =>
+    selectedActivePostTagIDs(post, activePostTags),
+  );
   const [submittedUpdate, setSubmittedUpdate] = useState<{
     evidenceText: string;
     caption: string;
@@ -1534,8 +1803,11 @@ function FeedPostCard({
   }, [post.caption, post.evidence_text, saving, submittedUpdate]);
 
   function beginEdit() {
+    const nextTagIds = selectedActivePostTagIDs(post, activePostTags);
     setEvidenceText(post.evidence_text);
     setCaption(post.caption ?? "");
+    setSelectedTagIds(nextTagIds);
+    setInitialEditTagIds(nextTagIds);
     setEditing(true);
   }
 
@@ -1547,8 +1819,13 @@ function FeedPostCard({
     }
 
     const trimmedCaption = caption.trim();
+    const tagIdsChanged = !sameStringSet(selectedTagIds, initialEditTagIds);
     setSubmittedUpdate({ evidenceText: trimmedEvidence, caption: trimmedCaption, seenSaving: false });
-    onUpdateFeedPost(post.id, { evidenceText: trimmedEvidence, caption: trimmedCaption });
+    onUpdateFeedPost(post.id, {
+      evidenceText: trimmedEvidence,
+      caption: trimmedCaption,
+      ...(tagIdsChanged ? { tagIds: selectedTagIds } : {}),
+    });
   }
 
   function handleDelete() {
@@ -1597,6 +1874,12 @@ function FeedPostCard({
               onChange={(event) => setCaption(event.target.value)}
             />
           </label>
+          <PostTagChecklist
+            disabled={saving}
+            selectedTagIds={selectedTagIds}
+            tags={activePostTags}
+            onSelectionChange={setSelectedTagIds}
+          />
           <div className="output-actions">
             <button className="secondary" type="button" disabled={saving} onClick={() => setEditing(false)}>
               Cancel
@@ -1612,6 +1895,7 @@ function FeedPostCard({
           {post.caption !== undefined && post.caption !== "" ? (
             <div className="post-caption">{post.caption}</div>
           ) : null}
+          <PostTagPills tags={post.tags} />
         </>
       )}
       {canJudge && !editing && judgedMetrics.length > 0 ? (
@@ -1627,6 +1911,75 @@ function FeedPostCard({
         </div>
       ) : null}
     </article>
+  );
+}
+
+function PostTagChecklist({
+  tags,
+  selectedTagIds,
+  disabled,
+  onSelectionChange,
+}: {
+  tags: GroupPostTag[];
+  selectedTagIds: string[];
+  disabled: boolean;
+  onSelectionChange: (selectedTagIds: string[]) => void;
+}) {
+  if (tags.length === 0) {
+    return null;
+  }
+
+  function toggleTag(tagId: string, checked: boolean) {
+    if (checked) {
+      onSelectionChange(selectedTagIds.includes(tagId) ? selectedTagIds : [...selectedTagIds, tagId]);
+      return;
+    }
+    onSelectionChange(selectedTagIds.filter((selectedTagId) => selectedTagId !== tagId));
+  }
+
+  return (
+    <fieldset className="post-tag-checklist">
+      <legend>Tags</legend>
+      <div className="post-tag-checklist-options">
+        {tags.map((tag) => (
+          <label className="post-tag-checklist-option" key={tag.id}>
+            <input
+              checked={selectedTagIds.includes(tag.id)}
+              disabled={disabled}
+              name="post-tag-id"
+              type="checkbox"
+              value={tag.id}
+              onChange={(event) => toggleTag(tag.id, event.currentTarget.checked)}
+            />
+            <span>{tag.name}</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+function PostTagPills({ tags }: { tags: GroupPostTag[] }) {
+  if (tags.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="post-tag-list" aria-label="Post tags">
+      {tags.map((tag) => {
+        const archived = tag.archived_at !== undefined;
+        return (
+          <span
+            aria-label={archived ? `${tag.name} archived` : tag.name}
+            className={`post-tag-pill ${archived ? "archived" : ""}`}
+            key={tag.id}
+            title={archived ? "Archived tag" : undefined}
+          >
+            {tag.name}
+          </span>
+        );
+      })}
+    </div>
   );
 }
 
@@ -1846,6 +2199,30 @@ function operatorsForField(field: CatalogSourceField): Array<{ value: string; la
 
 function defaultOperatorForField(field: CatalogSourceField): string {
   return operatorsForField(field)[0]?.value ?? "";
+}
+
+function parsePostTagOrder(value: string): number | null {
+  if (value.trim() === "") {
+    return 0;
+  }
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    return null;
+  }
+  return parsed;
+}
+
+function selectedActivePostTagIDs(post: GroupFeedPost, activeTags: GroupPostTag[]): string[] {
+  const activeTagIds = new Set(activeTags.map((tag) => tag.id));
+  return post.tags.filter((tag) => activeTagIds.has(tag.id)).map((tag) => tag.id);
+}
+
+function sameStringSet(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+  const rightValues = new Set(right);
+  return left.every((value) => rightValues.has(value));
 }
 
 function draftFilterToRequest(filter: DraftFilter, fields: CatalogSourceField[]): DailyFeedRuleFilter {

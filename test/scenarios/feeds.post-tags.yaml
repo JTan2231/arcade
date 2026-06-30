@@ -1,0 +1,163 @@
+name: group post tags attach and preserve archived tags
+
+vars:
+  email: tag-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Tag Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: login_owner
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Tag Dojo
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: list_feeds
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds
+      expectStatus: 200
+      capture:
+        feed_id: $[0].id
+
+  - request:
+      id: create_active_tag
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/post-tags
+      json:
+        name: Active
+        display_order: 1
+      expectStatus: 201
+      capture:
+        active_tag_id: $.id
+
+  - request:
+      id: create_legacy_tag
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/post-tags
+      json:
+        name: Legacy
+        display_order: 2
+      expectStatus: 201
+      capture:
+        legacy_tag_id: $.id
+
+  - request:
+      id: create_tagged_post
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{today}}/posts
+      json:
+        evidence_kind: text
+        evidence_text: Initial tagged proof.
+        caption: Tag coverage.
+        tag_ids:
+          - "{{active_tag_id}}"
+          - "{{legacy_tag_id}}"
+      expectStatus: 201
+      capture:
+        post_id: $.id
+
+  - request:
+      id: archive_legacy_tag
+      client: browser
+      method: DELETE
+      path: /api/groups/{{group_id}}/post-tags/{{legacy_tag_id}}
+      expectStatus: 204
+
+steps:
+  - visit: /
+
+  - within: Posts
+    expectVisible:
+      text: Initial tagged proof.
+
+  - within: Posts
+    expectVisible:
+      text: Active
+
+  - within: Posts
+    expectVisible:
+      text: Legacy
+
+  - within: Posts
+    click:
+      role: button
+      name: Edit
+
+  - within: Posts
+    fill:
+      label: Evidence
+      exact: false
+      value: Updated proof without tag edits.
+
+  - within: Posts
+    click:
+      role: button
+      name: Save
+
+  - expectStatus:
+      text: Post updated
+
+  - request:
+      id: preserved_post
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/feed-posts/{{post_id}}
+      expectStatus: 200
+      expectJson:
+        evidence_text: Updated proof without tag edits.
+        tags:
+          - name: Active
+          - name: Legacy
+
+  - request:
+      id: clear_post_tags
+      client: browser
+      method: PATCH
+      path: /api/groups/{{group_id}}/feed-posts/{{post_id}}
+      json:
+        evidence_kind: text
+        evidence_text: Updated proof without tag edits.
+        caption: Tag coverage.
+        tag_ids: []
+      expectStatus: 200
+
+  - visit: /
+
+  - within: Posts
+    expectHidden:
+      text: Active
+
+  - within: Posts
+    expectHidden:
+      text: Legacy

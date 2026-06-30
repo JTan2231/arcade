@@ -4,6 +4,7 @@ import type {
   CreateFeedMetricJudgmentRequest,
   CreateFeedMetricRequest,
   CreateGroupFeedPostRequest,
+  CreateGroupPostTagRequest,
   CreateGroupRequest,
   DailyFeed,
   DailyFeedOutput,
@@ -17,11 +18,13 @@ import type {
   GroupFeedPost,
   GroupInvite,
   GroupInviteCandidate,
+  GroupPostTag,
   LoginRequest,
   MetricLeaderboard,
   PatchFeedMetricJudgmentRequest,
   PatchFeedMetricRequest,
   PatchGroupFeedPostRequest,
+  PatchGroupPostTagRequest,
   SignupRequest,
   User,
 } from "./types";
@@ -281,6 +284,54 @@ export function listGroupFeedPosts(
     `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/outputs/${encodeURIComponent(date)}/posts`,
     options,
   );
+}
+
+export function listGroupPostTags(
+  groupID: string,
+  params: { includeArchived?: boolean } = {},
+  options: APIOptions = {},
+): Promise<GroupPostTag[]> {
+  const query = params.includeArchived === true ? "?include_archived=true" : "";
+  return api<GroupPostTag[]>(`/api/groups/${encodeURIComponent(groupID)}/post-tags${query}`, options);
+}
+
+export function createGroupPostTag(
+  groupID: string,
+  payload: CreateGroupPostTagRequest,
+  options: APIOptions = {},
+): Promise<GroupPostTag> {
+  return api<GroupPostTag>(`/api/groups/${encodeURIComponent(groupID)}/post-tags`, {
+    ...options,
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getGroupPostTag(groupID: string, tagID: string, options: APIOptions = {}): Promise<GroupPostTag> {
+  return api<GroupPostTag>(
+    `/api/groups/${encodeURIComponent(groupID)}/post-tags/${encodeURIComponent(tagID)}`,
+    options,
+  );
+}
+
+export function updateGroupPostTag(
+  groupID: string,
+  tagID: string,
+  payload: PatchGroupPostTagRequest,
+  options: APIOptions = {},
+): Promise<GroupPostTag> {
+  return api<GroupPostTag>(`/api/groups/${encodeURIComponent(groupID)}/post-tags/${encodeURIComponent(tagID)}`, {
+    ...options,
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteGroupPostTag(groupID: string, tagID: string, options: APIOptions = {}): Promise<null> {
+  return api<null>(`/api/groups/${encodeURIComponent(groupID)}/post-tags/${encodeURIComponent(tagID)}`, {
+    ...options,
+    method: "DELETE",
+  });
 }
 
 export function createGroupFeedPost(

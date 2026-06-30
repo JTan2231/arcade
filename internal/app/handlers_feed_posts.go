@@ -15,15 +15,17 @@ import (
 const groupFeedPostEvidenceText = "text"
 
 type createGroupFeedPostRequest struct {
-	EvidenceKind string  `json:"evidence_kind"`
-	EvidenceText string  `json:"evidence_text"`
-	Caption      *string `json:"caption"`
+	EvidenceKind string           `json:"evidence_kind"`
+	EvidenceText string           `json:"evidence_text"`
+	Caption      *string          `json:"caption"`
+	TagIDs       stringSliceField `json:"tag_ids"`
 }
 
 type patchGroupFeedPostRequest struct {
 	EvidenceKind optionalStringField         `json:"evidence_kind"`
 	EvidenceText optionalStringField         `json:"evidence_text"`
 	Caption      optionalNullableStringField `json:"caption"`
+	TagIDs       optionalStringSliceField    `json:"tag_ids"`
 }
 
 type optionalStringField struct {
@@ -62,6 +64,7 @@ type normalizedGroupFeedPostPayload struct {
 	EvidenceKind string
 	EvidenceText string
 	Caption      *string
+	TagIDs       []string
 }
 
 type normalizedGroupFeedPostPatch struct {
@@ -69,6 +72,8 @@ type normalizedGroupFeedPostPatch struct {
 	EvidenceText *string
 	CaptionSet   bool
 	Caption      *string
+	TagIDsSet    bool
+	TagIDs       []string
 }
 
 func (s *Server) handleListGroupFeedPosts(w http.ResponseWriter, r *http.Request) {
@@ -169,6 +174,11 @@ func (s *Server) handleCreateGroupFeedPost(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	if err := setGroupFeedPostTags(r.Context(), tx, groupID, postID, payload.TagIDs); err != nil {
+		handleError(w, err)
+		return
+	}
+
 	if err := tx.Commit(r.Context()); err != nil {
 		handleError(w, err)
 		return
@@ -257,7 +267,14 @@ func (s *Server) handlePatchGroupFeedPost(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	tag, err := s.db.Exec(r.Context(), `
+	tx, err := s.db.Begin(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	tag, err := tx.Exec(r.Context(), `
 		update group_feed_posts
 		set evidence_kind = coalesce($3, evidence_kind),
 		    evidence_text = coalesce($4, evidence_text),
@@ -272,6 +289,18 @@ func (s *Server) handlePatchGroupFeedPost(w http.ResponseWriter, r *http.Request
 	}
 	if tag.RowsAffected() == 0 {
 		handleError(w, errNotFound("feed post"))
+		return
+	}
+
+	if patch.TagIDsSet {
+		if err := setGroupFeedPostTags(r.Context(), tx, groupID, post.ID, patch.TagIDs); err != nil {
+			handleError(w, err)
+			return
+		}
+	}
+
+	if err := tx.Commit(r.Context()); err != nil {
+		handleError(w, err)
 		return
 	}
 
@@ -400,7 +429,10 @@ func (s *Server) listGroupFeedPosts(ctx context.Context, groupID string, feedID 
 		}
 		posts = append(posts, post)
 	}
-	return posts, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return s.hydrateGroupFeedPostTags(ctx, posts)
 }
 
 func (s *Server) getGroupFeedPost(ctx context.Context, groupID string, postID string) (GroupFeedPost, error) {
@@ -410,7 +442,14 @@ func (s *Server) getGroupFeedPost(ctx context.Context, groupID string, postID st
 	if errors.Is(err, pgx.ErrNoRows) {
 		return GroupFeedPost{}, errNotFound("feed post")
 	}
-	return post, err
+	if err != nil {
+		return GroupFeedPost{}, err
+	}
+	posts, err := s.hydrateGroupFeedPostTags(ctx, []GroupFeedPost{post})
+	if err != nil {
+		return GroupFeedPost{}, err
+	}
+	return posts[0], nil
 }
 
 func groupFeedPostSelect() string {
@@ -465,6 +504,7 @@ func scanGroupFeedPost(row pgx.Row) (GroupFeedPost, error) {
 	post.FeedDate = feedDate.Format(dailyFeedDateLayout)
 	post.AuthorAvatarURL = nullStringPtr(avatarURL)
 	post.Caption = nullStringPtr(caption)
+	post.Tags = []GroupPostTag{}
 	post.DeletedAt = nullTimePtr(deletedAt)
 	return post, nil
 }
@@ -482,15 +522,20 @@ func normalizeCreateGroupFeedPostRequest(req createGroupFeedPostRequest) (normal
 	if err != nil {
 		return normalizedGroupFeedPostPayload{}, err
 	}
+	tagIDs, err := normalizeGroupFeedPostTagIDs([]string(req.TagIDs))
+	if err != nil {
+		return normalizedGroupFeedPostPayload{}, err
+	}
 	return normalizedGroupFeedPostPayload{
 		EvidenceKind: evidenceKind,
 		EvidenceText: evidenceText,
 		Caption:      caption,
+		TagIDs:       tagIDs,
 	}, nil
 }
 
 func normalizePatchGroupFeedPostRequest(req patchGroupFeedPostRequest) (normalizedGroupFeedPostPatch, error) {
-	if !req.EvidenceKind.Set && !req.EvidenceText.Set && !req.Caption.Set {
+	if !req.EvidenceKind.Set && !req.EvidenceText.Set && !req.Caption.Set && !req.TagIDs.Set {
 		return normalizedGroupFeedPostPatch{}, badRequest("at least one field is required")
 	}
 
@@ -516,6 +561,14 @@ func normalizePatchGroupFeedPostRequest(req patchGroupFeedPostRequest) (normaliz
 		}
 		patch.CaptionSet = true
 		patch.Caption = caption
+	}
+	if req.TagIDs.Set {
+		tagIDs, err := normalizeGroupFeedPostTagIDs(req.TagIDs.Value)
+		if err != nil {
+			return normalizedGroupFeedPostPatch{}, err
+		}
+		patch.TagIDsSet = true
+		patch.TagIDs = tagIDs
 	}
 	return patch, nil
 }
