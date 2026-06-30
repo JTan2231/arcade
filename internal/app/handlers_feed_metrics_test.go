@@ -73,6 +73,104 @@ func TestScheduledFeedDatesUsesFeedCadence(t *testing.T) {
 	}
 }
 
+func TestCurrentStreakIgnoresUnclosedMissingDailyCycle(t *testing.T) {
+	location, err := time.LoadLocation("America/Chicago")
+	if err != nil {
+		t.Fatalf("load location: %v", err)
+	}
+
+	windows, err := scheduledFeedDateWindows(DailyFeedSchedule{
+		StartsAt:        time.Date(2026, 6, 29, 8, 0, 0, 0, location),
+		Timezone:        "America/Chicago",
+		IntervalSeconds: 86400,
+	}, time.Date(2026, 6, 29, 0, 0, 0, 0, location), time.Date(2026, 6, 30, 0, 0, 0, 0, location))
+	if err != nil {
+		t.Fatalf("scheduledFeedDateWindows returned error: %v", err)
+	}
+
+	posted := map[string]bool{
+		metricPostDateKey("ana", windows[0].Date): true,
+	}
+	got := currentStreakForMember("ana", windows, posted, time.Date(2026, 6, 30, 12, 0, 0, 0, location))
+	if got != 1 {
+		t.Fatalf("streak = %d, want 1", got)
+	}
+}
+
+func TestCurrentStreakCountsPostedOpenDailyCycle(t *testing.T) {
+	location, err := time.LoadLocation("America/Chicago")
+	if err != nil {
+		t.Fatalf("load location: %v", err)
+	}
+
+	windows, err := scheduledFeedDateWindows(DailyFeedSchedule{
+		StartsAt:        time.Date(2026, 6, 29, 8, 0, 0, 0, location),
+		Timezone:        "America/Chicago",
+		IntervalSeconds: 86400,
+	}, time.Date(2026, 6, 29, 0, 0, 0, 0, location), time.Date(2026, 6, 30, 0, 0, 0, 0, location))
+	if err != nil {
+		t.Fatalf("scheduledFeedDateWindows returned error: %v", err)
+	}
+
+	posted := map[string]bool{
+		metricPostDateKey("ana", windows[0].Date): true,
+		metricPostDateKey("ana", windows[1].Date): true,
+	}
+	got := currentStreakForMember("ana", windows, posted, time.Date(2026, 6, 30, 12, 0, 0, 0, location))
+	if got != 2 {
+		t.Fatalf("streak = %d, want 2", got)
+	}
+}
+
+func TestCurrentStreakEndsAfterDailyCyclePasses(t *testing.T) {
+	location, err := time.LoadLocation("America/Chicago")
+	if err != nil {
+		t.Fatalf("load location: %v", err)
+	}
+
+	windows, err := scheduledFeedDateWindows(DailyFeedSchedule{
+		StartsAt:        time.Date(2026, 6, 29, 8, 0, 0, 0, location),
+		Timezone:        "America/Chicago",
+		IntervalSeconds: 86400,
+	}, time.Date(2026, 6, 29, 0, 0, 0, 0, location), time.Date(2026, 7, 1, 0, 0, 0, 0, location))
+	if err != nil {
+		t.Fatalf("scheduledFeedDateWindows returned error: %v", err)
+	}
+
+	posted := map[string]bool{
+		metricPostDateKey("ana", windows[0].Date): true,
+	}
+	got := currentStreakForMember("ana", windows, posted, time.Date(2026, 7, 1, 8, 1, 0, 0, location))
+	if got != 0 {
+		t.Fatalf("streak = %d, want 0", got)
+	}
+}
+
+func TestCurrentStreakIgnoresUnclosedMissingWeeklyCycle(t *testing.T) {
+	location, err := time.LoadLocation("America/Chicago")
+	if err != nil {
+		t.Fatalf("load location: %v", err)
+	}
+
+	windows, err := scheduledFeedDateWindows(DailyFeedSchedule{
+		StartsAt:        time.Date(2026, 6, 1, 8, 0, 0, 0, location),
+		Timezone:        "America/Chicago",
+		IntervalSeconds: 7 * 86400,
+	}, time.Date(2026, 6, 1, 0, 0, 0, 0, location), time.Date(2026, 6, 15, 0, 0, 0, 0, location))
+	if err != nil {
+		t.Fatalf("scheduledFeedDateWindows returned error: %v", err)
+	}
+
+	posted := map[string]bool{
+		metricPostDateKey("ana", windows[0].Date): true,
+		metricPostDateKey("ana", windows[1].Date): true,
+	}
+	got := currentStreakForMember("ana", windows, posted, time.Date(2026, 6, 17, 12, 0, 0, 0, location))
+	if got != 2 {
+		t.Fatalf("streak = %d, want 2", got)
+	}
+}
+
 func TestFeedLifetimeMetricLeaderboardRangeUsesFeedCreatedDate(t *testing.T) {
 	from, to, err := feedLifetimeMetricLeaderboardRange(DailyFeed{
 		CreatedAt: time.Date(2026, 6, 2, 3, 30, 0, 0, time.UTC),
@@ -187,4 +285,8 @@ func assertRank(t *testing.T, row MetricLeaderboardRow, userID string, rank int)
 	if row.Rank == nil || *row.Rank != rank {
 		t.Fatalf("rank for %s = %v, want %d", userID, row.Rank, rank)
 	}
+}
+
+func metricPostDateKey(userID string, date time.Time) string {
+	return userID + "\x00" + date.Format(dailyFeedDateLayout)
 }

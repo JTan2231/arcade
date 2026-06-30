@@ -111,6 +111,7 @@ type metricComputationInput struct {
 	Metric  FeedMetric
 	From    time.Time
 	To      time.Time
+	Now     time.Time
 }
 
 type metricSample struct {
@@ -118,6 +119,12 @@ type metricSample struct {
 	Value     float64
 	TextValue *string
 	At        time.Time
+}
+
+type scheduledFeedDateWindow struct {
+	Date     time.Time
+	StartsAt time.Time
+	EndsAt   time.Time
 }
 
 type metricAggregate struct {
@@ -383,7 +390,8 @@ func (s *Server) handleGetMetricLeaderboard(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	from, to, err := metricLeaderboardRange(feed, r.URL.Query(), time.Now())
+	now := time.Now()
+	from, to, err := metricLeaderboardRange(feed, r.URL.Query(), now)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -401,6 +409,7 @@ func (s *Server) handleGetMetricLeaderboard(w http.ResponseWriter, r *http.Reque
 		Metric:  metric,
 		From:    from,
 		To:      to,
+		Now:     now,
 	})
 	if err != nil {
 		handleError(w, err)
@@ -1097,11 +1106,11 @@ func computeMissedDaysMetricSamples(ctx context.Context, s *Server, input metric
 }
 
 func computeCurrentStreakMetricSamples(ctx context.Context, s *Server, input metricComputationInput) ([]metricSample, error) {
-	dates, err := scheduledFeedDates(input.Feed.Schedule, input.From, input.To)
+	windows, err := scheduledFeedDateWindows(input.Feed.Schedule, input.From, input.To)
 	if err != nil {
 		return nil, err
 	}
-	if len(dates) == 0 {
+	if len(windows) == 0 {
 		return []metricSample{}, nil
 	}
 
@@ -1114,17 +1123,14 @@ func computeCurrentStreakMetricSamples(ctx context.Context, s *Server, input met
 		return nil, err
 	}
 
-	latestDate := dates[len(dates)-1]
+	now := input.Now
+	if now.IsZero() {
+		now = time.Now()
+	}
+	latestDate := windows[len(windows)-1].Date
 	samples := make([]metricSample, 0, len(members))
 	for _, member := range members {
-		streak := 0
-		for index := len(dates) - 1; index >= 0; index-- {
-			key := member.ID + "\x00" + dates[index].Format(dailyFeedDateLayout)
-			if !posted[key] {
-				break
-			}
-			streak++
-		}
+		streak := currentStreakForMember(member.ID, windows, posted, now)
 		samples = append(samples, metricSample{
 			UserID: member.ID,
 			Value:  float64(streak),
@@ -1288,6 +1294,18 @@ func (s *Server) feedPostDateSet(ctx context.Context, groupID string, feedID str
 }
 
 func scheduledFeedDates(schedule DailyFeedSchedule, from time.Time, to time.Time) ([]time.Time, error) {
+	windows, err := scheduledFeedDateWindows(schedule, from, to)
+	if err != nil {
+		return nil, err
+	}
+	dates := make([]time.Time, 0, len(windows))
+	for _, window := range windows {
+		dates = append(dates, window.Date)
+	}
+	return dates, nil
+}
+
+func scheduledFeedDateWindows(schedule DailyFeedSchedule, from time.Time, to time.Time) ([]scheduledFeedDateWindow, error) {
 	timezone := schedule.Timezone
 	if timezone == "" {
 		timezone = "UTC"
@@ -1303,7 +1321,7 @@ func scheduledFeedDates(schedule DailyFeedSchedule, from time.Time, to time.Time
 	fromDate := time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, location)
 	toDate := time.Date(to.Year(), to.Month(), to.Day(), 0, 0, 0, 0, location)
 	if fromDate.After(toDate) {
-		return []time.Time{}, nil
+		return []scheduledFeedDateWindow{}, nil
 	}
 
 	start := schedule.StartsAt
@@ -1321,28 +1339,54 @@ func scheduledFeedDates(schedule DailyFeedSchedule, from time.Time, to time.Time
 		}
 	}
 
-	dateByKey := map[string]time.Time{}
+	windowByKey := map[string]scheduledFeedDateWindow{}
 	endExclusive := toDate.AddDate(0, 0, 1)
 	for boundary.Before(endExclusive) {
 		local := boundary.In(location)
 		date := time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, location)
 		if !date.Before(fromDate) && !date.After(toDate) {
-			dateByKey[date.Format(dailyFeedDateLayout)] = date
+			key := date.Format(dailyFeedDateLayout)
+			window := scheduledFeedDateWindow{
+				Date:     date,
+				StartsAt: boundary,
+				EndsAt:   boundary.Add(interval),
+			}
+			existing, ok := windowByKey[key]
+			if !ok || window.EndsAt.After(existing.EndsAt) {
+				windowByKey[key] = window
+			}
 		}
 		boundary = boundary.Add(interval)
-		if len(dateByKey) > 3660 {
+		if len(windowByKey) > 3660 {
 			return nil, badRequest("leaderboard range is too large")
 		}
 	}
 
-	dates := make([]time.Time, 0, len(dateByKey))
-	for _, date := range dateByKey {
-		dates = append(dates, date)
+	windows := make([]scheduledFeedDateWindow, 0, len(windowByKey))
+	for _, window := range windowByKey {
+		windows = append(windows, window)
 	}
-	sort.Slice(dates, func(i, j int) bool {
-		return dates[i].Before(dates[j])
+	sort.Slice(windows, func(i, j int) bool {
+		return windows[i].Date.Before(windows[j].Date)
 	})
-	return dates, nil
+	return windows, nil
+}
+
+func currentStreakForMember(memberID string, windows []scheduledFeedDateWindow, posted map[string]bool, now time.Time) int {
+	streak := 0
+	for index := len(windows) - 1; index >= 0; index-- {
+		window := windows[index]
+		key := memberID + "\x00" + window.Date.Format(dailyFeedDateLayout)
+		if posted[key] {
+			streak++
+			continue
+		}
+		if window.EndsAt.After(now) {
+			continue
+		}
+		break
+	}
+	return streak
 }
 
 func wordCount(value string) int {
