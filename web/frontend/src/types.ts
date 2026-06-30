@@ -286,6 +286,12 @@ export type GroupFeedPost = {
   updated_at: string;
 };
 
+export type GroupFeedPostRoute = {
+  group_id: string;
+  feed_id: string;
+  feed_date: string;
+};
+
 export type GroupPostTag = {
   id: string;
   group_id: string;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { useMachine, useSelector } from "@xstate/react";
 import type { ActorRefFromLogic } from "xstate";
 
@@ -12,7 +12,9 @@ import {
   declineFriendRequest,
   declineGroupInvite,
   deleteFriend,
+  getMemberFeedPostRoute,
   isUnauthorized,
+  listMeDailyFeeds,
   listFriendRequests,
   listFriends,
   listGroupInviteCandidates,
@@ -48,6 +50,9 @@ import type {
 type DashboardActorRef = ActorRefFromLogic<typeof dashboardMachine>;
 type AddFeedActorRef = ActorRefFromLogic<typeof addFeedMachine>;
 type AppRoute = "workspace" | "profile" | PublicRoute;
+type MemberRouteTarget =
+  | { routeKey: string; status: "loading" | "public" }
+  | { routeKey: string; status: "member"; groupId: string; feedId?: string; date?: string | null };
 
 const EMPTY_GROUPS: Group[] = [];
 const EMPTY_FEEDS: DailyFeed[] = [];
@@ -80,6 +85,8 @@ export default function App() {
   const [socialError, setSocialError] = useState("");
   const [socialMutating, setSocialMutating] = useState<string | null>(null);
   const [invitingUserId, setInvitingUserId] = useState<string | null>(null);
+  const [memberRouteTarget, setMemberRouteTarget] = useState<MemberRouteTarget | null>(null);
+  const appNavigationPathRef = useRef<string | null>(null);
 
   const checkingSession = snapshot.matches("checkingSession");
   const signedOut = snapshot.matches("signedOut");
@@ -129,10 +136,24 @@ export default function App() {
   const addFeedPreviewing = matchesTopState(addFeedStateValue, "previewing");
   const addFeedCreating = matchesTopState(addFeedStateValue, "creating");
   const publicRoute = typeof route === "object" ? route : null;
+  const publicRouteKey = publicRoute === null ? "" : publicRouteCacheKey(publicRoute);
   const showingProfile = route === "profile";
+  const setAppPath = useCallback((path: string, mode: "push" | "replace" = "push") => {
+    if (window.location.pathname === path) {
+      return;
+    }
+    appNavigationPathRef.current = path;
+    if (mode === "replace") {
+      window.history.replaceState(null, "", path);
+    } else {
+      window.history.pushState(null, "", path);
+    }
+    setRoute(readAppRoute());
+  }, []);
 
   useEffect(() => {
     function handlePopState() {
+      appNavigationPathRef.current = null;
       setRoute(readAppRoute());
     }
 
@@ -153,11 +174,142 @@ export default function App() {
   const selectedGroupId = dashboardContext?.selectedGroupId ?? null;
   const feeds = dashboardContext?.feeds ?? EMPTY_FEEDS;
   const selectedFeedId = dashboardContext?.selectedFeedId ?? null;
+  const selectedFeedDate = dashboardContext?.selectedFeedDate ?? "";
 
   const selectedGroup = useMemo(
     () => groups.find((group) => group.id === selectedGroupId) ?? null,
     [groups, selectedGroupId],
   );
+
+  useEffect(() => {
+    if (!signedIn || publicRoute === null || publicRoute.kind === "group") {
+      setMemberRouteTarget(null);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const routeKey = publicRouteKey;
+    setMemberRouteTarget({ routeKey, status: "loading" });
+
+    if (publicRoute.kind === "feed") {
+      listMeDailyFeeds({ signal: controller.signal })
+        .then((memberFeeds) => {
+          if (controller.signal.aborted) {
+            return;
+          }
+          const feed = memberFeeds.find((candidate) => candidate.id === publicRoute.feedId);
+          setMemberRouteTarget(
+            feed === undefined
+              ? { routeKey, status: "public" }
+              : {
+                  routeKey,
+                  status: "member",
+                  groupId: feed.group_id,
+                  feedId: feed.id,
+                  date: publicRoute.date,
+                },
+          );
+        })
+        .catch((error: unknown) => {
+          if (controller.signal.aborted) {
+            return;
+          }
+          if (isUnauthorized(error)) {
+            send({ type: "UNAUTHORIZED" });
+            return;
+          }
+          setMemberRouteTarget({ routeKey, status: "public" });
+        });
+      return () => controller.abort();
+    }
+
+    getMemberFeedPostRoute(publicRoute.postId, { signal: controller.signal })
+      .then((target) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+        setMemberRouteTarget({
+          routeKey,
+          status: "member",
+          groupId: target.group_id,
+          feedId: target.feed_id,
+          date: target.feed_date,
+        });
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+        if (isUnauthorized(error)) {
+          send({ type: "UNAUTHORIZED" });
+          return;
+        }
+        setMemberRouteTarget({ routeKey, status: "public" });
+      });
+    return () => controller.abort();
+  }, [publicRoute, publicRouteKey, send, signedIn]);
+
+  useEffect(() => {
+    if (!signedIn || publicRoute?.kind !== "group" || loadingGroups || dashboardRef === undefined) {
+      return;
+    }
+    if (appNavigationPathRef.current === window.location.pathname) {
+      return;
+    }
+    const group = groups.find((candidate) => candidate.slug === publicRoute.slug);
+    if (group?.my_status === "active" && group.id !== selectedGroupId) {
+      dashboardRef.send({ type: "GROUP_SELECTED", groupId: group.id });
+    }
+  }, [dashboardRef, groups, loadingGroups, publicRoute, selectedGroupId, signedIn]);
+
+  useEffect(() => {
+    if (
+      !signedIn ||
+      publicRoute?.kind !== "group" ||
+      selectedGroup === null ||
+      selectedGroup.my_status !== "active" ||
+      appNavigationPathRef.current !== window.location.pathname ||
+      selectedGroup.slug === publicRoute.slug
+    ) {
+      return;
+    }
+    setAppPath(groupPath(selectedGroup), "replace");
+  }, [publicRoute, selectedGroup, setAppPath, signedIn]);
+
+  useEffect(() => {
+    if (!signedIn || memberRouteTarget?.status !== "member" || dashboardRef === undefined) {
+      return;
+    }
+    if (selectedGroupId !== memberRouteTarget.groupId) {
+      dashboardRef.send({ type: "GROUP_SELECTED", groupId: memberRouteTarget.groupId });
+      return;
+    }
+    if (memberRouteTarget.feedId === undefined) {
+      return;
+    }
+    if (!feeds.some((feed) => feed.id === memberRouteTarget.feedId)) {
+      return;
+    }
+    if (selectedFeedId !== memberRouteTarget.feedId) {
+      dashboardRef.send({ type: "FEED_SELECTED", feedId: memberRouteTarget.feedId });
+      return;
+    }
+    if (
+      memberRouteTarget.date !== undefined &&
+      memberRouteTarget.date !== null &&
+      selectedFeedDate !== "" &&
+      selectedFeedDate !== memberRouteTarget.date
+    ) {
+      dashboardRef.send({ type: "FEED_DATE_CHANGED", date: memberRouteTarget.date });
+    }
+  }, [dashboardRef, feeds, memberRouteTarget, selectedFeedDate, selectedFeedId, selectedGroupId, signedIn]);
+
+  useEffect(() => {
+    if (route !== "workspace" || !signedIn || selectedGroup === null || selectedGroup.my_status !== "active") {
+      return;
+    }
+    setAppPath(groupPath(selectedGroup), "replace");
+  }, [route, selectedGroup, setAppPath, signedIn]);
 
   const handleSocialError = useCallback(
     (error: unknown) => {
@@ -373,8 +525,7 @@ export default function App() {
     }
 
     event.preventDefault();
-    window.history.pushState(null, "", path);
-    setRoute(readAppRoute());
+    setAppPath(path);
   }
 
   const postMutation = dashboardContext?.postMutation ?? null;
@@ -392,8 +543,25 @@ export default function App() {
   const judgmentMutation = dashboardContext?.judgmentMutation ?? null;
   const judgingPostId = creatingJudgment ? (judgmentMutation?.postId ?? null) : null;
   const profilePath = context.user === null ? "/" : userProfilePath(context.user);
+  const groupRouteGroup =
+    publicRoute?.kind === "group" ? (groups.find((group) => group.slug === publicRoute.slug) ?? null) : null;
+  const groupRouteUsesWorkspace =
+    publicRoute?.kind === "group" && signedIn && (loadingGroups || groupRouteGroup?.my_status === "active");
+  const memberRouteResolutionPending =
+    publicRoute !== null &&
+    publicRoute.kind !== "group" &&
+    signedIn &&
+    (memberRouteTarget === null ||
+      memberRouteTarget.routeKey !== publicRouteKey ||
+      memberRouteTarget.status === "loading");
+  const memberRouteUsesWorkspace =
+    publicRoute !== null &&
+    publicRoute.kind !== "group" &&
+    signedIn &&
+    (memberRouteResolutionPending || memberRouteTarget?.status === "member");
+  const publicRouteUsesWorkspace = groupRouteUsesWorkspace || memberRouteUsesWorkspace;
 
-  if (publicRoute !== null) {
+  if (publicRoute !== null && !publicRouteUsesWorkspace) {
     return (
       <>
         <PublicPage route={publicRoute} signedIn={signedIn} />
@@ -504,12 +672,26 @@ export default function App() {
                 pendingToggleFeedId={dashboardContext?.pendingToggleFeedId ?? null}
                 pendingDeleteFeedId={dashboardContext?.pendingDeleteFeedId ?? null}
                 onCreateGroup={(name) => dashboardRef?.send({ type: "GROUP_CREATE_SUBMITTED", name })}
-                onSelectGroup={(groupId) => dashboardRef?.send({ type: "GROUP_SELECTED", groupId })}
+                onSelectGroup={(groupId) => {
+                  const group = groups.find((candidate) => candidate.id === groupId);
+                  if (group !== undefined) {
+                    setAppPath(groupPath(group));
+                  }
+                  dashboardRef?.send({ type: "GROUP_SELECTED", groupId });
+                }}
                 onOpenGroupSettings={(groupId) => dashboardRef?.send({ type: "GROUP_SETTINGS_OPENED", groupId })}
                 onDeleteGroup={(groupId) => dashboardRef?.send({ type: "GROUP_DELETE_SUBMITTED", groupId })}
-                onSelectFeed={(feedId) => dashboardRef?.send({ type: "FEED_SELECTED", feedId })}
+                onSelectFeed={(feedId) => {
+                  setAppPath(feedPath(feedId));
+                  dashboardRef?.send({ type: "FEED_SELECTED", feedId });
+                }}
                 onToggleFeedEnabled={(feedId) => dashboardRef?.send({ type: "FEED_ENABLED_TOGGLED", feedId })}
-                onCopyPublicFeedLink={(feedId) => void copyPublicPath(`/f/${feedId}`, "Feed link copied")}
+                onCopyPublicFeedLink={(feedId) =>
+                  void copyPublicPath(
+                    feedPath(feedId, feedId === selectedFeedId && selectedFeedDate !== "" ? selectedFeedDate : null),
+                    "Feed link copied",
+                  )
+                }
                 onDeleteFeed={(feedId) => dashboardRef?.send({ type: "FEED_DELETE_SUBMITTED", feedId })}
                 onAddFeed={() => dashboardRef?.send({ type: "ADD_FEED_OPENED" })}
               />
@@ -518,7 +700,7 @@ export default function App() {
               group={selectedGroup}
               feeds={feeds}
               selectedFeedId={selectedFeedId}
-              selectedFeedDate={dashboardContext?.selectedFeedDate ?? ""}
+              selectedFeedDate={selectedFeedDate}
               output={dashboardContext?.output ?? null}
               outputLoading={loadingTodayOutput || loadingDatedOutput}
               outputError={dashboardContext?.outputError ?? ""}
@@ -547,7 +729,12 @@ export default function App() {
               addFeedPreviewLoading={addFeedPreviewing}
               addFeedSaving={addFeedCreating}
               addFeedError={addFeedContext?.error ?? ""}
-              onChangeFeedDate={(date) => dashboardRef?.send({ type: "FEED_DATE_CHANGED", date })}
+              onChangeFeedDate={(date) => {
+                if (selectedFeedId !== null) {
+                  setAppPath(feedPath(selectedFeedId, date));
+                }
+                dashboardRef?.send({ type: "FEED_DATE_CHANGED", date });
+              }}
               onCloseAddFeed={() => {
                 if (addFeedRef !== undefined) {
                   addFeedRef.send({ type: "CLOSED" });
@@ -562,7 +749,7 @@ export default function App() {
               onUpdateFeedPost={(postId, payload) =>
                 dashboardRef?.send({ type: "POST_UPDATE_SUBMITTED", postId, payload })
               }
-              onCopyPublicPostLink={(postId) => void copyPublicPath(`/p/${postId}`, "Post link copied")}
+              onCopyPublicPostLink={(postId) => void copyPublicPath(postPath(postId), "Post link copied")}
               onDeleteFeedPost={(postId) => dashboardRef?.send({ type: "POST_DELETE_SUBMITTED", postId })}
               onSelectMetric={(metricId) => dashboardRef?.send({ type: "METRIC_SELECTED", metricId })}
               onCreateMetric={(payload) => dashboardRef?.send({ type: "METRIC_CREATE_SUBMITTED", payload })}
@@ -667,6 +854,30 @@ function readAppRoute(): AppRoute {
 
 function userProfilePath(user: User): string {
   return `/user/${encodeURIComponent(user.display_name)}`;
+}
+
+function groupPath(group: Group): string {
+  return `/g/${encodeURIComponent(group.slug)}`;
+}
+
+function feedPath(feedId: string, date: string | null = null): string {
+  const encodedFeedId = encodeURIComponent(feedId);
+  return date === null || date === "" ? `/f/${encodedFeedId}` : `/f/${encodedFeedId}/${encodeURIComponent(date)}`;
+}
+
+function postPath(postId: string): string {
+  return `/p/${encodeURIComponent(postId)}`;
+}
+
+function publicRouteCacheKey(route: PublicRoute): string {
+  switch (route.kind) {
+    case "group":
+      return `group:${route.slug}`;
+    case "feed":
+      return `feed:${route.feedId}:${route.date ?? ""}`;
+    case "post":
+      return `post:${route.postId}`;
+  }
 }
 
 function matchesChildState(value: unknown, parent: string, child: string): boolean {

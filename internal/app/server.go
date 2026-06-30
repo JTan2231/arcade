@@ -99,6 +99,7 @@ func (s *Server) Routes() http.Handler {
 
 	mux.HandleFunc("GET /api/me/daily-feeds", s.handleListMeDailyFeeds)
 	mux.HandleFunc("GET /api/me/daily-feed-outputs", s.handleListMeDailyFeedOutputs)
+	mux.HandleFunc("GET /api/me/feed-posts/{post_id}/route", s.handleGetMeFeedPostRoute)
 	mux.HandleFunc("GET /api/groups/{group_id}/daily-feeds", s.handleListGroupDailyFeeds)
 	mux.HandleFunc("POST /api/groups/{group_id}/daily-feeds", s.handleCreateGroupDailyFeed)
 	mux.HandleFunc("POST /api/groups/{group_id}/daily-feeds/preview", s.handlePreviewGroupDailyFeed)

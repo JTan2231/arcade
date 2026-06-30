@@ -16,6 +16,7 @@ import type {
   FriendRequests,
   Group,
   GroupFeedPost,
+  GroupFeedPostRoute,
   GroupInvite,
   GroupInviteCandidate,
   GroupMember,
@@ -251,6 +252,10 @@ export function listGroupDailyFeeds(groupID: string, options: APIOptions = {}): 
   return api<DailyFeed[]>(`/api/groups/${encodeURIComponent(groupID)}/daily-feeds`, options);
 }
 
+export function listMeDailyFeeds(options: APIOptions = {}): Promise<DailyFeed[]> {
+  return api<DailyFeed[]>("/api/me/daily-feeds", options);
+}
+
 export function listGroupCatalogSources(groupID: string, options: APIOptions = {}): Promise<CatalogSource[]> {
   return api<CatalogSource[]>(`/api/groups/${encodeURIComponent(groupID)}/catalog-sources`, options);
 }
@@ -397,6 +402,10 @@ export function deleteGroupFeedPost(groupID: string, postID: string, options: AP
     ...options,
     method: "DELETE",
   });
+}
+
+export function getMemberFeedPostRoute(postID: string, options: APIOptions = {}): Promise<GroupFeedPostRoute> {
+  return api<GroupFeedPostRoute>(`/api/me/feed-posts/${encodeURIComponent(postID)}/route`, options);
 }
 
 export function listFeedMetrics(groupID: string, feedID: string, options: APIOptions = {}): Promise<FeedMetric[]> {

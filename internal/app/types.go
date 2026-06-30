@@ -237,6 +237,12 @@ type GroupFeedPost struct {
 	UpdatedAt         time.Time      `json:"updated_at"`
 }
 
+type GroupFeedPostRoute struct {
+	GroupID  string `json:"group_id"`
+	FeedID   string `json:"feed_id"`
+	FeedDate string `json:"feed_date"`
+}
+
 type PublicPost struct {
 	ID           string            `json:"id"`
 	Group        PublicParentGroup `json:"group"`

@@ -221,3 +221,47 @@ steps:
   - within: Public post
     expectVisible:
       text: Shared for everyone.
+
+  - request:
+      id: login_owner_again
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: member_post_route
+      client: browser
+      method: GET
+      path: /api/me/feed-posts/{{post_id}}/route
+      expectStatus: 200
+      expectJson:
+        group_id: "{{group_id}}"
+        feed_id: "{{feed_id}}"
+        feed_date: "{{today}}"
+
+  - visit: /g/public-url-group
+
+  - within: Groups
+    expectVisible:
+      text: Public URL Group
+
+  - within: Posts
+    expectVisible:
+      role: button
+      name: Post
+
+  - visit: /p/{{post_id}}
+
+  - within: Posts
+    expectVisible:
+      text: Public proof for the public page.
+
+  - within: Posts
+    expectVisible:
+      role: button
+      name: Edit

@@ -237,6 +237,21 @@ func (s *Server) handleGetGroupFeedPost(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, post)
 }
 
+func (s *Server) handleGetMeFeedPostRoute(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	route, err := s.getMemberFeedPostRoute(r.Context(), current.ID, r.PathValue("post_id"))
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, route)
+}
+
 func (s *Server) handlePatchGroupFeedPost(w http.ResponseWriter, r *http.Request) {
 	current, err := requireUser(r.Context())
 	if err != nil {
@@ -447,6 +462,38 @@ func (s *Server) listGroupFeedPosts(ctx context.Context, groupID string, feedID 
 		return nil, err
 	}
 	return s.hydrateGroupFeedPostTags(ctx, posts)
+}
+
+func (s *Server) getMemberFeedPostRoute(ctx context.Context, userID string, postID string) (GroupFeedPostRoute, error) {
+	var route GroupFeedPostRoute
+	var feedDate time.Time
+	var deletedAt sql.NullTime
+	err := s.db.QueryRow(ctx, `
+		select p.group_id::text, i.feed_id::text, i.feed_date, p.deleted_at
+		from group_feed_posts p
+		join group_daily_feed_instances i on i.id = p.feed_instance_id and i.group_id = p.group_id
+		where p.id = $1
+	`, postID).Scan(&route.GroupID, &route.FeedID, &feedDate, &deletedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return GroupFeedPostRoute{}, errNotFound("feed post")
+	}
+	if err != nil {
+		return GroupFeedPostRoute{}, err
+	}
+	if deletedAt.Valid {
+		return GroupFeedPostRoute{}, errNotFound("feed post")
+	}
+
+	role, err := s.activeGroupRole(ctx, userID, route.GroupID)
+	if err != nil {
+		return GroupFeedPostRoute{}, err
+	}
+	resolvedDate, err := s.authorizeGroupFeedPostTargetForRole(ctx, userID, role, route.GroupID, route.FeedID, feedDate, true)
+	if err != nil {
+		return GroupFeedPostRoute{}, err
+	}
+	route.FeedDate = resolvedDate.Format(dailyFeedDateLayout)
+	return route, nil
 }
 
 func (s *Server) getGroupFeedPost(ctx context.Context, groupID string, postID string) (GroupFeedPost, error) {
