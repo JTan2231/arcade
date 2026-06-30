@@ -121,6 +121,32 @@ func TestBuildMetricLeaderboardRowsRanksTiesAndUnrankedRows(t *testing.T) {
 	}
 }
 
+func TestBuildMetricLeaderboardRowsCountsZeroPostMembers(t *testing.T) {
+	metric := FeedMetric{
+		SystemKey:   feedMetricKeyPostCount,
+		Aggregation: metricAggregationCount,
+	}
+	members := []PublicUser{
+		{ID: "ana", DisplayName: "Ana"},
+		{ID: "ben", DisplayName: "Ben"},
+	}
+	at := time.Date(2026, 6, 28, 12, 0, 0, 0, time.UTC)
+	rows := buildMetricLeaderboardRows(metric, members, []metricSample{
+		{UserID: "ana", Value: 1, At: at},
+		{UserID: "ana", Value: 1, At: at.Add(time.Minute)},
+	})
+
+	assertRank(t, rows[0], "ana", 1)
+	if rows[0].Value != 2 || rows[0].RawValue == nil || *rows[0].RawValue != 2 || rows[0].SampleCount != 2 {
+		t.Fatalf("posted row = %+v, want value/raw/sample count 2/2/2", rows[0])
+	}
+
+	assertRank(t, rows[1], "ben", 2)
+	if rows[1].Value != 0 || rows[1].RawValue == nil || *rows[1].RawValue != 0 || rows[1].SampleCount != 0 {
+		t.Fatalf("zero-post row = %+v, want value/raw/sample count 0/0/0", rows[1])
+	}
+}
+
 func assertRank(t *testing.T, row MetricLeaderboardRow, userID string, rank int) {
 	t.Helper()
 	if row.User.ID != userID {

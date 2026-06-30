@@ -1404,6 +1404,15 @@ func buildMetricLeaderboardRows(metric FeedMetric, members []PublicUser, samples
 
 func aggregateMetricSamples(metric FeedMetric, samples []metricSample) metricAggregate {
 	if len(samples) == 0 {
+		switch metric.Aggregation {
+		case metricAggregationCount, metricAggregationSum:
+			raw := 0.0
+			return metricAggregate{
+				Value:       formatMetricValue(metric, raw),
+				RawValue:    &raw,
+				SampleCount: 0,
+			}
+		}
 		return metricAggregate{
 			Value:       "-",
 			SampleCount: 0,
