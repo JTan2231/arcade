@@ -127,6 +127,12 @@ type scheduledFeedDateWindow struct {
 	EndsAt   time.Time
 }
 
+type feedPostDateTimestamp struct {
+	UserID    string
+	Date      time.Time
+	CreatedAt time.Time
+}
+
 type metricAggregate struct {
 	Value       any
 	RawValue    *float64
@@ -1118,7 +1124,7 @@ func computeCurrentStreakMetricSamples(ctx context.Context, s *Server, input met
 	if err != nil {
 		return nil, err
 	}
-	posted, err := s.feedPostDateSet(ctx, input.GroupID, input.Feed.ID, input.From, input.To)
+	posted, err := s.feedTimelyPostDateSet(ctx, input.GroupID, input.Feed.ID, windows)
 	if err != nil {
 		return nil, err
 	}
@@ -1291,6 +1297,66 @@ func (s *Server) feedPostDateSet(ctx context.Context, groupID string, feedID str
 		posted[userID+"\x00"+date.Format(dailyFeedDateLayout)] = true
 	}
 	return posted, rows.Err()
+}
+
+func (s *Server) feedTimelyPostDateSet(ctx context.Context, groupID string, feedID string, windows []scheduledFeedDateWindow) (map[string]bool, error) {
+	if len(windows) == 0 {
+		return map[string]bool{}, nil
+	}
+
+	from := windows[0].Date
+	to := windows[len(windows)-1].Date
+	rows, err := s.db.Query(ctx, `
+		select
+			p.author_user_id::text,
+			i.feed_date,
+			p.created_at
+		from group_feed_posts p
+		join group_daily_feed_instances i on i.id = p.feed_instance_id and i.group_id = p.group_id
+		where p.group_id = $1
+		  and i.feed_id = $2
+		  and i.feed_date >= $3
+		  and i.feed_date <= $4
+		  and p.deleted_at is null
+	`, groupID, feedID, from, to)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	posts := []feedPostDateTimestamp{}
+	for rows.Next() {
+		var post feedPostDateTimestamp
+		if err := rows.Scan(&post.UserID, &post.Date, &post.CreatedAt); err != nil {
+			return nil, err
+		}
+		posts = append(posts, post)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return buildTimelyPostDateSet(windows, posts), nil
+}
+
+func buildTimelyPostDateSet(windows []scheduledFeedDateWindow, posts []feedPostDateTimestamp) map[string]bool {
+	windowByKey := map[string]scheduledFeedDateWindow{}
+	for _, window := range windows {
+		windowByKey[window.Date.Format(dailyFeedDateLayout)] = window
+	}
+
+	posted := map[string]bool{}
+	for _, post := range posts {
+		dateKey := post.Date.Format(dailyFeedDateLayout)
+		window, ok := windowByKey[dateKey]
+		if !ok {
+			continue
+		}
+		if post.CreatedAt.Before(window.StartsAt) || !post.CreatedAt.Before(window.EndsAt) {
+			continue
+		}
+		posted[post.UserID+"\x00"+dateKey] = true
+	}
+	return posted
 }
 
 func scheduledFeedDates(schedule DailyFeedSchedule, from time.Time, to time.Time) ([]time.Time, error) {

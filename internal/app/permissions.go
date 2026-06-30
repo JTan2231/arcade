@@ -28,10 +28,6 @@ func (s *Server) canViewGroup(ctx context.Context, userID string, groupID string
 	switch visibility {
 	case "public":
 		return nil
-	case "invite_only":
-		if status.Valid && (status.String == "active" || status.String == "invited") {
-			return nil
-		}
 	case "private":
 		if status.Valid && status.String == "active" {
 			return nil
@@ -95,11 +91,15 @@ func validGroupStatus(status string) bool {
 
 func validGroupVisibility(visibility string) bool {
 	switch visibility {
-	case "public", "invite_only", "private":
+	case "public", "private":
 		return true
 	default:
 		return false
 	}
+}
+
+func validPublicPrivateVisibility(visibility string) bool {
+	return validGroupVisibility(visibility)
 }
 
 type groupMemberState struct {

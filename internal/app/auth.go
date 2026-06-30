@@ -234,6 +234,8 @@ func isPublicAPIRoute(r *http.Request) bool {
 	case r.Method == http.MethodPost && r.URL.Path == "/api/catalog-imports":
 		// Admin import scripts authenticate this route with a shared bearer token.
 		return true
+	case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/public/"):
+		return true
 	default:
 		return false
 	}

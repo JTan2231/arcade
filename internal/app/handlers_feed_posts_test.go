@@ -62,6 +62,31 @@ func TestNormalizeCreateGroupFeedPostRequestDeduplicatesTagIDs(t *testing.T) {
 	}
 }
 
+func TestNormalizeCreateGroupFeedPostRequestAcceptsVisibility(t *testing.T) {
+	payload, err := normalizeCreateGroupFeedPostRequest(createGroupFeedPostRequest{
+		EvidenceKind: "text",
+		EvidenceText: "proof",
+		Visibility:   " public ",
+	})
+	if err != nil {
+		t.Fatalf("normalizeCreateGroupFeedPostRequest returned error: %v", err)
+	}
+	if payload.Visibility == nil || *payload.Visibility != "public" {
+		t.Fatalf("visibility = %#v, want public", payload.Visibility)
+	}
+}
+
+func TestNormalizeCreateGroupFeedPostRequestRejectsInvalidVisibility(t *testing.T) {
+	_, err := normalizeCreateGroupFeedPostRequest(createGroupFeedPostRequest{
+		EvidenceKind: "text",
+		EvidenceText: "proof",
+		Visibility:   "invite_only",
+	})
+	if err == nil {
+		t.Fatal("expected invalid visibility to be rejected")
+	}
+}
+
 func TestNormalizeCreateGroupFeedPostRequestRejectsEmptyTagIDs(t *testing.T) {
 	_, err := normalizeCreateGroupFeedPostRequest(createGroupFeedPostRequest{
 		EvidenceKind: "text",
@@ -143,6 +168,27 @@ func TestNormalizePatchGroupFeedPostRequestAcceptsOnlyTagIDs(t *testing.T) {
 	}
 	if len(patch.TagIDs) != 1 || patch.TagIDs[0] != testTagIDOne {
 		t.Fatalf("tag IDs = %#v", patch.TagIDs)
+	}
+}
+
+func TestNormalizePatchGroupFeedPostRequestAcceptsVisibility(t *testing.T) {
+	patch, err := normalizePatchGroupFeedPostRequest(patchGroupFeedPostRequest{
+		Visibility: optionalStringField{Set: true, Value: " private "},
+	})
+	if err != nil {
+		t.Fatalf("normalizePatchGroupFeedPostRequest returned error: %v", err)
+	}
+	if patch.Visibility == nil || *patch.Visibility != "private" {
+		t.Fatalf("visibility = %#v, want private", patch.Visibility)
+	}
+}
+
+func TestNormalizePatchGroupFeedPostRequestRejectsInvalidVisibility(t *testing.T) {
+	_, err := normalizePatchGroupFeedPostRequest(patchGroupFeedPostRequest{
+		Visibility: optionalStringField{Set: true, Value: "invite_only"},
+	})
+	if err == nil {
+		t.Fatal("expected invalid visibility to be rejected")
 	}
 }
 

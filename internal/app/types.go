@@ -63,6 +63,30 @@ type Group struct {
 	UpdatedAt       time.Time `json:"updated_at"`
 }
 
+type PublicGroup struct {
+	ID          string            `json:"id"`
+	Name        string            `json:"name"`
+	Slug        string            `json:"slug"`
+	Description *string           `json:"description,omitempty"`
+	Visibility  string            `json:"visibility"`
+	Feeds       []PublicGroupFeed `json:"feeds"`
+}
+
+type PublicGroupFeed struct {
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	Slug        string  `json:"slug"`
+	Kind        string  `json:"kind"`
+	Description *string `json:"description,omitempty"`
+}
+
+type PublicParentGroup struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Slug       string `json:"slug"`
+	Visibility string `json:"visibility"`
+}
+
 type GroupMember struct {
 	UserID      string     `json:"user_id"`
 	Username    string     `json:"username"`
@@ -97,22 +121,24 @@ type DivisionRule struct {
 }
 
 type DailyFeed struct {
-	ID              string                `json:"id"`
-	GroupID         string                `json:"group_id"`
-	GroupName       *string               `json:"group_name,omitempty"`
-	Name            string                `json:"name"`
-	Slug            string                `json:"slug"`
-	Kind            string                `json:"kind"`
-	Description     *string               `json:"description,omitempty"`
-	Enabled         bool                  `json:"enabled"`
-	SourceID        *string               `json:"source_id,omitempty"`
-	SourceName      *string               `json:"source_name,omitempty"`
-	ItemCount       *int                  `json:"item_count,omitempty"`
-	Schedule        DailyFeedSchedule     `json:"schedule"`
-	Filters         []DailyFeedRuleFilter `json:"filters"`
-	CreatedByUserID *string               `json:"created_by_user_id,omitempty"`
-	CreatedAt       time.Time             `json:"created_at"`
-	UpdatedAt       time.Time             `json:"updated_at"`
+	ID                    string                `json:"id"`
+	GroupID               string                `json:"group_id"`
+	GroupName             *string               `json:"group_name,omitempty"`
+	Name                  string                `json:"name"`
+	Slug                  string                `json:"slug"`
+	Kind                  string                `json:"kind"`
+	Description           *string               `json:"description,omitempty"`
+	Enabled               bool                  `json:"enabled"`
+	Visibility            string                `json:"visibility"`
+	DefaultPostVisibility string                `json:"default_post_visibility"`
+	SourceID              *string               `json:"source_id,omitempty"`
+	SourceName            *string               `json:"source_name,omitempty"`
+	ItemCount             *int                  `json:"item_count,omitempty"`
+	Schedule              DailyFeedSchedule     `json:"schedule"`
+	Filters               []DailyFeedRuleFilter `json:"filters"`
+	CreatedByUserID       *string               `json:"created_by_user_id,omitempty"`
+	CreatedAt             time.Time             `json:"created_at"`
+	UpdatedAt             time.Time             `json:"updated_at"`
 }
 
 type DailyFeedSchedule struct {
@@ -171,6 +197,29 @@ type DailyFeedAction struct {
 	Text  string `json:"text,omitempty"`
 }
 
+type PublicFeed struct {
+	ID          string                 `json:"id"`
+	Group       PublicParentGroup      `json:"group"`
+	Name        string                 `json:"name"`
+	Description *string                `json:"description,omitempty"`
+	Date        string                 `json:"date"`
+	Items       []PublicFeedOutputItem `json:"items"`
+	Posts       []PublicPost           `json:"posts"`
+}
+
+type PublicFeedOutputItem struct {
+	Position int              `json:"position"`
+	Title    string           `json:"title"`
+	Action   PublicFeedAction `json:"action"`
+}
+
+type PublicFeedAction struct {
+	Type  string `json:"type"`
+	Label string `json:"label"`
+	URL   string `json:"url,omitempty"`
+	Text  string `json:"text,omitempty"`
+}
+
 type GroupFeedPost struct {
 	ID                string         `json:"id"`
 	GroupID           string         `json:"group_id"`
@@ -184,10 +233,35 @@ type GroupFeedPost struct {
 	EvidenceKind      string         `json:"evidence_kind"`
 	EvidenceText      string         `json:"evidence_text"`
 	Caption           *string        `json:"caption,omitempty"`
+	Visibility        string         `json:"visibility"`
 	Tags              []GroupPostTag `json:"tags"`
 	DeletedAt         *time.Time     `json:"deleted_at,omitempty"`
 	CreatedAt         time.Time      `json:"created_at"`
 	UpdatedAt         time.Time      `json:"updated_at"`
+}
+
+type PublicPost struct {
+	ID           string            `json:"id"`
+	Group        PublicParentGroup `json:"group"`
+	Feed         PublicPostFeed    `json:"feed"`
+	FeedDate     string            `json:"feed_date"`
+	Author       PublicUser        `json:"author"`
+	EvidenceKind string            `json:"evidence_kind"`
+	EvidenceText string            `json:"evidence_text"`
+	Caption      *string           `json:"caption,omitempty"`
+	Tags         []PublicPostTag   `json:"tags"`
+	CreatedAt    time.Time         `json:"created_at"`
+	UpdatedAt    time.Time         `json:"updated_at"`
+}
+
+type PublicPostFeed struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type PublicPostTag struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 type GroupPostTag struct {

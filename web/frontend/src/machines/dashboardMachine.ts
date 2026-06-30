@@ -28,6 +28,7 @@ import {
   listGroups,
   updateFeedMetric,
   updateFeedMetricJudgment,
+  updateGroup,
   updateGroupDailyFeed,
   updateGroupFeedPost,
   updateGroupPostTag,
@@ -48,8 +49,10 @@ import type {
   GroupPostTag,
   MetricLeaderboard,
   PatchFeedMetricRequest,
+  PatchGroupRequest,
   PatchGroupPostTagRequest,
   User,
+  Visibility,
 } from "../types";
 
 type CreatePostPayload = {
@@ -60,6 +63,7 @@ type CreatePostPayload = {
 type UpdatePostPayload = {
   evidenceText?: string;
   caption?: string;
+  visibility?: Visibility;
   tagIds?: string[];
 };
 
@@ -74,6 +78,7 @@ type PostMutation =
       postId: string;
       evidenceText?: string;
       caption?: string;
+      visibility?: Visibility;
       tagIds?: string[];
     }
   | {
@@ -98,6 +103,11 @@ type PostTagMutation =
 
 type GroupMemberMutation = {
   userId: string;
+};
+
+type GroupVisibilityMutation = {
+  groupId: string;
+  visibility: Visibility;
 };
 
 type MetricMutation =
@@ -140,6 +150,7 @@ export type DashboardContext = {
   groupMembers: GroupMember[];
   groupMembersError: string;
   groupSettingsOpen: boolean;
+  groupVisibilityMutation: GroupVisibilityMutation | null;
   posts: GroupFeedPost[];
   postsError: string;
 
@@ -169,10 +180,13 @@ type DashboardUserEvent =
   | { type: "GROUP_SELECTED"; groupId: string }
   | { type: "GROUP_SETTINGS_OPENED"; groupId: string }
   | { type: "GROUP_SETTINGS_CLOSED" }
+  | { type: "GROUP_VISIBILITY_CHANGED"; groupId: string; visibility: Visibility }
   | { type: "GROUP_DELETE_SUBMITTED"; groupId: string }
   | { type: "FEED_SELECTED"; feedId: string }
   | { type: "FEED_DATE_CHANGED"; date: string }
   | { type: "FEED_ENABLED_TOGGLED"; feedId: string }
+  | { type: "FEED_VISIBILITY_TOGGLED"; feedId: string }
+  | { type: "FEED_DEFAULT_POST_VISIBILITY_TOGGLED"; feedId: string }
   | { type: "FEED_DELETE_SUBMITTED"; feedId: string }
   | { type: "POST_CREATE_SUBMITTED"; payload: CreatePostPayload }
   | { type: "POST_UPDATE_SUBMITTED"; postId: string; payload: UpdatePostPayload }
@@ -225,6 +239,11 @@ type ToggleFeedInput = {
   feed: DailyFeed;
 };
 
+type UpdateGroupVisibilityInput = {
+  groupId: string;
+  payload: PatchGroupRequest;
+};
+
 type DeleteGroupOutput = {
   groupId: string;
 };
@@ -244,6 +263,7 @@ type UpdatePostInput = {
   postId: string;
   evidenceText?: string;
   caption?: string;
+  visibility?: Visibility;
   tagIds?: string[];
 };
 
@@ -315,6 +335,9 @@ const dashboardSetup = setup({
     createGroup: fromPromise<Group, { name: string }>(({ input, signal }) =>
       createGroup({ name: input.name }, { signal }),
     ),
+    updateGroupVisibility: fromPromise<Group, UpdateGroupVisibilityInput>(({ input, signal }) =>
+      updateGroup(input.groupId, input.payload, { signal }),
+    ),
     deleteGroup: fromPromise<DeleteGroupOutput, { groupId: string }>(async ({ input, signal }) => {
       await deleteGroup(input.groupId, { signal });
       return { groupId: input.groupId };
@@ -378,6 +401,22 @@ const dashboardSetup = setup({
     toggleFeed: fromPromise<DailyFeed, ToggleFeedInput>(({ input, signal }) =>
       updateGroupDailyFeed(input.groupId, input.feed.id, { enabled: !input.feed.enabled }, { signal }),
     ),
+    toggleFeedVisibility: fromPromise<DailyFeed, ToggleFeedInput>(({ input, signal }) =>
+      updateGroupDailyFeed(
+        input.groupId,
+        input.feed.id,
+        { visibility: input.feed.visibility === "public" ? "private" : "public" },
+        { signal },
+      ),
+    ),
+    toggleFeedDefaultPostVisibility: fromPromise<DailyFeed, ToggleFeedInput>(({ input, signal }) =>
+      updateGroupDailyFeed(
+        input.groupId,
+        input.feed.id,
+        { default_post_visibility: input.feed.default_post_visibility === "public" ? "private" : "public" },
+        { signal },
+      ),
+    ),
     deleteFeed: fromPromise<DeleteFeedOutput, FeedInput>(async ({ input, signal }) => {
       await deleteGroupDailyFeed(input.groupId, input.feedId, { signal });
       return { feedId: input.feedId };
@@ -407,6 +446,7 @@ const dashboardSetup = setup({
               }
             : {}),
           ...(input.caption !== undefined ? { caption: input.caption !== "" ? input.caption : null } : {}),
+          ...(input.visibility !== undefined ? { visibility: input.visibility } : {}),
           ...(input.tagIds !== undefined ? { tag_ids: input.tagIds } : {}),
         },
         { signal },
@@ -525,6 +565,17 @@ export const dashboardMachine = dashboardSetup.createMachine({
         groupSettingsOpen: false,
       }),
     },
+    GROUP_VISIBILITY_CHANGED: {
+      guard: ({ context, event }) =>
+        context.groups.some((group) => group.id === event.groupId && group.visibility !== event.visibility),
+      target: ".groupSelected.updatingGroupVisibility",
+      actions: assign(({ event }) => ({
+        groupVisibilityMutation: {
+          groupId: event.groupId,
+          visibility: event.visibility,
+        },
+      })),
+    },
     FEED_SELECTED: {
       guard: ({ context, event }) =>
         context.selectedGroupId !== null && (event.feedId !== context.selectedFeedId || context.output === null),
@@ -560,6 +611,22 @@ export const dashboardMachine = dashboardSetup.createMachine({
       guard: ({ context, event }) =>
         context.selectedGroupId !== null && context.feeds.some((feed) => feed.id === event.feedId),
       target: ".groupSelected.togglingFeed",
+      actions: assign(({ event }) => ({
+        pendingToggleFeedId: event.feedId,
+      })),
+    },
+    FEED_VISIBILITY_TOGGLED: {
+      guard: ({ context, event }) =>
+        context.selectedGroupId !== null && context.feeds.some((feed) => feed.id === event.feedId),
+      target: ".groupSelected.togglingFeedVisibility",
+      actions: assign(({ event }) => ({
+        pendingToggleFeedId: event.feedId,
+      })),
+    },
+    FEED_DEFAULT_POST_VISIBILITY_TOGGLED: {
+      guard: ({ context, event }) =>
+        context.selectedGroupId !== null && context.feeds.some((feed) => feed.id === event.feedId),
+      target: ".groupSelected.togglingFeedDefaultPostVisibility",
       actions: assign(({ event }) => ({
         pendingToggleFeedId: event.feedId,
       })),
@@ -628,6 +695,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
               }
             : {}),
           ...(event.payload.caption !== undefined ? { caption: event.payload.caption.trim() } : {}),
+          ...(event.payload.visibility !== undefined ? { visibility: event.payload.visibility } : {}),
           ...(event.payload.tagIds !== undefined ? { tagIds: event.payload.tagIds } : {}),
         },
       })),
@@ -1140,6 +1208,9 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   if (mutation.caption !== undefined) {
                     input.caption = mutation.caption;
                   }
+                  if (mutation.visibility !== undefined) {
+                    input.visibility = mutation.visibility;
+                  }
                   if (mutation.tagIds !== undefined) {
                     input.tagIds = mutation.tagIds;
                   }
@@ -1496,6 +1567,44 @@ export const dashboardMachine = dashboardSetup.createMachine({
             onError: groupMemberMutationErrorTransitions(),
           },
         },
+        updatingGroupVisibility: {
+          invoke: {
+            src: "updateGroupVisibility",
+            input: ({ context }) => {
+              const mutation = requireGroupVisibilityMutation(context);
+              return {
+                groupId: mutation.groupId,
+                payload: {
+                  visibility: mutation.visibility,
+                },
+              };
+            },
+            onDone: [
+              {
+                target: "feedSelected.ready",
+                guard: { type: "hasRestorableFeed" },
+                actions: [
+                  assign(({ context, event }) => ({
+                    groups: context.groups.map((group) => (group.id === event.output.id ? event.output : group)),
+                    groupVisibilityMutation: null,
+                  })),
+                  sendToastToParent("Group visibility updated"),
+                ],
+              },
+              {
+                target: "noFeed",
+                actions: [
+                  assign(({ context, event }) => ({
+                    groups: context.groups.map((group) => (group.id === event.output.id ? event.output : group)),
+                    groupVisibilityMutation: null,
+                  })),
+                  sendToastToParent("Group visibility updated"),
+                ],
+              },
+            ],
+            onError: groupVisibilityMutationErrorTransitions(),
+          },
+        },
         togglingFeed: {
           invoke: {
             src: "toggleFeed",
@@ -1511,6 +1620,68 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   pendingToggleFeedId: null,
                 })),
                 sendToggleToastToParent(),
+              ],
+            },
+            onError: [
+              unauthorizedToParentTransition(),
+              {
+                target: "feedSelected.ready",
+                actions: [
+                  assign({
+                    pendingToggleFeedId: null,
+                  }),
+                  sendErrorToastToParent(),
+                ],
+              },
+            ],
+          },
+        },
+        togglingFeedVisibility: {
+          invoke: {
+            src: "toggleFeedVisibility",
+            input: ({ context }) => ({
+              groupId: requireSelectedGroupId(context),
+              feed: requirePendingToggleFeed(context),
+            }),
+            onDone: {
+              target: "feedSelected.ready",
+              actions: [
+                assign(({ context, event }) => ({
+                  feeds: replaceFeed(context.feeds, event.output),
+                  pendingToggleFeedId: null,
+                })),
+                sendFeedVisibilityToastToParent(),
+              ],
+            },
+            onError: [
+              unauthorizedToParentTransition(),
+              {
+                target: "feedSelected.ready",
+                actions: [
+                  assign({
+                    pendingToggleFeedId: null,
+                  }),
+                  sendErrorToastToParent(),
+                ],
+              },
+            ],
+          },
+        },
+        togglingFeedDefaultPostVisibility: {
+          invoke: {
+            src: "toggleFeedDefaultPostVisibility",
+            input: ({ context }) => ({
+              groupId: requireSelectedGroupId(context),
+              feed: requirePendingToggleFeed(context),
+            }),
+            onDone: {
+              target: "feedSelected.ready",
+              actions: [
+                assign(({ context, event }) => ({
+                  feeds: replaceFeed(context.feeds, event.output),
+                  pendingToggleFeedId: null,
+                })),
+                sendFeedDefaultPostVisibilityToastToParent(),
               ],
             },
             onError: [
@@ -1635,6 +1806,7 @@ function resetSelectedGroupContext(): Omit<
     groupMembers: [],
     groupMembersError: "",
     groupSettingsOpen: false,
+    groupVisibilityMutation: null,
     posts: [],
     postsError: "",
     ...resetMetricContext(),
@@ -1690,7 +1862,12 @@ function validPostUpdatePayload(payload: UpdatePostPayload): boolean {
   if (payload.evidenceText !== undefined && payload.evidenceText.trim() === "") {
     return false;
   }
-  return payload.evidenceText !== undefined || payload.caption !== undefined || payload.tagIds !== undefined;
+  return (
+    payload.evidenceText !== undefined ||
+    payload.caption !== undefined ||
+    payload.visibility !== undefined ||
+    payload.tagIds !== undefined
+  );
 }
 
 function closeAddFeedTransitions() {
@@ -1821,6 +1998,21 @@ function groupMemberMutationErrorTransitions() {
   ] as const;
 }
 
+function groupVisibilityMutationErrorTransitions() {
+  return [
+    unauthorizedToParentTransition(),
+    {
+      target: "feedSelected.ready",
+      guard: { type: "hasRestorableFeed" },
+      actions: [clearGroupVisibilityMutationOnError(), sendErrorToastToParent()],
+    },
+    {
+      target: "noFeed",
+      actions: [clearGroupVisibilityMutationOnError(), sendErrorToastToParent()],
+    },
+  ] as const;
+}
+
 function metricMutationErrorTransitions() {
   return [
     unauthorizedToParentTransition(),
@@ -1870,6 +2062,23 @@ function sendToggleToastToParent() {
   );
 }
 
+function sendFeedVisibilityToastToParent() {
+  return sendParent<DashboardContext, DoneActorEvent<DailyFeed>, undefined, DashboardOutputEvent, DashboardEvent>(
+    ({ event }) => toastRequested(event.output.visibility === "public" ? "Feed is public" : "Feed is private"),
+  );
+}
+
+function sendFeedDefaultPostVisibilityToastToParent() {
+  return sendParent<DashboardContext, DoneActorEvent<DailyFeed>, undefined, DashboardOutputEvent, DashboardEvent>(
+    ({ event }) =>
+      toastRequested(
+        event.output.default_post_visibility === "public"
+          ? "New posts default to public"
+          : "New posts default to private",
+      ),
+  );
+}
+
 function sendUnauthorizedDashboardEventToParent() {
   return sendParent<DashboardContext, DashboardEvent, undefined, DashboardOutputEvent, DashboardEvent>({
     type: "UNAUTHORIZED",
@@ -1903,6 +2112,12 @@ function clearPostTagMutationOnError() {
 function clearGroupMemberMutationOnError() {
   return assign<DashboardContext, ErrorActorEvent, undefined, DashboardEvent, never>({
     groupMemberMutation: null,
+  });
+}
+
+function clearGroupVisibilityMutationOnError() {
+  return assign<DashboardContext, ErrorActorEvent, undefined, DashboardEvent, never>({
+    groupVisibilityMutation: null,
   });
 }
 
@@ -2007,6 +2222,13 @@ function requireGroupMemberMutation(context: DashboardContext): GroupMemberMutat
     throw new Error("Group member mutation is missing");
   }
   return context.groupMemberMutation;
+}
+
+function requireGroupVisibilityMutation(context: DashboardContext): GroupVisibilityMutation {
+  if (context.groupVisibilityMutation === null) {
+    throw new Error("Group visibility mutation is missing");
+  }
+  return context.groupVisibilityMutation;
 }
 
 function requireMetricMutation<TKind extends MetricMutation["kind"]>(

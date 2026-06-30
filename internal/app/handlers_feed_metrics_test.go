@@ -122,6 +122,45 @@ func TestCurrentStreakCountsPostedOpenDailyCycle(t *testing.T) {
 	}
 }
 
+func TestCurrentStreakIgnoresRetroactivePreviousOutput(t *testing.T) {
+	location, err := time.LoadLocation("America/Chicago")
+	if err != nil {
+		t.Fatalf("load location: %v", err)
+	}
+
+	windows, err := scheduledFeedDateWindows(DailyFeedSchedule{
+		StartsAt:        time.Date(2026, 6, 29, 8, 0, 0, 0, location),
+		Timezone:        "America/Chicago",
+		IntervalSeconds: 86400,
+	}, time.Date(2026, 6, 29, 0, 0, 0, 0, location), time.Date(2026, 7, 1, 0, 0, 0, 0, location))
+	if err != nil {
+		t.Fatalf("scheduledFeedDateWindows returned error: %v", err)
+	}
+
+	posted := buildTimelyPostDateSet(windows, []feedPostDateTimestamp{
+		{
+			UserID:    "ana",
+			Date:      windows[0].Date,
+			CreatedAt: time.Date(2026, 6, 29, 9, 0, 0, 0, location),
+		},
+		{
+			UserID:    "ana",
+			Date:      windows[1].Date,
+			CreatedAt: time.Date(2026, 7, 1, 8, 1, 0, 0, location),
+		},
+		{
+			UserID:    "ana",
+			Date:      windows[2].Date,
+			CreatedAt: time.Date(2026, 7, 1, 12, 0, 0, 0, location),
+		},
+	})
+
+	got := currentStreakForMember("ana", windows, posted, time.Date(2026, 7, 1, 12, 1, 0, 0, location))
+	if got != 1 {
+		t.Fatalf("streak = %d, want 1", got)
+	}
+}
+
 func TestCurrentStreakEndsAfterDailyCyclePasses(t *testing.T) {
 	location, err := time.LoadLocation("America/Chicago")
 	if err != nil {

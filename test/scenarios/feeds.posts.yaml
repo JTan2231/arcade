@@ -48,6 +48,23 @@ steps:
       role: button
       name: Daily Thread
 
+  - within: Feeds
+    click:
+      role: button
+      name: Feed settings for Daily Thread
+
+  - within: Feeds
+    click:
+      role: button
+      name: Make public
+
+  - expectStatus:
+      text: Feed is public
+
+  - within: Feeds
+    expectVisible:
+      text: Public
+
   - within: Selected feed output
     expectValue:
       label: Date
@@ -80,6 +97,32 @@ steps:
   - within: Posts
     expectVisible:
       text: Solved the warmup set.
+
+  - within: Posts
+    click:
+      role: button
+      name: Make public
+
+  - expectStatus:
+      text: Post updated
+
+  - within: Posts
+    expectVisible:
+      text: Public
+      exact: true
+
+  - within: Posts
+    click:
+      role: button
+      name: Make private
+
+  - expectStatus:
+      text: Post updated
+
+  - within: Posts
+    expectHidden:
+      text: Public
+      exact: true
 
   - within: Posts
     click:

@@ -51,6 +51,10 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("POST /api/auth/logout", s.handleLogout)
 	mux.HandleFunc("GET /api/auth/session", s.handleAuthSession)
 	mux.HandleFunc("POST /api/catalog-imports", s.handleCatalogImport)
+	mux.HandleFunc("GET /api/public/groups/{group_slug}", s.handlePublicGroup)
+	mux.HandleFunc("GET /api/public/feeds/{feed_id}", s.handlePublicFeedToday)
+	mux.HandleFunc("GET /api/public/feeds/{feed_id}/outputs/{date}", s.handlePublicFeedOutput)
+	mux.HandleFunc("GET /api/public/posts/{post_id}", s.handlePublicPost)
 
 	mux.HandleFunc("GET /api/me", s.handleGetMe)
 	mux.HandleFunc("PATCH /api/me", s.handlePatchMe)

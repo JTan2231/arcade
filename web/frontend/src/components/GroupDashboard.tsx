@@ -24,6 +24,7 @@ import type {
   PatchFeedMetricRequest,
   PublicUser,
   SystemMetricKey,
+  Visibility,
 } from "../types";
 
 type CreateFeedPostPayload = {
@@ -34,6 +35,7 @@ type CreateFeedPostPayload = {
 type UpdateFeedPostPayload = {
   evidenceText?: string;
   caption?: string;
+  visibility?: Visibility;
   tagIds?: string[];
 };
 
@@ -77,6 +79,7 @@ type GroupDashboardProps = {
   onCreateFeed: (payload: CreateDailyFeedRequest) => void;
   onCreateFeedPost: (payload: CreateFeedPostPayload) => void;
   onUpdateFeedPost: (postId: string, payload: UpdateFeedPostPayload) => void;
+  onCopyPublicPostLink: (postId: string) => void;
   onDeleteFeedPost: (postId: string) => void;
   onSelectMetric: (metricId: string) => void;
   onCreateMetric: (payload: CreateFeedMetricRequest) => void;
@@ -129,6 +132,7 @@ export function GroupDashboard({
   onCreateFeed,
   onCreateFeedPost,
   onUpdateFeedPost,
+  onCopyPublicPostLink,
   onDeleteFeedPost,
   onSelectMetric,
   onCreateMetric,
@@ -186,9 +190,11 @@ export function GroupDashboard({
           judgedMetrics={judgedMetrics}
           canJudge={canManageMetrics}
           canManagePostTags={canManagePostTags}
+          canManagePosts={canManageMetrics}
           judgingPostId={judgingPostId}
           onCreateFeedPost={onCreateFeedPost}
           onUpdateFeedPost={onUpdateFeedPost}
+          onCopyPublicPostLink={onCopyPublicPostLink}
           onDeleteFeedPost={onDeleteFeedPost}
           onCreateMetricJudgment={onCreateMetricJudgment}
         />
@@ -1204,9 +1210,11 @@ function FeedOutput({
   judgedMetrics,
   canJudge,
   canManagePostTags,
+  canManagePosts,
   judgingPostId,
   onCreateFeedPost,
   onUpdateFeedPost,
+  onCopyPublicPostLink,
   onDeleteFeedPost,
   onCreateMetricJudgment,
 }: {
@@ -1225,9 +1233,11 @@ function FeedOutput({
   judgedMetrics: FeedMetric[];
   canJudge: boolean;
   canManagePostTags: boolean;
+  canManagePosts: boolean;
   judgingPostId: string | null;
   onCreateFeedPost: (payload: CreateFeedPostPayload) => void;
   onUpdateFeedPost: (postId: string, payload: UpdateFeedPostPayload) => void;
+  onCopyPublicPostLink: (postId: string) => void;
   onDeleteFeedPost: (postId: string) => void;
   onCreateMetricJudgment: (
     metricId: string,
@@ -1279,9 +1289,11 @@ function FeedOutput({
         judgedMetrics={judgedMetrics}
         canJudge={canJudge}
         canManagePostTags={canManagePostTags}
+        canManagePosts={canManagePosts}
         judgingPostId={judgingPostId}
         onCreateFeedPost={onCreateFeedPost}
         onUpdateFeedPost={onUpdateFeedPost}
+        onCopyPublicPostLink={onCopyPublicPostLink}
         onDeleteFeedPost={onDeleteFeedPost}
         onCreateMetricJudgment={onCreateMetricJudgment}
       />
@@ -1302,9 +1314,11 @@ function FeedPostSection({
   judgedMetrics,
   canJudge,
   canManagePostTags,
+  canManagePosts,
   judgingPostId,
   onCreateFeedPost,
   onUpdateFeedPost,
+  onCopyPublicPostLink,
   onDeleteFeedPost,
   onCreateMetricJudgment,
 }: {
@@ -1320,9 +1334,11 @@ function FeedPostSection({
   judgedMetrics: FeedMetric[];
   canJudge: boolean;
   canManagePostTags: boolean;
+  canManagePosts: boolean;
   judgingPostId: string | null;
   onCreateFeedPost: (payload: CreateFeedPostPayload) => void;
   onUpdateFeedPost: (postId: string, payload: UpdateFeedPostPayload) => void;
+  onCopyPublicPostLink: (postId: string) => void;
   onDeleteFeedPost: (postId: string) => void;
   onCreateMetricJudgment: (
     metricId: string,
@@ -1371,6 +1387,7 @@ function FeedPostSection({
             <FeedPostCard
               key={post.id}
               canTag={currentUserId === post.author_user_id || canManagePostTags}
+              canModerate={canManagePosts}
               mine={currentUserId === post.author_user_id}
               post={post}
               activePostTags={activePostTags}
@@ -1380,6 +1397,7 @@ function FeedPostSection({
               canJudge={canJudge && currentUserId !== post.author_user_id}
               judging={judgingPostId === post.id}
               onUpdateFeedPost={onUpdateFeedPost}
+              onCopyPublicPostLink={onCopyPublicPostLink}
               onDeleteFeedPost={onDeleteFeedPost}
               onCreateMetricJudgment={onCreateMetricJudgment}
             />
@@ -1439,6 +1457,7 @@ function FeedPostCard({
   post,
   activePostTags,
   canTag,
+  canModerate,
   mine,
   saving,
   deleting,
@@ -1446,12 +1465,14 @@ function FeedPostCard({
   canJudge,
   judging,
   onUpdateFeedPost,
+  onCopyPublicPostLink,
   onDeleteFeedPost,
   onCreateMetricJudgment,
 }: {
   post: GroupFeedPost;
   activePostTags: GroupPostTag[];
   canTag: boolean;
+  canModerate: boolean;
   mine: boolean;
   saving: boolean;
   deleting: boolean;
@@ -1459,6 +1480,7 @@ function FeedPostCard({
   canJudge: boolean;
   judging: boolean;
   onUpdateFeedPost: (postId: string, payload: UpdateFeedPostPayload) => void;
+  onCopyPublicPostLink: (postId: string) => void;
   onDeleteFeedPost: (postId: string) => void;
   onCreateMetricJudgment: (
     metricId: string,
@@ -1553,19 +1575,50 @@ function FeedPostCard({
   }
 
   const taggable = canTag && activePostTags.length > 0;
+  const publicPost = post.visibility === "public";
+  const canChangeVisibility = mine || (canModerate && publicPost);
+  const postActionsVisible = taggable || mine || canChangeVisibility || publicPost;
 
   return (
     <article className="row feed-post-card">
       <div className="post-card-header">
         <div>
           <div className="title">{post.author_display_name || post.author_username}</div>
-          <div className="meta">{formatDateTime(post.created_at)}</div>
+          <div className="meta">
+            {formatDateTime(post.created_at)}
+            {publicPost ? (
+              <>
+                {" "}
+                · <span aria-label="Post visibility">Public</span>
+              </>
+            ) : null}
+          </div>
         </div>
-        {(taggable || mine) && !editing ? (
+        {postActionsVisible && !editing ? (
           <div className="post-card-actions">
             {taggable ? (
               <button className="secondary" type="button" disabled={saving || deleting} onClick={toggleTagMenu}>
                 Tag
+              </button>
+            ) : null}
+            {canChangeVisibility ? (
+              <button
+                className="secondary"
+                type="button"
+                disabled={saving || deleting}
+                onClick={() => onUpdateFeedPost(post.id, { visibility: publicPost ? "private" : "public" })}
+              >
+                {publicPost ? "Make private" : "Make public"}
+              </button>
+            ) : null}
+            {publicPost ? (
+              <button
+                className="secondary"
+                type="button"
+                disabled={saving || deleting}
+                onClick={() => onCopyPublicPostLink(post.id)}
+              >
+                Copy link
               </button>
             ) : null}
             {mine ? (

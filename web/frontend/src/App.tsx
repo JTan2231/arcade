@@ -24,6 +24,7 @@ import { FriendsPanel } from "./components/FriendsPanel";
 import { GroupDashboard } from "./components/GroupDashboard";
 import { GroupSettingsDialog } from "./components/GroupSettingsDialog";
 import { GroupsPanel } from "./components/GroupsPanel";
+import { PublicPage } from "./components/PublicPages";
 import { Toast } from "./components/Toast";
 import { errorMessage } from "./errors";
 import { appMachine } from "./machines/appMachine";
@@ -40,12 +41,13 @@ import type {
   GroupInviteCandidate,
   GroupMember,
   GroupPostTag,
+  PublicRoute,
   User,
 } from "./types";
 
 type DashboardActorRef = ActorRefFromLogic<typeof dashboardMachine>;
 type AddFeedActorRef = ActorRefFromLogic<typeof addFeedMachine>;
-type AppRoute = "workspace" | "profile";
+type AppRoute = "workspace" | "profile" | PublicRoute;
 
 const EMPTY_GROUPS: Group[] = [];
 const EMPTY_FEEDS: DailyFeed[] = [];
@@ -126,6 +128,7 @@ export default function App() {
   const addFeedLoadingSources = matchesTopState(addFeedStateValue, "loadingSources");
   const addFeedPreviewing = matchesTopState(addFeedStateValue, "previewing");
   const addFeedCreating = matchesTopState(addFeedStateValue, "creating");
+  const publicRoute = typeof route === "object" ? route : null;
   const showingProfile = route === "profile";
 
   useEffect(() => {
@@ -382,12 +385,32 @@ export default function App() {
   const deletingPostTagId = postTagMutation?.kind === "delete" ? postTagMutation.tagId : null;
   const groupMemberMutation = dashboardContext?.groupMemberMutation ?? null;
   const removingMemberUserId = groupMemberMutation?.userId ?? null;
+  const updatingGroupVisibility = (dashboardContext?.groupVisibilityMutation ?? null) !== null;
   const metricMutation = dashboardContext?.metricMutation ?? null;
   const updatingMetricId = metricMutation?.kind === "update" ? metricMutation.metricId : null;
   const deletingMetricId = metricMutation?.kind === "delete" ? metricMutation.metricId : null;
   const judgmentMutation = dashboardContext?.judgmentMutation ?? null;
   const judgingPostId = creatingJudgment ? (judgmentMutation?.postId ?? null) : null;
   const profilePath = context.user === null ? "/" : userProfilePath(context.user);
+
+  if (publicRoute !== null) {
+    return (
+      <>
+        <PublicPage route={publicRoute} signedIn={signedIn} />
+        <Toast message={context.toastMessage} />
+      </>
+    );
+  }
+
+  async function copyPublicPath(path: string, message: string) {
+    const url = new URL(path, window.location.origin).toString();
+    try {
+      await navigator.clipboard.writeText(url);
+      send({ type: "TOAST_REQUESTED", message });
+    } catch {
+      send({ type: "TOAST_REQUESTED", message: url });
+    }
+  }
 
   if (checkingSession) {
     return (
@@ -486,6 +509,11 @@ export default function App() {
                 onDeleteGroup={(groupId) => dashboardRef?.send({ type: "GROUP_DELETE_SUBMITTED", groupId })}
                 onSelectFeed={(feedId) => dashboardRef?.send({ type: "FEED_SELECTED", feedId })}
                 onToggleFeedEnabled={(feedId) => dashboardRef?.send({ type: "FEED_ENABLED_TOGGLED", feedId })}
+                onToggleFeedVisibility={(feedId) => dashboardRef?.send({ type: "FEED_VISIBILITY_TOGGLED", feedId })}
+                onToggleFeedDefaultPostVisibility={(feedId) =>
+                  dashboardRef?.send({ type: "FEED_DEFAULT_POST_VISIBILITY_TOGGLED", feedId })
+                }
+                onCopyPublicFeedLink={(feedId) => void copyPublicPath(`/f/${feedId}`, "Feed link copied")}
                 onDeleteFeed={(feedId) => dashboardRef?.send({ type: "FEED_DELETE_SUBMITTED", feedId })}
                 onAddFeed={() => dashboardRef?.send({ type: "ADD_FEED_OPENED" })}
               />
@@ -538,6 +566,7 @@ export default function App() {
               onUpdateFeedPost={(postId, payload) =>
                 dashboardRef?.send({ type: "POST_UPDATE_SUBMITTED", postId, payload })
               }
+              onCopyPublicPostLink={(postId) => void copyPublicPath(`/p/${postId}`, "Post link copied")}
               onDeleteFeedPost={(postId) => dashboardRef?.send({ type: "POST_DELETE_SUBMITTED", postId })}
               onSelectMetric={(metricId) => dashboardRef?.send({ type: "METRIC_SELECTED", metricId })}
               onCreateMetric={(payload) => dashboardRef?.send({ type: "METRIC_CREATE_SUBMITTED", payload })}
@@ -571,12 +600,16 @@ export default function App() {
                 tagSaving={creatingPostTag}
                 tags={dashboardContext.postTags ?? EMPTY_POST_TAGS}
                 updatingTagId={updatingPostTagId}
+                visibilitySaving={updatingGroupVisibility}
                 onCancelGroupInvite={handleCancelGroupInviteForCandidate}
                 onClose={() => dashboardRef?.send({ type: "GROUP_SETTINGS_CLOSED" })}
                 onCreateTag={(payload) => dashboardRef?.send({ type: "POST_TAG_CREATE_SUBMITTED", payload })}
                 onDeleteTag={(tagId) => dashboardRef?.send({ type: "POST_TAG_DELETE_SUBMITTED", tagId })}
                 onInviteFriend={handleInviteFriend}
                 onRemoveMember={(userId) => dashboardRef?.send({ type: "GROUP_MEMBER_REMOVE_SUBMITTED", userId })}
+                onUpdateVisibility={(visibility) =>
+                  dashboardRef?.send({ type: "GROUP_VISIBILITY_CHANGED", groupId: selectedGroup.id, visibility })
+                }
                 onUpdateTag={(tagId, payload) =>
                   dashboardRef?.send({ type: "POST_TAG_UPDATE_SUBMITTED", tagId, payload })
                 }
@@ -599,7 +632,41 @@ function matchesTopState(value: unknown, state: string): boolean {
 }
 
 function readAppRoute(): AppRoute {
-  return window.location.pathname.startsWith("/user/") ? "profile" : "workspace";
+  let segments: string[];
+  try {
+    segments = window.location.pathname.split("/").filter(Boolean).map(decodeURIComponent);
+  } catch {
+    return "workspace";
+  }
+  if (segments[0] === "user") {
+    return "profile";
+  }
+  const resourceId = segments[1];
+  if (segments[0] === "g" && segments.length === 2 && resourceId !== undefined && resourceId !== "") {
+    return {
+      kind: "group",
+      slug: resourceId,
+    };
+  }
+  if (
+    segments[0] === "f" &&
+    (segments.length === 2 || segments.length === 3) &&
+    resourceId !== undefined &&
+    resourceId !== ""
+  ) {
+    return {
+      kind: "feed",
+      feedId: resourceId,
+      date: segments[2] ?? null,
+    };
+  }
+  if (segments[0] === "p" && segments.length === 2 && resourceId !== undefined && resourceId !== "") {
+    return {
+      kind: "post",
+      postId: resourceId,
+    };
+  }
+  return "workspace";
 }
 
 function userProfilePath(user: User): string {

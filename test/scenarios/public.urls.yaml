@@ -1,0 +1,153 @@
+name: public group feed and post URLs render signed out
+
+vars:
+  email: public-urls-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      client: browser
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Public URLs Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Public URL Group
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: create_source
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/catalog-sources
+      json:
+        name: Public URL Source
+        template: https://example.test/{slug}
+        items:
+          - title: Visible Item
+            data:
+              slug: visible-item
+      expectStatus: 201
+      capture:
+        source_id: $.id
+
+  - request:
+      id: create_feed
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds
+      json:
+        name: Public Practice
+        kind: catalog_daily
+        enabled: true
+        visibility: public
+        default_post_visibility: public
+        source_id: "{{source_id}}"
+        item_count: 1
+        schedule:
+          starts_at: "{{today}}T00:00:00Z"
+          timezone: UTC
+          interval_seconds: 86400
+      expectStatus: 201
+      capture:
+        feed_id: $.id
+
+  - request:
+      id: create_post
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{today}}/posts
+      json:
+        evidence_kind: text
+        evidence_text: Public proof for the public page.
+        caption: Shared for everyone.
+      expectStatus: 201
+      capture:
+        post_id: $.id
+
+  - request:
+      id: logout_owner
+      client: browser
+      method: POST
+      path: /api/auth/logout
+      expectStatus: 204
+
+steps:
+  - request:
+      id: public_group_api
+      method: GET
+      path: /api/public/groups/public-url-group
+      expectStatus: 200
+      expectJson:
+        name: Public URL Group
+        feeds:
+          - name: Public Practice
+
+  - request:
+      id: public_feed_api
+      method: GET
+      path: /api/public/feeds/{{feed_id}}/outputs/{{today}}
+      expectStatus: 200
+      expectJson:
+        name: Public Practice
+        items:
+          - title: Visible Item
+        posts:
+          - evidence_text: Public proof for the public page.
+
+  - request:
+      id: public_post_api
+      method: GET
+      path: /api/public/posts/{{post_id}}
+      expectStatus: 200
+      expectJson:
+        evidence_text: Public proof for the public page.
+        feed:
+          name: Public Practice
+
+  - visit: /g/public-url-group
+
+  - within: Public group
+    expectVisible:
+      text: Public URL Group
+
+  - within: Public group
+    expectVisible:
+      text: Public Practice
+
+  - visit: /f/{{feed_id}}/{{today}}
+
+  - within: Public feed
+    expectVisible:
+      text: Public Practice
+
+  - within: Public feed
+    expectVisible:
+      text: Visible Item
+
+  - within: Public posts
+    expectVisible:
+      text: Public proof for the public page.
+
+  - visit: /p/{{post_id}}
+
+  - within: Public post
+    expectVisible:
+      text: Public proof for the public page.
+
+  - within: Public post
+    expectVisible:
+      text: Shared for everyone.

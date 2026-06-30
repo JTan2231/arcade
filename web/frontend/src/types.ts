@@ -51,12 +51,38 @@ export type Group = {
   name: string;
   slug: string;
   description?: string;
-  visibility: "public" | "invite_only" | "private";
+  visibility: Visibility;
   created_by_user_id: string;
   my_role?: "owner" | "admin" | "member";
   my_status?: "invited" | "active" | "removed" | "left";
   created_at: string;
   updated_at: string;
+};
+
+export type Visibility = "public" | "private";
+
+export type PublicGroup = {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  visibility: "public";
+  feeds: PublicGroupFeed[];
+};
+
+type PublicGroupFeed = {
+  id: string;
+  name: string;
+  slug: string;
+  kind: "catalog_daily" | "daily_thread";
+  description?: string;
+};
+
+type PublicParentGroup = {
+  id: string;
+  name: string;
+  slug: string;
+  visibility: Visibility;
 };
 
 export type GroupMember = {
@@ -113,6 +139,8 @@ export type DailyFeed = {
   kind: "catalog_daily" | "daily_thread";
   description?: string;
   enabled: boolean;
+  visibility: Visibility;
+  default_post_visibility: Visibility;
   source_id?: string;
   source_name?: string;
   item_count?: number;
@@ -156,6 +184,51 @@ export type DailyFeedOutput = {
   items: DailyFeedOutputItem[];
 };
 
+type PublicFeedAction = {
+  type: "link" | "text";
+  label: string;
+  url?: string;
+  text?: string;
+};
+
+export type PublicFeedOutputItem = {
+  position: number;
+  title: string;
+  action: PublicFeedAction;
+};
+
+type PublicPostTag = {
+  id: string;
+  name: string;
+};
+
+export type PublicPost = {
+  id: string;
+  group: PublicParentGroup;
+  feed: {
+    id: string;
+    name: string;
+  };
+  feed_date: string;
+  author: PublicUser;
+  evidence_kind: "text";
+  evidence_text: string;
+  caption?: string;
+  tags: PublicPostTag[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type PublicFeed = {
+  id: string;
+  group: PublicParentGroup;
+  name: string;
+  description?: string;
+  date: string;
+  items: PublicFeedOutputItem[];
+  posts: PublicPost[];
+};
+
 export type CatalogSource = {
   id: string;
   group_id?: string;
@@ -190,6 +263,8 @@ export type CreateDailyFeedRequest = {
   kind: "catalog_daily" | "daily_thread";
   description?: string;
   enabled: boolean;
+  visibility?: Visibility;
+  default_post_visibility?: Visibility;
   source_id?: string;
   item_count?: number;
   schedule: DailyFeedSchedule;
@@ -209,6 +284,7 @@ export type GroupFeedPost = {
   evidence_kind: "text";
   evidence_text: string;
   caption?: string;
+  visibility: Visibility;
   tags: GroupPostTag[];
   deleted_at?: string;
   created_at: string;
@@ -231,12 +307,14 @@ export type CreateGroupFeedPostRequest = {
   evidence_kind: "text";
   evidence_text: string;
   caption?: string;
+  visibility?: Visibility;
 };
 
 export type PatchGroupFeedPostRequest = {
   evidence_kind?: "text";
   evidence_text?: string;
   caption?: string | null;
+  visibility?: Visibility;
   tag_ids?: string[];
 };
 
@@ -344,3 +422,25 @@ export type SignupRequest = {
 export type CreateGroupRequest = {
   name: string;
 };
+
+export type PatchGroupRequest = {
+  name?: string;
+  slug?: string;
+  description?: string | null;
+  visibility?: Visibility;
+};
+
+export type PublicRoute =
+  | {
+      kind: "group";
+      slug: string;
+    }
+  | {
+      kind: "feed";
+      feedId: string;
+      date: string | null;
+    }
+  | {
+      kind: "post";
+      postId: string;
+    };

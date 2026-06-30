@@ -1,0 +1,376 @@
+package app
+
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+)
+
+func (s *Server) handlePublicGroup(w http.ResponseWriter, r *http.Request) {
+	group, err := s.getPublicGroup(r.Context(), r.PathValue("group_slug"))
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, group)
+}
+
+func (s *Server) handlePublicFeedToday(w http.ResponseWriter, r *http.Request) {
+	feed, err := s.getPublicFeed(r.Context(), r.PathValue("feed_id"), nil)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, feed)
+}
+
+func (s *Server) handlePublicFeedOutput(w http.ResponseWriter, r *http.Request) {
+	date, err := parseDailyFeedPathDate(r.PathValue("date"))
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	feed, err := s.getPublicFeed(r.Context(), r.PathValue("feed_id"), &date)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, feed)
+}
+
+func (s *Server) handlePublicPost(w http.ResponseWriter, r *http.Request) {
+	post, err := s.getPublicPost(r.Context(), r.PathValue("post_id"))
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, post)
+}
+
+func (s *Server) getPublicGroup(ctx context.Context, slug string) (PublicGroup, error) {
+	var group PublicGroup
+	var description sql.NullString
+	err := s.db.QueryRow(ctx, `
+		select id::text, name, slug, description, visibility
+		from groups
+		where slug = $1 and visibility = 'public'
+	`, slug).Scan(&group.ID, &group.Name, &group.Slug, &description, &group.Visibility)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return PublicGroup{}, errNotFound("group")
+	}
+	if err != nil {
+		return PublicGroup{}, err
+	}
+	group.Description = nullStringPtr(description)
+	group.Feeds = []PublicGroupFeed{}
+
+	rows, err := s.db.Query(ctx, `
+		select id::text, name, slug, kind, description
+		from group_daily_feeds
+		where group_id = $1
+		  and enabled
+		  and visibility = 'public'
+		order by name, id
+	`, group.ID)
+	if err != nil {
+		return PublicGroup{}, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var feed PublicGroupFeed
+		var feedDescription sql.NullString
+		if err := rows.Scan(&feed.ID, &feed.Name, &feed.Slug, &feed.Kind, &feedDescription); err != nil {
+			return PublicGroup{}, err
+		}
+		feed.Description = nullStringPtr(feedDescription)
+		group.Feeds = append(group.Feeds, feed)
+	}
+	return group, rows.Err()
+}
+
+func (s *Server) getPublicFeed(ctx context.Context, feedID string, requestedDate *time.Time) (PublicFeed, error) {
+	feed, err := s.getDailyFeedByID(ctx, feedID)
+	if err != nil {
+		return PublicFeed{}, err
+	}
+	if feed.Visibility != "public" || !feed.Enabled {
+		return PublicFeed{}, errNotFound("daily feed")
+	}
+
+	group, err := s.getPublicParentGroup(ctx, feed.GroupID)
+	if err != nil {
+		return PublicFeed{}, err
+	}
+
+	output, err := s.generateDailyFeedOutputForFeed(ctx, feed, requestedDate)
+	if err != nil {
+		return PublicFeed{}, err
+	}
+	feedDate, err := parseDailyFeedPathDate(output.Date)
+	if err != nil {
+		return PublicFeed{}, err
+	}
+
+	posts, err := s.listPublicFeedPosts(ctx, feed.ID, feedDate)
+	if err != nil {
+		return PublicFeed{}, err
+	}
+
+	return PublicFeed{
+		ID:          feed.ID,
+		Group:       group,
+		Name:        feed.Name,
+		Description: feed.Description,
+		Date:        output.Date,
+		Items:       publicFeedOutputItems(output.Items),
+		Posts:       posts,
+	}, nil
+}
+
+func (s *Server) getDailyFeedByID(ctx context.Context, feedID string) (DailyFeed, error) {
+	feed, err := scanDailyFeed(s.db.QueryRow(ctx, dailyFeedSelectSQL()+`
+		where f.id = $1
+	`, feedID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return DailyFeed{}, errNotFound("daily feed")
+	}
+	if err != nil {
+		return DailyFeed{}, err
+	}
+	if err := s.hydrateDailyFeedFilters(ctx, &feed); err != nil {
+		return DailyFeed{}, err
+	}
+	return feed, nil
+}
+
+func (s *Server) getPublicParentGroup(ctx context.Context, groupID string) (PublicParentGroup, error) {
+	var group PublicParentGroup
+	err := s.db.QueryRow(ctx, `
+		select id::text, name, slug, visibility
+		from groups
+		where id = $1
+	`, groupID).Scan(&group.ID, &group.Name, &group.Slug, &group.Visibility)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return PublicParentGroup{}, errNotFound("group")
+	}
+	return group, err
+}
+
+func publicFeedOutputItems(items []DailyFeedOutputItem) []PublicFeedOutputItem {
+	publicItems := make([]PublicFeedOutputItem, 0, len(items))
+	for _, item := range items {
+		publicItems = append(publicItems, PublicFeedOutputItem{
+			Position: item.Position,
+			Title:    publicFeedOutputTitle(item),
+			Action:   publicFeedAction(item.Action),
+		})
+	}
+	return publicItems
+}
+
+func publicFeedOutputTitle(item DailyFeedOutputItem) string {
+	return firstNonEmptyString(
+		item.Item.Title,
+		primitivePublicDisplay(item.Item.Data["name"]),
+		primitivePublicDisplay(item.Item.Data["title"]),
+		"Untitled",
+	)
+}
+
+func publicFeedAction(action DailyFeedAction) PublicFeedAction {
+	switch action.Type {
+	case "external_url":
+		return PublicFeedAction{
+			Type:  "link",
+			Label: firstNonEmptyString(action.Label, "Open"),
+			URL:   action.URL,
+		}
+	case "text":
+		return PublicFeedAction{
+			Type:  "text",
+			Label: firstNonEmptyString(action.Label, "Prompt"),
+			Text:  action.Text,
+		}
+	default:
+		return PublicFeedAction{
+			Type:  "text",
+			Label: firstNonEmptyString(action.Label, "Prompt"),
+			Text:  action.Text,
+		}
+	}
+}
+
+func primitivePublicDisplay(value any) string {
+	switch typed := value.(type) {
+	case string:
+		return typed
+	case int, int64, float64, json.Number:
+		return fmt.Sprint(typed)
+	default:
+		return ""
+	}
+}
+
+func firstNonEmptyString(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func (s *Server) getPublicPost(ctx context.Context, postID string) (PublicPost, error) {
+	post, err := scanPublicPost(s.db.QueryRow(ctx, publicPostSelectSQL()+`
+		where p.id = $1
+		  and p.visibility = 'public'
+		  and p.deleted_at is null
+	`, postID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return PublicPost{}, errNotFound("feed post")
+	}
+	if err != nil {
+		return PublicPost{}, err
+	}
+	posts, err := s.hydratePublicPostTags(ctx, []PublicPost{post})
+	if err != nil {
+		return PublicPost{}, err
+	}
+	return posts[0], nil
+}
+
+func (s *Server) listPublicFeedPosts(ctx context.Context, feedID string, feedDate time.Time) ([]PublicPost, error) {
+	rows, err := s.db.Query(ctx, publicPostSelectSQL()+`
+		where i.feed_id = $1
+		  and i.feed_date = $2
+		  and p.visibility = 'public'
+		  and p.deleted_at is null
+		order by p.created_at desc
+	`, feedID, feedDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	posts := []PublicPost{}
+	for rows.Next() {
+		post, err := scanPublicPost(rows)
+		if err != nil {
+			return nil, err
+		}
+		posts = append(posts, post)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return s.hydratePublicPostTags(ctx, posts)
+}
+
+func publicPostSelectSQL() string {
+	return `
+		select
+			p.id::text,
+			g.id::text,
+			g.name,
+			g.slug,
+			g.visibility,
+			f.id::text,
+			f.name,
+			i.feed_date,
+			u.id::text,
+			u.username,
+			u.display_name,
+			u.avatar_url,
+			p.evidence_kind,
+			p.evidence_text,
+			p.caption,
+			p.created_at,
+			p.updated_at
+		from group_feed_posts p
+		join group_daily_feed_instances i on i.id = p.feed_instance_id and i.group_id = p.group_id
+		join group_daily_feeds f on f.id = i.feed_id and f.group_id = i.group_id
+		join groups g on g.id = p.group_id
+		join users u on u.id = p.author_user_id
+	`
+}
+
+func scanPublicPost(row pgx.Row) (PublicPost, error) {
+	var post PublicPost
+	var feedDate time.Time
+	var authorAvatar sql.NullString
+	var caption sql.NullString
+	if err := row.Scan(
+		&post.ID,
+		&post.Group.ID,
+		&post.Group.Name,
+		&post.Group.Slug,
+		&post.Group.Visibility,
+		&post.Feed.ID,
+		&post.Feed.Name,
+		&feedDate,
+		&post.Author.ID,
+		&post.Author.Username,
+		&post.Author.DisplayName,
+		&authorAvatar,
+		&post.EvidenceKind,
+		&post.EvidenceText,
+		&caption,
+		&post.CreatedAt,
+		&post.UpdatedAt,
+	); err != nil {
+		return PublicPost{}, err
+	}
+	post.FeedDate = feedDate.Format(dailyFeedDateLayout)
+	post.Author.AvatarURL = nullStringPtr(authorAvatar)
+	post.Caption = nullStringPtr(caption)
+	post.Tags = []PublicPostTag{}
+	return post, nil
+}
+
+func (s *Server) hydratePublicPostTags(ctx context.Context, posts []PublicPost) ([]PublicPost, error) {
+	if len(posts) == 0 {
+		return posts, nil
+	}
+
+	postIDs := make([]string, 0, len(posts))
+	postIndex := map[string]int{}
+	for index := range posts {
+		posts[index].Tags = []PublicPostTag{}
+		postIDs = append(postIDs, posts[index].ID)
+		postIndex[posts[index].ID] = index
+	}
+
+	rows, err := s.db.Query(ctx, `
+		select fpt.post_id::text, t.id::text, t.name
+		from group_feed_post_tags fpt
+		join group_post_tags t on t.id = fpt.tag_id and t.group_id = fpt.group_id
+		where fpt.post_id = any($1::uuid[])
+		order by fpt.post_id, lower(t.name), t.id
+	`, postIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var postID string
+		var tag PublicPostTag
+		if err := rows.Scan(&postID, &tag.ID, &tag.Name); err != nil {
+			return nil, err
+		}
+		index, ok := postIndex[postID]
+		if !ok {
+			continue
+		}
+		posts[index].Tags = append(posts[index].Tags, tag)
+	}
+	return posts, rows.Err()
+}

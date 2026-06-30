@@ -59,6 +59,8 @@ Routes are grouped by resource in `Server.Routes()`:
 - Groups: groups and group memberships.
 - Divisions: group-scoped divisions and optional user-rating rules.
 - Dailies: group-owned daily feed definitions and deterministic feed outputs.
+- Public reads: signed-out-safe group, feed, and post pages backed by
+  `/api/public/...` routes and visibility checks.
 - Post tags: group-owned feed post tag definitions and post tag attachments.
 - Feed metrics: feed-owned score definitions, judged score writes, and
   computed leaderboards.
@@ -111,6 +113,10 @@ The current daily feed model follows these rules:
   member can own at most one post on that instance. Feed post read responses are
   hydrated with attached group post tags ordered by name,
   including archived tags that remain attached to historical posts.
+- Feed and post visibility are independent from membership reads. Authenticated
+  active members can continue reading private group content through member
+  routes, while public routes expose only explicitly public, enabled feeds and
+  explicitly public, non-deleted posts.
 - Group post tags are a group-managed vocabulary. Owners and admins create,
   rename, archive, and unarchive tag definitions under
   `/api/groups/{group_id}/post-tags`; post authors can attach active tags to
@@ -143,6 +149,9 @@ display names, rankability, ranking direction, and computation functions for
 `post_count`, `average_post_length_words`, `missed_days`, `current_streak`, and
 `typical_posting_window`. Leaderboards compute across the feed's lifetime, from
 the feed creation date through the current date in the feed schedule timezone.
+Current streak counts consecutive scheduled outputs where the member posted
+while that output was the latest output, so retroactive posts to older outputs do
+not repair or extend a streak.
 Judged metric values are persisted separately and aggregated from
 `group_daily_feed_metric_judgments`.
 

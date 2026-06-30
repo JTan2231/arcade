@@ -52,6 +52,26 @@ steps:
       role: button
       name: Settings
 
+  - select:
+      label: Visibility
+      option: Private
+
+  - expectStatus:
+      text: Group visibility updated
+
+  - request:
+      id: private_group_public_read
+      method: GET
+      path: /api/public/groups/settings-group
+      expectStatus: 404
+
+  - select:
+      label: Visibility
+      option: Public
+
+  - expectStatus:
+      text: Group visibility updated
+
   - within: Group members
     expectVisible:
       text: Member One

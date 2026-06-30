@@ -30,26 +30,30 @@ const (
 var templateFieldPattern = regexp.MustCompile(`\{([A-Za-z0-9_]+)\}`)
 
 type createDailyFeedRequest struct {
-	Name        string                `json:"name"`
-	Slug        string                `json:"slug"`
-	Kind        string                `json:"kind"`
-	Description *string               `json:"description"`
-	Enabled     *bool                 `json:"enabled"`
-	SourceID    string                `json:"source_id"`
-	ItemCount   int                   `json:"item_count"`
-	Schedule    *DailyFeedSchedule    `json:"schedule"`
-	Filters     []DailyFeedRuleFilter `json:"filters"`
+	Name                  string                `json:"name"`
+	Slug                  string                `json:"slug"`
+	Kind                  string                `json:"kind"`
+	Description           *string               `json:"description"`
+	Enabled               *bool                 `json:"enabled"`
+	Visibility            string                `json:"visibility"`
+	DefaultPostVisibility string                `json:"default_post_visibility"`
+	SourceID              string                `json:"source_id"`
+	ItemCount             int                   `json:"item_count"`
+	Schedule              *DailyFeedSchedule    `json:"schedule"`
+	Filters               []DailyFeedRuleFilter `json:"filters"`
 }
 
 type patchDailyFeedRequest struct {
-	Name        optionalStringField           `json:"name"`
-	Slug        optionalStringField           `json:"slug"`
-	Description optionalNullableStringField   `json:"description"`
-	Enabled     *bool                         `json:"enabled"`
-	SourceID    optionalStringField           `json:"source_id"`
-	ItemCount   optionalIntField              `json:"item_count"`
-	Schedule    *DailyFeedSchedule            `json:"schedule"`
-	Filters     optionalDailyFeedFiltersField `json:"filters"`
+	Name                  optionalStringField           `json:"name"`
+	Slug                  optionalStringField           `json:"slug"`
+	Description           optionalNullableStringField   `json:"description"`
+	Enabled               *bool                         `json:"enabled"`
+	Visibility            optionalStringField           `json:"visibility"`
+	DefaultPostVisibility optionalStringField           `json:"default_post_visibility"`
+	SourceID              optionalStringField           `json:"source_id"`
+	ItemCount             optionalIntField              `json:"item_count"`
+	Schedule              *DailyFeedSchedule            `json:"schedule"`
+	Filters               optionalDailyFeedFiltersField `json:"filters"`
 }
 
 type optionalIntField struct {
@@ -80,15 +84,17 @@ func (field *optionalDailyFeedFiltersField) UnmarshalJSON(data []byte) error {
 }
 
 type normalizedDailyFeedInput struct {
-	Name        string
-	Slug        string
-	Kind        string
-	Description *string
-	Enabled     bool
-	SourceID    *string
-	ItemCount   *int
-	Schedule    DailyFeedSchedule
-	Filters     []DailyFeedRuleFilter
+	Name                  string
+	Slug                  string
+	Kind                  string
+	Description           *string
+	Enabled               bool
+	Visibility            string
+	DefaultPostVisibility string
+	SourceID              *string
+	ItemCount             *int
+	Schedule              DailyFeedSchedule
+	Filters               []DailyFeedRuleFilter
 }
 
 type dailyCatalogCandidate struct {
@@ -188,6 +194,8 @@ func (s *Server) handleCreateGroupDailyFeed(w http.ResponseWriter, r *http.Reque
 			kind,
 			description,
 			enabled,
+			visibility,
+			default_post_visibility,
 			source_id,
 			item_count,
 			schedule_starts_at,
@@ -195,9 +203,9 @@ func (s *Server) handleCreateGroupDailyFeed(w http.ResponseWriter, r *http.Reque
 			schedule_interval_seconds,
 			created_by_user_id
 		)
-		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 		returning id::text
-	`, groupID, input.Name, input.Slug, input.Kind, input.Description, input.Enabled, input.SourceID, input.ItemCount, input.Schedule.StartsAt, input.Schedule.Timezone, input.Schedule.IntervalSeconds, current.ID).Scan(&feedID)
+	`, groupID, input.Name, input.Slug, input.Kind, input.Description, input.Enabled, input.Visibility, input.DefaultPostVisibility, input.SourceID, input.ItemCount, input.Schedule.StartsAt, input.Schedule.Timezone, input.Schedule.IntervalSeconds, current.ID).Scan(&feedID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -253,16 +261,18 @@ func (s *Server) handlePreviewGroupDailyFeed(w http.ResponseWriter, r *http.Requ
 	}
 
 	feed := DailyFeed{
-		ID:        "preview",
-		GroupID:   groupID,
-		Name:      input.Name,
-		Slug:      input.Slug,
-		Kind:      input.Kind,
-		Enabled:   true,
-		SourceID:  input.SourceID,
-		ItemCount: input.ItemCount,
-		Schedule:  input.Schedule,
-		Filters:   input.Filters,
+		ID:                    "preview",
+		GroupID:               groupID,
+		Name:                  input.Name,
+		Slug:                  input.Slug,
+		Kind:                  input.Kind,
+		Enabled:               true,
+		Visibility:            input.Visibility,
+		DefaultPostVisibility: input.DefaultPostVisibility,
+		SourceID:              input.SourceID,
+		ItemCount:             input.ItemCount,
+		Schedule:              input.Schedule,
+		Filters:               input.Filters,
 	}
 	selection, err := s.selectDailyFeedItems(r.Context(), feed, nil, false)
 	if err != nil {
@@ -356,6 +366,24 @@ func (s *Server) handlePatchGroupDailyFeed(w http.ResponseWriter, r *http.Reques
 		enabled = *req.Enabled
 	}
 
+	visibility := currentFeed.Visibility
+	if req.Visibility.Set {
+		visibility = strings.TrimSpace(req.Visibility.Value)
+		if !validPublicPrivateVisibility(visibility) {
+			handleError(w, badRequest("visibility must be public or private"))
+			return
+		}
+	}
+
+	defaultPostVisibility := currentFeed.DefaultPostVisibility
+	if req.DefaultPostVisibility.Set {
+		defaultPostVisibility = strings.TrimSpace(req.DefaultPostVisibility.Value)
+		if !validPublicPrivateVisibility(defaultPostVisibility) {
+			handleError(w, badRequest("default_post_visibility must be public or private"))
+			return
+		}
+	}
+
 	schedule := currentFeed.Schedule
 	if req.Schedule != nil {
 		normalized, err := normalizeDailyFeedSchedule(req.Schedule)
@@ -432,13 +460,15 @@ func (s *Server) handlePatchGroupDailyFeed(w http.ResponseWriter, r *http.Reques
 		    slug = $4,
 		    description = case when $5 then $6 else description end,
 		    enabled = $7,
-		    source_id = $8,
-		    item_count = $9,
-		    schedule_starts_at = $10,
-		    schedule_timezone = $11,
-		    schedule_interval_seconds = $12
+		    visibility = $8,
+		    default_post_visibility = $9,
+		    source_id = $10,
+		    item_count = $11,
+		    schedule_starts_at = $12,
+		    schedule_timezone = $13,
+		    schedule_interval_seconds = $14
 		where group_id = $1 and id = $2
-	`, groupID, currentFeed.ID, name, slug, descriptionSet, description, enabled, sourceID, itemCount, schedule.StartsAt, schedule.Timezone, schedule.IntervalSeconds)
+	`, groupID, currentFeed.ID, name, slug, descriptionSet, description, enabled, visibility, defaultPostVisibility, sourceID, itemCount, schedule.StartsAt, schedule.Timezone, schedule.IntervalSeconds)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -652,6 +682,8 @@ func dailyFeedSelectSQL() string {
 			f.kind,
 			f.description,
 			f.enabled,
+			f.visibility,
+			f.default_post_visibility,
 			f.source_id::text,
 			cs.name,
 			f.item_count,
@@ -684,6 +716,8 @@ func scanDailyFeed(row pgx.Row) (DailyFeed, error) {
 		&feed.Kind,
 		&description,
 		&feed.Enabled,
+		&feed.Visibility,
+		&feed.DefaultPostVisibility,
 		&sourceID,
 		&sourceName,
 		&itemCount,
@@ -1294,13 +1328,31 @@ func (s *Server) normalizeCreateDailyFeed(ctx context.Context, groupID string, r
 		enabled = *req.Enabled
 	}
 
+	visibility := strings.TrimSpace(req.Visibility)
+	if visibility == "" {
+		visibility = "private"
+	}
+	if !validPublicPrivateVisibility(visibility) {
+		return normalizedDailyFeedInput{}, badRequest("visibility must be public or private")
+	}
+
+	defaultPostVisibility := strings.TrimSpace(req.DefaultPostVisibility)
+	if defaultPostVisibility == "" {
+		defaultPostVisibility = "private"
+	}
+	if !validPublicPrivateVisibility(defaultPostVisibility) {
+		return normalizedDailyFeedInput{}, badRequest("default_post_visibility must be public or private")
+	}
+
 	input := normalizedDailyFeedInput{
-		Name:        name,
-		Slug:        slug,
-		Kind:        kind,
-		Description: trimOptionalString(req.Description),
-		Enabled:     enabled,
-		Schedule:    schedule,
+		Name:                  name,
+		Slug:                  slug,
+		Kind:                  kind,
+		Description:           trimOptionalString(req.Description),
+		Enabled:               enabled,
+		Visibility:            visibility,
+		DefaultPostVisibility: defaultPostVisibility,
+		Schedule:              schedule,
 	}
 
 	if kind == dailyFeedKindDailyThread {

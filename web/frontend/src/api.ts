@@ -24,8 +24,12 @@ import type {
   MetricLeaderboard,
   PatchFeedMetricJudgmentRequest,
   PatchFeedMetricRequest,
+  PatchGroupRequest,
   PatchGroupFeedPostRequest,
   PatchGroupPostTagRequest,
+  PublicFeed,
+  PublicGroup,
+  PublicPost,
   SignupRequest,
   User,
 } from "./types";
@@ -50,6 +54,10 @@ class APIError extends Error {
 
 export function isUnauthorized(error: unknown): boolean {
   return error instanceof APIError && error.status === 401;
+}
+
+export function isNotFound(error: unknown): boolean {
+  return error instanceof APIError && error.status === 404;
 }
 
 async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -169,6 +177,14 @@ export function createGroup(payload: CreateGroupRequest, options: APIOptions = {
   return api<Group>("/api/groups", {
     ...options,
     method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateGroup(groupID: string, payload: PatchGroupRequest, options: APIOptions = {}): Promise<Group> {
+  return api<Group>(`/api/groups/${encodeURIComponent(groupID)}`, {
+    ...options,
+    method: "PATCH",
     body: JSON.stringify(payload),
   });
 }
@@ -505,7 +521,7 @@ export function deleteFeedMetricJudgment(groupID: string, judgmentID: string, op
 export function updateGroupDailyFeed(
   groupID: string,
   feedID: string,
-  payload: Partial<Pick<DailyFeed, "enabled">>,
+  payload: Partial<Pick<DailyFeed, "enabled" | "visibility" | "default_post_visibility">>,
   options: APIOptions = {},
 ): Promise<DailyFeed> {
   return api<DailyFeed>(`/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}`, {
@@ -520,4 +536,23 @@ export function deleteGroupDailyFeed(groupID: string, feedID: string, options: A
     ...options,
     method: "DELETE",
   });
+}
+
+export function getPublicGroup(slug: string, options: APIOptions = {}): Promise<PublicGroup> {
+  return api<PublicGroup>(`/api/public/groups/${encodeURIComponent(slug)}`, options);
+}
+
+export function getPublicFeed(feedID: string, options: APIOptions = {}): Promise<PublicFeed> {
+  return api<PublicFeed>(`/api/public/feeds/${encodeURIComponent(feedID)}`, options);
+}
+
+export function getPublicFeedOutput(feedID: string, date: string, options: APIOptions = {}): Promise<PublicFeed> {
+  return api<PublicFeed>(
+    `/api/public/feeds/${encodeURIComponent(feedID)}/outputs/${encodeURIComponent(date)}`,
+    options,
+  );
+}
+
+export function getPublicPost(postID: string, options: APIOptions = {}): Promise<PublicPost> {
+  return api<PublicPost>(`/api/public/posts/${encodeURIComponent(postID)}`, options);
 }

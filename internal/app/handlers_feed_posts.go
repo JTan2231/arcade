@@ -18,6 +18,7 @@ type createGroupFeedPostRequest struct {
 	EvidenceKind string           `json:"evidence_kind"`
 	EvidenceText string           `json:"evidence_text"`
 	Caption      *string          `json:"caption"`
+	Visibility   string           `json:"visibility"`
 	TagIDs       stringSliceField `json:"tag_ids"`
 }
 
@@ -25,6 +26,7 @@ type patchGroupFeedPostRequest struct {
 	EvidenceKind optionalStringField         `json:"evidence_kind"`
 	EvidenceText optionalStringField         `json:"evidence_text"`
 	Caption      optionalNullableStringField `json:"caption"`
+	Visibility   optionalStringField         `json:"visibility"`
 	TagIDs       optionalStringSliceField    `json:"tag_ids"`
 }
 
@@ -64,6 +66,7 @@ type normalizedGroupFeedPostPayload struct {
 	EvidenceKind string
 	EvidenceText string
 	Caption      *string
+	Visibility   *string
 	TagIDs       []string
 }
 
@@ -72,6 +75,7 @@ type normalizedGroupFeedPostPatch struct {
 	EvidenceText *string
 	CaptionSet   bool
 	Caption      *string
+	Visibility   *string
 	TagIDsSet    bool
 	TagIDs       []string
 }
@@ -159,16 +163,30 @@ func (s *Server) handleCreateGroupFeedPost(w http.ResponseWriter, r *http.Reques
 			evidence_kind,
 			evidence_text,
 			caption,
+			visibility,
 			deleted_at
 		)
-		values ($1, $2, $3, $4, $5, $6, null)
+		values (
+			$1,
+			$2,
+			$3,
+			$4,
+			$5,
+			$6,
+			coalesce(
+				$7::text,
+				(select default_post_visibility from group_daily_feeds where group_id = $1 and id = $8)
+			),
+			null
+		)
 		on conflict (feed_instance_id, author_user_id) do update set
 			evidence_kind = excluded.evidence_kind,
 			evidence_text = excluded.evidence_text,
 			caption = excluded.caption,
+			visibility = excluded.visibility,
 			deleted_at = null
 		returning id::text
-	`, groupID, instanceID, current.ID, payload.EvidenceKind, payload.EvidenceText, payload.Caption).Scan(&postID)
+	`, groupID, instanceID, current.ID, payload.EvidenceKind, payload.EvidenceText, payload.Caption, payload.Visibility, feedID).Scan(&postID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -264,6 +282,16 @@ func (s *Server) handlePatchGroupFeedPost(w http.ResponseWriter, r *http.Request
 		handleError(w, forbidden("only post authors can edit posts"))
 		return
 	}
+	if patch.Visibility != nil && !isAuthor {
+		if !canManageDailyFeeds(role) {
+			handleError(w, forbidden("insufficient group permissions"))
+			return
+		}
+		if *patch.Visibility == "public" {
+			handleError(w, forbidden("only post authors can make posts public"))
+			return
+		}
+	}
 	if !groupFeedPostPatchTouchesContent(patch) && patch.TagIDsSet && !isAuthor && !canManageDailyFeeds(role) {
 		handleError(w, forbidden("insufficient group permissions"))
 		return
@@ -284,11 +312,12 @@ func (s *Server) handlePatchGroupFeedPost(w http.ResponseWriter, r *http.Request
 		update group_feed_posts
 		set evidence_kind = coalesce($3, evidence_kind),
 		    evidence_text = coalesce($4, evidence_text),
-		    caption = case when $5 then $6::text else caption end
+		    caption = case when $5 then $6::text else caption end,
+		    visibility = coalesce($7, visibility)
 		where group_id = $1
 		  and id = $2
 		  and deleted_at is null
-	`, groupID, post.ID, patch.EvidenceKind, patch.EvidenceText, patch.CaptionSet, patch.Caption)
+	`, groupID, post.ID, patch.EvidenceKind, patch.EvidenceText, patch.CaptionSet, patch.Caption, patch.Visibility)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -473,6 +502,7 @@ func groupFeedPostSelect() string {
 			p.evidence_kind,
 			p.evidence_text,
 			p.caption,
+			p.visibility,
 			p.deleted_at,
 			p.created_at,
 			p.updated_at
@@ -501,6 +531,7 @@ func scanGroupFeedPost(row pgx.Row) (GroupFeedPost, error) {
 		&post.EvidenceKind,
 		&post.EvidenceText,
 		&caption,
+		&post.Visibility,
 		&deletedAt,
 		&post.CreatedAt,
 		&post.UpdatedAt,
@@ -528,6 +559,14 @@ func normalizeCreateGroupFeedPostRequest(req createGroupFeedPostRequest) (normal
 	if err != nil {
 		return normalizedGroupFeedPostPayload{}, err
 	}
+	var visibility *string
+	if strings.TrimSpace(req.Visibility) != "" {
+		normalized := strings.TrimSpace(req.Visibility)
+		if !validPublicPrivateVisibility(normalized) {
+			return normalizedGroupFeedPostPayload{}, badRequest("visibility must be public or private")
+		}
+		visibility = &normalized
+	}
 	tagIDs, err := normalizeGroupFeedPostTagIDs([]string(req.TagIDs))
 	if err != nil {
 		return normalizedGroupFeedPostPayload{}, err
@@ -536,12 +575,13 @@ func normalizeCreateGroupFeedPostRequest(req createGroupFeedPostRequest) (normal
 		EvidenceKind: evidenceKind,
 		EvidenceText: evidenceText,
 		Caption:      caption,
+		Visibility:   visibility,
 		TagIDs:       tagIDs,
 	}, nil
 }
 
 func normalizePatchGroupFeedPostRequest(req patchGroupFeedPostRequest) (normalizedGroupFeedPostPatch, error) {
-	if !req.EvidenceKind.Set && !req.EvidenceText.Set && !req.Caption.Set && !req.TagIDs.Set {
+	if !req.EvidenceKind.Set && !req.EvidenceText.Set && !req.Caption.Set && !req.Visibility.Set && !req.TagIDs.Set {
 		return normalizedGroupFeedPostPatch{}, badRequest("at least one field is required")
 	}
 
@@ -567,6 +607,13 @@ func normalizePatchGroupFeedPostRequest(req patchGroupFeedPostRequest) (normaliz
 		}
 		patch.CaptionSet = true
 		patch.Caption = caption
+	}
+	if req.Visibility.Set {
+		visibility := strings.TrimSpace(req.Visibility.Value)
+		if !validPublicPrivateVisibility(visibility) {
+			return normalizedGroupFeedPostPatch{}, badRequest("visibility must be public or private")
+		}
+		patch.Visibility = &visibility
 	}
 	if req.TagIDs.Set {
 		tagIDs, err := normalizeGroupFeedPostTagIDs(req.TagIDs.Value)

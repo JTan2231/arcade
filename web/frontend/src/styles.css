@@ -115,6 +115,22 @@ button.danger:hover:not(:disabled) {
   border-color: var(--color-danger-border-hover);
 }
 
+.header-link-button {
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text);
+  display: inline-flex;
+  min-height: 36px;
+  padding: 0 12px;
+  text-decoration: none;
+}
+
+.header-link-button:hover {
+  background: var(--color-surface-muted);
+}
+
 input {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -258,6 +274,83 @@ label {
 .profile-layout {
   grid-template-columns: minmax(280px, 520px);
   justify-content: center;
+}
+
+.public-layout {
+  display: grid;
+  justify-content: center;
+  padding: 16px;
+}
+
+.public-page {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-panel);
+  display: grid;
+  gap: 18px;
+  max-width: 860px;
+  min-width: 0;
+  padding: 18px;
+  width: min(860px, calc(100vw - 32px));
+}
+
+.public-page-header {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding-bottom: 14px;
+}
+
+.public-page-header h2 {
+  font-size: 24px;
+  letter-spacing: 0;
+  margin: 0;
+}
+
+.public-page-header p {
+  color: var(--color-text-muted);
+  margin: 6px 0 0;
+}
+
+.public-section {
+  display: grid;
+  gap: 10px;
+}
+
+.public-list-link,
+.public-output-item,
+.public-post-card {
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+}
+
+.public-list-link {
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.public-list-link:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
+}
+
+.public-output-item a,
+.public-page a,
+.public-post-link {
+  color: var(--color-accent-hover);
+}
+
+.public-post-link {
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .sidebar-stack {
@@ -811,6 +904,11 @@ button.confirm-icon-button:hover:not(:disabled) {
   display: grid;
   gap: 16px;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+}
+
+.group-visibility-section {
+  display: grid;
+  gap: 8px;
 }
 
 .group-members-manager {
@@ -1369,6 +1467,14 @@ button.metric-select-button.selected-row {
     gap: 10px;
     grid-template-columns: minmax(0, 1fr);
     padding: 10px;
+  }
+
+  .public-layout {
+    padding: 10px;
+  }
+
+  .public-page {
+    width: min(100%, calc(100vw - 20px));
   }
 
   .sidebar-stack {

@@ -41,7 +41,8 @@ steps:
 
   - within: Arcade workspace
     expectVisible:
-      text: No groups yet
+      role: button
+      name: Add group
 
   - click:
       role: button

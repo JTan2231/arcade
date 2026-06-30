@@ -163,6 +163,41 @@ func TestDailyThreadRejectsPracticeFields(t *testing.T) {
 	}
 }
 
+func TestDailyThreadVisibilityDefaults(t *testing.T) {
+	server := &Server{}
+	input, err := server.normalizeCreateDailyFeed(context.Background(), "group", createDailyFeedRequest{
+		Kind: dailyFeedKindDailyThread,
+	})
+	if err != nil {
+		t.Fatalf("normalizeCreateDailyFeed returned error: %v", err)
+	}
+	if input.Visibility != "private" {
+		t.Fatalf("visibility = %q, want private", input.Visibility)
+	}
+	if input.DefaultPostVisibility != "private" {
+		t.Fatalf("default post visibility = %q, want private", input.DefaultPostVisibility)
+	}
+}
+
+func TestDailyThreadVisibilityValidation(t *testing.T) {
+	server := &Server{}
+	_, err := server.normalizeCreateDailyFeed(context.Background(), "group", createDailyFeedRequest{
+		Kind:       dailyFeedKindDailyThread,
+		Visibility: "invite_only",
+	})
+	if err == nil {
+		t.Fatal("expected invalid visibility to be rejected")
+	}
+
+	_, err = server.normalizeCreateDailyFeed(context.Background(), "group", createDailyFeedRequest{
+		Kind:                  dailyFeedKindDailyThread,
+		DefaultPostVisibility: "invite_only",
+	})
+	if err == nil {
+		t.Fatal("expected invalid default post visibility to be rejected")
+	}
+}
+
 func TestDailyThreadOutputHasNoGeneratedItems(t *testing.T) {
 	server := &Server{}
 	requestedDate := time.Date(2026, 6, 24, 12, 0, 0, 0, time.UTC)
@@ -189,6 +224,39 @@ func TestDailyThreadOutputHasNoGeneratedItems(t *testing.T) {
 	}
 	if len(output.Items) != 0 {
 		t.Fatalf("items = %d", len(output.Items))
+	}
+}
+
+func TestPublicFeedOutputItemsSanitizeCatalogData(t *testing.T) {
+	items := publicFeedOutputItems([]DailyFeedOutputItem{
+		{
+			Position: 1,
+			Item: DailyCatalogItem{
+				ID:         "item-id",
+				SourceID:   "source-id",
+				SourceName: "Source",
+				Title:      "Rendered Title",
+				Data:       map[string]any{"rating": float64(800)},
+			},
+			Action: DailyFeedAction{
+				Type:  "external_url",
+				Label: "Open",
+				URL:   "https://example.test/item",
+			},
+		},
+	})
+
+	if len(items) != 1 {
+		t.Fatalf("items = %d, want 1", len(items))
+	}
+	if items[0].Title != "Rendered Title" {
+		t.Fatalf("title = %q, want Rendered Title", items[0].Title)
+	}
+	if items[0].Action.Type != "link" {
+		t.Fatalf("action type = %q, want link", items[0].Action.Type)
+	}
+	if items[0].Action.URL != "https://example.test/item" {
+		t.Fatalf("action url = %q", items[0].Action.URL)
 	}
 }
 

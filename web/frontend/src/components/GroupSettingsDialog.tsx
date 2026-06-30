@@ -7,6 +7,7 @@ import type {
   GroupMember,
   GroupPostTag,
   PatchGroupPostTagRequest,
+  Visibility,
 } from "../types";
 
 type GroupSettingsDialogProps = {
@@ -24,6 +25,7 @@ type GroupSettingsDialogProps = {
   inviteCandidates: GroupInviteCandidate[];
   inviteCandidatesLoading: boolean;
   invitingUserId: string | null;
+  visibilitySaving: boolean;
   onClose: () => void;
   onCreateTag: (payload: CreateGroupPostTagRequest) => void;
   onUpdateTag: (tagId: string, payload: PatchGroupPostTagRequest) => void;
@@ -31,6 +33,7 @@ type GroupSettingsDialogProps = {
   onRemoveMember: (userId: string) => void;
   onInviteFriend: (userId: string) => void;
   onCancelGroupInvite: (userId: string) => void;
+  onUpdateVisibility: (visibility: Visibility) => void;
 };
 
 export function GroupSettingsDialog({
@@ -48,6 +51,7 @@ export function GroupSettingsDialog({
   inviteCandidates,
   inviteCandidatesLoading,
   invitingUserId,
+  visibilitySaving,
   onClose,
   onCreateTag,
   onUpdateTag,
@@ -55,6 +59,7 @@ export function GroupSettingsDialog({
   onRemoveMember,
   onInviteFriend,
   onCancelGroupInvite,
+  onUpdateVisibility,
 }: GroupSettingsDialogProps) {
   if (!canManageGroup(group)) {
     return null;
@@ -79,6 +84,7 @@ export function GroupSettingsDialog({
         </div>
         {loading ? <div className="meta">Loading settings...</div> : null}
         <div className="group-settings-grid">
+          <GroupVisibilityControl group={group} saving={visibilitySaving} onUpdateVisibility={onUpdateVisibility} />
           <PostTagManager
             deletingTagId={deletingTagId}
             error={tagError}
@@ -109,6 +115,35 @@ export function GroupSettingsDialog({
         </div>
       </section>
     </div>
+  );
+}
+
+function GroupVisibilityControl({
+  group,
+  saving,
+  onUpdateVisibility,
+}: {
+  group: Group;
+  saving: boolean;
+  onUpdateVisibility: (visibility: Visibility) => void;
+}) {
+  return (
+    <section className="group-visibility-section" aria-label="Group visibility">
+      <div className="section-title">Visibility</div>
+      <label htmlFor="group-visibility-select">Visibility</label>
+      <select
+        id="group-visibility-select"
+        disabled={saving}
+        value={group.visibility}
+        onChange={(event) => onUpdateVisibility(event.target.value as Visibility)}
+      >
+        <option value="public">Public</option>
+        <option value="private">Private</option>
+      </select>
+      <div className="meta">
+        {group.visibility === "public" ? "Visible on public group pages and discovery." : "Visible only to members."}
+      </div>
+    </section>
   );
 }
 

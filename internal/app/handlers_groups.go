@@ -32,7 +32,6 @@ func (s *Server) handleListGroups(w http.ResponseWriter, r *http.Request) {
 		left join group_memberships gm on gm.group_id = g.id and gm.user_id = $1
 		where g.visibility = 'public'
 		   or gm.status = 'active'
-		   or (g.visibility = 'invite_only' and gm.status = 'invited')
 		order by g.created_at desc
 	`, current.ID)
 	if err != nil {
@@ -84,10 +83,10 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 		req.Slug = slugify(req.Slug)
 	}
 	if req.Visibility == "" {
-		req.Visibility = "invite_only"
+		req.Visibility = "public"
 	}
 	if !validGroupVisibility(req.Visibility) {
-		writeError(w, http.StatusBadRequest, "visibility must be public, invite_only, or private")
+		writeError(w, http.StatusBadRequest, "visibility must be public or private")
 		return
 	}
 
@@ -200,7 +199,7 @@ func (s *Server) handlePatchGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.Visibility != nil && !validGroupVisibility(*req.Visibility) {
-		writeError(w, http.StatusBadRequest, "visibility must be public, invite_only, or private")
+		writeError(w, http.StatusBadRequest, "visibility must be public or private")
 		return
 	}
 
