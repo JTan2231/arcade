@@ -48,6 +48,20 @@ The wrapper also accepts `psql` arguments, for example:
 DATABASE_URL='postgres://...' scripts/prod-db-readonly.sh -c 'select now();'
 ```
 
+To replace local group/feed/source data with production data, use the mirror
+utility. It runs local migrations, truncates local app data, and copies the
+production graph needed by groups, daily feeds, catalog sources/items, posts,
+tags, metrics, friendships, and memberships. It does not copy production
+sessions, and it sanitizes user email/password/friend-code fields by default:
+
+```sh
+ARCADE_PROD_DATABASE_URL='postgres://...' scripts/mirror-prod-to-local.sh
+```
+
+Pass `-dry-run` to inspect row counts first. Pass `-local-password` or set
+`ARCADE_MIRROR_LOCAL_PASSWORD` to give every mirrored user a shared local
+password.
+
 ## Frontend Development
 
 Editable frontend source lives in `web/frontend`. Vite builds production assets

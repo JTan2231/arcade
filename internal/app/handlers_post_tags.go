@@ -359,9 +359,9 @@ func normalizeGroupFeedPostTagIDs(rawIDs []string) ([]string, error) {
 
 func (s *Server) listGroupPostTags(ctx context.Context, groupID string, includeArchived bool) ([]GroupPostTag, error) {
 	rows, err := s.db.Query(ctx, groupPostTagSelect()+`
-		where group_id = $1
-		  and ($2::boolean or archived_at is null)
-		order by display_order, lower(name), id
+			where group_id = $1
+			  and ($2::boolean or archived_at is null)
+			order by lower(name), id
 	`, groupID, includeArchived)
 	if err != nil {
 		return nil, err
@@ -449,9 +449,9 @@ func (s *Server) hydrateGroupFeedPostTags(ctx context.Context, posts []GroupFeed
 			t.created_at,
 			t.updated_at
 		from group_feed_post_tags fpt
-		join group_post_tags t on t.id = fpt.tag_id and t.group_id = fpt.group_id
-		where fpt.post_id = any($1::uuid[])
-		order by fpt.post_id, t.display_order, lower(t.name), t.id
+			join group_post_tags t on t.id = fpt.tag_id and t.group_id = fpt.group_id
+			where fpt.post_id = any($1::uuid[])
+			order by fpt.post_id, lower(t.name), t.id
 	`, postIDs)
 	if err != nil {
 		return nil, err

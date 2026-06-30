@@ -135,15 +135,16 @@ later post by the same member reuses and reactivates the existing row.
 `group_post_tags` stores the post tag vocabulary owned by a group. Arcade does
 not create default tag definitions; a group has no tags until an owner or admin
 creates them. Tag names are unique case-insensitively within the group across
-active and archived tags, and `display_order` controls normal API ordering.
-Tags are archived instead of deleted for user-facing removal.
+active and archived tags. API responses order tags by name for user-facing
+display. Tags are archived instead of deleted for user-facing removal.
 
 `group_feed_post_tags` attaches group post tags to feed posts. Composite foreign
 keys require the post and tag to belong to the same group, and deleting a post
 row cascades its attachments. Deleting a tag definition is restricted while
 historical posts reference it, so archived tags remain visible on posts through
-the join table. Tag color and pill styling are frontend-controlled; no per-tag
-color is stored.
+the join table. Active tags can be attached to existing posts by the post author
+or by a group owner/admin. Tag color and pill styling are frontend-controlled;
+no per-tag color is stored.
 
 ## Feed Metrics And Leaderboards
 

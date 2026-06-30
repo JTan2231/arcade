@@ -54,7 +54,6 @@ before:
       path: /api/groups/{{group_id}}/post-tags
       json:
         name: Active
-        display_order: 1
       expectStatus: 201
       capture:
         active_tag_id: $.id
@@ -66,13 +65,12 @@ before:
       path: /api/groups/{{group_id}}/post-tags
       json:
         name: Legacy
-        display_order: 2
       expectStatus: 201
       capture:
         legacy_tag_id: $.id
 
   - request:
-      id: create_tagged_post
+      id: create_post
       client: browser
       method: POST
       path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{today}}/posts
@@ -80,12 +78,20 @@ before:
         evidence_kind: text
         evidence_text: Initial tagged proof.
         caption: Tag coverage.
-        tag_ids:
-          - "{{active_tag_id}}"
-          - "{{legacy_tag_id}}"
       expectStatus: 201
       capture:
         post_id: $.id
+
+  - request:
+      id: tag_post
+      client: browser
+      method: PATCH
+      path: /api/groups/{{group_id}}/feed-posts/{{post_id}}
+      json:
+        tag_ids:
+          - "{{active_tag_id}}"
+          - "{{legacy_tag_id}}"
+      expectStatus: 200
 
   - request:
       id: archive_legacy_tag

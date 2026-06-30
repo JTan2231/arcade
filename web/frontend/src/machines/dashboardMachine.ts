@@ -49,9 +49,14 @@ import type {
   User,
 } from "../types";
 
-type PostPayload = {
+type CreatePostPayload = {
   evidenceText: string;
   caption: string;
+};
+
+type UpdatePostPayload = {
+  evidenceText?: string;
+  caption?: string;
   tagIds?: string[];
 };
 
@@ -60,13 +65,12 @@ type PostMutation =
       kind: "create";
       evidenceText: string;
       caption: string;
-      tagIds: string[];
     }
   | {
       kind: "update";
       postId: string;
-      evidenceText: string;
-      caption: string;
+      evidenceText?: string;
+      caption?: string;
       tagIds?: string[];
     }
   | {
@@ -157,8 +161,8 @@ type DashboardUserEvent =
   | { type: "FEED_DATE_CHANGED"; date: string }
   | { type: "FEED_ENABLED_TOGGLED"; feedId: string }
   | { type: "FEED_DELETE_SUBMITTED"; feedId: string }
-  | { type: "POST_CREATE_SUBMITTED"; payload: PostPayload }
-  | { type: "POST_UPDATE_SUBMITTED"; postId: string; payload: PostPayload }
+  | { type: "POST_CREATE_SUBMITTED"; payload: CreatePostPayload }
+  | { type: "POST_UPDATE_SUBMITTED"; postId: string; payload: UpdatePostPayload }
   | { type: "POST_DELETE_SUBMITTED"; postId: string }
   | { type: "POST_TAG_CREATE_SUBMITTED"; payload: CreateGroupPostTagRequest }
   | { type: "POST_TAG_UPDATE_SUBMITTED"; tagId: string; payload: PatchGroupPostTagRequest }
@@ -212,13 +216,13 @@ type DeleteFeedOutput = {
   feedId: string;
 };
 
-type CreatePostInput = DatedFeedInput & PostPayload;
+type CreatePostInput = DatedFeedInput & CreatePostPayload;
 
 type UpdatePostInput = {
   groupId: string;
   postId: string;
-  evidenceText: string;
-  caption: string;
+  evidenceText?: string;
+  caption?: string;
   tagIds?: string[];
 };
 
@@ -344,7 +348,6 @@ const dashboardSetup = setup({
           evidence_kind: "text",
           evidence_text: input.evidenceText,
           ...(input.caption !== "" ? { caption: input.caption } : {}),
-          tag_ids: input.tagIds ?? [],
         },
         { signal },
       ),
@@ -354,9 +357,13 @@ const dashboardSetup = setup({
         input.groupId,
         input.postId,
         {
-          evidence_kind: "text",
-          evidence_text: input.evidenceText,
-          caption: input.caption !== "" ? input.caption : null,
+          ...(input.evidenceText !== undefined
+            ? {
+                evidence_kind: "text" as const,
+                evidence_text: input.evidenceText,
+              }
+            : {}),
+          ...(input.caption !== undefined ? { caption: input.caption !== "" ? input.caption : null } : {}),
           ...(input.tagIds !== undefined ? { tag_ids: input.tagIds } : {}),
         },
         { signal },
@@ -539,19 +546,22 @@ export const dashboardMachine = dashboardSetup.createMachine({
           kind: "create",
           evidenceText: event.payload.evidenceText.trim(),
           caption: event.payload.caption.trim(),
-          tagIds: event.payload.tagIds ?? [],
         },
       })),
     },
     POST_UPDATE_SUBMITTED: {
-      guard: ({ context, event }) => context.selectedGroupId !== null && event.payload.evidenceText.trim() !== "",
+      guard: ({ context, event }) => context.selectedGroupId !== null && validPostUpdatePayload(event.payload),
       target: ".groupSelected.feedSelected.updatingPost",
       actions: assign(({ event }) => ({
         postMutation: {
           kind: "update",
           postId: event.postId,
-          evidenceText: event.payload.evidenceText.trim(),
-          caption: event.payload.caption.trim(),
+          ...(event.payload.evidenceText !== undefined
+            ? {
+                evidenceText: event.payload.evidenceText.trim(),
+              }
+            : {}),
+          ...(event.payload.caption !== undefined ? { caption: event.payload.caption.trim() } : {}),
           ...(event.payload.tagIds !== undefined ? { tagIds: event.payload.tagIds } : {}),
         },
       })),
@@ -998,7 +1008,6 @@ export const dashboardMachine = dashboardSetup.createMachine({
                     date: requireOutputDate(context),
                     evidenceText: mutation.evidenceText,
                     caption: mutation.caption,
-                    tagIds: mutation.tagIds,
                   };
                 },
                 onDone: [
@@ -1035,12 +1044,20 @@ export const dashboardMachine = dashboardSetup.createMachine({
                 src: "updateGroupFeedPost",
                 input: ({ context }) => {
                   const mutation = requirePostMutation(context, "update");
-                  return {
+                  const input: UpdatePostInput = {
                     groupId: requireSelectedGroupId(context),
                     postId: mutation.postId,
-                    evidenceText: mutation.evidenceText,
-                    caption: mutation.caption,
                   };
+                  if (mutation.evidenceText !== undefined) {
+                    input.evidenceText = mutation.evidenceText;
+                  }
+                  if (mutation.caption !== undefined) {
+                    input.caption = mutation.caption;
+                  }
+                  if (mutation.tagIds !== undefined) {
+                    input.tagIds = mutation.tagIds;
+                  }
+                  return input;
                 },
                 onDone: [
                   {
@@ -1541,6 +1558,13 @@ function selectedGroupCanManagePostTags(context: DashboardContext): boolean {
   return group?.my_role === "owner" || group?.my_role === "admin";
 }
 
+function validPostUpdatePayload(payload: UpdatePostPayload): boolean {
+  if (payload.evidenceText !== undefined && payload.evidenceText.trim() === "") {
+    return false;
+  }
+  return payload.evidenceText !== undefined || payload.caption !== undefined || payload.tagIds !== undefined;
+}
+
 function closeAddFeedTransitions() {
   return [
     {
@@ -1895,9 +1919,6 @@ function metricSort(left: FeedMetric, right: FeedMetric): number {
 }
 
 function postTagSort(left: GroupPostTag, right: GroupPostTag): number {
-  if (left.display_order !== right.display_order) {
-    return left.display_order - right.display_order;
-  }
   const byName = left.name.localeCompare(right.name, undefined, { sensitivity: "base" });
   if (byName !== 0) {
     return byName;

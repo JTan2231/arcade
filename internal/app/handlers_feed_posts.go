@@ -248,7 +248,8 @@ func (s *Server) handlePatchGroupFeedPost(w http.ResponseWriter, r *http.Request
 	}
 
 	groupID := r.PathValue("group_id")
-	if _, err := s.activeGroupRole(r.Context(), current.ID, groupID); err != nil {
+	role, err := s.activeGroupRole(r.Context(), current.ID, groupID)
+	if err != nil {
 		handleError(w, err)
 		return
 	}
@@ -258,8 +259,13 @@ func (s *Server) handlePatchGroupFeedPost(w http.ResponseWriter, r *http.Request
 		handleError(w, err)
 		return
 	}
-	if post.AuthorUserID != current.ID {
+	isAuthor := post.AuthorUserID == current.ID
+	if groupFeedPostPatchTouchesContent(patch) && !isAuthor {
 		handleError(w, forbidden("only post authors can edit posts"))
+		return
+	}
+	if !groupFeedPostPatchTouchesContent(patch) && patch.TagIDsSet && !isAuthor && !canManageDailyFeeds(role) {
+		handleError(w, forbidden("insufficient group permissions"))
 		return
 	}
 	if post.DeletedAt != nil {
@@ -571,6 +577,10 @@ func normalizePatchGroupFeedPostRequest(req patchGroupFeedPostRequest) (normaliz
 		patch.TagIDs = tagIDs
 	}
 	return patch, nil
+}
+
+func groupFeedPostPatchTouchesContent(patch normalizedGroupFeedPostPatch) bool {
+	return patch.EvidenceKind != nil || patch.EvidenceText != nil || patch.CaptionSet
 }
 
 func normalizeGroupFeedPostCaption(caption *string) (*string, error) {

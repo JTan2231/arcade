@@ -1,4 +1,4 @@
-name: composer can attach a group post tag
+name: post tag menu can attach a group post tag
 
 vars:
   email: tag-composer@example.test
@@ -45,7 +45,6 @@ before:
       path: /api/groups/{{group_id}}/post-tags
       json:
         name: Active
-        display_order: 1
       expectStatus: 201
 
 steps:
@@ -55,10 +54,6 @@ steps:
     click:
       role: button
       name: Post
-
-  - within: Posts
-    check:
-      label: Active
 
   - within: Posts
     fill:
@@ -72,6 +67,23 @@ steps:
 
   - expectStatus:
       text: Post submitted
+
+  - within: Posts
+    click:
+      role: button
+      name: Tag
+
+  - within: Posts
+    check:
+      label: Active
+
+  - within: Posts
+    click:
+      role: button
+      name: Done
+
+  - expectStatus:
+      text: Post updated
 
   - within: Posts
     expectVisible:

@@ -219,7 +219,6 @@ export type CreateGroupFeedPostRequest = {
   evidence_kind: "text";
   evidence_text: string;
   caption?: string;
-  tag_ids?: string[];
 };
 
 export type PatchGroupFeedPostRequest = {

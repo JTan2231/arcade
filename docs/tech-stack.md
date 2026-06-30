@@ -66,6 +66,17 @@ command `go run ./cmd/codeforces-catalog-import` fetches or reads the raw
 Codeforces response, converts it to normalized JSONL, validates it, and can
 upload the result with the same token.
 
+Production group/feed/source data can be mirrored into the local database with
+`scripts/mirror-prod-to-local.sh`. The wrapper runs `go run
+./cmd/mirror-prod-db`, connects to production in read-only mode, runs local
+migrations without starting the HTTP server, truncates the mirrored local app
+tables, and copies users, friendships, groups, memberships, divisions, catalog
+sources/items/fields, daily feeds, feed filters, feed posts, post tags, and feed
+metrics. It intentionally excludes `user_sessions`. By default it replaces user
+email, password hash, and friend code values with local-safe values; set
+`ARCADE_MIRROR_LOCAL_PASSWORD` or pass `-local-password` to make mirrored users
+loggable locally with one shared password.
+
 ## Current Boundaries
 
 - Division recomputation returns metadata and does not materialize user/division assignments in the local build.

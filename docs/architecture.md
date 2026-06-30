@@ -109,13 +109,13 @@ The current daily feed model follows these rules:
 - Member posts are stored separately from generated output. The first post for a
   feed/date lazily creates a `group_daily_feed_instances` row, and each active
   member can own at most one post on that instance. Feed post read responses are
-  hydrated with attached group post tags ordered by display order and name,
+  hydrated with attached group post tags ordered by name,
   including archived tags that remain attached to historical posts.
 - Group post tags are a group-managed vocabulary. Owners and admins create,
-  rename, reorder, archive, and unarchive tag definitions under
-  `/api/groups/{group_id}/post-tags`; members can attach active tags to their
-  own posts when creating or editing a feed post. Arcade creates no default
-  tags.
+  rename, archive, and unarchive tag definitions under
+  `/api/groups/{group_id}/post-tags`; post authors can attach active tags to
+  their own existing posts, and owners/admins can attach active tags to any
+  existing post in the group. Arcade creates no default tags.
 
 The generator uses feed configuration and catalog item data only.
 

@@ -29,9 +29,14 @@ import type {
   SystemMetricKey,
 } from "../types";
 
-type FeedPostPayload = {
+type CreateFeedPostPayload = {
   evidenceText: string;
   caption: string;
+};
+
+type UpdateFeedPostPayload = {
+  evidenceText?: string;
+  caption?: string;
   tagIds?: string[];
 };
 
@@ -80,8 +85,8 @@ type GroupDashboardProps = {
   onAddFeedDraftChanged: () => void;
   onPreviewFeed: (payload: CreateDailyFeedRequest) => void;
   onCreateFeed: (payload: CreateDailyFeedRequest) => void;
-  onCreateFeedPost: (payload: FeedPostPayload) => void;
-  onUpdateFeedPost: (postId: string, payload: FeedPostPayload) => void;
+  onCreateFeedPost: (payload: CreateFeedPostPayload) => void;
+  onUpdateFeedPost: (postId: string, payload: UpdateFeedPostPayload) => void;
   onDeleteFeedPost: (postId: string) => void;
   onCreatePostTag: (payload: CreateGroupPostTagRequest) => void;
   onUpdatePostTag: (tagId: string, payload: PatchGroupPostTagRequest) => void;
@@ -208,6 +213,7 @@ export function GroupDashboard({
             currentUserId={currentUserId}
             judgedMetrics={judgedMetrics}
             canJudge={canManageMetrics}
+            canManagePostTags={canManagePostTags}
             judgingPostId={judgingPostId}
             onCreateFeedPost={onCreateFeedPost}
             onUpdateFeedPost={onUpdateFeedPost}
@@ -344,7 +350,6 @@ function PostTagManager({
   onDeleteTag: (tagId: string) => void;
 }) {
   const [name, setName] = useState("");
-  const [displayOrder, setDisplayOrder] = useState("");
   const [formError, setFormError] = useState("");
 
   function handleCreate(event: FormEvent<HTMLFormElement>) {
@@ -354,15 +359,9 @@ function PostTagManager({
       setFormError("Tag name is required");
       return;
     }
-    const parsedOrder = parsePostTagOrder(displayOrder);
-    if (parsedOrder === null) {
-      setFormError("Order must be a non-negative integer");
-      return;
-    }
     setFormError("");
-    onCreateTag({ name: trimmedName, display_order: parsedOrder });
+    onCreateTag({ name: trimmedName });
     setName("");
-    setDisplayOrder("");
   }
 
   return (
@@ -381,19 +380,6 @@ function PostTagManager({
             value={name}
             onChange={(event) => {
               setName(event.target.value);
-              setFormError("");
-            }}
-          />
-        </label>
-        <label>
-          Order
-          <input
-            min="0"
-            step="1"
-            type="number"
-            value={displayOrder}
-            onChange={(event) => {
-              setDisplayOrder(event.target.value);
               setFormError("");
             }}
           />
@@ -438,21 +424,18 @@ function PostTagManagerRow({
   onDeleteTag: (tagId: string) => void;
 }) {
   const [name, setName] = useState(tag.name);
-  const [displayOrder, setDisplayOrder] = useState(String(tag.display_order));
   const [formError, setFormError] = useState("");
   const archived = tag.archived_at !== undefined;
   const busy = updating || deleting;
-  const parsedOrder = parsePostTagOrder(displayOrder);
   const trimmedName = name.trim();
-  const changed = trimmedName !== tag.name || parsedOrder !== tag.display_order;
+  const changed = trimmedName !== tag.name;
 
   useEffect(() => {
     if (busy) {
       return;
     }
     setName(tag.name);
-    setDisplayOrder(String(tag.display_order));
-  }, [busy, tag.display_order, tag.name]);
+  }, [busy, tag.name]);
 
   function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -460,16 +443,9 @@ function PostTagManagerRow({
       setFormError("Tag name is required");
       return;
     }
-    if (parsedOrder === null) {
-      setFormError("Order must be a non-negative integer");
-      return;
-    }
     const payload: PatchGroupPostTagRequest = {};
     if (trimmedName !== tag.name) {
       payload.name = trimmedName;
-    }
-    if (parsedOrder !== tag.display_order) {
-      payload.display_order = parsedOrder;
     }
     if (Object.keys(payload).length === 0) {
       return;
@@ -487,19 +463,6 @@ function PostTagManagerRow({
           value={name}
           onChange={(event) => {
             setName(event.target.value);
-            setFormError("");
-          }}
-        />
-      </label>
-      <label>
-        Order
-        <input
-          min="0"
-          step="1"
-          type="number"
-          value={displayOrder}
-          onChange={(event) => {
-            setDisplayOrder(event.target.value);
             setFormError("");
           }}
         />
@@ -1507,6 +1470,7 @@ function FeedOutput({
   currentUserId,
   judgedMetrics,
   canJudge,
+  canManagePostTags,
   judgingPostId,
   onCreateFeedPost,
   onUpdateFeedPost,
@@ -1527,9 +1491,10 @@ function FeedOutput({
   currentUserId: string | null;
   judgedMetrics: FeedMetric[];
   canJudge: boolean;
+  canManagePostTags: boolean;
   judgingPostId: string | null;
-  onCreateFeedPost: (payload: FeedPostPayload) => void;
-  onUpdateFeedPost: (postId: string, payload: FeedPostPayload) => void;
+  onCreateFeedPost: (payload: CreateFeedPostPayload) => void;
+  onUpdateFeedPost: (postId: string, payload: UpdateFeedPostPayload) => void;
   onDeleteFeedPost: (postId: string) => void;
   onCreateMetricJudgment: (
     metricId: string,
@@ -1580,6 +1545,7 @@ function FeedOutput({
         currentUserId={currentUserId}
         judgedMetrics={judgedMetrics}
         canJudge={canJudge}
+        canManagePostTags={canManagePostTags}
         judgingPostId={judgingPostId}
         onCreateFeedPost={onCreateFeedPost}
         onUpdateFeedPost={onUpdateFeedPost}
@@ -1602,6 +1568,7 @@ function FeedPostSection({
   currentUserId,
   judgedMetrics,
   canJudge,
+  canManagePostTags,
   judgingPostId,
   onCreateFeedPost,
   onUpdateFeedPost,
@@ -1619,9 +1586,10 @@ function FeedPostSection({
   currentUserId: string | null;
   judgedMetrics: FeedMetric[];
   canJudge: boolean;
+  canManagePostTags: boolean;
   judgingPostId: string | null;
-  onCreateFeedPost: (payload: FeedPostPayload) => void;
-  onUpdateFeedPost: (postId: string, payload: FeedPostPayload) => void;
+  onCreateFeedPost: (payload: CreateFeedPostPayload) => void;
+  onUpdateFeedPost: (postId: string, payload: UpdateFeedPostPayload) => void;
   onDeleteFeedPost: (postId: string) => void;
   onCreateMetricJudgment: (
     metricId: string,
@@ -1632,7 +1600,6 @@ function FeedPostSection({
   const [formOpen, setFormOpen] = useState(false);
   const [evidenceText, setEvidenceText] = useState("");
   const [caption, setCaption] = useState("");
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const activePostTags = postTags.filter((tag) => tag.archived_at === undefined);
   const ownPost = currentUserId !== null ? (posts.find((post) => post.author_user_id === currentUserId) ?? null) : null;
   const postUnavailable = disabled || loading || Boolean(ownPost);
@@ -1644,7 +1611,6 @@ function FeedPostSection({
 
     setEvidenceText("");
     setCaption("");
-    setSelectedTagIds([]);
     setFormOpen(false);
   }, [formOpen, ownPost, submitting]);
 
@@ -1655,7 +1621,7 @@ function FeedPostSection({
       return;
     }
 
-    onCreateFeedPost({ evidenceText: trimmedEvidence, caption, tagIds: selectedTagIds });
+    onCreateFeedPost({ evidenceText: trimmedEvidence, caption });
   }
 
   return (
@@ -1671,6 +1637,7 @@ function FeedPostSection({
           {posts.map((post) => (
             <FeedPostCard
               key={post.id}
+              canTag={currentUserId === post.author_user_id || canManagePostTags}
               mine={currentUserId === post.author_user_id}
               post={post}
               activePostTags={activePostTags}
@@ -1721,12 +1688,6 @@ function FeedPostSection({
               onChange={(event) => setCaption(event.target.value)}
             />
           </label>
-          <PostTagChecklist
-            disabled={submitting}
-            selectedTagIds={selectedTagIds}
-            tags={activePostTags}
-            onSelectionChange={setSelectedTagIds}
-          />
           <div className="output-actions">
             <button className="secondary" type="button" onClick={() => setFormOpen(false)}>
               Cancel
@@ -1744,6 +1705,7 @@ function FeedPostSection({
 function FeedPostCard({
   post,
   activePostTags,
+  canTag,
   mine,
   saving,
   deleting,
@@ -1756,13 +1718,14 @@ function FeedPostCard({
 }: {
   post: GroupFeedPost;
   activePostTags: GroupPostTag[];
+  canTag: boolean;
   mine: boolean;
   saving: boolean;
   deleting: boolean;
   judgedMetrics: FeedMetric[];
   canJudge: boolean;
   judging: boolean;
-  onUpdateFeedPost: (postId: string, payload: FeedPostPayload) => void;
+  onUpdateFeedPost: (postId: string, payload: UpdateFeedPostPayload) => void;
   onDeleteFeedPost: (postId: string) => void;
   onCreateMetricJudgment: (
     metricId: string,
@@ -1771,12 +1734,11 @@ function FeedPostCard({
   ) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [tagMenuOpen, setTagMenuOpen] = useState(false);
   const [evidenceText, setEvidenceText] = useState(post.evidence_text);
   const [caption, setCaption] = useState(post.caption ?? "");
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(() => selectedActivePostTagIDs(post, activePostTags));
-  const [initialEditTagIds, setInitialEditTagIds] = useState<string[]>(() =>
-    selectedActivePostTagIDs(post, activePostTags),
-  );
+  const [initialTagIds, setInitialTagIds] = useState<string[]>(() => selectedActivePostTagIDs(post, activePostTags));
   const [submittedUpdate, setSubmittedUpdate] = useState<{
     evidenceText: string;
     caption: string;
@@ -1803,12 +1765,35 @@ function FeedPostCard({
   }, [post.caption, post.evidence_text, saving, submittedUpdate]);
 
   function beginEdit() {
-    const nextTagIds = selectedActivePostTagIDs(post, activePostTags);
     setEvidenceText(post.evidence_text);
     setCaption(post.caption ?? "");
-    setSelectedTagIds(nextTagIds);
-    setInitialEditTagIds(nextTagIds);
+    setTagMenuOpen(false);
     setEditing(true);
+  }
+
+  function beginTagging() {
+    const nextTagIds = selectedActivePostTagIDs(post, activePostTags);
+    setSelectedTagIds(nextTagIds);
+    setInitialTagIds(nextTagIds);
+    setTagMenuOpen(true);
+  }
+
+  function closeTagMenu() {
+    if (saving || deleting) {
+      return;
+    }
+    setTagMenuOpen(false);
+    if (!sameStringSet(selectedTagIds, initialTagIds)) {
+      onUpdateFeedPost(post.id, { tagIds: selectedTagIds });
+    }
+  }
+
+  function toggleTagMenu() {
+    if (tagMenuOpen) {
+      closeTagMenu();
+      return;
+    }
+    beginTagging();
   }
 
   function handleUpdate(event: FormEvent<HTMLFormElement>) {
@@ -1819,12 +1804,10 @@ function FeedPostCard({
     }
 
     const trimmedCaption = caption.trim();
-    const tagIdsChanged = !sameStringSet(selectedTagIds, initialEditTagIds);
     setSubmittedUpdate({ evidenceText: trimmedEvidence, caption: trimmedCaption, seenSaving: false });
     onUpdateFeedPost(post.id, {
       evidenceText: trimmedEvidence,
       caption: trimmedCaption,
-      ...(tagIdsChanged ? { tagIds: selectedTagIds } : {}),
     });
   }
 
@@ -1836,6 +1819,8 @@ function FeedPostCard({
     onDeleteFeedPost(post.id);
   }
 
+  const taggable = canTag && activePostTags.length > 0;
+
   return (
     <article className="row feed-post-card">
       <div className="post-card-header">
@@ -1843,17 +1828,36 @@ function FeedPostCard({
           <div className="title">{post.author_display_name || post.author_username}</div>
           <div className="meta">{formatDateTime(post.created_at)}</div>
         </div>
-        {mine && !editing ? (
+        {(taggable || mine) && !editing ? (
           <div className="post-card-actions">
-            <button className="secondary" type="button" disabled={deleting} onClick={beginEdit}>
-              Edit
-            </button>
-            <button className="danger" type="button" disabled={deleting} onClick={handleDelete}>
-              Delete
-            </button>
+            {taggable ? (
+              <button className="secondary" type="button" disabled={saving || deleting} onClick={toggleTagMenu}>
+                Tag
+              </button>
+            ) : null}
+            {mine ? (
+              <>
+                <button className="secondary" type="button" disabled={deleting} onClick={beginEdit}>
+                  Edit
+                </button>
+                <button className="danger" type="button" disabled={deleting} onClick={handleDelete}>
+                  Delete
+                </button>
+              </>
+            ) : null}
           </div>
         ) : null}
       </div>
+
+      {tagMenuOpen && !editing ? (
+        <PostTagMenu
+          disabled={saving || deleting}
+          selectedTagIds={selectedTagIds}
+          tags={activePostTags}
+          onClose={closeTagMenu}
+          onSelectionChange={setSelectedTagIds}
+        />
+      ) : null}
 
       {editing ? (
         <form className="feed-post-form edit-post-form" onSubmit={handleUpdate}>
@@ -1874,12 +1878,6 @@ function FeedPostCard({
               onChange={(event) => setCaption(event.target.value)}
             />
           </label>
-          <PostTagChecklist
-            disabled={saving}
-            selectedTagIds={selectedTagIds}
-            tags={activePostTags}
-            onSelectionChange={setSelectedTagIds}
-          />
           <div className="output-actions">
             <button className="secondary" type="button" disabled={saving} onClick={() => setEditing(false)}>
               Cancel
@@ -1914,21 +1912,19 @@ function FeedPostCard({
   );
 }
 
-function PostTagChecklist({
+function PostTagMenu({
   tags,
   selectedTagIds,
   disabled,
+  onClose,
   onSelectionChange,
 }: {
   tags: GroupPostTag[];
   selectedTagIds: string[];
   disabled: boolean;
+  onClose: () => void;
   onSelectionChange: (selectedTagIds: string[]) => void;
 }) {
-  if (tags.length === 0) {
-    return null;
-  }
-
   function toggleTag(tagId: string, checked: boolean) {
     if (checked) {
       onSelectionChange(selectedTagIds.includes(tagId) ? selectedTagIds : [...selectedTagIds, tagId]);
@@ -1938,24 +1934,31 @@ function PostTagChecklist({
   }
 
   return (
-    <fieldset className="post-tag-checklist">
-      <legend>Tags</legend>
-      <div className="post-tag-checklist-options">
-        {tags.map((tag) => (
-          <label className="post-tag-checklist-option" key={tag.id}>
-            <input
-              checked={selectedTagIds.includes(tag.id)}
-              disabled={disabled}
-              name="post-tag-id"
-              type="checkbox"
-              value={tag.id}
-              onChange={(event) => toggleTag(tag.id, event.currentTarget.checked)}
-            />
-            <span>{tag.name}</span>
-          </label>
-        ))}
+    <div className="post-tag-menu" aria-label="Tag post">
+      <fieldset className="post-tag-menu-options">
+        <legend>Tags</legend>
+        <div className="post-tag-menu-list">
+          {tags.map((tag) => (
+            <label className="post-tag-menu-option" key={tag.id}>
+              <input
+                checked={selectedTagIds.includes(tag.id)}
+                disabled={disabled}
+                name="post-tag-id"
+                type="checkbox"
+                value={tag.id}
+                onChange={(event) => toggleTag(tag.id, event.currentTarget.checked)}
+              />
+              <span>{tag.name}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <div className="post-tag-menu-actions">
+        <button className="secondary" type="button" disabled={disabled} onClick={onClose}>
+          Done
+        </button>
       </div>
-    </fieldset>
+    </div>
   );
 }
 
@@ -2199,17 +2202,6 @@ function operatorsForField(field: CatalogSourceField): Array<{ value: string; la
 
 function defaultOperatorForField(field: CatalogSourceField): string {
   return operatorsForField(field)[0]?.value ?? "";
-}
-
-function parsePostTagOrder(value: string): number | null {
-  if (value.trim() === "") {
-    return 0;
-  }
-  const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed < 0) {
-    return null;
-  }
-  return parsed;
 }
 
 function selectedActivePostTagIDs(post: GroupFeedPost, activeTags: GroupPostTag[]): string[] {
