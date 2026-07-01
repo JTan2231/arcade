@@ -152,15 +152,40 @@ steps:
       name: ZZ Missed days
 
   - within: Metrics
-    expectPressed:
+    expectVisible:
+      role: button
+      name: Thread posts
+
+  - within: Metrics
+    expectHidden:
       role: button
       name: Select ZZ Missed days
+
+  - within: Metrics
+    click:
+      role: button
+      name: Metric choices
+
+  - within: Metrics
+    expectPressed:
+      role: button
+      name: Select Thread posts
       pressed: true
 
   - within: Metrics
     click:
       role: button
-      name: Select Thread posts
+      name: Select ZZ Missed days
+
+  - within: Metrics
+    expectVisible:
+      role: button
+      name: ZZ Missed days
+
+  - within: Metrics
+    click:
+      role: button
+      name: ZZ Missed days
 
   - within: Metrics
     expectVisible:

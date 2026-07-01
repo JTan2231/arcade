@@ -799,6 +799,23 @@ function MetricsSection({
   const metricTitle = selectedMetric?.display_name ?? "Metrics";
   const selectedMetricPrompt = selectedMetric?.judgment_prompt ?? "";
 
+  function selectNextMetric() {
+    if (!canChooseMetric) {
+      return;
+    }
+
+    const selectedIndex = metrics.findIndex((metric) => metric.id === selectedMetricId);
+    const nextIndex = selectedIndex >= 0 ? (selectedIndex + 1) % metrics.length : 0;
+    const nextMetric = metrics[nextIndex];
+    if (nextMetric === undefined) {
+      return;
+    }
+
+    if (nextMetric.id !== selectedMetricId) {
+      onSelectMetric(nextMetric.id);
+    }
+  }
+
   useEffect(() => {
     if (!metricMenuOpen) {
       return undefined;
@@ -839,18 +856,24 @@ function MetricsSection({
         <div className="metric-title-menu" ref={metricMenuRef}>
           <h2>
             {canChooseMetric ? (
-              <button
-                aria-expanded={metricMenuOpen}
-                className="metric-title-button"
-                type="button"
-                onClick={() => setMetricMenuOpen((current) => !current)}
-              >
-                <span className="metric-title-text">{metricTitle}</span>
-                <span className="metric-title-caret" aria-hidden="true">
-                  <span />
-                  <span />
-                </span>
-              </button>
+              <span className="metric-title-control">
+                <button className="metric-title-button" type="button" onClick={selectNextMetric}>
+                  <span className="metric-title-text">{metricTitle}</span>
+                </button>
+                <button
+                  aria-expanded={metricMenuOpen}
+                  aria-haspopup="true"
+                  aria-label="Metric choices"
+                  className="metric-title-caret-button"
+                  type="button"
+                  onClick={() => setMetricMenuOpen((current) => !current)}
+                >
+                  <span className="metric-title-caret" aria-hidden="true">
+                    <span />
+                    <span />
+                  </span>
+                </button>
+              </span>
             ) : (
               <span className="metric-title-static">{metricTitle}</span>
             )}
