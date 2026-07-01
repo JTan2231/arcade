@@ -54,6 +54,14 @@ Found 1 occurrence.
 | --- | --- | --- | --- | --- | --- |
 | User profile / Arcade workspace | grandparent main landmark (distance 2) | User profile / Arcade workspace | region fallback (grandparent main landmark (distance 2)) | Component &lt;FriendsPanel&gt; | [web/frontend/src/App.tsx:654](../../web/frontend/src/App.tsx#L654) |
 
+## onAddMetric
+
+Found 1 occurrence.
+
+| Region | Region relationship | Nearest label | Label relationship | Target | Source |
+| --- | --- | --- | --- | --- | --- |
+| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupDashboard&gt; | [web/frontend/src/App.tsx:756](../../web/frontend/src/App.tsx#L756) |
+
 ## onCancel
 
 Found 1 occurrence.
@@ -77,7 +85,7 @@ Found 2 occurrences.
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
 | Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;InviteFriends&gt; | [web/frontend/src/components/GroupSettingsDialog.tsx:155](../../web/frontend/src/components/GroupSettingsDialog.tsx#L155) |
-| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:792](../../web/frontend/src/App.tsx#L792) |
+| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:797](../../web/frontend/src/App.tsx#L797) |
 
 ## onChange
 
@@ -85,42 +93,42 @@ Found 37 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Add feed | ancestor role dialog (distance 3) | Type | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/GroupDashboard.tsx:451](../../web/frontend/src/components/GroupDashboard.tsx#L451) |
-| Add feed | ancestor role dialog (distance 4) | Name | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:464](../../web/frontend/src/components/GroupDashboard.tsx#L464) |
-| Add feed | ancestor role dialog (distance 4) | Active | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:474](../../web/frontend/src/components/GroupDashboard.tsx#L474) |
-| Add feed | ancestor role dialog (distance 3) | Description | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/GroupDashboard.tsx:487](../../web/frontend/src/components/GroupDashboard.tsx#L487) |
-| Add feed | ancestor role dialog (distance 4) | Source | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/GroupDashboard.tsx:502](../../web/frontend/src/components/GroupDashboard.tsx#L502) |
-| Add feed | ancestor role dialog (distance 4) | Item count | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:518](../../web/frontend/src/components/GroupDashboard.tsx#L518) |
-| Add feed | ancestor role dialog (distance 4) | Start time | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:537](../../web/frontend/src/components/GroupDashboard.tsx#L537) |
-| Add feed | ancestor role dialog (distance 4) | Timezone | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:547](../../web/frontend/src/components/GroupDashboard.tsx#L547) |
-| Add feed | ancestor role dialog (distance 4) | Repeat | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/GroupDashboard.tsx:557](../../web/frontend/src/components/GroupDashboard.tsx#L557) |
+| Add feed | ancestor role dialog (distance 3) | Type | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/GroupDashboard.tsx:456](../../web/frontend/src/components/GroupDashboard.tsx#L456) |
+| Add feed | ancestor role dialog (distance 4) | Name | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:469](../../web/frontend/src/components/GroupDashboard.tsx#L469) |
+| Add feed | ancestor role dialog (distance 4) | Active | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:479](../../web/frontend/src/components/GroupDashboard.tsx#L479) |
+| Add feed | ancestor role dialog (distance 3) | Description | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/GroupDashboard.tsx:492](../../web/frontend/src/components/GroupDashboard.tsx#L492) |
+| Add feed | ancestor role dialog (distance 4) | Source | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/GroupDashboard.tsx:507](../../web/frontend/src/components/GroupDashboard.tsx#L507) |
+| Add feed | ancestor role dialog (distance 4) | Item count | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:523](../../web/frontend/src/components/GroupDashboard.tsx#L523) |
+| Add feed | ancestor role dialog (distance 4) | Start time | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:542](../../web/frontend/src/components/GroupDashboard.tsx#L542) |
+| Add feed | ancestor role dialog (distance 4) | Timezone | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:552](../../web/frontend/src/components/GroupDashboard.tsx#L552) |
+| Add feed | ancestor role dialog (distance 4) | Repeat | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/GroupDashboard.tsx:562](../../web/frontend/src/components/GroupDashboard.tsx#L562) |
 | Edit metric / Add metric | ancestor role dialog (distance 3) | Type | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:293](../../web/frontend/src/components/MetricSettingsManager.tsx#L293) |
 | Edit metric / Add metric | ancestor role dialog (distance 3) | Metric | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:305](../../web/frontend/src/components/MetricSettingsManager.tsx#L305) |
 | Edit metric / Add metric | ancestor role dialog (distance 4) | Name | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:321](../../web/frontend/src/components/MetricSettingsManager.tsx#L321) |
 | Edit metric / Add metric | ancestor role dialog (distance 4) | Aggregation | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:329](../../web/frontend/src/components/MetricSettingsManager.tsx#L329) |
 | Edit metric / Add metric | ancestor role dialog (distance 3) | Prompt | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:344](../../web/frontend/src/components/MetricSettingsManager.tsx#L344) |
-| Filters | grandparent section label (distance 2) | Filters | region fallback (grandparent section label (distance 2)) | Component &lt;FilterEditor&gt; | [web/frontend/src/components/GroupDashboard.tsx:584](../../web/frontend/src/components/GroupDashboard.tsx#L584) |
+| Filters | grandparent section label (distance 2) | Filters | region fallback (grandparent section label (distance 2)) | Component &lt;FilterEditor&gt; | [web/frontend/src/components/GroupDashboard.tsx:589](../../web/frontend/src/components/GroupDashboard.tsx#L589) |
 | Friends | ancestor section label (distance 3) | Friend code | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/FriendsPanel.tsx:103](../../web/frontend/src/components/FriendsPanel.tsx#L103) |
 | Group visibility | parent section label (distance 1) | Group visibility | region fallback (parent section label (distance 1)) | DOM &lt;select&gt; | [web/frontend/src/components/GroupSettingsDialog.tsx:181](../../web/frontend/src/components/GroupSettingsDialog.tsx#L181) |
 | Groups | ancestor section label (distance 3) | New group name | self aria-label (distance 0) | DOM &lt;input&gt; | [web/frontend/src/components/GroupsPanel.tsx:86](../../web/frontend/src/components/GroupsPanel.tsx#L86) |
 | Metric settings | grandparent section label (distance 2) | Feed | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:96](../../web/frontend/src/components/MetricSettingsManager.tsx#L96) |
 | Post tags | ancestor section label (distance 3) | Tag name | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupSettingsDialog.tsx:243](../../web/frontend/src/components/GroupSettingsDialog.tsx#L243) |
-| Posts | ancestor section label (distance 3) | Evidence | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/GroupDashboard.tsx:1135](../../web/frontend/src/components/GroupDashboard.tsx#L1135) |
-| Posts | ancestor section label (distance 3) | Caption | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/GroupDashboard.tsx:1143](../../web/frontend/src/components/GroupDashboard.tsx#L1143) |
-| Selected feed output | ancestor section label (distance 3) | Feed | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/GroupDashboard.tsx:167](../../web/frontend/src/components/GroupDashboard.tsx#L167) |
-| Selected feed output | ancestor section label (distance 3) | Date | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/GroupDashboard.tsx:182](../../web/frontend/src/components/GroupDashboard.tsx#L182) |
-| unknown | no enclosing accessible region | Field | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/GroupDashboard.tsx:654](../../web/frontend/src/components/GroupDashboard.tsx#L654) |
-| unknown | no enclosing accessible region | Operator | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/GroupDashboard.tsx:664](../../web/frontend/src/components/GroupDashboard.tsx#L664) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FilterValueInput&gt; | [web/frontend/src/components/GroupDashboard.tsx:672](../../web/frontend/src/components/GroupDashboard.tsx#L672) |
-| unknown | no enclosing accessible region | Min | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:701](../../web/frontend/src/components/GroupDashboard.tsx#L701) |
-| unknown | no enclosing accessible region | Max | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:709](../../web/frontend/src/components/GroupDashboard.tsx#L709) |
-| unknown | no enclosing accessible region | Value | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:721](../../web/frontend/src/components/GroupDashboard.tsx#L721) |
-| unknown | no enclosing accessible region | Value | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:730](../../web/frontend/src/components/GroupDashboard.tsx#L730) |
-| unknown | no enclosing accessible region | Evidence | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/GroupDashboard.tsx:1340](../../web/frontend/src/components/GroupDashboard.tsx#L1340) |
-| unknown | no enclosing accessible region | Caption | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/GroupDashboard.tsx:1348](../../web/frontend/src/components/GroupDashboard.tsx#L1348) |
-| unknown | no enclosing accessible region | {tag.name} | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:1419](../../web/frontend/src/components/GroupDashboard.tsx#L1419) |
-| unknown | no enclosing accessible region | Score | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:1502](../../web/frontend/src/components/GroupDashboard.tsx#L1502) |
-| unknown | no enclosing accessible region | Note | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:1512](../../web/frontend/src/components/GroupDashboard.tsx#L1512) |
+| Posts | ancestor section label (distance 3) | Evidence | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/GroupDashboard.tsx:1190](../../web/frontend/src/components/GroupDashboard.tsx#L1190) |
+| Posts | ancestor section label (distance 3) | Caption | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/GroupDashboard.tsx:1198](../../web/frontend/src/components/GroupDashboard.tsx#L1198) |
+| Selected feed output | ancestor section label (distance 3) | Feed | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/GroupDashboard.tsx:170](../../web/frontend/src/components/GroupDashboard.tsx#L170) |
+| Selected feed output | ancestor section label (distance 3) | Date | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/GroupDashboard.tsx:185](../../web/frontend/src/components/GroupDashboard.tsx#L185) |
+| unknown | no enclosing accessible region | Field | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/GroupDashboard.tsx:659](../../web/frontend/src/components/GroupDashboard.tsx#L659) |
+| unknown | no enclosing accessible region | Operator | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/GroupDashboard.tsx:669](../../web/frontend/src/components/GroupDashboard.tsx#L669) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FilterValueInput&gt; | [web/frontend/src/components/GroupDashboard.tsx:677](../../web/frontend/src/components/GroupDashboard.tsx#L677) |
+| unknown | no enclosing accessible region | Min | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:706](../../web/frontend/src/components/GroupDashboard.tsx#L706) |
+| unknown | no enclosing accessible region | Max | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:714](../../web/frontend/src/components/GroupDashboard.tsx#L714) |
+| unknown | no enclosing accessible region | Value | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:726](../../web/frontend/src/components/GroupDashboard.tsx#L726) |
+| unknown | no enclosing accessible region | Value | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:735](../../web/frontend/src/components/GroupDashboard.tsx#L735) |
+| unknown | no enclosing accessible region | Evidence | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/GroupDashboard.tsx:1395](../../web/frontend/src/components/GroupDashboard.tsx#L1395) |
+| unknown | no enclosing accessible region | Caption | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/GroupDashboard.tsx:1403](../../web/frontend/src/components/GroupDashboard.tsx#L1403) |
+| unknown | no enclosing accessible region | {tag.name} | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:1474](../../web/frontend/src/components/GroupDashboard.tsx#L1474) |
+| unknown | no enclosing accessible region | Score | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:1557](../../web/frontend/src/components/GroupDashboard.tsx#L1557) |
+| unknown | no enclosing accessible region | Note | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupDashboard.tsx:1567](../../web/frontend/src/components/GroupDashboard.tsx#L1567) |
 | unknown | no enclosing accessible region | Name | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/GroupSettingsDialog.tsx:327](../../web/frontend/src/components/GroupSettingsDialog.tsx#L327) |
 
 ## onChangeFeedDate
@@ -142,20 +150,20 @@ Found 1 occurrence.
 
 ## onClick
 
-Found 45 occurrences.
+Found 47 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Add feed | ancestor role dialog (distance 3) | Close | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:443](../../web/frontend/src/components/GroupDashboard.tsx#L443) |
-| Add feed | ancestor role dialog (distance 3) | Previewing... / Preview | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:605](../../web/frontend/src/components/GroupDashboard.tsx#L605) |
-| Add feed | ancestor role dialog (distance 3) | Cancel | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:609](../../web/frontend/src/components/GroupDashboard.tsx#L609) |
+| Add feed | ancestor role dialog (distance 3) | Close | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:448](../../web/frontend/src/components/GroupDashboard.tsx#L448) |
+| Add feed | ancestor role dialog (distance 3) | Previewing... / Preview | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:610](../../web/frontend/src/components/GroupDashboard.tsx#L610) |
+| Add feed | ancestor role dialog (distance 3) | Cancel | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:614](../../web/frontend/src/components/GroupDashboard.tsx#L614) |
 | Authentication | grandparent section label (distance 2) | Login | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/AuthView.tsx:53](../../web/frontend/src/components/AuthView.tsx#L53) |
 | Authentication | grandparent section label (distance 2) | Signup | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/AuthView.tsx:62](../../web/frontend/src/components/AuthView.tsx#L62) |
 | Edit metric / Add metric | ancestor role dialog (distance 3) | Close | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:285](../../web/frontend/src/components/MetricSettingsManager.tsx#L285) |
 | Edit metric / Add metric | ancestor role dialog (distance 3) | Cancel | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:359](../../web/frontend/src/components/MetricSettingsManager.tsx#L359) |
 | Feeds | ancestor section label (distance 3) | {feed.name} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupsPanel.tsx:262](../../web/frontend/src/components/GroupsPanel.tsx#L262) |
 | Feeds | grandparent section label (distance 2) | Add feed | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupsPanel.tsx:274](../../web/frontend/src/components/GroupsPanel.tsx#L274) |
-| Filters | grandparent section label (distance 2) | Add filter | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:573](../../web/frontend/src/components/GroupDashboard.tsx#L573) |
+| Filters | grandparent section label (distance 2) | Add filter | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:578](../../web/frontend/src/components/GroupDashboard.tsx#L578) |
 | Friends | ancestor section label (distance 3) | Copy friend code | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/FriendsPanel.tsx:79](../../web/frontend/src/components/FriendsPanel.tsx#L79) |
 | Friends | ancestor section label (distance 3) | Rotate friend code | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/FriendsPanel.tsx:90](../../web/frontend/src/components/FriendsPanel.tsx#L90) |
 | Friends | ancestor section label (distance 4) | Remove | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/FriendsPanel.tsx:154](../../web/frontend/src/components/FriendsPanel.tsx#L154) |
@@ -168,9 +176,11 @@ Found 45 occurrences.
 | Metric settings | grandparent section label (distance 2) | Add metric | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:86](../../web/frontend/src/components/MetricSettingsManager.tsx#L86) |
 | Metric settings | ancestor section label (distance 5) | {`Edit ${metric.display_name}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:147](../../web/frontend/src/components/MetricSettingsManager.tsx#L147) |
 | Metric settings | ancestor section label (distance 5) | {`Delete ${metric.display_name}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:156](../../web/frontend/src/components/MetricSettingsManager.tsx#L156) |
-| Metrics | ancestor section label (distance 3) | {metric.display_name} {metricKeyLabel(metric.system_key)} | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:826](../../web/frontend/src/components/GroupDashboard.tsx#L826) |
-| Posts | grandparent section label (distance 2) | Post | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:1121](../../web/frontend/src/components/GroupDashboard.tsx#L1121) |
-| Posts | ancestor section label (distance 3) | Cancel | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:1147](../../web/frontend/src/components/GroupDashboard.tsx#L1147) |
+| Metrics | ancestor section label (distance 4) | {metricTitle} | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:846](../../web/frontend/src/components/GroupDashboard.tsx#L846) |
+| Metrics | ancestor section label (distance 4) | {`Select ${metric.display_name}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:867](../../web/frontend/src/components/GroupDashboard.tsx#L867) |
+| Metrics | grandparent section label (distance 2) | Add metric | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:882](../../web/frontend/src/components/GroupDashboard.tsx#L882) |
+| Posts | grandparent section label (distance 2) | Post | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:1176](../../web/frontend/src/components/GroupDashboard.tsx#L1176) |
+| Posts | ancestor section label (distance 3) | Cancel | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:1202](../../web/frontend/src/components/GroupDashboard.tsx#L1202) |
 | Settings | grandparent role dialog (distance 2) | Close | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupSettingsDialog.tsx:110](../../web/frontend/src/components/GroupSettingsDialog.tsx#L110) |
 | unknown | no enclosing accessible region | Arcade | self text (distance 0) | DOM &lt;a&gt; | [web/frontend/src/App.tsx:621](../../web/frontend/src/App.tsx#L621) |
 | unknown | no enclosing accessible region | {context.user.display_name} | self text (distance 0) | DOM &lt;a&gt; | [web/frontend/src/App.tsx:629](../../web/frontend/src/App.tsx#L629) |
@@ -178,15 +188,15 @@ Found 45 occurrences.
 | unknown | no enclosing accessible region | {`Accept friend request from ${user.display_name \|\| user.username}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/FriendsPanel.tsx:235](../../web/frontend/src/components/FriendsPanel.tsx#L235) |
 | unknown | no enclosing accessible region | {`Decline friend request from ${user.display_name \|\| user.username}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/FriendsPanel.tsx:244](../../web/frontend/src/components/FriendsPanel.tsx#L244) |
 | unknown | no enclosing accessible region | Cancel | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/FriendsPanel.tsx:287](../../web/frontend/src/components/FriendsPanel.tsx#L287) |
-| unknown | no enclosing accessible region | Remove | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:673](../../web/frontend/src/components/GroupDashboard.tsx#L673) |
-| unknown | no enclosing accessible region | Tag | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:1294](../../web/frontend/src/components/GroupDashboard.tsx#L1294) |
-| unknown | no enclosing accessible region | Copy link | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:1303](../../web/frontend/src/components/GroupDashboard.tsx#L1303) |
-| unknown | no enclosing accessible region | Edit | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:1310](../../web/frontend/src/components/GroupDashboard.tsx#L1310) |
-| unknown | no enclosing accessible region | Delete | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:1313](../../web/frontend/src/components/GroupDashboard.tsx#L1313) |
-| unknown | no enclosing accessible region | Cancel | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:1352](../../web/frontend/src/components/GroupDashboard.tsx#L1352) |
-| unknown | no enclosing accessible region | Done | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:1427](../../web/frontend/src/components/GroupDashboard.tsx#L1427) |
-| unknown | no enclosing accessible region | Expand evidence | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:1546](../../web/frontend/src/components/GroupDashboard.tsx#L1546) |
-| unknown | no enclosing accessible region | Collapse evidence | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:1555](../../web/frontend/src/components/GroupDashboard.tsx#L1555) |
+| unknown | no enclosing accessible region | Remove | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:678](../../web/frontend/src/components/GroupDashboard.tsx#L678) |
+| unknown | no enclosing accessible region | Tag | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:1349](../../web/frontend/src/components/GroupDashboard.tsx#L1349) |
+| unknown | no enclosing accessible region | Copy link | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:1358](../../web/frontend/src/components/GroupDashboard.tsx#L1358) |
+| unknown | no enclosing accessible region | Edit | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:1365](../../web/frontend/src/components/GroupDashboard.tsx#L1365) |
+| unknown | no enclosing accessible region | Delete | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:1368](../../web/frontend/src/components/GroupDashboard.tsx#L1368) |
+| unknown | no enclosing accessible region | Cancel | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:1407](../../web/frontend/src/components/GroupDashboard.tsx#L1407) |
+| unknown | no enclosing accessible region | Done | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:1482](../../web/frontend/src/components/GroupDashboard.tsx#L1482) |
+| unknown | no enclosing accessible region | Expand evidence | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:1601](../../web/frontend/src/components/GroupDashboard.tsx#L1601) |
+| unknown | no enclosing accessible region | Collapse evidence | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupDashboard.tsx:1610](../../web/frontend/src/components/GroupDashboard.tsx#L1610) |
 | unknown | no enclosing accessible region | Unarchive | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupSettingsDialog.tsx:342](../../web/frontend/src/components/GroupSettingsDialog.tsx#L342) |
 | unknown | no enclosing accessible region | Archive | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/GroupSettingsDialog.tsx:347](../../web/frontend/src/components/GroupSettingsDialog.tsx#L347) |
 | unknown | no enclosing accessible region | {label} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/RowActionMenu.tsx:53](../../web/frontend/src/components/RowActionMenu.tsx#L53) |
@@ -199,9 +209,9 @@ Found 4 occurrences.
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
 | Metric settings | parent section label (distance 1) | Metric settings | region fallback (parent section label (distance 1)) | Component &lt;MetricDialog&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:176](../../web/frontend/src/components/MetricSettingsManager.tsx#L176) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;AddFeedDialog&gt; | [web/frontend/src/components/GroupDashboard.tsx:240](../../web/frontend/src/components/GroupDashboard.tsx#L240) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;PostTagMenu&gt; | [web/frontend/src/components/GroupDashboard.tsx:1327](../../web/frontend/src/components/GroupDashboard.tsx#L1327) |
-| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:793](../../web/frontend/src/App.tsx#L793) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;AddFeedDialog&gt; | [web/frontend/src/components/GroupDashboard.tsx:231](../../web/frontend/src/components/GroupDashboard.tsx#L231) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;PostTagMenu&gt; | [web/frontend/src/components/GroupDashboard.tsx:1382](../../web/frontend/src/components/GroupDashboard.tsx#L1382) |
+| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:798](../../web/frontend/src/App.tsx#L798) |
 
 ## onCloseAddFeed
 
@@ -227,10 +237,10 @@ Found 12 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Posts | grandparent section label (distance 2) | Posts | region fallback (grandparent section label (distance 2)) | Component &lt;FeedPostCard&gt; | [web/frontend/src/components/GroupDashboard.tsx:1104](../../web/frontend/src/components/GroupDashboard.tsx#L1104) |
-| Selected feed output | parent section label (distance 1) | Selected feed output | region fallback (parent section label (distance 1)) | Component &lt;FeedOutput&gt; | [web/frontend/src/components/GroupDashboard.tsx:214](../../web/frontend/src/components/GroupDashboard.tsx#L214) |
+| Posts | grandparent section label (distance 2) | Posts | region fallback (grandparent section label (distance 2)) | Component &lt;FeedPostCard&gt; | [web/frontend/src/components/GroupDashboard.tsx:1159](../../web/frontend/src/components/GroupDashboard.tsx#L1159) |
+| Selected feed output | parent section label (distance 1) | Selected feed output | region fallback (parent section label (distance 1)) | Component &lt;FeedOutput&gt; | [web/frontend/src/components/GroupDashboard.tsx:217](../../web/frontend/src/components/GroupDashboard.tsx#L217) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;PublicPage&gt; | [web/frontend/src/App.tsx:568](../../web/frontend/src/App.tsx#L568) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FeedPostSection&gt; | [web/frontend/src/components/GroupDashboard.tsx:993](../../web/frontend/src/components/GroupDashboard.tsx#L993) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FeedPostSection&gt; | [web/frontend/src/components/GroupDashboard.tsx:1048](../../web/frontend/src/components/GroupDashboard.tsx#L1048) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;PublicGroupPage&gt; | [web/frontend/src/components/PublicPages.tsx:51](../../web/frontend/src/components/PublicPages.tsx#L51) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;PublicFeedPage&gt; | [web/frontend/src/components/PublicPages.tsx:62](../../web/frontend/src/components/PublicPages.tsx#L62) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;PublicPostPage&gt; | [web/frontend/src/components/PublicPages.tsx:70](../../web/frontend/src/components/PublicPages.tsx#L70) |
@@ -254,7 +264,7 @@ Found 3 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;AddFeedDialog&gt; | [web/frontend/src/components/GroupDashboard.tsx:241](../../web/frontend/src/components/GroupDashboard.tsx#L241) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;AddFeedDialog&gt; | [web/frontend/src/components/GroupDashboard.tsx:232](../../web/frontend/src/components/GroupDashboard.tsx#L232) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupDashboard&gt; | [web/frontend/src/components/PublicPages.tsx:293](../../web/frontend/src/components/PublicPages.tsx#L293) |
 | User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupDashboard&gt; | [web/frontend/src/App.tsx:749](../../web/frontend/src/App.tsx#L749) |
 
@@ -264,8 +274,8 @@ Found 4 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Selected feed output | parent section label (distance 1) | Selected feed output | region fallback (parent section label (distance 1)) | Component &lt;FeedOutput&gt; | [web/frontend/src/components/GroupDashboard.tsx:212](../../web/frontend/src/components/GroupDashboard.tsx#L212) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FeedPostSection&gt; | [web/frontend/src/components/GroupDashboard.tsx:991](../../web/frontend/src/components/GroupDashboard.tsx#L991) |
+| Selected feed output | parent section label (distance 1) | Selected feed output | region fallback (parent section label (distance 1)) | Component &lt;FeedOutput&gt; | [web/frontend/src/components/GroupDashboard.tsx:215](../../web/frontend/src/components/GroupDashboard.tsx#L215) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FeedPostSection&gt; | [web/frontend/src/components/GroupDashboard.tsx:1046](../../web/frontend/src/components/GroupDashboard.tsx#L1046) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupDashboard&gt; | [web/frontend/src/components/PublicPages.tsx:294](../../web/frontend/src/components/PublicPages.tsx#L294) |
 | User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupDashboard&gt; | [web/frontend/src/App.tsx:750](../../web/frontend/src/App.tsx#L750) |
 
@@ -284,7 +294,7 @@ Found 2 occurrences.
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
 | Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;MetricSettingsManager&gt; | [web/frontend/src/components/GroupSettingsDialog.tsx:126](../../web/frontend/src/components/GroupSettingsDialog.tsx#L126) |
-| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:794](../../web/frontend/src/App.tsx#L794) |
+| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:799](../../web/frontend/src/App.tsx#L799) |
 
 ## onCreateMetricJudgment
 
@@ -292,11 +302,11 @@ Found 5 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Posts | grandparent section label (distance 2) | Posts | region fallback (grandparent section label (distance 2)) | Component &lt;FeedPostCard&gt; | [web/frontend/src/components/GroupDashboard.tsx:1106](../../web/frontend/src/components/GroupDashboard.tsx#L1106) |
-| Selected feed output | parent section label (distance 1) | Selected feed output | region fallback (parent section label (distance 1)) | Component &lt;FeedOutput&gt; | [web/frontend/src/components/GroupDashboard.tsx:216](../../web/frontend/src/components/GroupDashboard.tsx#L216) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FeedPostSection&gt; | [web/frontend/src/components/GroupDashboard.tsx:995](../../web/frontend/src/components/GroupDashboard.tsx#L995) |
+| Posts | grandparent section label (distance 2) | Posts | region fallback (grandparent section label (distance 2)) | Component &lt;FeedPostCard&gt; | [web/frontend/src/components/GroupDashboard.tsx:1161](../../web/frontend/src/components/GroupDashboard.tsx#L1161) |
+| Selected feed output | parent section label (distance 1) | Selected feed output | region fallback (parent section label (distance 1)) | Component &lt;FeedOutput&gt; | [web/frontend/src/components/GroupDashboard.tsx:219](../../web/frontend/src/components/GroupDashboard.tsx#L219) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FeedPostSection&gt; | [web/frontend/src/components/GroupDashboard.tsx:1050](../../web/frontend/src/components/GroupDashboard.tsx#L1050) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupDashboard&gt; | [web/frontend/src/components/PublicPages.tsx:295](../../web/frontend/src/components/PublicPages.tsx#L295) |
-| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupDashboard&gt; | [web/frontend/src/App.tsx:757](../../web/frontend/src/App.tsx#L757) |
+| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupDashboard&gt; | [web/frontend/src/App.tsx:762](../../web/frontend/src/App.tsx#L762) |
 
 ## onCreateTag
 
@@ -305,7 +315,7 @@ Found 2 occurrences.
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
 | Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;PostTagManager&gt; | [web/frontend/src/components/GroupSettingsDialog.tsx:138](../../web/frontend/src/components/GroupSettingsDialog.tsx#L138) |
-| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:795](../../web/frontend/src/App.tsx#L795) |
+| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:800](../../web/frontend/src/App.tsx#L800) |
 
 ## onDecline
 
@@ -346,9 +356,9 @@ Found 5 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Posts | grandparent section label (distance 2) | Posts | region fallback (grandparent section label (distance 2)) | Component &lt;FeedPostCard&gt; | [web/frontend/src/components/GroupDashboard.tsx:1105](../../web/frontend/src/components/GroupDashboard.tsx#L1105) |
-| Selected feed output | parent section label (distance 1) | Selected feed output | region fallback (parent section label (distance 1)) | Component &lt;FeedOutput&gt; | [web/frontend/src/components/GroupDashboard.tsx:215](../../web/frontend/src/components/GroupDashboard.tsx#L215) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FeedPostSection&gt; | [web/frontend/src/components/GroupDashboard.tsx:994](../../web/frontend/src/components/GroupDashboard.tsx#L994) |
+| Posts | grandparent section label (distance 2) | Posts | region fallback (grandparent section label (distance 2)) | Component &lt;FeedPostCard&gt; | [web/frontend/src/components/GroupDashboard.tsx:1160](../../web/frontend/src/components/GroupDashboard.tsx#L1160) |
+| Selected feed output | parent section label (distance 1) | Selected feed output | region fallback (parent section label (distance 1)) | Component &lt;FeedOutput&gt; | [web/frontend/src/components/GroupDashboard.tsx:218](../../web/frontend/src/components/GroupDashboard.tsx#L218) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FeedPostSection&gt; | [web/frontend/src/components/GroupDashboard.tsx:1049](../../web/frontend/src/components/GroupDashboard.tsx#L1049) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupDashboard&gt; | [web/frontend/src/components/PublicPages.tsx:296](../../web/frontend/src/components/PublicPages.tsx#L296) |
 | User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupDashboard&gt; | [web/frontend/src/App.tsx:755](../../web/frontend/src/App.tsx#L755) |
 
@@ -375,7 +385,7 @@ Found 2 occurrences.
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
 | Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;MetricSettingsManager&gt; | [web/frontend/src/components/GroupSettingsDialog.tsx:127](../../web/frontend/src/components/GroupSettingsDialog.tsx#L127) |
-| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:796](../../web/frontend/src/App.tsx#L796) |
+| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:801](../../web/frontend/src/App.tsx#L801) |
 
 ## onDeleteTag
 
@@ -385,7 +395,7 @@ Found 3 occurrences.
 | --- | --- | --- | --- | --- | --- |
 | Post tags | grandparent section label (distance 2) | Post tags | region fallback (grandparent section label (distance 2)) | Component &lt;PostTagManagerRow&gt; | [web/frontend/src/components/GroupSettingsDialog.tsx:267](../../web/frontend/src/components/GroupSettingsDialog.tsx#L267) |
 | Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;PostTagManager&gt; | [web/frontend/src/components/GroupSettingsDialog.tsx:139](../../web/frontend/src/components/GroupSettingsDialog.tsx#L139) |
-| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:797](../../web/frontend/src/App.tsx#L797) |
+| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:802](../../web/frontend/src/App.tsx#L802) |
 
 ## onDraftChanged
 
@@ -393,7 +403,7 @@ Found 1 occurrence.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;AddFeedDialog&gt; | [web/frontend/src/components/GroupDashboard.tsx:242](../../web/frontend/src/components/GroupDashboard.tsx#L242) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;AddFeedDialog&gt; | [web/frontend/src/components/GroupDashboard.tsx:233](../../web/frontend/src/components/GroupDashboard.tsx#L233) |
 
 ## onInviteFriend
 
@@ -402,7 +412,7 @@ Found 2 occurrences.
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
 | Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;InviteFriends&gt; | [web/frontend/src/components/GroupSettingsDialog.tsx:156](../../web/frontend/src/components/GroupSettingsDialog.tsx#L156) |
-| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:798](../../web/frontend/src/App.tsx#L798) |
+| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:803](../../web/frontend/src/App.tsx#L803) |
 
 ## onKeyDown
 
@@ -448,7 +458,7 @@ Found 3 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;AddFeedDialog&gt; | [web/frontend/src/components/GroupDashboard.tsx:243](../../web/frontend/src/components/GroupDashboard.tsx#L243) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;AddFeedDialog&gt; | [web/frontend/src/components/GroupDashboard.tsx:234](../../web/frontend/src/components/GroupDashboard.tsx#L234) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupDashboard&gt; | [web/frontend/src/components/PublicPages.tsx:297](../../web/frontend/src/components/PublicPages.tsx#L297) |
 | User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupDashboard&gt; | [web/frontend/src/App.tsx:748](../../web/frontend/src/App.tsx#L748) |
 
@@ -458,7 +468,7 @@ Found 1 occurrence.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Filters | grandparent section label (distance 2) | Filters | region fallback (grandparent section label (distance 2)) | Component &lt;FilterEditor&gt; | [web/frontend/src/components/GroupDashboard.tsx:585](../../web/frontend/src/components/GroupDashboard.tsx#L585) |
+| Filters | grandparent section label (distance 2) | Filters | region fallback (grandparent section label (distance 2)) | Component &lt;FilterEditor&gt; | [web/frontend/src/components/GroupDashboard.tsx:590](../../web/frontend/src/components/GroupDashboard.tsx#L590) |
 
 ## onRemoveMember
 
@@ -467,7 +477,7 @@ Found 2 occurrences.
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
 | Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;GroupMembersManager&gt; | [web/frontend/src/components/GroupSettingsDialog.tsx:149](../../web/frontend/src/components/GroupSettingsDialog.tsx#L149) |
-| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:799](../../web/frontend/src/App.tsx#L799) |
+| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:804](../../web/frontend/src/App.tsx#L804) |
 
 ## onRotateFriendCode
 
@@ -487,7 +497,7 @@ Found 5 occurrences.
 | Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;MetricSettingsManager&gt; | [web/frontend/src/components/GroupSettingsDialog.tsx:128](../../web/frontend/src/components/GroupSettingsDialog.tsx#L128) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupDashboard&gt; | [web/frontend/src/components/PublicPages.tsx:298](../../web/frontend/src/components/PublicPages.tsx#L298) |
 | User profile / Arcade workspace | grandparent main landmark (distance 2) | User profile / Arcade workspace | region fallback (grandparent main landmark (distance 2)) | Component &lt;GroupsPanel&gt; | [web/frontend/src/App.tsx:689](../../web/frontend/src/App.tsx#L689) |
-| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:800](../../web/frontend/src/App.tsx#L800) |
+| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:805](../../web/frontend/src/App.tsx#L805) |
 
 ## onSelectGroup
 
@@ -503,9 +513,9 @@ Found 3 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Selected feed output | parent section label (distance 1) | Selected feed output | region fallback (parent section label (distance 1)) | Component &lt;MetricsSection&gt; | [web/frontend/src/components/GroupDashboard.tsx:227](../../web/frontend/src/components/GroupDashboard.tsx#L227) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;MetricsSection&gt; | [web/frontend/src/components/GroupDashboard.tsx:248](../../web/frontend/src/components/GroupDashboard.tsx#L248) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupDashboard&gt; | [web/frontend/src/components/PublicPages.tsx:299](../../web/frontend/src/components/PublicPages.tsx#L299) |
-| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupDashboard&gt; | [web/frontend/src/App.tsx:756](../../web/frontend/src/App.tsx#L756) |
+| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupDashboard&gt; | [web/frontend/src/App.tsx:761](../../web/frontend/src/App.tsx#L761) |
 
 ## onSelectionChange
 
@@ -513,7 +523,7 @@ Found 1 occurrence.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;PostTagMenu&gt; | [web/frontend/src/components/GroupDashboard.tsx:1328](../../web/frontend/src/components/GroupDashboard.tsx#L1328) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;PostTagMenu&gt; | [web/frontend/src/components/GroupDashboard.tsx:1383](../../web/frontend/src/components/GroupDashboard.tsx#L1383) |
 
 ## onSignup
 
@@ -529,17 +539,17 @@ Found 12 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Add feed | parent role dialog (distance 1) | Add feed | region fallback (parent role dialog (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/GroupDashboard.tsx:437](../../web/frontend/src/components/GroupDashboard.tsx#L437) |
+| Add feed | parent role dialog (distance 1) | Add feed | region fallback (parent role dialog (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/GroupDashboard.tsx:442](../../web/frontend/src/components/GroupDashboard.tsx#L442) |
 | Authentication | parent section label (distance 1) | Authentication | region fallback (parent section label (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/AuthView.tsx:69](../../web/frontend/src/components/AuthView.tsx#L69) |
 | Authentication | parent section label (distance 1) | Authentication | region fallback (parent section label (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/AuthView.tsx:87](../../web/frontend/src/components/AuthView.tsx#L87) |
 | Edit metric / Add metric | parent role dialog (distance 1) | Edit metric / Add metric | region fallback (parent role dialog (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:279](../../web/frontend/src/components/MetricSettingsManager.tsx#L279) |
 | Friends | parent section label (distance 1) | Friends | region fallback (parent section label (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/FriendsPanel.tsx:97](../../web/frontend/src/components/FriendsPanel.tsx#L97) |
 | Groups | grandparent section label (distance 2) | Groups | region fallback (grandparent section label (distance 2)) | DOM &lt;form&gt; | [web/frontend/src/components/GroupsPanel.tsx:78](../../web/frontend/src/components/GroupsPanel.tsx#L78) |
 | Post tags | parent section label (distance 1) | Post tags | region fallback (parent section label (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/GroupSettingsDialog.tsx:237](../../web/frontend/src/components/GroupSettingsDialog.tsx#L237) |
-| Posts | parent section label (distance 1) | Posts | region fallback (parent section label (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/GroupDashboard.tsx:1128](../../web/frontend/src/components/GroupDashboard.tsx#L1128) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | DOM &lt;form&gt; | [web/frontend/src/components/GroupDashboard.tsx:1333](../../web/frontend/src/components/GroupDashboard.tsx#L1333) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;MetricJudgmentForm&gt; | [web/frontend/src/components/GroupDashboard.tsx:1376](../../web/frontend/src/components/GroupDashboard.tsx#L1376) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | DOM &lt;form&gt; | [web/frontend/src/components/GroupDashboard.tsx:1487](../../web/frontend/src/components/GroupDashboard.tsx#L1487) |
+| Posts | parent section label (distance 1) | Posts | region fallback (parent section label (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/GroupDashboard.tsx:1183](../../web/frontend/src/components/GroupDashboard.tsx#L1183) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | DOM &lt;form&gt; | [web/frontend/src/components/GroupDashboard.tsx:1388](../../web/frontend/src/components/GroupDashboard.tsx#L1388) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;MetricJudgmentForm&gt; | [web/frontend/src/components/GroupDashboard.tsx:1431](../../web/frontend/src/components/GroupDashboard.tsx#L1431) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | DOM &lt;form&gt; | [web/frontend/src/components/GroupDashboard.tsx:1542](../../web/frontend/src/components/GroupDashboard.tsx#L1542) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | DOM &lt;form&gt; | [web/frontend/src/components/GroupSettingsDialog.tsx:321](../../web/frontend/src/components/GroupSettingsDialog.tsx#L321) |
 
 ## onToggleFeedEnabled
@@ -565,9 +575,9 @@ Found 5 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Posts | grandparent section label (distance 2) | Posts | region fallback (grandparent section label (distance 2)) | Component &lt;FeedPostCard&gt; | [web/frontend/src/components/GroupDashboard.tsx:1103](../../web/frontend/src/components/GroupDashboard.tsx#L1103) |
-| Selected feed output | parent section label (distance 1) | Selected feed output | region fallback (parent section label (distance 1)) | Component &lt;FeedOutput&gt; | [web/frontend/src/components/GroupDashboard.tsx:213](../../web/frontend/src/components/GroupDashboard.tsx#L213) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FeedPostSection&gt; | [web/frontend/src/components/GroupDashboard.tsx:992](../../web/frontend/src/components/GroupDashboard.tsx#L992) |
+| Posts | grandparent section label (distance 2) | Posts | region fallback (grandparent section label (distance 2)) | Component &lt;FeedPostCard&gt; | [web/frontend/src/components/GroupDashboard.tsx:1158](../../web/frontend/src/components/GroupDashboard.tsx#L1158) |
+| Selected feed output | parent section label (distance 1) | Selected feed output | region fallback (parent section label (distance 1)) | Component &lt;FeedOutput&gt; | [web/frontend/src/components/GroupDashboard.tsx:216](../../web/frontend/src/components/GroupDashboard.tsx#L216) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FeedPostSection&gt; | [web/frontend/src/components/GroupDashboard.tsx:1047](../../web/frontend/src/components/GroupDashboard.tsx#L1047) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupDashboard&gt; | [web/frontend/src/components/PublicPages.tsx:300](../../web/frontend/src/components/PublicPages.tsx#L300) |
 | User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupDashboard&gt; | [web/frontend/src/App.tsx:751](../../web/frontend/src/App.tsx#L751) |
 
@@ -578,7 +588,7 @@ Found 2 occurrences.
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
 | Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;MetricSettingsManager&gt; | [web/frontend/src/components/GroupSettingsDialog.tsx:129](../../web/frontend/src/components/GroupSettingsDialog.tsx#L129) |
-| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:807](../../web/frontend/src/App.tsx#L807) |
+| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:812](../../web/frontend/src/App.tsx#L812) |
 
 ## onUpdateTag
 
@@ -588,7 +598,7 @@ Found 3 occurrences.
 | --- | --- | --- | --- | --- | --- |
 | Post tags | grandparent section label (distance 2) | Post tags | region fallback (grandparent section label (distance 2)) | Component &lt;PostTagManagerRow&gt; | [web/frontend/src/components/GroupSettingsDialog.tsx:268](../../web/frontend/src/components/GroupSettingsDialog.tsx#L268) |
 | Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;PostTagManager&gt; | [web/frontend/src/components/GroupSettingsDialog.tsx:140](../../web/frontend/src/components/GroupSettingsDialog.tsx#L140) |
-| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:810](../../web/frontend/src/App.tsx#L810) |
+| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:815](../../web/frontend/src/App.tsx#L815) |
 
 ## onUpdateVisibility
 
@@ -597,5 +607,5 @@ Found 2 occurrences.
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
 | Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;GroupVisibilityControl&gt; | [web/frontend/src/components/GroupSettingsDialog.tsx:116](../../web/frontend/src/components/GroupSettingsDialog.tsx#L116) |
-| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:804](../../web/frontend/src/App.tsx#L804) |
+| User profile / Arcade workspace | parent main landmark (distance 1) | User profile / Arcade workspace | region fallback (parent main landmark (distance 1)) | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/App.tsx:809](../../web/frontend/src/App.tsx#L809) |
 

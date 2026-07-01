@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 import { feedDateOptions, formatDateLabel } from "../dates";
 import { errorMessage } from "../errors";
@@ -20,7 +20,7 @@ import type {
   MetricLeaderboardRow,
   PublicUser,
 } from "../types";
-import { aggregationLabel, metricKeyLabel } from "./metricLabels";
+import { metricKeyLabel } from "./metricLabels";
 
 type CreateFeedPostPayload = {
   evidenceText: string;
@@ -73,6 +73,7 @@ type GroupDashboardProps = {
   onCopyPublicPostLink: (postId: string) => void;
   onDeleteFeedPost: (postId: string) => void;
   onSelectMetric: (metricId: string) => void;
+  onAddMetric?: () => void;
   onCreateMetricJudgment: (
     metricId: string,
     postId: string,
@@ -123,6 +124,7 @@ export function GroupDashboard({
   onCopyPublicPostLink,
   onDeleteFeedPost,
   onSelectMetric,
+  onAddMetric,
   onCreateMetricJudgment,
   readOnly = false,
   standalone = false,
@@ -148,102 +150,105 @@ export function GroupDashboard({
   const judgedMetrics = metrics.filter((metric) => metric.system_key === "judged");
 
   return (
-    <section className="panel group-dashboard-panel">
-      <section className="dashboard-section feed-output-section" aria-label="Selected feed output">
-        {standalone ? (
-          <div className="feed-route-header">
-            <div>
-              <div className="section-title">{group.name}</div>
-              <h2>{feed?.name ?? "No feed selected"}</h2>
-              {feed?.description !== undefined && feed.description !== "" ? (
-                <p>{feed.description}</p>
-              ) : group.description !== undefined && group.description !== "" ? (
-                <p>{group.description}</p>
+    <>
+      <section className="panel group-dashboard-panel">
+        <section className="dashboard-section feed-output-section" aria-label="Selected feed output">
+          {standalone ? (
+            <div className="feed-route-header">
+              <div>
+                <div className="section-title">{group.name}</div>
+                <h2>{feed?.name ?? "No feed selected"}</h2>
+                {feed?.description !== undefined && feed.description !== "" ? (
+                  <p>{feed.description}</p>
+                ) : group.description !== undefined && group.description !== "" ? (
+                  <p>{group.description}</p>
+                ) : null}
+              </div>
+              {feeds.length > 1 && onSelectFeed !== undefined ? (
+                <label className="date-control feed-select-control">
+                  Feed
+                  <select value={selectedFeedId ?? ""} onChange={(event) => onSelectFeed(event.target.value)}>
+                    {feeds.map((candidate) => (
+                      <option value={candidate.id} key={candidate.id}>
+                        {candidate.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               ) : null}
             </div>
-            {feeds.length > 1 && onSelectFeed !== undefined ? (
-              <label className="date-control feed-select-control">
-                Feed
-                <select value={selectedFeedId ?? ""} onChange={(event) => onSelectFeed(event.target.value)}>
-                  {feeds.map((candidate) => (
-                    <option value={candidate.id} key={candidate.id}>
-                      {candidate.name}
+          ) : null}
+          {feed ? (
+            <div className="feed-card-header">
+              <label className="date-control feed-date-control">
+                Date
+                <select value={selectedFeedDate} onChange={(event) => onChangeFeedDate(event.target.value)}>
+                  {feedDateOptions(selectedFeedDate, feed.created_at).map((option) => (
+                    <option value={option.value} key={option.value}>
+                      {option.label}
                     </option>
                   ))}
                 </select>
               </label>
-            ) : null}
-          </div>
-        ) : null}
-        {feed ? (
-          <div className="feed-card-header">
-            <label className="date-control feed-date-control">
-              Date
-              <select value={selectedFeedDate} onChange={(event) => onChangeFeedDate(event.target.value)}>
-                {feedDateOptions(selectedFeedDate, feed.created_at).map((option) => (
-                  <option value={option.value} key={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        ) : null}
+            </div>
+          ) : null}
 
-        <FeedOutput
-          feed={feed}
-          output={output}
-          loading={outputLoading}
-          error={outputError}
-          posts={posts}
-          postTags={postTags}
-          postsLoading={postsLoading}
-          postsError={postsError}
-          postSubmitting={postSubmitting}
-          updatingPostId={updatingPostId}
-          deletingPostId={deletingPostId}
-          currentUserId={currentUserId}
-          publicLinksAvailable={publicLinksAvailable}
-          judgedMetrics={judgedMetrics}
-          canPost={canPost}
-          canJudge={canManageMetrics}
-          canManagePostTags={canManagePostTags}
-          judgingPostId={judgingPostId}
-          onCreateFeedPost={onCreateFeedPost}
-          onUpdateFeedPost={onUpdateFeedPost}
-          onCopyPublicPostLink={onCopyPublicPostLink}
-          onDeleteFeedPost={onDeleteFeedPost}
-          onCreateMetricJudgment={onCreateMetricJudgment}
-        />
-        {!readOnly ? (
-          <MetricsSection
+          <FeedOutput
             feed={feed}
-            metrics={metrics}
-            selectedMetricId={selectedMetricId}
-            leaderboard={metricLeaderboard}
-            metricsLoading={metricsLoading}
-            leaderboardLoading={leaderboardLoading}
-            error={metricsError}
-            onSelectMetric={onSelectMetric}
+            output={output}
+            loading={outputLoading}
+            error={outputError}
+            posts={posts}
+            postTags={postTags}
+            postsLoading={postsLoading}
+            postsError={postsError}
+            postSubmitting={postSubmitting}
+            updatingPostId={updatingPostId}
+            deletingPostId={deletingPostId}
+            currentUserId={currentUserId}
+            publicLinksAvailable={publicLinksAvailable}
+            judgedMetrics={judgedMetrics}
+            canPost={canPost}
+            canJudge={canManageMetrics}
+            canManagePostTags={canManagePostTags}
+            judgingPostId={judgingPostId}
+            onCreateFeedPost={onCreateFeedPost}
+            onUpdateFeedPost={onUpdateFeedPost}
+            onCopyPublicPostLink={onCopyPublicPostLink}
+            onDeleteFeedPost={onDeleteFeedPost}
+            onCreateMetricJudgment={onCreateMetricJudgment}
+          />
+        </section>
+        {addFeedOpen ? (
+          <AddFeedDialog
+            feeds={feeds}
+            formError={addFeedError}
+            preview={addFeedPreview}
+            previewLoading={addFeedPreviewLoading}
+            saving={addFeedSaving}
+            sources={addFeedSources}
+            sourcesLoading={addFeedSourcesLoading}
+            onClose={onCloseAddFeed}
+            onCreateFeed={onCreateFeed}
+            onDraftChanged={onAddFeedDraftChanged}
+            onPreviewFeed={onPreviewFeed}
           />
         ) : null}
       </section>
-      {addFeedOpen ? (
-        <AddFeedDialog
-          feeds={feeds}
-          formError={addFeedError}
-          preview={addFeedPreview}
-          previewLoading={addFeedPreviewLoading}
-          saving={addFeedSaving}
-          sources={addFeedSources}
-          sourcesLoading={addFeedSourcesLoading}
-          onClose={onCloseAddFeed}
-          onCreateFeed={onCreateFeed}
-          onDraftChanged={onAddFeedDraftChanged}
-          onPreviewFeed={onPreviewFeed}
+      {!readOnly ? (
+        <MetricsSection
+          feed={feed}
+          metrics={metrics}
+          selectedMetricId={selectedMetricId}
+          leaderboard={metricLeaderboard}
+          metricsLoading={metricsLoading}
+          leaderboardLoading={leaderboardLoading}
+          error={metricsError}
+          {...(canManageMetrics && onAddMetric !== undefined ? { onAddMetric } : {})}
+          onSelectMetric={onSelectMetric}
         />
       ) : null}
-    </section>
+    </>
   );
 }
 
@@ -774,6 +779,7 @@ function MetricsSection({
   metricsLoading,
   leaderboardLoading,
   error,
+  onAddMetric,
   onSelectMetric,
 }: {
   feed: DailyFeed | null;
@@ -783,9 +789,45 @@ function MetricsSection({
   metricsLoading: boolean;
   leaderboardLoading: boolean;
   error: string;
+  onAddMetric?: () => void;
   onSelectMetric: (metricId: string) => void;
 }) {
   const selectedMetric = metrics.find((metric) => metric.id === selectedMetricId) ?? null;
+  const [metricMenuOpen, setMetricMenuOpen] = useState(false);
+  const metricMenuRef = useRef<HTMLDivElement>(null);
+  const canChooseMetric = metrics.length > 0 && !metricsLoading;
+  const metricTitle = selectedMetric?.display_name ?? "Metrics";
+  const selectedMetricPrompt = selectedMetric?.judgment_prompt ?? "";
+
+  useEffect(() => {
+    if (!metricMenuOpen) {
+      return undefined;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (metricMenuRef.current?.contains(event.target as Node) === true) {
+        return;
+      }
+      setMetricMenuOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMetricMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [metricMenuOpen]);
+
+  useEffect(() => {
+    setMetricMenuOpen(false);
+  }, [feed?.id, selectedMetricId]);
 
   if (!feed) {
     return null;
@@ -793,57 +835,70 @@ function MetricsSection({
 
   return (
     <section className="metrics-section" aria-label="Metrics">
-      <div className="section-header-row">
-        <div>
-          <div className="section-title">Metrics</div>
-          {selectedMetric ? (
-            <div className="meta">
-              {metricKeyLabel(selectedMetric.system_key)} · {aggregationLabel(selectedMetric.aggregation)}
+      <div className="panel-header groups-panel-header metric-rail-header">
+        <div className="metric-title-menu" ref={metricMenuRef}>
+          <h2>
+            {canChooseMetric ? (
+              <button
+                aria-expanded={metricMenuOpen}
+                className="metric-title-button"
+                type="button"
+                onClick={() => setMetricMenuOpen((current) => !current)}
+              >
+                <span className="metric-title-text">{metricTitle}</span>
+                <span className="metric-title-caret" aria-hidden="true">
+                  <span />
+                  <span />
+                </span>
+              </button>
+            ) : (
+              <span className="metric-title-static">{metricTitle}</span>
+            )}
+          </h2>
+          {metricMenuOpen ? (
+            <div className="metric-title-menu-panel" aria-label="Metric choices">
+              {metrics.map((metric) => (
+                <button
+                  aria-label={`Select ${metric.display_name}`}
+                  aria-pressed={metric.id === selectedMetricId}
+                  className="metric-title-menu-option"
+                  key={metric.id}
+                  type="button"
+                  onClick={() => {
+                    setMetricMenuOpen(false);
+                    if (metric.id !== selectedMetricId) {
+                      onSelectMetric(metric.id);
+                    }
+                  }}
+                >
+                  <span className="title">{metric.display_name}</span>
+                  <span className="meta">{metricKeyLabel(metric.system_key)}</span>
+                </button>
+              ))}
             </div>
           ) : null}
         </div>
+        {onAddMetric !== undefined ? (
+          <button aria-label="Add metric" className="icon-button metric-add-button" type="button" onClick={onAddMetric}>
+            <span aria-hidden="true">+</span>
+          </button>
+        ) : null}
       </div>
+      {selectedMetricPrompt !== "" ? <div className="meta metric-rail-summary">{selectedMetricPrompt}</div> : null}
 
-      {metricsLoading ? <div className="empty-state">Loading metrics...</div> : null}
+      {metricsLoading ? <div className="meta">Loading metrics...</div> : null}
       {error ? (
         <div className="form-error" role="alert">
           {error}
         </div>
       ) : null}
 
-      {!metricsLoading && metrics.length === 0 && !error ? (
-        <div className="empty-state">No metrics configured.</div>
-      ) : null}
+      {!metricsLoading && metrics.length === 0 && !error ? <div className="meta">No metrics configured.</div> : null}
 
       {metrics.length > 0 ? (
         <div className="metric-layout">
-          <div className="metric-list" aria-label="Configured metrics">
-            {metrics.map((metric) => (
-              <button
-                className={`metric-select-button ${metric.id === selectedMetricId ? "selected-row" : ""}`}
-                key={metric.id}
-                type="button"
-                onClick={() => onSelectMetric(metric.id)}
-              >
-                <span className="title">{metric.display_name}</span>
-                <span className="meta">{metricKeyLabel(metric.system_key)}</span>
-              </button>
-            ))}
-          </div>
-
           <div className="leaderboard-panel">
-            {selectedMetric ? (
-              <div className="leaderboard-header">
-                <div>
-                  <div className="title">{selectedMetric.display_name}</div>
-                  {selectedMetric.judgment_prompt !== undefined && selectedMetric.judgment_prompt !== "" ? (
-                    <div className="meta">{selectedMetric.judgment_prompt}</div>
-                  ) : null}
-                </div>
-              </div>
-            ) : null}
-
-            {leaderboardLoading ? <div className="empty-state">Loading leaderboard...</div> : null}
+            {leaderboardLoading ? <div className="meta">Loading leaderboard...</div> : null}
             {!leaderboardLoading && leaderboard ? <LeaderboardTable leaderboard={leaderboard} /> : null}
           </div>
         </div>
@@ -854,7 +909,7 @@ function MetricsSection({
 
 function LeaderboardTable({ leaderboard }: { leaderboard: MetricLeaderboard }) {
   if (leaderboard.rows.length === 0) {
-    return <div className="empty-state">No active members.</div>;
+    return <div className="meta">No active members.</div>;
   }
   return (
     <table className="leaderboard-table">

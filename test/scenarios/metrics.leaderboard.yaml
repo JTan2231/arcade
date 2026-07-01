@@ -101,10 +101,71 @@ steps:
     expectVisible:
       text: Thread posts
 
+  - within: Metric settings
+    click:
+      role: button
+      name: Add metric
+
+  - within: Add metric
+    select:
+      label: Metric
+      exact: false
+      value: missed_days
+
+  - within: Add metric
+    fill:
+      label: Name
+      exact: false
+      value: ZZ Missed days
+
+  - within: Add metric
+    select:
+      label: Aggregation
+      exact: false
+      value: count
+
+  - within: Add metric
+    click:
+      role: button
+      name: Save
+
+  - expectStatus:
+      text: Metric added
+
+  - within: Metric settings
+    expectVisible:
+      text: ZZ Missed days
+
   - within: Settings
     click:
       role: button
       name: Close
+
+  - within: Metrics
+    expectVisible:
+      role: button
+      name: ZZ Missed days
+
+  - within: Metrics
+    click:
+      role: button
+      name: ZZ Missed days
+
+  - within: Metrics
+    expectPressed:
+      role: button
+      name: Select ZZ Missed days
+      pressed: true
+
+  - within: Metrics
+    click:
+      role: button
+      name: Select Thread posts
+
+  - within: Metrics
+    expectVisible:
+      role: button
+      name: Thread posts
 
   - request:
       id: list_metrics

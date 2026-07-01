@@ -753,6 +753,11 @@ export default function App() {
               }
               onCopyPublicPostLink={(postId) => void copyPublicPath(postPath(postId), "Post link copied")}
               onDeleteFeedPost={(postId) => dashboardRef?.send({ type: "POST_DELETE_SUBMITTED", postId })}
+              onAddMetric={() => {
+                if (selectedGroupId !== null) {
+                  dashboardRef?.send({ type: "GROUP_SETTINGS_OPENED", groupId: selectedGroupId });
+                }
+              }}
               onSelectMetric={(metricId) => dashboardRef?.send({ type: "METRIC_SELECTED", metricId })}
               onCreateMetricJudgment={(metricId, postId, payload) =>
                 dashboardRef?.send({
