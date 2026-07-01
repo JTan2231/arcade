@@ -946,6 +946,34 @@ button.confirm-icon-button:hover:not(:disabled) {
   gap: 8px;
 }
 
+.metric-settings-manager {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.metric-settings-feed-control,
+.metric-settings-list {
+  display: grid;
+  gap: 8px;
+}
+
+.metric-settings-row {
+  display: grid;
+  gap: 8px;
+}
+
+.metric-settings-row-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.metric-settings-summary {
+  min-width: 0;
+}
+
 .group-members-manager {
   display: grid;
   gap: 8px;
@@ -1592,7 +1620,8 @@ button.metric-select-button.selected-row {
     justify-content: flex-start;
   }
 
-  .leaderboard-header {
+  .leaderboard-header,
+  .metric-settings-row-header {
     display: grid;
   }
 

@@ -1,19 +1,32 @@
 import { FormEvent, useEffect, useState } from "react";
 
 import type {
+  CreateFeedMetricRequest,
   CreateGroupPostTagRequest,
+  DailyFeed,
+  FeedMetric,
   Group,
   GroupInviteCandidate,
   GroupMember,
   GroupPostTag,
+  PatchFeedMetricRequest,
   PatchGroupPostTagRequest,
   Visibility,
 } from "../types";
+import { MetricSettingsManager } from "./MetricSettingsManager";
 
 type GroupSettingsDialogProps = {
   group: Group;
   loading: boolean;
   currentUserId: string | null;
+  feeds: DailyFeed[];
+  selectedFeedId: string | null;
+  metrics: FeedMetric[];
+  metricsLoading: boolean;
+  metricsError: string;
+  metricSubmitting: boolean;
+  updatingMetricId: string | null;
+  deletingMetricId: string | null;
   tags: GroupPostTag[];
   tagError: string;
   tagSaving: boolean;
@@ -27,6 +40,10 @@ type GroupSettingsDialogProps = {
   invitingUserId: string | null;
   visibilitySaving: boolean;
   onClose: () => void;
+  onSelectFeed: (feedId: string) => void;
+  onCreateMetric: (payload: CreateFeedMetricRequest) => void;
+  onUpdateMetric: (metricId: string, payload: PatchFeedMetricRequest) => void;
+  onDeleteMetric: (metricId: string) => void;
   onCreateTag: (payload: CreateGroupPostTagRequest) => void;
   onUpdateTag: (tagId: string, payload: PatchGroupPostTagRequest) => void;
   onDeleteTag: (tagId: string) => void;
@@ -40,6 +57,14 @@ export function GroupSettingsDialog({
   group,
   loading,
   currentUserId,
+  feeds,
+  selectedFeedId,
+  metrics,
+  metricsLoading,
+  metricsError,
+  metricSubmitting,
+  updatingMetricId,
+  deletingMetricId,
   tags,
   tagError,
   tagSaving,
@@ -53,6 +78,10 @@ export function GroupSettingsDialog({
   invitingUserId,
   visibilitySaving,
   onClose,
+  onSelectFeed,
+  onCreateMetric,
+  onUpdateMetric,
+  onDeleteMetric,
   onCreateTag,
   onUpdateTag,
   onDeleteTag,
@@ -85,6 +114,20 @@ export function GroupSettingsDialog({
         {loading ? <div className="meta">Loading settings...</div> : null}
         <div className="group-settings-grid">
           <GroupVisibilityControl group={group} saving={visibilitySaving} onUpdateVisibility={onUpdateVisibility} />
+          <MetricSettingsManager
+            deletingMetricId={deletingMetricId}
+            error={metricsError}
+            feeds={feeds}
+            metricSubmitting={metricSubmitting}
+            metrics={metrics}
+            metricsLoading={metricsLoading}
+            selectedFeedId={selectedFeedId}
+            updatingMetricId={updatingMetricId}
+            onCreateMetric={onCreateMetric}
+            onDeleteMetric={onDeleteMetric}
+            onSelectFeed={onSelectFeed}
+            onUpdateMetric={onUpdateMetric}
+          />
           <PostTagManager
             deletingTagId={deletingTagId}
             error={tagError}

@@ -56,7 +56,17 @@ steps:
       exact: false
       value: "{{today}}"
 
-  - within: Metrics
+  - within: Groups
+    click:
+      role: button
+      name: Group settings for Metric Dojo
+
+  - within: Groups
+    click:
+      role: button
+      name: Settings
+
+  - within: Metric settings
     click:
       role: button
       name: Add metric
@@ -87,9 +97,14 @@ steps:
   - expectStatus:
       text: Metric added
 
-  - within: Metrics
+  - within: Metric settings
     expectVisible:
       text: Thread posts
+
+  - within: Settings
+    click:
+      role: button
+      name: Close
 
   - request:
       id: list_metrics

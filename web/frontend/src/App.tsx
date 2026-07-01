@@ -722,9 +722,6 @@ export default function App() {
               postSubmitting={creatingPost}
               updatingPostId={updatingPostId}
               deletingPostId={deletingPostId}
-              metricSubmitting={creatingMetric}
-              updatingMetricId={updatingMetricId}
-              deletingMetricId={deletingMetricId}
               judgingPostId={judgingPostId}
               currentUserId={context.user?.id ?? null}
               addFeedOpen={addFeedOpen}
@@ -757,11 +754,6 @@ export default function App() {
               onCopyPublicPostLink={(postId) => void copyPublicPath(postPath(postId), "Post link copied")}
               onDeleteFeedPost={(postId) => dashboardRef?.send({ type: "POST_DELETE_SUBMITTED", postId })}
               onSelectMetric={(metricId) => dashboardRef?.send({ type: "METRIC_SELECTED", metricId })}
-              onCreateMetric={(payload) => dashboardRef?.send({ type: "METRIC_CREATE_SUBMITTED", payload })}
-              onUpdateMetric={(metricId, payload) =>
-                dashboardRef?.send({ type: "METRIC_UPDATE_SUBMITTED", metricId, payload })
-              }
-              onDeleteMetric={(metricId) => dashboardRef?.send({ type: "METRIC_DELETE_SUBMITTED", metricId })}
               onCreateMetricJudgment={(metricId, postId, payload) =>
                 dashboardRef?.send({
                   type: "JUDGMENT_CREATE_SUBMITTED",
@@ -776,6 +768,8 @@ export default function App() {
               <GroupSettingsDialog
                 currentUserId={context.user?.id ?? null}
                 deletingTagId={deletingPostTagId}
+                deletingMetricId={deletingMetricId}
+                feeds={feeds}
                 group={selectedGroup}
                 inviteCandidates={inviteCandidates}
                 inviteCandidatesLoading={inviteCandidatesLoading}
@@ -783,20 +777,35 @@ export default function App() {
                 loading={loadingFeeds}
                 members={dashboardContext.groupMembers ?? EMPTY_GROUP_MEMBERS}
                 membersError={dashboardContext.groupMembersError}
+                metricSubmitting={creatingMetric}
+                metrics={dashboardContext.metrics ?? EMPTY_METRICS}
+                metricsError={dashboardContext.metricsError}
+                metricsLoading={loadingMetrics}
                 removingMemberUserId={removingMemberUserId}
+                selectedFeedId={selectedFeedId}
                 tagError={dashboardContext.postTagsError}
                 tagSaving={creatingPostTag}
                 tags={dashboardContext.postTags ?? EMPTY_POST_TAGS}
+                updatingMetricId={updatingMetricId}
                 updatingTagId={updatingPostTagId}
                 visibilitySaving={updatingGroupVisibility}
                 onCancelGroupInvite={handleCancelGroupInviteForCandidate}
                 onClose={() => dashboardRef?.send({ type: "GROUP_SETTINGS_CLOSED" })}
+                onCreateMetric={(payload) => dashboardRef?.send({ type: "METRIC_CREATE_SUBMITTED", payload })}
                 onCreateTag={(payload) => dashboardRef?.send({ type: "POST_TAG_CREATE_SUBMITTED", payload })}
+                onDeleteMetric={(metricId) => dashboardRef?.send({ type: "METRIC_DELETE_SUBMITTED", metricId })}
                 onDeleteTag={(tagId) => dashboardRef?.send({ type: "POST_TAG_DELETE_SUBMITTED", tagId })}
                 onInviteFriend={handleInviteFriend}
                 onRemoveMember={(userId) => dashboardRef?.send({ type: "GROUP_MEMBER_REMOVE_SUBMITTED", userId })}
+                onSelectFeed={(feedId) => {
+                  setAppPath(feedPath(feedId));
+                  dashboardRef?.send({ type: "FEED_SELECTED", feedId });
+                }}
                 onUpdateVisibility={(visibility) =>
                   dashboardRef?.send({ type: "GROUP_VISIBILITY_CHANGED", groupId: selectedGroup.id, visibility })
+                }
+                onUpdateMetric={(metricId, payload) =>
+                  dashboardRef?.send({ type: "METRIC_UPDATE_SUBMITTED", metricId, payload })
                 }
                 onUpdateTag={(tagId, payload) =>
                   dashboardRef?.send({ type: "POST_TAG_UPDATE_SUBMITTED", tagId, payload })

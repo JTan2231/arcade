@@ -273,14 +273,12 @@ function PublicDashboardView({
           addFeedSources={[]}
           addFeedSourcesLoading={false}
           currentUserId={null}
-          deletingMetricId={null}
           deletingPostId={null}
           feeds={state.data.feeds}
           group={state.data.group}
           judgingPostId={null}
           leaderboardLoading={false}
           metricLeaderboard={null}
-          metricSubmitting={false}
           metrics={[]}
           metricsError=""
           metricsLoading={false}
@@ -294,15 +292,12 @@ function PublicDashboardView({
           onCopyPublicPostLink={onCopyPublicPostLink}
           onCreateFeed={noop}
           onCreateFeedPost={noop}
-          onCreateMetric={noop}
           onCreateMetricJudgment={noop}
           onDeleteFeedPost={noop}
-          onDeleteMetric={noop}
           onPreviewFeed={noop}
           onSelectFeed={(feedId) => onNavigate(feedPath(feedId))}
           onSelectMetric={noop}
           onUpdateFeedPost={noop}
-          onUpdateMetric={noop}
           output={state.data.output}
           outputError=""
           outputLoading={false}
@@ -316,7 +311,6 @@ function PublicDashboardView({
           selectedFeedId={state.data.selectedFeedId}
           selectedMetricId={null}
           standalone
-          updatingMetricId={null}
           updatingPostId={null}
         />
       ) : null}
