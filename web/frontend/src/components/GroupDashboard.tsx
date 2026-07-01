@@ -911,14 +911,14 @@ function LeaderboardTable({ leaderboard }: { leaderboard: MetricLeaderboard }) {
   if (leaderboard.rows.length === 0) {
     return <div className="meta">No active members.</div>;
   }
+  const valueColumnLabel = leaderboardValueColumnLabel(leaderboard.metric);
   return (
     <table className="leaderboard-table">
       <thead>
         <tr>
           <th>Rank</th>
           <th>Member</th>
-          <th>Value</th>
-          <th>Samples</th>
+          <th>{valueColumnLabel}</th>
         </tr>
       </thead>
       <tbody>
@@ -927,12 +927,34 @@ function LeaderboardTable({ leaderboard }: { leaderboard: MetricLeaderboard }) {
             <td>{leaderboardRankDisplay(row)}</td>
             <td>{publicUserDisplayName(row.user)}</td>
             <td>{row.value}</td>
-            <td>{row.sample_count}</td>
           </tr>
         ))}
       </tbody>
     </table>
   );
+}
+
+function leaderboardValueColumnLabel(metric: FeedMetric): string {
+  switch (metric.system_key) {
+    case "post_count":
+      return "Posts";
+    case "average_post_length_words":
+      if (metric.aggregation === "max") {
+        return "Max words";
+      }
+      if (metric.aggregation === "min") {
+        return "Min words";
+      }
+      return "Average words";
+    case "missed_days":
+      return "Missed days";
+    case "current_streak":
+      return "Streak days";
+    case "typical_posting_window":
+      return "Posting window";
+    case "judged":
+      return "Value";
+  }
 }
 
 function leaderboardRankDisplay(row: MetricLeaderboardRow): string | number {

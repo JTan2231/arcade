@@ -167,6 +167,21 @@ steps:
       role: button
       name: Thread posts
 
+  - within: Metrics
+    expectVisible:
+      text: Posts
+      exact: true
+
+  - within: Metrics
+    expectHidden:
+      text: Samples
+      exact: true
+
+  - within: Metrics
+    expectHidden:
+      text: Value
+      exact: true
+
   - request:
       id: list_metrics
       client: browser
