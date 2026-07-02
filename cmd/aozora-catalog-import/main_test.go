@@ -10,8 +10,8 @@ import (
 
 func TestFormatAozoraJSONLBuildsCatalogItemsWithoutFields(t *testing.T) {
 	input := strings.Join([]string{
-		"start\tend\tperson_id\twork_id\tfile_id",
-		"ああい\tからね\t000008\t47386\t69118",
+		"start\tend\tname\tperson_id\twork_id\tfile_id",
+		"ああい\tからね\t續生活の探求\t000008\t47386\t69118",
 	}, "\n")
 
 	jsonl, err := formatAozoraJSONL(strings.NewReader(input), time.Date(2026, 7, 2, 0, 0, 0, 0, time.UTC))
@@ -46,6 +46,9 @@ func TestFormatAozoraJSONLBuildsCatalogItemsWithoutFields(t *testing.T) {
 	if got := item.Data["fragment_end"]; got != "%E3%81%8B%E3%82%89%E3%81%AD" {
 		t.Fatalf("fragment_end = %#v", got)
 	}
+	if got := item.Data["name"]; got != "續生活の探求" {
+		t.Fatalf("name = %#v", got)
+	}
 	if _, exists := item.Data["start"]; exists {
 		t.Fatal("item data unexpectedly includes raw start")
 	}
@@ -63,13 +66,13 @@ func TestEncodeTextFragmentPartEscapesTextFragmentDelimiters(t *testing.T) {
 }
 
 func TestFormatAozoraJSONLRejectsUnexpectedHeader(t *testing.T) {
-	input := "start\tend\tperson_id\twork_id\tbad\nあ\tい\t000008\t47386\t69118\n"
+	input := "start\tend\tname\tperson_id\twork_id\tbad\nあ\tい\t作品\t000008\t47386\t69118\n"
 
 	_, err := formatAozoraJSONL(strings.NewReader(input), time.Date(2026, 7, 2, 0, 0, 0, 0, time.UTC))
 	if err == nil {
 		t.Fatal("formatAozoraJSONL returned nil error")
 	}
-	if !strings.Contains(err.Error(), "unexpected TSV header column 5") {
+	if !strings.Contains(err.Error(), "unexpected TSV header column 6") {
 		t.Fatalf("error = %q", err)
 	}
 }

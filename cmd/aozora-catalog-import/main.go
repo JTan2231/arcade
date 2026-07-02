@@ -106,7 +106,7 @@ type importItemLine struct {
 func formatAozoraJSONL(r io.Reader, generatedAt time.Time) ([]byte, error) {
 	reader := csv.NewReader(r)
 	reader.Comma = '\t'
-	reader.FieldsPerRecord = 5
+	reader.FieldsPerRecord = 6
 	reader.ReuseRecord = true
 
 	header, err := reader.Read()
@@ -195,14 +195,18 @@ type aozoraRow struct {
 func aozoraRowFromRecord(record []string, lineNumber int) (aozoraRow, error) {
 	start := record[0]
 	end := record[1]
-	personID := strings.TrimSpace(record[2])
-	workID := strings.TrimSpace(record[3])
-	fileID := strings.TrimSpace(record[4])
+	name := strings.TrimSpace(record[2])
+	personID := strings.TrimSpace(record[3])
+	workID := strings.TrimSpace(record[4])
+	fileID := strings.TrimSpace(record[5])
 	if start == "" {
 		return aozoraRow{}, fmt.Errorf("TSV line %d has empty start", lineNumber)
 	}
 	if end == "" {
 		return aozoraRow{}, fmt.Errorf("TSV line %d has empty end", lineNumber)
+	}
+	if name == "" {
+		return aozoraRow{}, fmt.Errorf("TSV line %d has empty name", lineNumber)
 	}
 	if personID == "" || workID == "" || fileID == "" {
 		return aozoraRow{}, fmt.Errorf("TSV line %d has empty source ID field", lineNumber)
@@ -218,7 +222,7 @@ func aozoraRowFromRecord(record []string, lineNumber int) (aozoraRow, error) {
 		fragmentStart: fragmentStart,
 		fragmentEnd:   fragmentEnd,
 		externalID:    externalID,
-		name:          "Aozora " + personID + "/" + workID + "_" + fileID + " " + fragmentStart + "," + fragmentEnd,
+		name:          name,
 	}, nil
 }
 
@@ -231,7 +235,7 @@ func encodeTextFragmentPart(value string) string {
 }
 
 func validateHeader(header []string) error {
-	expected := []string{"start", "end", "person_id", "work_id", "file_id"}
+	expected := []string{"start", "end", "name", "person_id", "work_id", "file_id"}
 	for index, value := range expected {
 		if header[index] != value {
 			return fmt.Errorf("unexpected TSV header column %d: got %q, want %q", index+1, header[index], value)
