@@ -21,6 +21,7 @@ const (
 	Schema              = "arcade.catalog_import.v1"
 	MaxJSONLLineBytes   = 10 << 20
 	defaultLineCapacity = 64 << 10
+	itemImportBatchSize = 1000
 )
 
 var (
@@ -609,12 +610,30 @@ func importFile(ctx context.Context, tx pgx.Tx, file File, opts Options, counts 
 	if err != nil {
 		return err
 	}
-	for _, item := range file.Items {
+	return importCatalogItems(ctx, tx, sourceID, file.Items, existingItemExternalIDs, counts)
+}
+
+func importCatalogItems(ctx context.Context, tx pgx.Tx, sourceID string, items []CatalogItem, existingExternalIDs map[string]bool, counts *Counts) error {
+	for start := 0; start < len(items); start += itemImportBatchSize {
+		end := start + itemImportBatchSize
+		if end > len(items) {
+			end = len(items)
+		}
+		if err := importCatalogItemBatch(ctx, tx, sourceID, items[start:end], existingExternalIDs, counts); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func importCatalogItemBatch(ctx context.Context, tx pgx.Tx, sourceID string, items []CatalogItem, existingExternalIDs map[string]bool, counts *Counts) error {
+	batch := &pgx.Batch{}
+	for _, item := range items {
 		dataJSON, err := json.Marshal(item.Data)
 		if err != nil {
 			return fmt.Errorf("encode catalog item data: %w", err)
 		}
-		if _, err := tx.Exec(ctx, `
+		batch.Queue(`
 			insert into catalog_items (
 				source_id,
 				external_id,
@@ -623,17 +642,23 @@ func importFile(ctx context.Context, tx pgx.Tx, file File, opts Options, counts 
 			values ($1, $2, $3::jsonb)
 			on conflict (source_id, external_id) where external_id is not null do update set
 				data = excluded.data
-		`, sourceID, item.ExternalID, string(dataJSON)); err != nil {
+		`, sourceID, item.ExternalID, string(dataJSON))
+	}
+
+	results := tx.SendBatch(ctx, batch)
+	for _, item := range items {
+		if _, err := results.Exec(); err != nil {
+			_ = results.Close()
 			return err
 		}
-		if existingItemExternalIDs[item.ExternalID] {
+		if existingExternalIDs[item.ExternalID] {
 			counts.ItemsUpdated++
 		} else {
 			counts.ItemsInserted++
 		}
-		existingItemExternalIDs[item.ExternalID] = true
+		existingExternalIDs[item.ExternalID] = true
 	}
-	return nil
+	return results.Close()
 }
 
 func upsertSource(ctx context.Context, tx pgx.Tx, source CatalogSource, opts Options) (string, bool, error) {
