@@ -10,13 +10,8 @@ steps:
 
   - within: Authentication
     fill:
-      label: Display name
+      label: Username
       value: Group Owner
-
-  - within: Authentication
-    fill:
-      label: Email
-      value: group-owner@example.test
 
   - within: Authentication
     fill:

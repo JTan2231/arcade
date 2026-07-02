@@ -10,13 +10,8 @@ steps:
 
   - within: Authentication
     fill:
-      label: Display name
+      label: Username
       value: Feed Owner
-
-  - within: Authentication
-    fill:
-      label: Email
-      value: feed-owner@example.test
 
   - within: Authentication
     fill:

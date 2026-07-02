@@ -1,7 +1,8 @@
 name: login and logout through the authentication panel
 
 vars:
-  email: login-user@example.test
+  email: login-user@local.arcade.invalid
+  username: Login User
   password: password123
 
 before:
@@ -10,7 +11,7 @@ before:
       method: POST
       path: /api/auth/signup
       json:
-        display_name: Login User
+        display_name: "{{username}}"
         email: "{{email}}"
         password: "{{password}}"
         remember_me: false
@@ -23,8 +24,8 @@ steps:
 
   - within: Authentication
     fill:
-      label: Email
-      value: "{{email}}"
+      label: Username
+      value: "{{username}}"
 
   - within: Authentication
     fill:

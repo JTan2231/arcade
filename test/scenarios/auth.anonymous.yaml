@@ -16,4 +16,4 @@ steps:
   - within: Authentication
     expectVisible:
       role: textbox
-      name: Email
+      name: Username

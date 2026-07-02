@@ -24,7 +24,7 @@ export function AuthView({ error, submitting, onClearError, onLogin, onSignup }:
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     onLogin({
-      email: formString(form, "email"),
+      email: authEmailForUsername(formString(form, "username")),
       password: formString(form, "password"),
       remember_me: form.get("remember_me") === "on",
     });
@@ -33,9 +33,10 @@ export function AuthView({ error, submitting, onClearError, onLogin, onSignup }:
   function handleSignup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const username = formString(form, "display_name");
     onSignup({
-      display_name: formString(form, "display_name"),
-      email: formString(form, "email"),
+      display_name: username,
+      email: authEmailForUsername(username),
       password: formString(form, "password"),
       remember_me: form.get("remember_me") === "on",
     });
@@ -68,8 +69,8 @@ export function AuthView({ error, submitting, onClearError, onLogin, onSignup }:
         {mode === "login" ? (
           <form className="auth-form" onSubmit={handleLogin}>
             <label>
-              Email
-              <input name="email" type="email" autoComplete="email" required />
+              Username
+              <input name="username" autoComplete="username" maxLength={100} required />
             </label>
             <label>
               Password
@@ -86,12 +87,8 @@ export function AuthView({ error, submitting, onClearError, onLogin, onSignup }:
         ) : (
           <form className="auth-form" onSubmit={handleSignup}>
             <label>
-              Display name
-              <input name="display_name" autoComplete="name" maxLength={100} required />
-            </label>
-            <label>
-              Email
-              <input name="email" type="email" autoComplete="email" required />
+              Username
+              <input name="display_name" autoComplete="username" maxLength={100} required />
             </label>
             <label>
               Password
@@ -118,4 +115,20 @@ export function AuthView({ error, submitting, onClearError, onLogin, onSignup }:
 function formString(form: FormData, name: string): string {
   const value = form.get(name);
   return typeof value === "string" ? value : "";
+}
+
+function authEmailForUsername(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.includes("@")) {
+    return trimmed;
+  }
+  return `${slugifyUsername(trimmed)}@local.arcade.invalid`;
+}
+
+function slugifyUsername(value: string): string {
+  const slug = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug || "untitled";
 }

@@ -10,13 +10,8 @@ steps:
 
   - within: Authentication
     fill:
-      label: Display name
+      label: Username
       value: Ada Lovelace
-
-  - within: Authentication
-    fill:
-      label: Email
-      value: ada@example.test
 
   - within: Authentication
     fill:
