@@ -295,6 +295,21 @@ export function getGroupDailyFeedToday(
   );
 }
 
+export function refreshGroupDailyFeedToday(
+  groupID: string,
+  feedID: string,
+  options: APIOptions = {},
+): Promise<DailyFeedOutput> {
+  return api<DailyFeedOutput>(
+    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/today/refresh`,
+    {
+      ...options,
+      method: "POST",
+      body: "{}",
+    },
+  );
+}
+
 export function getGroupDailyFeedOutput(
   groupID: string,
   feedID: string,

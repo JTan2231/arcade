@@ -14,6 +14,7 @@ type GroupsPanelProps = {
   creating: boolean;
   deletingGroupId: string | null;
   pendingToggleFeedId: string | null;
+  pendingRefreshFeedId: string | null;
   pendingDeleteFeedId: string | null;
   onCreateGroup: (name: string) => void;
   onSelectGroup: (id: string) => void;
@@ -21,6 +22,7 @@ type GroupsPanelProps = {
   onDeleteGroup: (id: string) => void;
   onSelectFeed: (id: string) => void;
   onToggleFeedEnabled: (id: string) => void;
+  onRefreshFeedGeneration: (id: string) => void;
   onCopyPublicFeedLink: (id: string) => void;
   onDeleteFeed: (id: string) => void;
   onAddFeed: () => void;
@@ -37,6 +39,7 @@ export function GroupsPanel({
   creating,
   deletingGroupId,
   pendingToggleFeedId,
+  pendingRefreshFeedId,
   pendingDeleteFeedId,
   onCreateGroup,
   onSelectGroup,
@@ -44,6 +47,7 @@ export function GroupsPanel({
   onDeleteGroup,
   onSelectFeed,
   onToggleFeedEnabled,
+  onRefreshFeedGeneration,
   onCopyPublicFeedLink,
   onDeleteFeed,
   onAddFeed,
@@ -145,10 +149,12 @@ export function GroupsPanel({
                     manage={canManageGroup(group)}
                     selectedFeedId={selectedFeedId}
                     pendingToggleFeedId={pendingToggleFeedId}
+                    pendingRefreshFeedId={pendingRefreshFeedId}
                     pendingDeleteFeedId={pendingDeleteFeedId}
                     publicLinksAvailable={group.visibility === "public"}
                     onSelectFeed={onSelectFeed}
                     onToggleFeedEnabled={onToggleFeedEnabled}
+                    onRefreshFeedGeneration={onRefreshFeedGeneration}
                     onCopyPublicFeedLink={onCopyPublicFeedLink}
                     onDeleteFeed={onDeleteFeed}
                     onAddFeed={onAddFeed}
@@ -172,10 +178,12 @@ function FeedSublist({
   manage,
   selectedFeedId,
   pendingToggleFeedId,
+  pendingRefreshFeedId,
   pendingDeleteFeedId,
   publicLinksAvailable,
   onSelectFeed,
   onToggleFeedEnabled,
+  onRefreshFeedGeneration,
   onCopyPublicFeedLink,
   onDeleteFeed,
   onAddFeed,
@@ -186,10 +194,12 @@ function FeedSublist({
   manage: boolean;
   selectedFeedId: string | null;
   pendingToggleFeedId: string | null;
+  pendingRefreshFeedId: string | null;
   pendingDeleteFeedId: string | null;
   publicLinksAvailable: boolean;
   onSelectFeed: (id: string) => void;
   onToggleFeedEnabled: (id: string) => void;
+  onRefreshFeedGeneration: (id: string) => void;
   onCopyPublicFeedLink: (id: string) => void;
   onDeleteFeed: (id: string) => void;
   onAddFeed: () => void;
@@ -231,7 +241,8 @@ function FeedSublist({
       ) : null}
       {feeds.map((feed) => {
         const selected = feed.id === selectedFeedId;
-        const mutating = pendingToggleFeedId === feed.id || pendingDeleteFeedId === feed.id;
+        const mutating =
+          pendingToggleFeedId === feed.id || pendingRefreshFeedId === feed.id || pendingDeleteFeedId === feed.id;
         const copyPublicLinkAction: RowAction | null =
           publicLinksAvailable && feed.enabled
             ? {
@@ -281,6 +292,10 @@ function FeedSublist({
                   setSettingsFeedId(null);
                   onToggleFeedEnabled(feed.id);
                 }}
+                onRefreshGeneration={() => {
+                  setSettingsFeedId(null);
+                  onRefreshFeedGeneration(feed.id);
+                }}
               />
             ) : null}
           </div>
@@ -302,12 +317,14 @@ function FeedSettingsDialog({
   mutating,
   onClose,
   onToggleFeedEnabled,
+  onRefreshGeneration,
   onDeleteFeed,
 }: {
   feed: DailyFeed;
   mutating: boolean;
   onClose: () => void;
   onToggleFeedEnabled: () => void;
+  onRefreshGeneration: () => void;
   onDeleteFeed: () => void;
 }) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -347,6 +364,17 @@ function FeedSettingsDialog({
               {feed.enabled ? "Disable" : "Enable"}
             </button>
           </section>
+          {feed.kind === "catalog_daily" ? (
+            <section className="feed-settings-section" aria-label="Current generation">
+              <div>
+                <div className="section-title">Current generation</div>
+                <div className="meta">Reroll today's generated items.</div>
+              </div>
+              <button className="secondary" disabled={mutating} type="button" onClick={onRefreshGeneration}>
+                Refresh
+              </button>
+            </section>
+          ) : null}
           <section className="feed-settings-section" aria-label="Delete feed">
             <div>
               <div className="section-title">Delete feed</div>

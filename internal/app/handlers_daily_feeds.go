@@ -110,6 +110,14 @@ type dailyFeedSelection struct {
 	IneligibleItems     []CatalogItemEligibility
 }
 
+type dailyFeedGeneration struct {
+	ID                string
+	Number            int
+	Seed              string
+	RefreshedByUserID *string
+	RefreshedAt       time.Time
+}
+
 func (s *Server) handleListGroupDailyFeeds(w http.ResponseWriter, r *http.Request) {
 	current, err := requireUser(r.Context())
 	if err != nil {
@@ -512,6 +520,27 @@ func (s *Server) handleGetGroupDailyFeedToday(w http.ResponseWriter, r *http.Req
 	writeJSON(w, http.StatusOK, output)
 }
 
+func (s *Server) handleRefreshGroupDailyFeedToday(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	groupID := r.PathValue("group_id")
+	if err := s.requireGroupRole(r.Context(), current.ID, groupID, "owner", "admin"); err != nil {
+		handleError(w, err)
+		return
+	}
+
+	output, err := s.refreshDailyFeedGeneration(r.Context(), current.ID, groupID, r.PathValue("feed_id"))
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, output)
+}
+
 func (s *Server) handleGetGroupDailyFeedOutput(w http.ResponseWriter, r *http.Request) {
 	current, err := requireUser(r.Context())
 	if err != nil {
@@ -790,21 +819,62 @@ func (s *Server) generateDailyFeedOutputForFeed(ctx context.Context, feed DailyF
 	return selection.Output, nil
 }
 
+func (s *Server) refreshDailyFeedGeneration(ctx context.Context, userID string, groupID string, feedID string) (DailyFeedOutput, error) {
+	feed, err := s.getGroupDailyFeed(ctx, groupID, feedID)
+	if err != nil {
+		return DailyFeedOutput{}, err
+	}
+	if feed.Kind == dailyFeedKindDailyThread {
+		return DailyFeedOutput{}, badRequest("daily thread feeds do not support refresh")
+	}
+
+	date, err := dailyFeedOutputDate(feed.Schedule, nil)
+	if err != nil {
+		return DailyFeedOutput{}, err
+	}
+
+	seed, err := randomHex(16)
+	if err != nil {
+		return DailyFeedOutput{}, err
+	}
+	selection, err := s.selectDailyFeedItemsForDate(ctx, feed, date, &dailyFeedGeneration{Seed: seed}, true)
+	if err != nil {
+		return DailyFeedOutput{}, err
+	}
+
+	generation, err := s.upsertDailyFeedGeneration(ctx, groupID, feedID, date, seed, userID)
+	if err != nil {
+		return DailyFeedOutput{}, err
+	}
+	selection.Output.Generation = publicDailyFeedGeneration(generation)
+	return selection.Output, nil
+}
+
 func (s *Server) selectDailyFeedItems(ctx context.Context, feed DailyFeed, requestedDate *time.Time, requireFullCount bool) (dailyFeedSelection, error) {
 	date, err := dailyFeedOutputDate(feed.Schedule, requestedDate)
 	if err != nil {
 		return dailyFeedSelection{}, err
 	}
+
+	generation, err := s.getDailyFeedGeneration(ctx, feed.ID, date)
+	if err != nil {
+		return dailyFeedSelection{}, err
+	}
+	return s.selectDailyFeedItemsForDate(ctx, feed, date, generation, requireFullCount)
+}
+
+func (s *Server) selectDailyFeedItemsForDate(ctx context.Context, feed DailyFeed, date time.Time, generation *dailyFeedGeneration, requireFullCount bool) (dailyFeedSelection, error) {
 	dateString := date.Format(dailyFeedDateLayout)
 
 	selection := dailyFeedSelection{
 		Output: DailyFeedOutput{
-			FeedID:    feed.ID,
-			GroupID:   feed.GroupID,
-			GroupName: feed.GroupName,
-			Date:      dateString,
-			Title:     feed.Name,
-			Items:     []DailyFeedOutputItem{},
+			FeedID:     feed.ID,
+			GroupID:    feed.GroupID,
+			GroupName:  feed.GroupName,
+			Date:       dateString,
+			Title:      feed.Name,
+			Generation: publicDailyFeedGeneration(generation),
+			Items:      []DailyFeedOutputItem{},
 		},
 	}
 
@@ -845,7 +915,11 @@ func (s *Server) selectDailyFeedItems(ctx context.Context, feed DailyFeed, reque
 
 	selection.EligibleItemCount = len(matching)
 	selection.IneligibleItemCount = len(selection.IneligibleItems)
-	sortDailyCandidates(matching, dailyFeedSelectionKey(feed), dateString)
+	generationSeed := ""
+	if generation != nil {
+		generationSeed = generation.Seed
+	}
+	sortDailyCandidates(matching, dailyFeedSelectionKey(feed), dateString, generationSeed)
 	if requireFullCount && len(matching) < *feed.ItemCount {
 		return dailyFeedSelection{}, statusError{
 			status:  http.StatusUnprocessableEntity,
@@ -876,6 +950,116 @@ func (s *Server) selectDailyFeedItems(ctx context.Context, feed DailyFeed, reque
 	}
 
 	return selection, nil
+}
+
+func (s *Server) getDailyFeedGeneration(ctx context.Context, feedID string, feedDate time.Time) (*dailyFeedGeneration, error) {
+	if s.db == nil || !uuidStringPattern.MatchString(feedID) {
+		return nil, nil
+	}
+
+	var generation dailyFeedGeneration
+	var refreshedByUserID sql.NullString
+	err := s.db.QueryRow(ctx, `
+		select
+			id::text,
+			generation,
+			seed,
+			refreshed_by_user_id::text,
+			updated_at
+		from group_daily_feed_generations
+		where feed_id = $1
+		  and feed_date = $2
+	`, feedID, feedDate).Scan(
+		&generation.ID,
+		&generation.Number,
+		&generation.Seed,
+		&refreshedByUserID,
+		&generation.RefreshedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	generation.RefreshedByUserID = nullStringPtr(refreshedByUserID)
+	return &generation, nil
+}
+
+func (s *Server) upsertDailyFeedGeneration(ctx context.Context, groupID string, feedID string, feedDate time.Time, seed string, userID string) (*dailyFeedGeneration, error) {
+	var generation dailyFeedGeneration
+	var refreshedByUserID sql.NullString
+	err := s.db.QueryRow(ctx, `
+		insert into group_daily_feed_generations (
+			group_id,
+			feed_id,
+			feed_date,
+			generation,
+			seed,
+			refreshed_by_user_id
+		)
+		select
+			$1,
+			$2,
+			$3,
+			1,
+			$4,
+			$5
+		where not exists (
+			select 1
+			from group_daily_feed_instances i
+			join group_feed_posts p on p.feed_instance_id = i.id and p.group_id = i.group_id
+			where i.group_id = $1
+			  and i.feed_id = $2
+			  and i.feed_date = $3
+			  and p.deleted_at is null
+		)
+		on conflict (feed_id, feed_date) do update set
+			generation = group_daily_feed_generations.generation + 1,
+			seed = excluded.seed,
+			refreshed_by_user_id = excluded.refreshed_by_user_id
+		where not exists (
+			select 1
+			from group_daily_feed_instances i
+			join group_feed_posts p on p.feed_instance_id = i.id and p.group_id = i.group_id
+			where i.group_id = excluded.group_id
+			  and i.feed_id = excluded.feed_id
+			  and i.feed_date = excluded.feed_date
+			  and p.deleted_at is null
+		)
+		returning
+			id::text,
+			generation,
+			seed,
+			refreshed_by_user_id::text,
+			updated_at
+	`, groupID, feedID, feedDate, seed, userID).Scan(
+		&generation.ID,
+		&generation.Number,
+		&generation.Seed,
+		&refreshedByUserID,
+		&generation.RefreshedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, statusError{status: http.StatusConflict, message: "daily feed output already has posts"}
+	}
+	if err != nil {
+		return nil, err
+	}
+	generation.RefreshedByUserID = nullStringPtr(refreshedByUserID)
+	return &generation, nil
+}
+
+func publicDailyFeedGeneration(generation *dailyFeedGeneration) *DailyFeedOutputGeneration {
+	if generation == nil || generation.ID == "" {
+		return nil
+	}
+	return &DailyFeedOutputGeneration{
+		ID:                generation.ID,
+		Number:            generation.Number,
+		RefreshedByUserID: generation.RefreshedByUserID,
+		RefreshedAt:       generation.RefreshedAt,
+	}
 }
 
 func (s *Server) dailyCatalogCandidates(ctx context.Context, sourceID string) ([]dailyCatalogCandidate, error) {
@@ -1042,10 +1226,10 @@ func stringSliceContainsFold(values []string, needle string) bool {
 	return false
 }
 
-func sortDailyCandidates(candidates []dailyCatalogCandidate, feedKey string, date string) {
+func sortDailyCandidates(candidates []dailyCatalogCandidate, feedKey string, date string, generationSeed string) {
 	sort.SliceStable(candidates, func(i, j int) bool {
-		leftHash := stableDailyHash(feedKey, date, candidates[i].ID)
-		rightHash := stableDailyHash(feedKey, date, candidates[j].ID)
+		leftHash := stableDailyHash(feedKey, date, generationSeed, candidates[i].ID)
+		rightHash := stableDailyHash(feedKey, date, generationSeed, candidates[j].ID)
 		if leftHash != rightHash {
 			return leftHash < rightHash
 		}
@@ -1060,8 +1244,12 @@ func dailyFeedSelectionKey(feed DailyFeed) string {
 	return feed.ID
 }
 
-func stableDailyHash(feedKey string, date string, itemID string) uint64 {
-	sum := sha256.Sum256([]byte(feedKey + "\x00" + date + "\x00" + itemID))
+func stableDailyHash(feedKey string, date string, generationSeed string, itemID string) uint64 {
+	input := feedKey + "\x00" + date + "\x00" + itemID
+	if generationSeed != "" {
+		input = feedKey + "\x00" + date + "\x00" + generationSeed + "\x00" + itemID
+	}
+	sum := sha256.Sum256([]byte(input))
 	return binary.BigEndian.Uint64(sum[:8])
 }
 

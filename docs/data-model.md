@@ -123,6 +123,13 @@ Catalog daily feed outputs are generated on demand from `group_daily_feeds`,
 `feed_rule_filters`. Daily thread outputs return the daily feed shell without
 generated items. Generated outputs are not persisted.
 
+`group_daily_feed_generations` stores explicit reroll state for catalog feed
+dates that have been refreshed by a group owner or admin. No row exists for the
+default deterministic generation. A refresh creates or updates one `(feed_id,
+feed_date)` row with a generation number, seed, refresher, and timestamp; that
+seed participates in item selection for that feed/date only. Refreshes are not
+allowed once non-deleted posts exist for the feed/date.
+
 `group_daily_feed_instances` materializes a dated `(feed_id, feed_date)` only
 when durable member content exists for that feed instance. The row carries
 `group_id` for group-scoped lookup and authorization, with composite foreign

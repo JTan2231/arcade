@@ -169,12 +169,20 @@ type DailyFeedRuleFilter struct {
 }
 
 type DailyFeedOutput struct {
-	FeedID    string                `json:"feed_id"`
-	GroupID   string                `json:"group_id"`
-	GroupName *string               `json:"group_name,omitempty"`
-	Date      string                `json:"date"`
-	Title     string                `json:"title"`
-	Items     []DailyFeedOutputItem `json:"items"`
+	FeedID     string                     `json:"feed_id"`
+	GroupID    string                     `json:"group_id"`
+	GroupName  *string                    `json:"group_name,omitempty"`
+	Date       string                     `json:"date"`
+	Title      string                     `json:"title"`
+	Generation *DailyFeedOutputGeneration `json:"generation,omitempty"`
+	Items      []DailyFeedOutputItem      `json:"items"`
+}
+
+type DailyFeedOutputGeneration struct {
+	ID                string    `json:"id"`
+	Number            int       `json:"number"`
+	RefreshedByUserID *string   `json:"refreshed_by_user_id,omitempty"`
+	RefreshedAt       time.Time `json:"refreshed_at"`
 }
 
 type DailyFeedOutputItem struct {

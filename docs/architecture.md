@@ -102,7 +102,10 @@ The current daily feed model follows these rules:
   `catalog_source_fields`, `catalog_items`, `group_daily_feeds`, and
   `feed_rule_filters`.
 - Catalog selection is deterministic by feed, date, source, filters, and
-  catalog item set.
+  catalog item set. When an owner or admin refreshes the current output, the
+  refreshed feed/date stores a generation seed in
+  `group_daily_feed_generations`, and that seed becomes part of the deterministic
+  selection key for that feed/date only.
 - Catalog outputs render from source templates. HTTPS renders become links;
   other renders become text prompts. Outputs are not persisted.
 - Global catalog sources are available to every group for catalog daily feeds,
@@ -113,6 +116,10 @@ The current daily feed model follows these rules:
   member can own at most one post on that instance. Feed post read responses are
   hydrated with attached group post tags ordered by name,
   including archived tags that remain attached to historical posts.
+- Owners and admins can reroll the current catalog output with
+  `POST /api/groups/{group_id}/daily-feeds/{feed_id}/today/refresh`. Refreshes
+  are rejected for daily thread feeds and for feed dates that already have
+  non-deleted member posts.
 - Group visibility controls public reads for the group, its enabled feeds, and
   non-deleted posts. Authenticated active members continue reading private group
   content through member routes, while public routes return 404 for private

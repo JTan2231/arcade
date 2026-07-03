@@ -114,11 +114,46 @@ func TestSortDailyCandidatesIsStableForSameInputs(t *testing.T) {
 	first := append([]dailyCatalogCandidate(nil), candidates...)
 	second := append([]dailyCatalogCandidate(nil), candidates...)
 
-	sortDailyCandidates(first, "feed", "2026-06-21")
-	sortDailyCandidates(second, "feed", "2026-06-21")
+	sortDailyCandidates(first, "feed", "2026-06-21", "")
+	sortDailyCandidates(second, "feed", "2026-06-21", "")
 
 	if !reflect.DeepEqual(candidateIDs(first), candidateIDs(second)) {
 		t.Fatalf("same inputs produced different orders: %v vs %v", candidateIDs(first), candidateIDs(second))
+	}
+}
+
+func TestStableDailyHashPreservesLegacyInputWithoutGenerationSeed(t *testing.T) {
+	const legacyHash = uint64(1789217096821911317)
+
+	if got := stableDailyHash("feed", "2026-06-21", "", "item-a"); got != legacyHash {
+		t.Fatalf("hash = %d, want %d", got, legacyHash)
+	}
+}
+
+func TestStableDailyHashChangesWithGenerationSeed(t *testing.T) {
+	legacy := stableDailyHash("feed", "2026-06-21", "", "item-a")
+	refreshed := stableDailyHash("feed", "2026-06-21", "seed-one", "item-a")
+
+	if refreshed == legacy {
+		t.Fatal("generation seed did not change hash")
+	}
+}
+
+func TestSortDailyCandidatesUsesGenerationSeed(t *testing.T) {
+	candidates := []dailyCatalogCandidate{
+		{ID: "item-a", Data: map[string]any{"rating": float64(1000)}},
+		{ID: "item-b", Data: map[string]any{"rating": float64(1000)}},
+		{ID: "item-c", Data: map[string]any{"rating": float64(1000)}},
+		{ID: "item-d", Data: map[string]any{"rating": float64(1000)}},
+	}
+	defaultOrder := append([]dailyCatalogCandidate(nil), candidates...)
+	refreshedOrder := append([]dailyCatalogCandidate(nil), candidates...)
+
+	sortDailyCandidates(defaultOrder, "feed", "2026-06-21", "")
+	sortDailyCandidates(refreshedOrder, "feed", "2026-06-21", "seed-one")
+
+	if reflect.DeepEqual(candidateIDs(defaultOrder), candidateIDs(refreshedOrder)) {
+		t.Fatalf("seeded sort matched default order: %v", candidateIDs(defaultOrder))
 	}
 }
 

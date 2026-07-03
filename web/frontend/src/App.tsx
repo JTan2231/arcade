@@ -102,6 +102,7 @@ export default function App() {
   const loadingGroups = matchesTopState(dashboardStateValue, "loadingGroups");
   const creatingGroup = matchesTopState(dashboardStateValue, "creatingGroup");
   const loadingFeeds = matchesChildState(dashboardStateValue, "groupSelected", "loadingFeeds");
+  const refreshingFeedGeneration = matchesChildState(dashboardStateValue, "groupSelected", "refreshingFeedGeneration");
   const loadingTodayOutput = matchesGrandchildState(
     dashboardStateValue,
     "groupSelected",
@@ -675,6 +676,9 @@ export default function App() {
                 creating={creatingGroup}
                 deletingGroupId={dashboardContext?.pendingDeleteGroupId ?? null}
                 pendingToggleFeedId={dashboardContext?.pendingToggleFeedId ?? null}
+                pendingRefreshFeedId={
+                  refreshingFeedGeneration ? (dashboardContext?.pendingRefreshFeedId ?? null) : null
+                }
                 pendingDeleteFeedId={dashboardContext?.pendingDeleteFeedId ?? null}
                 onCreateGroup={(name) => dashboardRef?.send({ type: "GROUP_CREATE_SUBMITTED", name })}
                 onSelectGroup={(groupId) => {
@@ -691,6 +695,12 @@ export default function App() {
                   dashboardRef?.send({ type: "FEED_SELECTED", feedId });
                 }}
                 onToggleFeedEnabled={(feedId) => dashboardRef?.send({ type: "FEED_ENABLED_TOGGLED", feedId })}
+                onRefreshFeedGeneration={(feedId) => {
+                  if (feedId === selectedFeedId) {
+                    setAppPath(feedPath(feedId));
+                  }
+                  dashboardRef?.send({ type: "FEED_GENERATION_REFRESHED", feedId });
+                }}
                 onCopyPublicFeedLink={(feedId) =>
                   void copyPublicPath(
                     feedPath(feedId, feedId === selectedFeedId && selectedFeedDate !== "" ? selectedFeedDate : null),

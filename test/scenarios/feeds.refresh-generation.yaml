@@ -1,0 +1,116 @@
+name: feed settings can refresh the current catalog generation
+
+vars:
+  email: refresh-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Refresh Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+      capture:
+        owner_id: $.id
+
+  - request:
+      id: login_owner
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Refresh Dojo
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: create_source
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/catalog-sources
+      json:
+        name: Refresh Source
+        template: https://example.test/{slug}
+        items:
+          - title: Alpha Refresh
+            data:
+              slug: alpha-refresh
+          - title: Beta Refresh
+            data:
+              slug: beta-refresh
+          - title: Gamma Refresh
+            data:
+              slug: gamma-refresh
+      expectStatus: 201
+      capture:
+        source_id: $.id
+
+  - request:
+      id: create_feed
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds
+      json:
+        name: A Refresh Practice
+        kind: catalog_daily
+        enabled: true
+        source_id: "{{source_id}}"
+        item_count: 1
+      expectStatus: 201
+      capture:
+        feed_id: $.id
+
+steps:
+  - visit: /
+
+  - within: Feeds
+    expectPressed:
+      role: button
+      name: A Refresh Practice
+      pressed: true
+
+  - holdRequest:
+      id: refresh
+      method: POST
+      path: /api/groups/*/daily-feeds/*/today/refresh
+      times: 1
+
+  - within: Feeds
+    click:
+      role: button
+      name: Feed settings for A Refresh Practice
+
+  - within: Feeds
+    click:
+      role: button
+      name: Settings
+
+  - within: Feed settings
+    click:
+      role: button
+      name: Refresh
+
+  - expectRequest:
+      id: refresh
+
+  - releaseRequest: refresh
+
+  - expectStatus:
+      text: Feed refreshed

@@ -26,6 +26,7 @@ import {
   listGroupMembers,
   listGroupPostTags,
   listGroups,
+  refreshGroupDailyFeedToday,
   updateFeedMetric,
   updateFeedMetricJudgment,
   updateGroup,
@@ -159,6 +160,7 @@ export type DashboardContext = {
 
   pendingGroupName: string;
   pendingToggleFeedId: string | null;
+  pendingRefreshFeedId: string | null;
   pendingDeleteGroupId: string | null;
   pendingDeleteFeedId: string | null;
   postMutation: PostMutation | null;
@@ -183,6 +185,7 @@ type DashboardUserEvent =
   | { type: "FEED_SELECTED"; feedId: string }
   | { type: "FEED_DATE_CHANGED"; date: string }
   | { type: "FEED_ENABLED_TOGGLED"; feedId: string }
+  | { type: "FEED_GENERATION_REFRESHED"; feedId: string }
   | { type: "FEED_DELETE_SUBMITTED"; feedId: string }
   | { type: "POST_CREATE_SUBMITTED"; payload: CreatePostPayload }
   | { type: "POST_UPDATE_SUBMITTED"; postId: string; payload: UpdatePostPayload }
@@ -396,6 +399,9 @@ const dashboardSetup = setup({
     toggleFeed: fromPromise<DailyFeed, ToggleFeedInput>(({ input, signal }) =>
       updateGroupDailyFeed(input.groupId, input.feed.id, { enabled: !input.feed.enabled }, { signal }),
     ),
+    refreshFeedGeneration: fromPromise<DailyFeedOutput, FeedInput>(({ input, signal }) =>
+      refreshGroupDailyFeedToday(input.groupId, input.feedId, { signal }),
+    ),
     deleteFeed: fromPromise<DeleteFeedOutput, FeedInput>(async ({ input, signal }) => {
       await deleteGroupDailyFeed(input.groupId, input.feedId, { signal });
       return { feedId: input.feedId };
@@ -593,6 +599,15 @@ export const dashboardMachine = dashboardSetup.createMachine({
         pendingToggleFeedId: event.feedId,
       })),
     },
+    FEED_GENERATION_REFRESHED: {
+      guard: ({ context, event }) =>
+        context.selectedGroupId !== null &&
+        context.feeds.some((feed) => feed.id === event.feedId && feed.kind === "catalog_daily"),
+      target: ".groupSelected.refreshingFeedGeneration",
+      actions: assign(({ event }) => ({
+        pendingRefreshFeedId: event.feedId,
+      })),
+    },
     FEED_DELETE_SUBMITTED: {
       guard: ({ context, event }) =>
         context.selectedGroupId !== null && context.feeds.some((feed) => feed.id === event.feedId),
@@ -621,6 +636,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
           postMutation: null,
           ...resetMetricContext(),
           pendingToggleFeedId: null,
+          pendingRefreshFeedId: null,
           pendingDeleteFeedId: null,
         })),
         sendToastToParent("Feed created"),
@@ -878,6 +894,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                     groupMemberMutation: null,
                     ...resetMetricContext(),
                     pendingToggleFeedId: null,
+                    pendingRefreshFeedId: null,
                     pendingDeleteFeedId: null,
                   };
                 }),
@@ -902,6 +919,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   groupMemberMutation: null,
                   ...resetMetricContext(),
                   pendingToggleFeedId: null,
+                  pendingRefreshFeedId: null,
                   pendingDeleteFeedId: null,
                 })),
               },
@@ -928,6 +946,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   groupMemberMutation: null,
                   ...resetMetricContext(),
                   pendingToggleFeedId: null,
+                  pendingRefreshFeedId: null,
                   pendingDeleteFeedId: null,
                 })),
               },
@@ -1594,6 +1613,55 @@ export const dashboardMachine = dashboardSetup.createMachine({
             ],
           },
         },
+        refreshingFeedGeneration: {
+          invoke: {
+            src: "refreshFeedGeneration",
+            input: ({ context }) => ({
+              groupId: requireSelectedGroupId(context),
+              feedId: requirePendingRefreshFeedId(context),
+            }),
+            onDone: [
+              {
+                target: "feedSelected.loadingPosts",
+                guard: ({ context, event }) => context.selectedFeedId === event.output.feed_id,
+                actions: [
+                  assign(({ event }) => ({
+                    output: event.output,
+                    selectedFeedDate: event.output.date,
+                    outputError: "",
+                    posts: [],
+                    postsError: "",
+                    postMutation: null,
+                    metricLeaderboard: null,
+                    metricsError: "",
+                    pendingRefreshFeedId: null,
+                  })),
+                  sendToastToParent("Feed refreshed"),
+                ],
+              },
+              {
+                target: "feedSelected.ready",
+                guard: { type: "hasRestorableFeed" },
+                actions: [
+                  assign({
+                    pendingRefreshFeedId: null,
+                  }),
+                  sendToastToParent("Feed refreshed"),
+                ],
+              },
+              {
+                target: "noFeed",
+                actions: [
+                  assign({
+                    pendingRefreshFeedId: null,
+                  }),
+                  sendToastToParent("Feed refreshed"),
+                ],
+              },
+            ],
+            onError: restoreAfterFeedRefreshErrorTransitions(),
+          },
+        },
         deletingFeed: {
           invoke: {
             src: "deleteFeed",
@@ -1632,6 +1700,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                       postMutation: null,
                       ...resetMetricContext(),
                       pendingToggleFeedId: null,
+                      pendingRefreshFeedId: null,
                       pendingDeleteFeedId: null,
                     };
                   }),
@@ -1652,6 +1721,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                     postMutation: null,
                     ...resetMetricContext(),
                     pendingToggleFeedId: null,
+                    pendingRefreshFeedId: null,
                     pendingDeleteFeedId: null,
                   })),
                   sendToastToParent("Feed deleted"),
@@ -1707,6 +1777,7 @@ function resetSelectedGroupContext(): Omit<
     postsError: "",
     ...resetMetricContext(),
     pendingToggleFeedId: null,
+    pendingRefreshFeedId: null,
     pendingDeleteFeedId: null,
     postMutation: null,
     postTagMutation: null,
@@ -1845,6 +1916,21 @@ function restoreAfterFeedDeleteErrorTransitions() {
     {
       target: "noFeed",
       actions: [clearPendingDeleteFeedIdOnError(), sendErrorToastToParent()],
+    },
+  ] as const;
+}
+
+function restoreAfterFeedRefreshErrorTransitions() {
+  return [
+    unauthorizedToParentTransition(),
+    {
+      target: "feedSelected.ready",
+      guard: { type: "hasRestorableFeed" },
+      actions: [clearPendingRefreshFeedIdOnError(), sendErrorToastToParent()],
+    },
+    {
+      target: "noFeed",
+      actions: [clearPendingRefreshFeedIdOnError(), sendErrorToastToParent()],
     },
   ] as const;
 }
@@ -2019,6 +2105,12 @@ function clearPendingDeleteFeedIdOnError() {
   });
 }
 
+function clearPendingRefreshFeedIdOnError() {
+  return assign<DashboardContext, ErrorActorEvent, undefined, DashboardEvent, never>({
+    pendingRefreshFeedId: null,
+  });
+}
+
 function requireSelectedGroupId(context: DashboardContext): string {
   if (context.selectedGroupId === null) {
     throw new Error("No group selected");
@@ -2053,6 +2145,13 @@ function requirePendingToggleFeed(context: DashboardContext): DailyFeed {
     throw new Error("Feed not found");
   }
   return feed;
+}
+
+function requirePendingRefreshFeedId(context: DashboardContext): string {
+  if (context.pendingRefreshFeedId === null) {
+    throw new Error("No feed refresh is pending");
+  }
+  return context.pendingRefreshFeedId;
 }
 
 function requirePendingDeleteGroupId(context: DashboardContext): string {
