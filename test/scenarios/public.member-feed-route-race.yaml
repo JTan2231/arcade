@@ -1,0 +1,111 @@
+name: signed in feed route waits for groups before member workspace
+
+vars:
+  email: member-feed-route-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Member Feed Route Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: login_owner
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Member Feed Route Group
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: create_source
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/catalog-sources
+      json:
+        name: Member Feed Route Source
+        template: https://example.test/{slug}
+        items:
+          - title: Member Feed Route Item
+            data:
+              slug: member-feed-route-item
+      expectStatus: 201
+      capture:
+        source_id: $.id
+
+  - request:
+      id: create_feed
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds
+      json:
+        name: Member Feed Route Practice
+        kind: catalog_daily
+        enabled: true
+        source_id: "{{source_id}}"
+        item_count: 1
+        filters: []
+        schedule:
+          starts_at: "{{today}}T00:00:00.000Z"
+          timezone: UTC
+          interval_seconds: 86400
+      expectStatus: 201
+      capture:
+        feed_id: $.id
+
+steps:
+  - holdRequest:
+      id: groups
+      method: GET
+      path: /api/groups
+      times: 1
+
+  - visit: /f/{{feed_id}}
+
+  - expectRequest:
+      id: groups
+
+  - within: Arcade workspace
+    expectVisible:
+      text: Member Feed Route Practice
+
+  - within: Arcade workspace
+    expectHidden:
+      text: No group selected
+
+  - releaseRequest: groups
+
+  - within: Groups
+    expectVisible:
+      text: Member Feed Route Group
+
+  - within: Feeds
+    expectPressed:
+      role: button
+      name: Member Feed Route Practice
+      pressed: true
+
+  - within: Selected feed output
+    expectVisible:
+      text: Member Feed Route Item

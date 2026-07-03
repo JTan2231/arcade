@@ -87,6 +87,7 @@ export default function App() {
   const [invitingUserId, setInvitingUserId] = useState<string | null>(null);
   const [memberRouteTarget, setMemberRouteTarget] = useState<MemberRouteTarget | null>(null);
   const appNavigationPathRef = useRef<string | null>(null);
+  const memberRouteGroupRefreshRef = useRef<string | null>(null);
 
   const checkingSession = snapshot.matches("checkingSession");
   const signedOut = snapshot.matches("signedOut");
@@ -279,8 +280,23 @@ export default function App() {
 
   useEffect(() => {
     if (!signedIn || memberRouteTarget?.status !== "member" || dashboardRef === undefined) {
+      memberRouteGroupRefreshRef.current = null;
       return;
     }
+
+    const targetGroup = groups.find((group) => group.id === memberRouteTarget.groupId && group.my_status === "active");
+    if (targetGroup === undefined) {
+      if (!loadingGroups) {
+        const refreshKey = `${memberRouteTarget.routeKey}:${memberRouteTarget.groupId}`;
+        if (memberRouteGroupRefreshRef.current !== refreshKey) {
+          memberRouteGroupRefreshRef.current = refreshKey;
+          dashboardRef.send({ type: "GROUPS_REFRESH_REQUESTED", preferredGroupId: memberRouteTarget.groupId });
+        }
+      }
+      return;
+    }
+
+    memberRouteGroupRefreshRef.current = null;
     if (selectedGroupId !== memberRouteTarget.groupId) {
       dashboardRef.send({ type: "GROUP_SELECTED", groupId: memberRouteTarget.groupId });
       return;
@@ -303,7 +319,17 @@ export default function App() {
     ) {
       dashboardRef.send({ type: "FEED_DATE_CHANGED", date: memberRouteTarget.date });
     }
-  }, [dashboardRef, feeds, memberRouteTarget, selectedFeedDate, selectedFeedId, selectedGroupId, signedIn]);
+  }, [
+    dashboardRef,
+    feeds,
+    groups,
+    loadingGroups,
+    memberRouteTarget,
+    selectedFeedDate,
+    selectedFeedId,
+    selectedGroupId,
+    signedIn,
+  ]);
 
   useEffect(() => {
     if (route !== "workspace" || !signedIn || selectedGroup === null || selectedGroup.my_status !== "active") {
@@ -546,8 +572,11 @@ export default function App() {
   const profilePath = context.user === null ? "/" : userProfilePath(context.user);
   const groupRouteGroup =
     publicRoute?.kind === "group" ? (groups.find((group) => group.slug === publicRoute.slug) ?? null) : null;
-  const groupRouteUsesWorkspace =
-    publicRoute?.kind === "group" && signedIn && (loadingGroups || groupRouteGroup?.my_status === "active");
+  const memberRouteTargetGroup =
+    memberRouteTarget?.status === "member"
+      ? (groups.find((group) => group.id === memberRouteTarget.groupId && group.my_status === "active") ?? null)
+      : null;
+  const groupRouteUsesWorkspace = publicRoute?.kind === "group" && signedIn && groupRouteGroup?.my_status === "active";
   const memberRouteResolutionPending =
     publicRoute !== null &&
     publicRoute.kind !== "group" &&
@@ -559,7 +588,9 @@ export default function App() {
     publicRoute !== null &&
     publicRoute.kind !== "group" &&
     signedIn &&
-    (memberRouteResolutionPending || memberRouteTarget?.status === "member");
+    !memberRouteResolutionPending &&
+    memberRouteTarget?.routeKey === publicRouteKey &&
+    memberRouteTargetGroup !== null;
   const publicRouteUsesWorkspace = groupRouteUsesWorkspace || memberRouteUsesWorkspace;
 
   if (publicRoute !== null && !publicRouteUsesWorkspace) {
