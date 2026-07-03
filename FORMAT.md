@@ -343,16 +343,3 @@ Patch format request updates metadata only:
   "description": "Fourteen lines, no blank lines."
 }
 ```
-
-## Frontend Behavior
-
-The post composer loads active group evidence formats and requires one selected
-format. The default selected format is `plain-text`.
-
-The composer displays the selected format's constraints near the evidence
-textarea and performs the same validation before submit. Backend validation is
-authoritative.
-
-The edit form uses the post's current format version for evidence-only edits.
-When the user changes format, the form validates against the selected format's
-active version.

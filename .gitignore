@@ -5,3 +5,4 @@ web/static/*
 test/node_modules/
 test/artifacts/
 test/bun.lockb
+.arcade/

@@ -31,8 +31,8 @@ cleanup() {
 
 usage() {
 	cat <<'EOF'
-Usage: ./ci.sh [all|frontend|backend|scenarios|e2e|test|generated-docs]
-       ./ci.sh [--all|--frontend|--backend|--scenarios|--e2e|--test|--generated-docs]
+Usage: ./ci.sh [all|frontend|backend|runctl|scenarios|e2e|test|generated-docs]
+       ./ci.sh [--all|--frontend|--backend|--runctl|--scenarios|--e2e|--test|--generated-docs]
 
 Runs all CI checks by default in an isolated temporary worktree.
 EOF
@@ -110,6 +110,33 @@ run_backend() {
 	go build -trimpath -o "$tmp_dir/arcade" ./cmd/arcade || return 1
 }
 
+run_runctl() {
+	require_command go || return 1
+
+	section "Run controller: checking shell syntax"
+	sh -n run.sh tools/runctl/services/backend.sh tools/runctl/services/frontend.sh || return 1
+
+	section "Run controller: checking Go formatting"
+	(cd tools/runctl && find . -type f -name '*.go' -print | sort | while IFS= read -r file; do
+		gofmt -l "$file"
+	done) >"$tmp_dir/runctl-gofmt.out" || return 1
+
+	if [ -s "$tmp_dir/runctl-gofmt.out" ]; then
+		printf 'The following run controller Go files need gofmt:\n' >&2
+		cat "$tmp_dir/runctl-gofmt.out" >&2
+		return 1
+	fi
+
+	section "Run controller: checking module tidiness"
+	(cd tools/runctl && go mod tidy -diff) || return 1
+
+	section "Run controller: running go vet"
+	(cd tools/runctl && go vet ./...) || return 1
+
+	section "Run controller: running tests"
+	(cd tools/runctl && go test ./...) || return 1
+}
+
 run_scenarios() {
 	require_command bun || return 1
 
@@ -159,6 +186,9 @@ if [ "$#" -eq 1 ]; then
 	backend | back | --backend | --back)
 		target="backend"
 		;;
+	runctl | run | devtools | --runctl | --run | --devtools)
+		target="runctl"
+		;;
 	scenarios | scenario | --scenarios | --scenario)
 		target="scenarios"
 		;;
@@ -187,6 +217,7 @@ fi
 
 frontend_status=0
 backend_status=0
+runctl_status=0
 scenarios_status=0
 e2e_status=0
 generated_docs_status=0
@@ -194,6 +225,7 @@ e2e_blocked_by_scenarios=0
 generated_docs_blocked_by_frontend=0
 run_frontend_checks=0
 run_backend_checks=0
+run_runctl_checks=0
 run_scenario_checks=0
 run_e2e_checks=0
 run_generated_docs_checks=0
@@ -202,6 +234,7 @@ case "$target" in
 all)
 	run_frontend_checks=1
 	run_backend_checks=1
+	run_runctl_checks=1
 	run_scenario_checks=1
 	run_e2e_checks=1
 	run_generated_docs_checks=1
@@ -212,6 +245,9 @@ frontend)
 	;;
 backend)
 	run_backend_checks=1
+	;;
+runctl)
+	run_runctl_checks=1
 	;;
 scenarios)
 	run_scenario_checks=1
@@ -231,6 +267,10 @@ fi
 
 if [ "$run_backend_checks" -eq 1 ]; then
 	run_backend || backend_status=$?
+fi
+
+if [ "$run_runctl_checks" -eq 1 ]; then
+	run_runctl || runctl_status=$?
 fi
 
 if [ "$run_scenario_checks" -eq 1 ]; then
@@ -276,6 +316,16 @@ else
 	printf 'Backend: skipped\n'
 fi
 
+if [ "$run_runctl_checks" -eq 1 ]; then
+	if [ "$runctl_status" -eq 0 ]; then
+		printf 'Run controller: passed\n'
+	else
+		printf 'Run controller: failed\n' >&2
+	fi
+else
+	printf 'Run controller: skipped\n'
+fi
+
 if [ "$run_scenario_checks" -eq 1 ]; then
 	if [ "$scenarios_status" -eq 0 ]; then
 		printf 'Scenarios: passed\n'
@@ -310,7 +360,7 @@ else
 	printf 'Generated docs: skipped\n'
 fi
 
-if [ "$frontend_status" -ne 0 ] || [ "$backend_status" -ne 0 ] || [ "$scenarios_status" -ne 0 ] || [ "$e2e_status" -ne 0 ] || [ "$generated_docs_status" -ne 0 ]; then
+if [ "$frontend_status" -ne 0 ] || [ "$backend_status" -ne 0 ] || [ "$runctl_status" -ne 0 ] || [ "$scenarios_status" -ne 0 ] || [ "$e2e_status" -ne 0 ] || [ "$generated_docs_status" -ne 0 ]; then
 	exit 1
 fi
 
