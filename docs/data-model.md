@@ -102,6 +102,8 @@ order; operator semantics stay in application code.
 Each feed has a unique slug within its group, a kind, an enabled flag, explicit
 schedule columns (`schedule_starts_at`, `schedule_timezone`, and
 `schedule_interval_seconds`), and optional practice-feed source/count columns.
+The schedule start date cannot be later than the current date in the schedule
+timezone.
 The `catalog_daily` kind selects items from exactly one available
 `catalog_sources` row. A source is available when it either belongs to the feed
 group or has global scope.

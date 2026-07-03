@@ -1722,9 +1722,6 @@ function defaultTimezone(): string {
 function defaultStartsAtInput(): string {
   const date = new Date();
   date.setHours(8, 0, 0, 0);
-  if (date.getTime() < Date.now()) {
-    date.setDate(date.getDate() + 1);
-  }
   return datetimeLocalValue(date);
 }
 

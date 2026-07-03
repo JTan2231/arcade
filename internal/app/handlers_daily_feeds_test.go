@@ -247,6 +247,46 @@ func TestDailyFeedOutputDateKeepsRequestedCalendarDateInScheduleTimezone(t *test
 	}
 }
 
+func TestDailyFeedOutputDateBeforeFutureStartUsesTodayInScheduleTimezone(t *testing.T) {
+	location, err := time.LoadLocation("America/Chicago")
+	if err != nil {
+		t.Fatalf("time.LoadLocation returned error: %v", err)
+	}
+
+	date, err := dailyFeedOutputDateAt(DailyFeedSchedule{
+		StartsAt:        time.Date(2026, 7, 3, 8, 0, 0, 0, location),
+		Timezone:        "America/Chicago",
+		IntervalSeconds: 86400,
+	}, nil, time.Date(2026, 7, 2, 18, 0, 0, 0, location))
+	if err != nil {
+		t.Fatalf("dailyFeedOutputDateAt returned error: %v", err)
+	}
+
+	if got := date.Format(dailyFeedDateLayout); got != "2026-07-02" {
+		t.Fatalf("date = %q", got)
+	}
+	if got := date.Location().String(); got != "America/Chicago" {
+		t.Fatalf("location = %q", got)
+	}
+}
+
+func TestNormalizeDailyFeedScheduleRejectsFutureStartDate(t *testing.T) {
+	location, err := time.LoadLocation("America/Chicago")
+	if err != nil {
+		t.Fatalf("time.LoadLocation returned error: %v", err)
+	}
+	tomorrow := time.Now().In(location).AddDate(0, 0, 1)
+
+	_, err = normalizeDailyFeedSchedule(&DailyFeedSchedule{
+		StartsAt:        time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 8, 0, 0, 0, location),
+		Timezone:        "America/Chicago",
+		IntervalSeconds: 86400,
+	})
+	if err == nil {
+		t.Fatal("expected future schedule start date to be rejected")
+	}
+}
+
 func candidateIDs(candidates []dailyCatalogCandidate) []string {
 	ids := make([]string, 0, len(candidates))
 	for _, candidate := range candidates {

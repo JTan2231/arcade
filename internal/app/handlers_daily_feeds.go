@@ -1158,6 +1158,10 @@ func dailyFeedReason(candidate dailyCatalogCandidate, filters []DailyFeedRuleFil
 }
 
 func dailyFeedOutputDate(schedule DailyFeedSchedule, requestedDate *time.Time) (time.Time, error) {
+	return dailyFeedOutputDateAt(schedule, requestedDate, time.Now())
+}
+
+func dailyFeedOutputDateAt(schedule DailyFeedSchedule, requestedDate *time.Time, now time.Time) (time.Time, error) {
 	timezone := schedule.Timezone
 	if timezone == "" {
 		timezone = "UTC"
@@ -1179,11 +1183,13 @@ func dailyFeedOutputDate(schedule DailyFeedSchedule, requestedDate *time.Time) (
 	}
 
 	boundary := start
-	now := time.Now()
 	if !now.Before(start) {
 		interval := time.Duration(schedule.IntervalSeconds) * time.Second
 		elapsedIntervals := int64(now.Sub(start) / interval)
 		boundary = start.Add(time.Duration(elapsedIntervals) * interval)
+	} else if scheduleStartDateAfterToday(start, now, location) {
+		localNow := now.In(location)
+		return time.Date(localNow.Year(), localNow.Month(), localNow.Day(), 0, 0, 0, 0, location), nil
 	}
 	local := boundary.In(location)
 	return time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, location), nil
@@ -1238,12 +1244,23 @@ func normalizeDailyFeedSchedule(schedule *DailyFeedSchedule) (DailyFeedSchedule,
 	if normalized.IntervalSeconds < 1 {
 		return DailyFeedSchedule{}, badRequest("schedule interval_seconds must be positive")
 	}
+	if scheduleStartDateAfterToday(normalized.StartsAt, time.Now(), location) {
+		return DailyFeedSchedule{}, badRequest("schedule start date cannot be in the future")
+	}
 	return normalized, nil
 }
 
 func defaultScheduleStartsAt(location *time.Location) time.Time {
 	now := time.Now().In(location)
 	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, location)
+}
+
+func scheduleStartDateAfterToday(startsAt time.Time, now time.Time, location *time.Location) bool {
+	startLocal := startsAt.In(location)
+	nowLocal := now.In(location)
+	startDate := time.Date(startLocal.Year(), startLocal.Month(), startLocal.Day(), 0, 0, 0, 0, location)
+	today := time.Date(nowLocal.Year(), nowLocal.Month(), nowLocal.Day(), 0, 0, 0, 0, location)
+	return startDate.After(today)
 }
 
 func normalizeDailyFeedKind(kind string) (string, error) {
