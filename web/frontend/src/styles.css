@@ -31,6 +31,13 @@
   --color-overlay: rgb(17 24 39 / 42%);
   --color-toast: #111827;
   --color-code-fade-start: rgb(246 247 249 / 0%);
+  --color-code-attribute: #0f766e;
+  --color-code-comment: #637083;
+  --color-code-keyword: #6d28d9;
+  --color-code-literal: #b45309;
+  --color-code-meta: #475569;
+  --color-code-string: #047857;
+  --color-code-title: #0369a1;
   --shadow-panel: 0 1px 2px rgb(20 28 38 / 8%);
   --shadow-popover: 0 8px 22px rgb(20 28 38 / 16%);
   --shadow-modal: 0 24px 60px rgb(20 28 38 / 28%);
@@ -1535,6 +1542,69 @@ button.metric-title-menu-option[aria-pressed="true"]:hover:not(:disabled) {
   overflow: auto;
   padding: 10px;
   white-space: pre-wrap;
+}
+
+.post-evidence-code-content {
+  font-family: inherit;
+}
+
+.post-evidence-code .hljs-comment,
+.post-evidence-code .hljs-quote {
+  color: var(--color-code-comment);
+  font-style: italic;
+}
+
+.post-evidence-code .hljs-keyword,
+.post-evidence-code .hljs-selector-tag,
+.post-evidence-code .hljs-subst {
+  color: var(--color-code-keyword);
+  font-weight: 600;
+}
+
+.post-evidence-code .hljs-literal,
+.post-evidence-code .hljs-number,
+.post-evidence-code .hljs-regexp,
+.post-evidence-code .hljs-symbol,
+.post-evidence-code .hljs-variable {
+  color: var(--color-code-literal);
+}
+
+.post-evidence-code .hljs-name,
+.post-evidence-code .hljs-section,
+.post-evidence-code .hljs-title {
+  color: var(--color-code-title);
+  font-weight: 600;
+}
+
+.post-evidence-code .hljs-attribute,
+.post-evidence-code [class~="hljs-built_in"],
+.post-evidence-code .hljs-selector-attr,
+.post-evidence-code .hljs-selector-class,
+.post-evidence-code .hljs-selector-id,
+.post-evidence-code .hljs-type {
+  color: var(--color-code-attribute);
+}
+
+.post-evidence-code .hljs-addition,
+.post-evidence-code .hljs-bullet,
+.post-evidence-code .hljs-link,
+.post-evidence-code .hljs-string,
+.post-evidence-code .hljs-template-tag,
+.post-evidence-code .hljs-template-variable {
+  color: var(--color-code-string);
+}
+
+.post-evidence-code .hljs-deletion,
+.post-evidence-code .hljs-meta {
+  color: var(--color-code-meta);
+}
+
+.post-evidence-code .hljs-emphasis {
+  font-style: italic;
+}
+
+.post-evidence-code .hljs-strong {
+  font-weight: 700;
 }
 
 .post-evidence-code-wrap.preview::after {

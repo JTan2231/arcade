@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 
 import { feedDateOptions, formatDateLabel } from "../dates";
 import { errorMessage } from "../errors";
+import { highlightCodeBlock, prepareCodeBlock } from "../syntaxHighlight";
 import type {
   CatalogSource,
   CatalogSourceField,
@@ -1630,10 +1631,20 @@ function MetricJudgmentForm({
 
 function EvidenceCodeBlock({ value }: { value: string }) {
   const [expanded, setExpanded] = useState(false);
-  const lines = value.split(/\r?\n/);
+  const preparedCode = prepareCodeBlock(value);
+  const lines = preparedCode.code.split(/\r?\n/);
   const hasPreview = lines.length > 3;
   const previewText = lines.slice(0, 3).join("\n");
-  const displayText = hasPreview && !expanded ? previewText : value;
+  const displayText = hasPreview && !expanded ? previewText : preparedCode.code;
+  const highlightedCode = highlightCodeBlock(displayText, preparedCode.code, preparedCode.languageHint);
+  const codeClassName =
+    highlightedCode === null ? undefined : `post-evidence-code-content language-${highlightedCode.language}`;
+  const codeNode =
+    highlightedCode === null ? (
+      <code className="post-evidence-code-content">{displayText}</code>
+    ) : (
+      <code className={codeClassName} dangerouslySetInnerHTML={{ __html: highlightedCode.html }} />
+    );
 
   return (
     <div className={`post-evidence-code-wrap ${hasPreview && !expanded ? "preview" : ""}`}>
@@ -1645,10 +1656,10 @@ function EvidenceCodeBlock({ value }: { value: string }) {
           type="button"
           onClick={() => setExpanded(true)}
         >
-          <pre className="post-evidence-code">{displayText}</pre>
+          <pre className="post-evidence-code">{codeNode}</pre>
         </button>
       ) : (
-        <pre className="post-evidence-code">{displayText}</pre>
+        <pre className="post-evidence-code">{codeNode}</pre>
       )}
       {hasPreview && expanded ? (
         <div className="post-evidence-collapse-row">
