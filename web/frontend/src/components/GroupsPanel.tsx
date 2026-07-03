@@ -194,6 +194,14 @@ function FeedSublist({
   onDeleteFeed: (id: string) => void;
   onAddFeed: () => void;
 }) {
+  const [settingsFeedId, setSettingsFeedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (settingsFeedId !== null && !feeds.some((feed) => feed.id === settingsFeedId)) {
+      setSettingsFeedId(null);
+    }
+  }, [feeds, settingsFeedId]);
+
   if (loading) {
     return (
       <section className="feed-sublist" aria-label="Feeds">
@@ -227,7 +235,7 @@ function FeedSublist({
         const copyPublicLinkAction: RowAction | null =
           publicLinksAvailable && feed.enabled
             ? {
-                label: "Copy public link",
+                label: "Copy link",
                 disabled: mutating,
                 onSelect: () => onCopyPublicFeedLink(feed.id),
               }
@@ -235,17 +243,11 @@ function FeedSublist({
         const actions: RowAction[] = manage
           ? [
               {
-                label: feed.enabled ? "Disable" : "Enable",
+                label: "Settings",
                 disabled: mutating,
-                onSelect: () => onToggleFeedEnabled(feed.id),
+                onSelect: () => setSettingsFeedId(feed.id),
               },
               ...(copyPublicLinkAction === null ? [] : [copyPublicLinkAction]),
-              {
-                label: "Delete",
-                danger: true,
-                disabled: mutating,
-                onSelect: () => onDeleteFeed(feed.id),
-              },
             ]
           : copyPublicLinkAction === null
             ? []
@@ -266,6 +268,21 @@ function FeedSublist({
               </button>
               {actions.length > 0 ? <RowActionMenu label={`Feed settings for ${feed.name}`} actions={actions} /> : null}
             </div>
+            {settingsFeedId === feed.id ? (
+              <FeedSettingsDialog
+                feed={feed}
+                mutating={mutating}
+                onClose={() => setSettingsFeedId(null)}
+                onDeleteFeed={() => {
+                  setSettingsFeedId(null);
+                  onDeleteFeed(feed.id);
+                }}
+                onToggleFeedEnabled={() => {
+                  setSettingsFeedId(null);
+                  onToggleFeedEnabled(feed.id);
+                }}
+              />
+            ) : null}
           </div>
         );
       })}
@@ -277,6 +294,71 @@ function FeedSublist({
         </div>
       ) : null}
     </section>
+  );
+}
+
+function FeedSettingsDialog({
+  feed,
+  mutating,
+  onClose,
+  onToggleFeedEnabled,
+  onDeleteFeed,
+}: {
+  feed: DailyFeed;
+  mutating: boolean;
+  onClose: () => void;
+  onToggleFeedEnabled: () => void;
+  onDeleteFeed: () => void;
+}) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <section className="modal-panel feed-settings-dialog" role="dialog" aria-modal="true" aria-label="Feed settings">
+        <div className="modal-header">
+          <div>
+            <h2>Settings</h2>
+            <div className="meta">{feed.name}</div>
+          </div>
+          <button className="secondary" type="button" ref={closeButtonRef} onClick={onClose}>
+            Close
+          </button>
+        </div>
+        <div className="feed-settings-grid">
+          <section className="feed-settings-section" aria-label="Feed status">
+            <div>
+              <div className="section-title">Feed status</div>
+              <div className="meta">{feed.enabled ? "Active" : "Disabled"}</div>
+            </div>
+            <button className="secondary" disabled={mutating} type="button" onClick={onToggleFeedEnabled}>
+              {feed.enabled ? "Disable" : "Enable"}
+            </button>
+          </section>
+          <section className="feed-settings-section" aria-label="Delete feed">
+            <div>
+              <div className="section-title">Delete feed</div>
+              <div className="meta">Remove {feed.name}.</div>
+            </div>
+            <button className="danger" disabled={mutating} type="button" onClick={onDeleteFeed}>
+              Delete
+            </button>
+          </section>
+        </div>
+      </section>
+    </div>
   );
 }
 

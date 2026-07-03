@@ -57,9 +57,19 @@ steps:
   - within: Feeds
     expectVisible:
       role: button
-      name: Delete
+      name: Settings
 
   - within: Feeds
+    expectVisible:
+      role: button
+      name: Copy link
+
+  - within: Feeds
+    click:
+      role: button
+      name: Settings
+
+  - within: Feed settings
     click:
       role: button
       name: Disable
@@ -82,6 +92,11 @@ steps:
       name: Feed settings for Daily Thread
 
   - within: Feeds
+    click:
+      role: button
+      name: Settings
+
+  - within: Feed settings
     click:
       role: button
       name: Enable
