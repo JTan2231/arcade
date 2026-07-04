@@ -1,3 +1,6 @@
+import { useCallback } from "react";
+
+import { listGroupDailyFeedOutputSummaries } from "../api";
 import { GroupDashboard } from "../components/GroupDashboard";
 import type { AddFeedContext } from "../machines/addFeedMachine";
 import type { DashboardContext } from "../machines/dashboardMachine";
@@ -39,6 +42,15 @@ export function GroupDashboardAdapter({
   onNavigate: Navigate;
   onToast: ToastCallback;
 }) {
+  const loadFeedOutputSummaries = useCallback(
+    (selectedDate: string, signal: AbortSignal) => {
+      if (selectedGroupId === null || selectedFeedId === null) {
+        return Promise.reject(new Error("No feed selected"));
+      }
+      return listGroupDailyFeedOutputSummaries(selectedGroupId, selectedFeedId, selectedDate, { signal });
+    },
+    [selectedFeedId, selectedGroupId],
+  );
   const feedOutputProps = useFeedOutputAdapter({
     dashboardRef,
     dashboardContext,
@@ -71,6 +83,7 @@ export function GroupDashboardAdapter({
     <GroupDashboard
       group={selectedGroup}
       feeds={feeds}
+      loadFeedOutputSummaries={loadFeedOutputSummaries}
       selectedFeedId={selectedFeedId}
       selectedFeedDate={selectedFeedDate}
       {...feedOutputProps}

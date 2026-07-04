@@ -51,10 +51,9 @@ steps:
   - visit: /
 
   - within: Selected feed output
-    expectValue:
-      label: Date
-      exact: false
-      value: "{{today}}"
+    expectVisible:
+      role: button
+      name: Feed output choices
 
   - within: Groups
     click:

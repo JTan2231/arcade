@@ -150,10 +150,14 @@ steps:
       times: 1
 
   - within: Selected feed output
-    select:
-      label: Date
-      exact: false
-      value: "{{daysAgo:2}}"
+    click:
+      role: button
+      name: Feed output choices
+
+  - within: Selected feed output
+    click:
+      role: button
+      name: Select Date Output Task ({{daysAgo:2}})
 
   - expectRequest:
       id: older-output
@@ -164,10 +168,20 @@ steps:
       milliseconds: 250
 
   - within: Selected feed output
-    expectValue:
-      label: Date
-      exact: false
-      value: "{{daysAgo:2}}"
+    click:
+      role: button
+      name: Feed output choices
+
+  - within: Selected feed output
+    expectPressed:
+      role: button
+      name: Select Date Output Task ({{daysAgo:2}})
+      pressed: true
+
+  - within: Selected feed output
+    click:
+      role: button
+      name: Feed output choices
 
   - within: Metrics
     expectVisible:
@@ -175,10 +189,14 @@ steps:
       exact: true
 
   - within: Selected feed output
-    select:
-      label: Date
-      exact: false
-      value: "{{yesterday}}"
+    click:
+      role: button
+      name: Feed output choices
+
+  - within: Selected feed output
+    click:
+      role: button
+      name: Select Date Output Task ({{yesterday}})
 
   - expectRequest:
       id: old-output
@@ -199,10 +217,14 @@ steps:
       exact: true
 
   - within: Selected feed output
-    select:
-      label: Date
-      exact: false
-      value: "{{today}}"
+    click:
+      role: button
+      name: Feed output choices
+
+  - within: Selected feed output
+    click:
+      role: button
+      name: Select Date Output Task ({{today}})
 
   - expectRequest:
       id: new-output
@@ -210,15 +232,30 @@ steps:
   - releaseRequest: new-output
 
   - within: Selected feed output
-    expectValue:
-      label: Date
-      exact: false
-      value: "{{today}}"
+    click:
+      role: button
+      name: Feed output choices
+
+  - within: Selected feed output
+    expectPressed:
+      role: button
+      name: Select Date Output Task ({{today}})
+      pressed: true
+
+  - within: Selected feed output
+    click:
+      role: button
+      name: Feed output choices
 
   - releaseRequest: old-output
 
   - within: Selected feed output
-    expectValue:
-      label: Date
-      exact: false
-      value: "{{today}}"
+    click:
+      role: button
+      name: Feed output choices
+
+  - within: Selected feed output
+    expectPressed:
+      role: button
+      name: Select Date Output Task ({{today}})
+      pressed: true

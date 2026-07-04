@@ -53,6 +53,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("POST /api/catalog-imports", s.handleCatalogImport)
 	mux.HandleFunc("GET /api/public/groups/{group_slug}", s.handlePublicGroup)
 	mux.HandleFunc("GET /api/public/feeds/{feed_id}", s.handlePublicFeedToday)
+	mux.HandleFunc("GET /api/public/feeds/{feed_id}/outputs", s.handlePublicFeedOutputSummaries)
 	mux.HandleFunc("GET /api/public/feeds/{feed_id}/outputs/{date}", s.handlePublicFeedOutput)
 	mux.HandleFunc("GET /api/public/posts/{post_id}", s.handlePublicPost)
 
@@ -108,6 +109,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("DELETE /api/groups/{group_id}/daily-feeds/{feed_id}", s.handleDeleteGroupDailyFeed)
 	mux.HandleFunc("GET /api/groups/{group_id}/daily-feeds/{feed_id}/today", s.handleGetGroupDailyFeedToday)
 	mux.HandleFunc("POST /api/groups/{group_id}/daily-feeds/{feed_id}/today/refresh", s.handleRefreshGroupDailyFeedToday)
+	mux.HandleFunc("GET /api/groups/{group_id}/daily-feeds/{feed_id}/outputs", s.handleListGroupDailyFeedOutputSummaries)
 	mux.HandleFunc("GET /api/groups/{group_id}/daily-feeds/{feed_id}/outputs/{date}", s.handleGetGroupDailyFeedOutput)
 	mux.HandleFunc("GET /api/groups/{group_id}/evidence-formats", s.handleListGroupEvidenceFormats)
 	mux.HandleFunc("POST /api/groups/{group_id}/evidence-formats", s.handleCreateGroupEvidenceFormat)

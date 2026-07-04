@@ -1,6 +1,13 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
-import { getPublicFeed, getPublicFeedOutput, getPublicGroup, getPublicPost, isNotFound } from "../api";
+import {
+  getPublicFeed,
+  getPublicFeedOutput,
+  getPublicGroup,
+  getPublicPost,
+  isNotFound,
+  listPublicFeedOutputSummaries,
+} from "../api";
 import { errorMessage } from "../errors";
 import { feedPath } from "../routes";
 import type {
@@ -253,6 +260,17 @@ function PublicDashboardView({
   onCopyPublicPostLink: (postId: string) => void;
   onNavigate: (path: string, mode?: "push" | "replace") => void;
 }) {
+  const selectedFeedId = state.status === "ready" ? state.data.selectedFeedId : null;
+  const loadFeedOutputSummaries = useCallback(
+    (selectedDate: string, signal: AbortSignal) => {
+      if (selectedFeedId === null) {
+        return Promise.reject(new Error("No feed selected"));
+      }
+      return listPublicFeedOutputSummaries(selectedFeedId, selectedDate, { signal });
+    },
+    [selectedFeedId],
+  );
+
   return (
     <PublicShell signedIn={signedIn}>
       {state.status === "loading" ? <PublicStatusPanel>Loading...</PublicStatusPanel> : null}
@@ -280,6 +298,7 @@ function PublicDashboardView({
           group={state.data.group}
           judgingPostId={null}
           leaderboardLoading={false}
+          loadFeedOutputSummaries={loadFeedOutputSummaries}
           metricLeaderboard={null}
           metrics={[]}
           metricsError=""

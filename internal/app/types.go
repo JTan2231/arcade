@@ -180,6 +180,13 @@ type DailyFeedOutput struct {
 	Items      []DailyFeedOutputItem      `json:"items"`
 }
 
+type DailyFeedOutputSummary struct {
+	FeedID   string  `json:"feed_id"`
+	Date     string  `json:"date"`
+	Title    string  `json:"title"`
+	Subtitle *string `json:"subtitle,omitempty"`
+}
+
 type DailyFeedOutputGeneration struct {
 	ID                string    `json:"id"`
 	Number            int       `json:"number"`

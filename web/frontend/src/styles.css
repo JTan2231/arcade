@@ -933,7 +933,7 @@ button.confirm-icon-button:hover:not(:disabled) {
   align-items: start;
   display: grid;
   gap: 12px 16px;
-  grid-template-columns: minmax(0, 1fr) minmax(160px, 180px);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .feed-route-header {
@@ -959,19 +959,6 @@ button.confirm-icon-button:hover:not(:disabled) {
 
 .feed-select-control {
   flex: 0 0 180px;
-}
-
-.feed-card-header {
-  align-items: start;
-  display: flex;
-  gap: 12px;
-  grid-column: 2;
-  grid-row: 1;
-  justify-content: flex-end;
-}
-
-.feed-date-control {
-  justify-self: end;
 }
 
 .date-control {
@@ -1228,6 +1215,38 @@ button.confirm-icon-button:hover:not(:disabled) {
   position: relative;
 }
 
+.feed-output-title-row {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.feed-output-title-menu {
+  display: inline-block;
+  max-width: 100%;
+  min-width: 0;
+  position: relative;
+}
+
+.feed-output-title-control {
+  align-items: center;
+  display: inline-flex;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.feed-output-title-label {
+  display: block;
+  min-width: 0;
+}
+
+.feed-output-title-text {
+  overflow-wrap: anywhere;
+}
+
+.feed-output-title-menu-panel {
+  width: min(340px, calc(100vw - 32px));
+}
+
 .metric-title-static {
   display: block;
   overflow: hidden;
@@ -1449,7 +1468,6 @@ button.metric-title-menu-option[aria-pressed="true"]:hover:not(:disabled) {
 
 .output-items {
   grid-column: 1;
-  grid-row: 1;
 }
 
 .evidence-textarea {
@@ -1875,17 +1893,8 @@ button.metric-title-menu-option[aria-pressed="true"]:hover:not(:disabled) {
     justify-self: stretch;
   }
 
-  .feed-card-header {
-    grid-column: 1;
-    grid-row: auto;
-  }
-
   .output-items {
     grid-row: auto;
-  }
-
-  .feed-date-control {
-    justify-self: stretch;
   }
 
   .date-control {

@@ -10,6 +10,7 @@ import type {
   CreateEvidenceFormatVersionRequest,
   DailyFeed,
   DailyFeedOutput,
+  DailyFeedOutputSummary,
   DailyFeedPreview,
   EvidenceFormat,
   FeedMetric,
@@ -323,6 +324,19 @@ export function getGroupDailyFeedOutput(
 ): Promise<DailyFeedOutput> {
   return api<DailyFeedOutput>(
     `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/outputs/${encodeURIComponent(date)}`,
+    options,
+  );
+}
+
+export function listGroupDailyFeedOutputSummaries(
+  groupID: string,
+  feedID: string,
+  selectedDate: string,
+  options: APIOptions = {},
+): Promise<DailyFeedOutputSummary[]> {
+  const params = selectedDate !== "" ? `?selected_date=${encodeURIComponent(selectedDate)}` : "";
+  return api<DailyFeedOutputSummary[]>(
+    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/outputs${params}`,
     options,
   );
 }
@@ -651,6 +665,15 @@ export function getPublicFeedOutput(feedID: string, date: string, options: APIOp
     `/api/public/feeds/${encodeURIComponent(feedID)}/outputs/${encodeURIComponent(date)}`,
     options,
   );
+}
+
+export function listPublicFeedOutputSummaries(
+  feedID: string,
+  selectedDate: string,
+  options: APIOptions = {},
+): Promise<DailyFeedOutputSummary[]> {
+  const params = selectedDate !== "" ? `?selected_date=${encodeURIComponent(selectedDate)}` : "";
+  return api<DailyFeedOutputSummary[]>(`/api/public/feeds/${encodeURIComponent(feedID)}/outputs${params}`, options);
 }
 
 export function getPublicPost(postID: string, options: APIOptions = {}): Promise<PublicPost> {

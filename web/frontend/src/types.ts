@@ -190,6 +190,13 @@ export type DailyFeedOutput = {
   items: DailyFeedOutputItem[];
 };
 
+export type DailyFeedOutputSummary = {
+  feed_id: string;
+  date: string;
+  title: string;
+  subtitle?: string;
+};
+
 type PublicFeedAction = {
   type: "link" | "text";
   label: string;

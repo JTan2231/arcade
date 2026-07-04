@@ -45,6 +45,19 @@ func (s *Server) handlePublicFeedOutput(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, feed)
 }
 
+func (s *Server) handlePublicFeedOutputSummaries(w http.ResponseWriter, r *http.Request) {
+	summaries, err := s.listPublicFeedOutputSummaries(
+		r.Context(),
+		r.PathValue("feed_id"),
+		r.URL.Query().Get("selected_date"),
+	)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, summaries)
+}
+
 func (s *Server) handlePublicPost(w http.ResponseWriter, r *http.Request) {
 	post, err := s.getPublicPost(r.Context(), r.PathValue("post_id"))
 	if err != nil {
@@ -196,6 +209,26 @@ func (s *Server) getPublicFeed(ctx context.Context, feedID string, requestedDate
 		CreatedAt:      feed.CreatedAt,
 		UpdatedAt:      feed.UpdatedAt,
 	}, nil
+}
+
+func (s *Server) listPublicFeedOutputSummaries(ctx context.Context, feedID string, selectedDate string) ([]DailyFeedOutputSummary, error) {
+	feed, err := s.getDailyFeedByID(ctx, feedID)
+	if err != nil {
+		return nil, err
+	}
+	if !feed.Enabled {
+		return nil, errNotFound("daily feed")
+	}
+
+	group, err := s.getPublicParentGroup(ctx, feed.GroupID)
+	if err != nil {
+		return nil, err
+	}
+	if group.Visibility != "public" {
+		return nil, errNotFound("daily feed")
+	}
+
+	return s.listDailyFeedOutputSummariesForFeed(ctx, feed, selectedDate)
 }
 
 func (s *Server) getDailyFeedByID(ctx context.Context, feedID string) (DailyFeed, error) {

@@ -20,11 +20,12 @@ import (
 )
 
 const (
-	dailyFeedDateLayout        = "2006-01-02"
-	dailyFeedKindCatalogDaily  = "catalog_daily"
-	dailyFeedKindDailyThread   = "daily_thread"
-	defaultDailyThreadFeedName = "Daily Thread"
-	defaultDailyThreadFeedSlug = "daily-thread"
+	dailyFeedDateLayout                = "2006-01-02"
+	dailyFeedKindCatalogDaily          = "catalog_daily"
+	dailyFeedKindDailyThread           = "daily_thread"
+	dailyFeedOutputSummaryLookbackDays = 14
+	defaultDailyThreadFeedName         = "Daily Thread"
+	defaultDailyThreadFeedSlug         = "daily-thread"
 )
 
 var templateFieldPattern = regexp.MustCompile(`\{([A-Za-z0-9_]+)\}`)
@@ -580,6 +581,43 @@ func (s *Server) handleGetGroupDailyFeedOutput(w http.ResponseWriter, r *http.Re
 	writeJSON(w, http.StatusOK, output)
 }
 
+func (s *Server) handleListGroupDailyFeedOutputSummaries(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	groupID := r.PathValue("group_id")
+	feedID := r.PathValue("feed_id")
+	role, err := s.activeGroupRole(r.Context(), current.ID, groupID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	feed, err := s.getGroupDailyFeed(r.Context(), groupID, feedID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	if !feed.Enabled && !canManageDailyFeeds(role) {
+		handleError(w, errNotFound("daily feed"))
+		return
+	}
+
+	summaries, err := s.listDailyFeedOutputSummariesForFeed(
+		r.Context(),
+		feed,
+		r.URL.Query().Get("selected_date"),
+	)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, summaries)
+}
+
 func (s *Server) handleListMeDailyFeeds(w http.ResponseWriter, r *http.Request) {
 	current, err := requireUser(r.Context())
 	if err != nil {
@@ -866,6 +904,91 @@ func (s *Server) generateDailyFeedOutputForFeed(ctx context.Context, feed DailyF
 		return DailyFeedOutput{}, err
 	}
 	return selection.Output, nil
+}
+
+func (s *Server) listDailyFeedOutputSummariesForFeed(ctx context.Context, feed DailyFeed, selectedDate string) ([]DailyFeedOutputSummary, error) {
+	dates, err := dailyFeedOutputSummaryDates(feed, selectedDate, time.Now())
+	if err != nil {
+		return nil, err
+	}
+
+	summaries := make([]DailyFeedOutputSummary, 0, len(dates))
+	for _, date := range dates {
+		output, err := s.generateDailyFeedOutputForFeed(ctx, feed, &date)
+		if err != nil {
+			return nil, err
+		}
+		summaries = append(summaries, dailyFeedOutputSummary(output))
+	}
+	return summaries, nil
+}
+
+func dailyFeedOutputSummaryDates(feed DailyFeed, selectedDate string, now time.Time) ([]time.Time, error) {
+	location, err := time.LoadLocation(feed.Schedule.Timezone)
+	if err != nil {
+		return nil, err
+	}
+
+	nowLocal := now.In(location)
+	today := time.Date(nowLocal.Year(), nowLocal.Month(), nowLocal.Day(), 0, 0, 0, 0, location)
+	createdLocal := feed.CreatedAt.In(location)
+	earliest := time.Date(createdLocal.Year(), createdLocal.Month(), createdLocal.Day(), 0, 0, 0, 0, location)
+
+	dates := make([]time.Time, 0, dailyFeedOutputSummaryLookbackDays+1)
+	for offset := 0; offset < dailyFeedOutputSummaryLookbackDays; offset++ {
+		date := today.AddDate(0, 0, -offset)
+		if date.Before(earliest) {
+			break
+		}
+		dates = append(dates, date)
+	}
+
+	if selectedDate != "" {
+		selected, err := parseDailyFeedPathDate(selectedDate)
+		if err != nil {
+			return nil, err
+		}
+		selected = time.Date(selected.Year(), selected.Month(), selected.Day(), 0, 0, 0, 0, location)
+		if !selected.Before(earliest) && !containsDailyFeedDate(dates, selected) {
+			dates = append([]time.Time{selected}, dates...)
+		}
+	}
+
+	return dates, nil
+}
+
+func containsDailyFeedDate(dates []time.Time, target time.Time) bool {
+	targetValue := target.Format(dailyFeedDateLayout)
+	for _, date := range dates {
+		if date.Format(dailyFeedDateLayout) == targetValue {
+			return true
+		}
+	}
+	return false
+}
+
+func dailyFeedOutputSummary(output DailyFeedOutput) DailyFeedOutputSummary {
+	if len(output.Items) == 1 {
+		return DailyFeedOutputSummary{
+			FeedID:   output.FeedID,
+			Date:     output.Date,
+			Title:    publicFeedOutputTitle(output.Items[0]),
+			Subtitle: &output.Date,
+		}
+	}
+	if len(output.Items) > 1 {
+		return DailyFeedOutputSummary{
+			FeedID: output.FeedID,
+			Date:   output.Date,
+			Title:  output.Date,
+		}
+	}
+	return DailyFeedOutputSummary{
+		FeedID:   output.FeedID,
+		Date:     output.Date,
+		Title:    firstNonEmptyString(output.Title, output.Date),
+		Subtitle: &output.Date,
+	}
 }
 
 func (s *Server) refreshDailyFeedGeneration(ctx context.Context, userID string, groupID string, feedID string) (DailyFeedOutput, error) {

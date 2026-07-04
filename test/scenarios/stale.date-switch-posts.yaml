@@ -117,19 +117,27 @@ steps:
       times: 1
 
   - within: Selected feed output
-    select:
-      label: Date
-      exact: false
-      value: "{{yesterday}}"
+    click:
+      role: button
+      name: Feed output choices
+
+  - within: Selected feed output
+    click:
+      role: button
+      name: Select Date Posts Task ({{yesterday}})
 
   - expectRequest:
       id: old-posts
 
   - within: Selected feed output
-    select:
-      label: Date
-      exact: false
-      value: "{{today}}"
+    click:
+      role: button
+      name: Feed output choices
+
+  - within: Selected feed output
+    click:
+      role: button
+      name: Select Date Posts Task ({{today}})
 
   - expectRequest:
       id: new-posts
@@ -143,10 +151,15 @@ steps:
   - releaseRequest: old-posts
 
   - within: Selected feed output
-    expectValue:
-      label: Date
-      exact: false
-      value: "{{today}}"
+    click:
+      role: button
+      name: Feed output choices
+
+  - within: Selected feed output
+    expectPressed:
+      role: button
+      name: Select Date Posts Task ({{today}})
+      pressed: true
 
   - within: Posts
     expectHidden:
