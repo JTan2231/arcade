@@ -122,6 +122,13 @@ type dailyFeedGeneration struct {
 	RefreshedAt       time.Time
 }
 
+type dailyFeedScheduleVersion struct {
+	ID              string
+	Schedule        DailyFeedSchedule
+	CreatedByUserID *string
+	CreatedAt       time.Time
+}
+
 func (s *Server) handleListGroupDailyFeeds(w http.ResponseWriter, r *http.Request) {
 	current, err := requireUser(r.Context())
 	if err != nil {
@@ -212,6 +219,11 @@ func (s *Server) handleCreateGroupDailyFeed(w http.ResponseWriter, r *http.Reque
 		returning id::text
 	`, groupID, input.Name, input.Slug, input.Kind, input.Description, input.Enabled, input.SourceID, input.ItemCount, input.EvidenceFormatID, input.Schedule.StartsAt, input.Schedule.Timezone, input.Schedule.IntervalSeconds, current.ID).Scan(&feedID)
 	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	if err := insertDailyFeedScheduleVersion(r.Context(), tx, groupID, feedID, input.Schedule, current.ID); err != nil {
 		handleError(w, err)
 		return
 	}
@@ -383,11 +395,16 @@ func (s *Server) handlePatchGroupDailyFeed(w http.ResponseWriter, r *http.Reques
 	}
 
 	schedule := currentFeed.Schedule
+	scheduleChanged := false
 	if req.Schedule != nil {
 		normalized, err := normalizeDailyFeedSchedule(req.Schedule)
 		if err != nil {
 			handleError(w, err)
 			return
+		}
+		if !dailyFeedSchedulesEqual(currentFeed.Schedule, normalized) {
+			normalized.StartsAt = scheduleChangeStartsAt(normalized.Timezone, time.Now())
+			scheduleChanged = true
 		}
 		schedule = normalized
 	}
@@ -447,6 +464,13 @@ func (s *Server) handlePatchGroupDailyFeed(w http.ResponseWriter, r *http.Reques
 	replaceFilters := currentFeed.Kind == dailyFeedKindCatalogDaily && req.Filters.Set
 	if replaceFilters {
 		if _, err := tx.Exec(r.Context(), `delete from feed_rule_filters where feed_id = $1`, currentFeed.ID); err != nil {
+			handleError(w, err)
+			return
+		}
+	}
+
+	if scheduleChanged {
+		if err := insertDailyFeedScheduleVersion(r.Context(), tx, groupID, currentFeed.ID, schedule, current.ID); err != nil {
 			handleError(w, err)
 			return
 		}
@@ -907,7 +931,7 @@ func (s *Server) generateDailyFeedOutputForFeed(ctx context.Context, feed DailyF
 }
 
 func (s *Server) listDailyFeedOutputSummariesForFeed(ctx context.Context, feed DailyFeed, selectedDate string) ([]DailyFeedOutputSummary, error) {
-	dates, err := dailyFeedOutputSummaryDates(feed, selectedDate, time.Now())
+	dates, err := s.dailyFeedOutputSummaryDates(ctx, feed, selectedDate, time.Now())
 	if err != nil {
 		return nil, err
 	}
@@ -923,24 +947,36 @@ func (s *Server) listDailyFeedOutputSummariesForFeed(ctx context.Context, feed D
 	return summaries, nil
 }
 
-func dailyFeedOutputSummaryDates(feed DailyFeed, selectedDate string, now time.Time) ([]time.Time, error) {
-	location, err := time.LoadLocation(feed.Schedule.Timezone)
+func (s *Server) dailyFeedOutputSummaryDates(ctx context.Context, feed DailyFeed, selectedDate string, now time.Time) ([]time.Time, error) {
+	versions, err := s.listDailyFeedScheduleVersions(ctx, feed)
 	if err != nil {
 		return nil, err
 	}
 
-	nowLocal := now.In(location)
-	today := time.Date(nowLocal.Year(), nowLocal.Month(), nowLocal.Day(), 0, 0, 0, 0, location)
-	createdLocal := feed.CreatedAt.In(location)
-	earliest := time.Date(createdLocal.Year(), createdLocal.Month(), createdLocal.Day(), 0, 0, 0, 0, location)
-
-	dates := make([]time.Time, 0, dailyFeedOutputSummaryLookbackDays+1)
-	for offset := 0; offset < dailyFeedOutputSummaryLookbackDays; offset++ {
-		date := today.AddDate(0, 0, -offset)
-		if date.Before(earliest) {
-			break
+	dateByKey := map[string]time.Time{}
+	for index, version := range versions {
+		from, to, err := feedSummaryRangeForScheduleVersion(feed, versions, index, now)
+		if err != nil {
+			return nil, err
 		}
+		windows, err := scheduledFeedDateWindows(version.Schedule, from, to)
+		if err != nil {
+			return nil, err
+		}
+		for _, window := range windows {
+			dateByKey[window.Date.Format(dailyFeedDateLayout)] = window.Date
+		}
+	}
+
+	dates := make([]time.Time, 0, len(dateByKey)+1)
+	for _, date := range dateByKey {
 		dates = append(dates, date)
+	}
+	sort.Slice(dates, func(i, j int) bool {
+		return dates[i].After(dates[j])
+	})
+	if len(dates) > dailyFeedOutputSummaryLookbackDays {
+		dates = dates[:dailyFeedOutputSummaryLookbackDays]
 	}
 
 	if selectedDate != "" {
@@ -948,13 +984,65 @@ func dailyFeedOutputSummaryDates(feed DailyFeed, selectedDate string, now time.T
 		if err != nil {
 			return nil, err
 		}
-		selected = time.Date(selected.Year(), selected.Month(), selected.Day(), 0, 0, 0, 0, location)
-		if !selected.Before(earliest) && !containsDailyFeedDate(dates, selected) {
-			dates = append([]time.Time{selected}, dates...)
+		selectedOutputDate, err := s.dailyFeedOutputDateForFeed(ctx, feed, &selected, now)
+		if err != nil {
+			return nil, err
+		}
+		if !selectedOutputDate.Before(feedCreatedDateInSchedule(feed, selectedOutputDate.Location())) && !containsDailyFeedDate(dates, selectedOutputDate) {
+			dates = append([]time.Time{selectedOutputDate}, dates...)
 		}
 	}
 
 	return dates, nil
+}
+
+func feedSummaryRangeForScheduleVersion(feed DailyFeed, versions []dailyFeedScheduleVersion, index int, now time.Time) (time.Time, time.Time, error) {
+	version := versions[index]
+	timezone := version.Schedule.Timezone
+	if timezone == "" {
+		timezone = "UTC"
+	}
+	location, err := time.LoadLocation(timezone)
+	if err != nil {
+		return time.Time{}, time.Time{}, badRequest("schedule timezone is invalid")
+	}
+
+	nowLocal := now.In(location)
+	today := time.Date(nowLocal.Year(), nowLocal.Month(), nowLocal.Day(), 0, 0, 0, 0, location)
+	lookbackFloor := today.AddDate(0, 0, -dailyFeedOutputSummaryLookbackDays*8)
+	versionStartLocal := version.Schedule.StartsAt.In(location)
+	versionStartDate := time.Date(versionStartLocal.Year(), versionStartLocal.Month(), versionStartLocal.Day(), 0, 0, 0, 0, location)
+	from := maxTime(feedCreatedDateInSchedule(feed, location), maxTime(lookbackFloor, versionStartDate))
+
+	to := today
+	if index+1 < len(versions) {
+		nextStartLocal := versions[index+1].Schedule.StartsAt.In(location)
+		nextStartDate := time.Date(nextStartLocal.Year(), nextStartLocal.Month(), nextStartLocal.Day(), 0, 0, 0, 0, location)
+		to = nextStartDate.AddDate(0, 0, -1)
+	}
+	if to.Before(from) {
+		return from, from.AddDate(0, 0, -1), nil
+	}
+	return from, to, nil
+}
+
+func feedCreatedDateInSchedule(feed DailyFeed, location *time.Location) time.Time {
+	created := feed.CreatedAt
+	if created.IsZero() {
+		created = feed.Schedule.StartsAt
+	}
+	if created.IsZero() {
+		created = time.Now()
+	}
+	createdLocal := created.In(location)
+	return time.Date(createdLocal.Year(), createdLocal.Month(), createdLocal.Day(), 0, 0, 0, 0, location)
+}
+
+func maxTime(left time.Time, right time.Time) time.Time {
+	if left.Before(right) {
+		return right
+	}
+	return left
 }
 
 func containsDailyFeedDate(dates []time.Time, target time.Time) bool {
@@ -1000,7 +1088,7 @@ func (s *Server) refreshDailyFeedGeneration(ctx context.Context, userID string, 
 		return DailyFeedOutput{}, badRequest("daily thread feeds do not support refresh")
 	}
 
-	date, err := dailyFeedOutputDate(feed.Schedule, nil)
+	date, err := s.dailyFeedOutputDateForFeed(ctx, feed, nil, time.Now())
 	if err != nil {
 		return DailyFeedOutput{}, err
 	}
@@ -1023,7 +1111,7 @@ func (s *Server) refreshDailyFeedGeneration(ctx context.Context, userID string, 
 }
 
 func (s *Server) selectDailyFeedItems(ctx context.Context, feed DailyFeed, requestedDate *time.Time, requireFullCount bool) (dailyFeedSelection, error) {
-	date, err := dailyFeedOutputDate(feed.Schedule, requestedDate)
+	date, err := s.dailyFeedOutputDateForFeed(ctx, feed, requestedDate, time.Now())
 	if err != nil {
 		return dailyFeedSelection{}, err
 	}
@@ -1232,6 +1320,125 @@ func publicDailyFeedGeneration(generation *dailyFeedGeneration) *DailyFeedOutput
 		RefreshedByUserID: generation.RefreshedByUserID,
 		RefreshedAt:       generation.RefreshedAt,
 	}
+}
+
+func insertDailyFeedScheduleVersion(ctx context.Context, tx pgx.Tx, groupID string, feedID string, schedule DailyFeedSchedule, userID string) error {
+	_, err := tx.Exec(ctx, `
+		insert into group_daily_feed_schedule_versions (
+			group_id,
+			feed_id,
+			starts_at,
+			timezone,
+			interval_seconds,
+			created_by_user_id
+		)
+		values ($1, $2, $3, $4, $5, $6)
+	`, groupID, feedID, schedule.StartsAt, schedule.Timezone, schedule.IntervalSeconds, userID)
+	return err
+}
+
+func (s *Server) dailyFeedOutputDateForFeed(ctx context.Context, feed DailyFeed, requestedDate *time.Time, now time.Time) (time.Time, error) {
+	schedule, err := s.effectiveDailyFeedSchedule(ctx, feed, requestedDate, now)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return dailyFeedOutputDateAt(schedule, requestedDate, now)
+}
+
+func (s *Server) effectiveDailyFeedSchedule(ctx context.Context, feed DailyFeed, requestedDate *time.Time, now time.Time) (DailyFeedSchedule, error) {
+	versions, err := s.listDailyFeedScheduleVersions(ctx, feed)
+	if err != nil {
+		return DailyFeedSchedule{}, err
+	}
+	return effectiveDailyFeedScheduleFromVersions(versions, feed.Schedule, requestedDate, now)
+}
+
+func effectiveDailyFeedScheduleFromVersions(versions []dailyFeedScheduleVersion, fallback DailyFeedSchedule, requestedDate *time.Time, now time.Time) (DailyFeedSchedule, error) {
+	if len(versions) == 0 {
+		return fallback, nil
+	}
+	if requestedDate == nil {
+		for index := len(versions) - 1; index >= 0; index-- {
+			if !now.Before(versions[index].Schedule.StartsAt) {
+				return versions[index].Schedule, nil
+			}
+		}
+		return versions[len(versions)-1].Schedule, nil
+	}
+
+	for index := len(versions) - 1; index >= 0; index-- {
+		applies, err := scheduleVersionAppliesToDate(versions[index].Schedule, *requestedDate)
+		if err != nil {
+			return DailyFeedSchedule{}, err
+		}
+		if applies {
+			return versions[index].Schedule, nil
+		}
+	}
+	return versions[0].Schedule, nil
+}
+
+func (s *Server) listDailyFeedScheduleVersions(ctx context.Context, feed DailyFeed) ([]dailyFeedScheduleVersion, error) {
+	if s.db == nil || !uuidStringPattern.MatchString(feed.ID) {
+		return []dailyFeedScheduleVersion{{Schedule: feed.Schedule}}, nil
+	}
+
+	rows, err := s.db.Query(ctx, `
+		select
+			id::text,
+			starts_at,
+			timezone,
+			interval_seconds,
+			created_by_user_id::text,
+			created_at
+		from group_daily_feed_schedule_versions
+		where feed_id = $1
+		order by starts_at, created_at, id
+	`, feed.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	versions := []dailyFeedScheduleVersion{}
+	for rows.Next() {
+		var version dailyFeedScheduleVersion
+		var createdByUserID sql.NullString
+		if err := rows.Scan(
+			&version.ID,
+			&version.Schedule.StartsAt,
+			&version.Schedule.Timezone,
+			&version.Schedule.IntervalSeconds,
+			&createdByUserID,
+			&version.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		version.CreatedByUserID = nullStringPtr(createdByUserID)
+		versions = append(versions, version)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(versions) == 0 {
+		return []dailyFeedScheduleVersion{{Schedule: feed.Schedule}}, nil
+	}
+	return versions, nil
+}
+
+func scheduleVersionAppliesToDate(schedule DailyFeedSchedule, requestedDate time.Time) (bool, error) {
+	timezone := schedule.Timezone
+	if timezone == "" {
+		timezone = "UTC"
+	}
+	location, err := time.LoadLocation(timezone)
+	if err != nil {
+		return false, badRequest("schedule timezone is invalid")
+	}
+	startLocal := schedule.StartsAt.In(location)
+	startDate := time.Date(startLocal.Year(), startLocal.Month(), startLocal.Day(), 0, 0, 0, 0, location)
+	requested := time.Date(requestedDate.Year(), requestedDate.Month(), requestedDate.Day(), 0, 0, 0, 0, location)
+	return !startDate.After(requested), nil
 }
 
 func (s *Server) dailyCatalogCandidates(ctx context.Context, sourceID string) ([]dailyCatalogCandidate, error) {
@@ -1608,6 +1815,20 @@ func normalizeDailyFeedSchedule(schedule *DailyFeedSchedule) (DailyFeedSchedule,
 		return DailyFeedSchedule{}, badRequest("schedule start date cannot be in the future")
 	}
 	return normalized, nil
+}
+
+func dailyFeedSchedulesEqual(left DailyFeedSchedule, right DailyFeedSchedule) bool {
+	return left.IntervalSeconds == right.IntervalSeconds &&
+		left.Timezone == right.Timezone &&
+		left.StartsAt.Equal(right.StartsAt)
+}
+
+func scheduleChangeStartsAt(timezone string, now time.Time) time.Time {
+	location, err := time.LoadLocation(timezone)
+	if err != nil {
+		return now
+	}
+	return now.In(location)
 }
 
 func defaultScheduleStartsAt(location *time.Location) time.Time {

@@ -43,6 +43,7 @@ erDiagram
 
     group_daily_feeds ||--o{ group_daily_feed_metrics : scores
     group_daily_feed_metrics ||--o{ group_daily_feed_metric_judgments : collects
+    group_daily_feeds ||--o{ group_daily_feed_schedule_versions : versions
     group_daily_feeds ||--o{ group_daily_feed_instances : materializes
     group_daily_feed_instances ||--o{ group_feed_posts : receives
     group_evidence_format_versions ||--o{ group_feed_posts : validated
@@ -116,6 +117,14 @@ The `daily_thread` kind is a general group daily surface with no source, item
 count, or catalog filters. A partial unique index allows only one
 `daily_thread` feed per group, while deletion frees the group to create another
 one later.
+
+`group_daily_feed_schedule_versions` stores cadence history for each feed. The
+current schedule remains denormalized on `group_daily_feeds`, while every
+schedule change inserts a version row whose `starts_at` is the moment of the
+change. Historical feed output lookups resolve the schedule version active for
+the requested date, so old generated dates remain addressable after cadence
+changes. Schedule-based metrics use the feed's current schedule, so changing
+cadence resets those metric windows.
 
 `feed_rule_filters` stores practice feed filters relationally. Each filter
 references a feed, the feed source, and one `catalog_source_fields` row, then

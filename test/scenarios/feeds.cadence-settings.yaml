@@ -1,0 +1,119 @@
+name: feed settings updates cadence and records schedule history
+
+vars:
+  email: cadence-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Cadence Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: login_owner
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Cadence Dojo
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: list_feeds
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds
+      expectStatus: 200
+      capture:
+        feed_id: $[0].id
+
+steps:
+  - visit: /
+
+  - within: Feeds
+    click:
+      role: button
+      name: Feed settings for Daily Thread
+
+  - within: Feeds
+    click:
+      role: button
+      name: Settings
+
+  - within: Feed settings
+    select:
+      label: Repeat
+      exact: false
+      option: Weekly
+
+  - holdRequest:
+      id: cadence_patch
+      method: PATCH
+      path: /api/groups/*/daily-feeds/*
+
+  - within: Feed settings
+    acceptDialog:
+      message: Changing cadence resets schedule-based metrics. Continue?
+    click:
+      role: button
+      name: Save
+
+  - expectRequest:
+      id: cadence_patch
+
+  - releaseRequest: cadence_patch
+
+  - expectStatus:
+      text: Feed cadence updated
+
+  - within: Feed settings
+    expectValue:
+      label: Repeat
+      exact: false
+      value: "604800"
+
+  - sql:
+      statement: |
+        do $$
+        declare
+          current_interval integer;
+          version_count integer;
+        begin
+          select schedule_interval_seconds
+          into current_interval
+          from group_daily_feeds
+          where id = '{{feed_id}}'::uuid;
+
+          if current_interval is distinct from 604800 then
+            raise exception 'schedule_interval_seconds = %, want 604800', current_interval;
+          end if;
+
+          select count(*)
+          into version_count
+          from group_daily_feed_schedule_versions
+          where feed_id = '{{feed_id}}'::uuid;
+
+          if version_count <> 2 then
+            raise exception 'schedule version count = %, want 2', version_count;
+          end if;
+        end $$;

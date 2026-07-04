@@ -110,6 +110,9 @@ The current daily feed model follows these rules:
   refreshed feed/date stores a generation seed in
   `group_daily_feed_generations`, and that seed becomes part of the deterministic
   selection key for that feed/date only.
+- Feed cadence changes insert schedule-version history. The current schedule
+  starts at the moment of the change, while historical output lookups resolve
+  the schedule version active for the requested date.
 - Catalog outputs render from source templates. HTTPS renders become links;
   other renders become text prompts. Outputs are not persisted.
 - Global catalog sources are available to every group for catalog daily feeds,
@@ -207,9 +210,10 @@ The main group surface loads `/api/groups/{group_id}/daily-feeds`,
 `/api/groups/{group_id}/daily-feeds/{feed_id}/outputs/{date}`. Owners and
 admins request archived tag definitions for the tag manager and can toggle feed
 enabled state through
-`PATCH /api/groups/{group_id}/daily-feeds/{feed_id}`. The same surface exposes
-an owner/admin-only Add feed flow backed by group catalog sources, source field
-metadata, `POST /api/groups/{group_id}/daily-feeds/preview`, and
+`PATCH /api/groups/{group_id}/daily-feeds/{feed_id}`. Feed settings also patch
+the current schedule when owners or admins change cadence. The same surface
+exposes an owner/admin-only Add feed flow backed by group catalog sources,
+source field metadata, `POST /api/groups/{group_id}/daily-feeds/preview`, and
 `POST /api/groups/{group_id}/daily-feeds`.
 
 Because assets are embedded, a production-style local run should build the

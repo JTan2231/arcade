@@ -1321,8 +1321,20 @@ function FeedOutputTitleMenu({
   const [menuOpen, setMenuOpen] = useState(false);
   const [summariesByDate, setSummariesByDate] = useState<Record<string, DailyFeedOutputSummary>>({});
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const dateOptions = feedDateOptions(selectedFeedDate, feed.created_at);
+  const fallbackDateOptions = feedDateOptions(selectedFeedDate, feed.created_at);
+  const summaryDateOptions = Object.values(summariesByDate)
+    .sort((left, right) => right.date.localeCompare(left.date))
+    .map((summary) => ({ value: summary.date, label: formatDateLabel(summary.date) }));
+  const dateOptions = historyLoaded && summaryDateOptions.length > 0 ? summaryDateOptions : fallbackDateOptions;
+  const selectedDateInOptions = dateOptions.some((option) => option.value === selectedFeedDate);
+  const visibleDateOptions = selectedDateInOptions
+    ? dateOptions
+    : [
+        { value: selectedFeedDate, label: formatDateLabel(selectedFeedDate) },
+        ...dateOptions.filter((option) => option.value !== selectedFeedDate),
+      ];
   const currentSummary =
     output !== null
       ? feedOutputSummary(output)
@@ -1336,6 +1348,7 @@ function FeedOutputTitleMenu({
 
   useEffect(() => {
     setSummariesByDate({});
+    setHistoryLoaded(false);
   }, [feed.id]);
 
   useEffect(() => {
@@ -1401,6 +1414,7 @@ function FeedOutputTitleMenu({
           }
           return next;
         });
+        setHistoryLoaded(true);
         setHistoryLoading(false);
       })
       .catch(() => {
@@ -1439,7 +1453,7 @@ function FeedOutputTitleMenu({
       </span>
       {menuOpen ? (
         <div className="metric-title-menu-panel feed-output-title-menu-panel" aria-label="Feed output choices">
-          {dateOptions.map((option) => {
+          {visibleDateOptions.map((option) => {
             const summary = summariesByDate[option.value] ?? null;
             const optionTitle = summary?.title ?? (historyLoading ? "Loading output..." : option.label);
             const optionSubtitle = summary?.subtitle ?? (historyLoading ? option.value : undefined);

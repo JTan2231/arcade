@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 
-import type { DailyFeed, EvidenceFormat, Group } from "../types";
+import type { DailyFeed, DailyFeedSchedule, EvidenceFormat, Group } from "../types";
 import { RowActionMenu, type RowAction } from "./RowActionMenu";
 
 export type GroupsPanelProps = {
@@ -16,6 +16,7 @@ export type GroupsPanelProps = {
   deletingGroupId: string | null;
   pendingToggleFeedId: string | null;
   pendingFeedFormatFeedId: string | null;
+  pendingFeedScheduleFeedId: string | null;
   pendingRefreshFeedId: string | null;
   pendingDeleteFeedId: string | null;
   onCreateGroup: (name: string) => void;
@@ -25,6 +26,7 @@ export type GroupsPanelProps = {
   onSelectFeed: (id: string) => void;
   onToggleFeedEnabled: (id: string) => void;
   onChangeFeedFormat: (feedId: string, evidenceFormatId: string) => void;
+  onChangeFeedSchedule: (feedId: string, schedule: DailyFeedSchedule) => void;
   onRefreshFeedGeneration: (id: string) => void;
   onCopyPublicFeedLink: (id: string) => void;
   onDeleteFeed: (id: string) => void;
@@ -44,6 +46,7 @@ export function GroupsPanel({
   deletingGroupId,
   pendingToggleFeedId,
   pendingFeedFormatFeedId,
+  pendingFeedScheduleFeedId,
   pendingRefreshFeedId,
   pendingDeleteFeedId,
   onCreateGroup,
@@ -53,6 +56,7 @@ export function GroupsPanel({
   onSelectFeed,
   onToggleFeedEnabled,
   onChangeFeedFormat,
+  onChangeFeedSchedule,
   onRefreshFeedGeneration,
   onCopyPublicFeedLink,
   onDeleteFeed,
@@ -157,12 +161,14 @@ export function GroupsPanel({
                     selectedFeedId={selectedFeedId}
                     pendingToggleFeedId={pendingToggleFeedId}
                     pendingFeedFormatFeedId={pendingFeedFormatFeedId}
+                    pendingFeedScheduleFeedId={pendingFeedScheduleFeedId}
                     pendingRefreshFeedId={pendingRefreshFeedId}
                     pendingDeleteFeedId={pendingDeleteFeedId}
                     publicLinksAvailable={group.visibility === "public"}
                     onSelectFeed={onSelectFeed}
                     onToggleFeedEnabled={onToggleFeedEnabled}
                     onChangeFeedFormat={onChangeFeedFormat}
+                    onChangeFeedSchedule={onChangeFeedSchedule}
                     onRefreshFeedGeneration={onRefreshFeedGeneration}
                     onCopyPublicFeedLink={onCopyPublicFeedLink}
                     onDeleteFeed={onDeleteFeed}
@@ -189,12 +195,14 @@ function FeedSublist({
   selectedFeedId,
   pendingToggleFeedId,
   pendingFeedFormatFeedId,
+  pendingFeedScheduleFeedId,
   pendingRefreshFeedId,
   pendingDeleteFeedId,
   publicLinksAvailable,
   onSelectFeed,
   onToggleFeedEnabled,
   onChangeFeedFormat,
+  onChangeFeedSchedule,
   onRefreshFeedGeneration,
   onCopyPublicFeedLink,
   onDeleteFeed,
@@ -208,12 +216,14 @@ function FeedSublist({
   selectedFeedId: string | null;
   pendingToggleFeedId: string | null;
   pendingFeedFormatFeedId: string | null;
+  pendingFeedScheduleFeedId: string | null;
   pendingRefreshFeedId: string | null;
   pendingDeleteFeedId: string | null;
   publicLinksAvailable: boolean;
   onSelectFeed: (id: string) => void;
   onToggleFeedEnabled: (id: string) => void;
   onChangeFeedFormat: (feedId: string, evidenceFormatId: string) => void;
+  onChangeFeedSchedule: (feedId: string, schedule: DailyFeedSchedule) => void;
   onRefreshFeedGeneration: (id: string) => void;
   onCopyPublicFeedLink: (id: string) => void;
   onDeleteFeed: (id: string) => void;
@@ -259,6 +269,7 @@ function FeedSublist({
         const mutating =
           pendingToggleFeedId === feed.id ||
           pendingFeedFormatFeedId === feed.id ||
+          pendingFeedScheduleFeedId === feed.id ||
           pendingRefreshFeedId === feed.id ||
           pendingDeleteFeedId === feed.id;
         const copyPublicLinkAction: RowAction | null =
@@ -312,6 +323,7 @@ function FeedSublist({
                   onToggleFeedEnabled(feed.id);
                 }}
                 onChangeFeedFormat={(evidenceFormatId) => onChangeFeedFormat(feed.id, evidenceFormatId)}
+                onChangeFeedSchedule={(schedule) => onChangeFeedSchedule(feed.id, schedule)}
                 onRefreshGeneration={() => {
                   setSettingsFeedId(null);
                   onRefreshFeedGeneration(feed.id);
@@ -339,6 +351,7 @@ function FeedSettingsDialog({
   onClose,
   onToggleFeedEnabled,
   onChangeFeedFormat,
+  onChangeFeedSchedule,
   onRefreshGeneration,
   onDeleteFeed,
 }: {
@@ -348,14 +361,19 @@ function FeedSettingsDialog({
   onClose: () => void;
   onToggleFeedEnabled: () => void;
   onChangeFeedFormat: (evidenceFormatId: string) => void;
+  onChangeFeedSchedule: (schedule: DailyFeedSchedule) => void;
   onRefreshGeneration: () => void;
   onDeleteFeed: () => void;
 }) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const [intervalSeconds, setIntervalSeconds] = useState(String(feed.schedule.interval_seconds));
   const activeFormats = evidenceFormats.filter((format) => format.archived_at === undefined);
   const formatOptions = activeFormats.some((format) => format.id === feed.evidence_format.id)
     ? activeFormats
     : [feed.evidence_format, ...activeFormats];
+  const selectedIntervalSeconds = Number(intervalSeconds);
+  const cadenceChanged =
+    Number.isFinite(selectedIntervalSeconds) && selectedIntervalSeconds !== feed.schedule.interval_seconds;
 
   useEffect(() => {
     closeButtonRef.current?.focus();
@@ -369,6 +387,25 @@ function FeedSettingsDialog({
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
+
+  useEffect(() => {
+    setIntervalSeconds(String(feed.schedule.interval_seconds));
+  }, [feed.id, feed.schedule.interval_seconds]);
+
+  function handleScheduleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!cadenceChanged || !Number.isFinite(selectedIntervalSeconds) || selectedIntervalSeconds < 1) {
+      return;
+    }
+    if (!window.confirm("Changing cadence resets schedule-based metrics. Continue?")) {
+      return;
+    }
+    onChangeFeedSchedule({
+      ...feed.schedule,
+      starts_at: new Date().toISOString(),
+      interval_seconds: selectedIntervalSeconds,
+    });
+  }
 
   return (
     <div className="modal-backdrop" role="presentation">
@@ -424,6 +461,29 @@ function FeedSettingsDialog({
               </select>
             </label>
           </section>
+          <section className="feed-settings-section feed-schedule-section" aria-label="Cadence">
+            <div>
+              <div className="section-title">Cadence</div>
+              <div className="meta">{intervalLabel(feed.schedule.interval_seconds)}</div>
+            </div>
+            <form className="feed-schedule-form" onSubmit={handleScheduleSubmit}>
+              <label className="feed-format-select-label">
+                Repeat
+                <select
+                  disabled={mutating}
+                  value={intervalSeconds}
+                  onChange={(event) => setIntervalSeconds(event.target.value)}
+                >
+                  <option value="86400">Daily</option>
+                  <option value="604800">Weekly</option>
+                  <option value="3600">Hourly</option>
+                </select>
+              </label>
+              <button className="secondary" disabled={mutating || !cadenceChanged} type="submit">
+                Save
+              </button>
+            </form>
+          </section>
           <section className="feed-settings-section" aria-label="Delete feed">
             <div>
               <div className="section-title">Delete feed</div>
@@ -441,6 +501,19 @@ function FeedSettingsDialog({
 
 function evidenceFormatSummary(format: EvidenceFormat): string {
   return `${format.name} · v${format.active_version.version_number}`;
+}
+
+function intervalLabel(seconds: number): string {
+  switch (seconds) {
+    case 3600:
+      return "Hourly";
+    case 604800:
+      return "Weekly";
+    case 86400:
+      return "Daily";
+    default:
+      return `${seconds} seconds`;
+  }
 }
 
 function canManageGroup(group: Group | null): boolean {

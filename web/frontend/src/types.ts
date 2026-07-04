@@ -104,7 +104,7 @@ export type GroupMember = {
   updated_at: string;
 };
 
-type DailyFeedSchedule = {
+export type DailyFeedSchedule = {
   starts_at: string;
   timezone: string;
   interval_seconds: number;
@@ -294,6 +294,7 @@ export type CreateDailyFeedRequest = {
 export type PatchDailyFeedRequest = {
   enabled?: boolean;
   evidence_format_id?: string;
+  schedule?: DailyFeedSchedule;
 };
 
 export type GroupFeedPost = {

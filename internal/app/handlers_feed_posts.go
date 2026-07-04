@@ -431,7 +431,7 @@ func (s *Server) authorizeGroupFeedPostTargetForRole(ctx context.Context, userID
 		return time.Time{}, forbidden("active group membership required")
 	}
 
-	return dailyFeedOutputDate(feed.Schedule, &requestedDate)
+	return s.dailyFeedOutputDateForFeed(ctx, feed, &requestedDate, time.Now())
 }
 
 func createGroupDailyFeedInstance(ctx context.Context, tx pgx.Tx, groupID string, feedID string, feedDate time.Time) (string, error) {

@@ -322,6 +322,96 @@ func TestNormalizeDailyFeedScheduleRejectsFutureStartDate(t *testing.T) {
 	}
 }
 
+func TestEffectiveDailyFeedScheduleUsesLatestVersionForCurrentOutput(t *testing.T) {
+	location, err := time.LoadLocation("America/Chicago")
+	if err != nil {
+		t.Fatalf("time.LoadLocation returned error: %v", err)
+	}
+	versions := []dailyFeedScheduleVersion{
+		{
+			Schedule: DailyFeedSchedule{
+				StartsAt:        time.Date(2026, 7, 1, 8, 0, 0, 0, location),
+				Timezone:        "America/Chicago",
+				IntervalSeconds: 86400,
+			},
+		},
+		{
+			Schedule: DailyFeedSchedule{
+				StartsAt:        time.Date(2026, 7, 4, 15, 30, 0, 0, location),
+				Timezone:        "America/Chicago",
+				IntervalSeconds: 7 * 86400,
+			},
+		},
+	}
+
+	schedule, err := effectiveDailyFeedScheduleFromVersions(
+		versions,
+		DailyFeedSchedule{},
+		nil,
+		time.Date(2026, 7, 5, 9, 0, 0, 0, location),
+	)
+	if err != nil {
+		t.Fatalf("effectiveDailyFeedScheduleFromVersions returned error: %v", err)
+	}
+	if schedule.IntervalSeconds != 7*86400 {
+		t.Fatalf("interval = %d, want weekly", schedule.IntervalSeconds)
+	}
+	if !schedule.StartsAt.Equal(versions[1].Schedule.StartsAt) {
+		t.Fatalf("starts_at = %v, want %v", schedule.StartsAt, versions[1].Schedule.StartsAt)
+	}
+}
+
+func TestEffectiveDailyFeedScheduleUsesHistoricalVersionForRequestedDate(t *testing.T) {
+	location, err := time.LoadLocation("America/Chicago")
+	if err != nil {
+		t.Fatalf("time.LoadLocation returned error: %v", err)
+	}
+	versions := []dailyFeedScheduleVersion{
+		{
+			Schedule: DailyFeedSchedule{
+				StartsAt:        time.Date(2026, 7, 1, 8, 0, 0, 0, location),
+				Timezone:        "America/Chicago",
+				IntervalSeconds: 86400,
+			},
+		},
+		{
+			Schedule: DailyFeedSchedule{
+				StartsAt:        time.Date(2026, 7, 4, 15, 30, 0, 0, location),
+				Timezone:        "America/Chicago",
+				IntervalSeconds: 7 * 86400,
+			},
+		},
+	}
+
+	beforeChange := time.Date(2026, 7, 3, 0, 0, 0, 0, time.UTC)
+	schedule, err := effectiveDailyFeedScheduleFromVersions(
+		versions,
+		DailyFeedSchedule{},
+		&beforeChange,
+		time.Date(2026, 7, 5, 9, 0, 0, 0, location),
+	)
+	if err != nil {
+		t.Fatalf("effectiveDailyFeedScheduleFromVersions returned error: %v", err)
+	}
+	if schedule.IntervalSeconds != 86400 {
+		t.Fatalf("interval before change = %d, want daily", schedule.IntervalSeconds)
+	}
+
+	changeDate := time.Date(2026, 7, 4, 0, 0, 0, 0, time.UTC)
+	schedule, err = effectiveDailyFeedScheduleFromVersions(
+		versions,
+		DailyFeedSchedule{},
+		&changeDate,
+		time.Date(2026, 7, 5, 9, 0, 0, 0, location),
+	)
+	if err != nil {
+		t.Fatalf("effectiveDailyFeedScheduleFromVersions returned error: %v", err)
+	}
+	if schedule.IntervalSeconds != 7*86400 {
+		t.Fatalf("interval on change date = %d, want weekly", schedule.IntervalSeconds)
+	}
+}
+
 func candidateIDs(candidates []dailyCatalogCandidate) []string {
 	ids := make([]string, 0, len(candidates))
 	for _, candidate := range candidates {

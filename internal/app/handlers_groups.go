@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -122,7 +123,13 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := tx.Exec(r.Context(), `
+	defaultFeedSchedule := DailyFeedSchedule{
+		StartsAt:        defaultScheduleStartsAt(time.UTC),
+		Timezone:        "UTC",
+		IntervalSeconds: 86400,
+	}
+	var defaultFeedID string
+	if err := tx.QueryRow(r.Context(), `
 		insert into group_daily_feeds (
 			group_id,
 			name,
@@ -142,12 +149,18 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 			$4,
 			true,
 			$5,
-			date_trunc('day', now()),
-			'UTC',
-			86400,
-			$6
+			$6,
+			$7,
+			$8,
+			$9
 		)
-	`, groupID, defaultDailyThreadFeedName, defaultDailyThreadFeedSlug, dailyFeedKindDailyThread, evidenceFormatID, current.ID); err != nil {
+		returning id::text
+	`, groupID, defaultDailyThreadFeedName, defaultDailyThreadFeedSlug, dailyFeedKindDailyThread, evidenceFormatID, defaultFeedSchedule.StartsAt, defaultFeedSchedule.Timezone, defaultFeedSchedule.IntervalSeconds, current.ID).Scan(&defaultFeedID); err != nil {
+		handleError(w, err)
+		return
+	}
+
+	if err := insertDailyFeedScheduleVersion(r.Context(), tx, groupID, defaultFeedID, defaultFeedSchedule, current.ID); err != nil {
 		handleError(w, err)
 		return
 	}

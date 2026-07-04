@@ -51,6 +51,7 @@ import type {
   CreateGroupPostTagRequest,
   DailyFeed,
   DailyFeedOutput,
+  DailyFeedSchedule,
   EvidenceFormat,
   FeedMetric,
   Group,
@@ -135,6 +136,11 @@ type FeedFormatMutation = {
   evidenceFormatId: string;
 };
 
+type FeedScheduleMutation = {
+  feedId: string;
+  schedule: DailyFeedSchedule;
+};
+
 type GroupMemberMutation = {
   userId: string;
 };
@@ -205,6 +211,7 @@ export type DashboardContext = {
   postTagMutation: PostTagMutation | null;
   evidenceFormatMutation: EvidenceFormatMutation | null;
   feedFormatMutation: FeedFormatMutation | null;
+  feedScheduleMutation: FeedScheduleMutation | null;
   groupMemberMutation: GroupMemberMutation | null;
   metricMutation: MetricMutation | null;
   judgmentMutation: JudgmentMutation | null;
@@ -226,6 +233,7 @@ type DashboardUserEvent =
   | { type: "FEED_DATE_CHANGED"; date: string }
   | { type: "FEED_ENABLED_TOGGLED"; feedId: string }
   | { type: "FEED_FORMAT_CHANGED"; feedId: string; evidenceFormatId: string }
+  | { type: "FEED_SCHEDULE_CHANGED"; feedId: string; schedule: DailyFeedSchedule }
   | { type: "FEED_GENERATION_REFRESHED"; feedId: string }
   | { type: "FEED_DELETE_SUBMITTED"; feedId: string }
   | { type: "POST_CREATE_SUBMITTED"; payload: CreatePostPayload }
@@ -288,6 +296,10 @@ type ToggleFeedInput = {
 
 type ChangeFeedFormatInput = FeedInput & {
   evidenceFormatId: string;
+};
+
+type ChangeFeedScheduleInput = FeedInput & {
+  schedule: DailyFeedSchedule;
 };
 
 type UpdateGroupVisibilityInput = {
@@ -485,6 +497,9 @@ const dashboardSetup = setup({
     ),
     changeFeedFormat: fromPromise<DailyFeed, ChangeFeedFormatInput>(({ input, signal }) =>
       updateGroupDailyFeed(input.groupId, input.feedId, { evidence_format_id: input.evidenceFormatId }, { signal }),
+    ),
+    changeFeedSchedule: fromPromise<DailyFeed, ChangeFeedScheduleInput>(({ input, signal }) =>
+      updateGroupDailyFeed(input.groupId, input.feedId, { schedule: input.schedule }, { signal }),
     ),
     refreshFeedGeneration: fromPromise<DailyFeedOutput, FeedInput>(({ input, signal }) =>
       refreshGroupDailyFeedToday(input.groupId, input.feedId, { signal }),
@@ -710,6 +725,24 @@ export const dashboardMachine = dashboardSetup.createMachine({
         feedFormatMutation: {
           feedId: event.feedId,
           evidenceFormatId: event.evidenceFormatId,
+        },
+      })),
+    },
+    FEED_SCHEDULE_CHANGED: {
+      guard: ({ context, event }) =>
+        context.selectedGroupId !== null &&
+        context.feeds.some(
+          (feed) =>
+            feed.id === event.feedId &&
+            (feed.schedule.interval_seconds !== event.schedule.interval_seconds ||
+              feed.schedule.timezone !== event.schedule.timezone ||
+              feed.schedule.starts_at !== event.schedule.starts_at),
+        ),
+      target: ".groupSelected.changingFeedSchedule",
+      actions: assign(({ event }) => ({
+        feedScheduleMutation: {
+          feedId: event.feedId,
+          schedule: event.schedule,
         },
       })),
     },
@@ -1058,6 +1091,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                     postTagMutation: null,
                     evidenceFormatMutation: null,
                     feedFormatMutation: null,
+                    feedScheduleMutation: null,
                     groupMemberMutation: null,
                     ...resetMetricContext(),
                     pendingToggleFeedId: null,
@@ -1087,6 +1121,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   postTagMutation: null,
                   evidenceFormatMutation: null,
                   feedFormatMutation: null,
+                  feedScheduleMutation: null,
                   groupMemberMutation: null,
                   ...resetMetricContext(),
                   pendingToggleFeedId: null,
@@ -1118,6 +1153,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   postTagMutation: null,
                   evidenceFormatMutation: null,
                   feedFormatMutation: null,
+                  feedScheduleMutation: null,
                   groupMemberMutation: null,
                   ...resetMetricContext(),
                   pendingToggleFeedId: null,
@@ -1930,6 +1966,67 @@ export const dashboardMachine = dashboardSetup.createMachine({
             ],
           },
         },
+        changingFeedSchedule: {
+          invoke: {
+            src: "changeFeedSchedule",
+            input: ({ context }) => {
+              const mutation = requireFeedScheduleMutation(context);
+              return {
+                groupId: requireSelectedGroupId(context),
+                feedId: mutation.feedId,
+                schedule: mutation.schedule,
+              };
+            },
+            onDone: [
+              {
+                target: "feedSelected.loadingTodayOutput",
+                guard: ({ context, event }) => context.selectedFeedId === event.output.id,
+                actions: [
+                  assign(({ context, event }) => ({
+                    feeds: replaceFeed(context.feeds, event.output),
+                    selectedFeedDate: todayDateValue(),
+                    output: null,
+                    outputError: "",
+                    posts: [],
+                    postsError: "",
+                    postMutation: null,
+                    feedScheduleMutation: null,
+                    ...resetMetricContext(),
+                  })),
+                  sendToastToParent("Feed cadence updated"),
+                ],
+              },
+              {
+                target: "feedSelected.ready",
+                guard: { type: "hasRestorableFeed" },
+                actions: [
+                  assign(({ context, event }) => ({
+                    feeds: replaceFeed(context.feeds, event.output),
+                    feedScheduleMutation: null,
+                  })),
+                  sendToastToParent("Feed cadence updated"),
+                ],
+              },
+              {
+                target: "noFeed",
+                actions: [
+                  assign(({ context, event }) => ({
+                    feeds: replaceFeed(context.feeds, event.output),
+                    feedScheduleMutation: null,
+                  })),
+                  sendToastToParent("Feed cadence updated"),
+                ],
+              },
+            ],
+            onError: [
+              unauthorizedToParentTransition(),
+              {
+                target: "feedSelected.ready",
+                actions: [clearFeedScheduleMutationOnError(), sendErrorToastToParent()],
+              },
+            ],
+          },
+        },
         refreshingFeedGeneration: {
           invoke: {
             src: "refreshFeedGeneration",
@@ -2124,6 +2221,7 @@ function resetSelectedGroupContext(): Omit<
     postTagMutation: null,
     evidenceFormatMutation: null,
     feedFormatMutation: null,
+    feedScheduleMutation: null,
     groupMemberMutation: null,
   };
 }
@@ -2468,6 +2566,12 @@ function clearFeedFormatMutationOnError() {
   });
 }
 
+function clearFeedScheduleMutationOnError() {
+  return assign<DashboardContext, ErrorActorEvent, undefined, DashboardEvent, never>({
+    feedScheduleMutation: null,
+  });
+}
+
 function clearGroupMemberMutationOnError() {
   return assign<DashboardContext, ErrorActorEvent, undefined, DashboardEvent, never>({
     groupMemberMutation: null,
@@ -2605,6 +2709,13 @@ function requireFeedFormatMutation(context: DashboardContext): FeedFormatMutatio
     throw new Error("Feed format mutation is missing");
   }
   return context.feedFormatMutation;
+}
+
+function requireFeedScheduleMutation(context: DashboardContext): FeedScheduleMutation {
+  if (context.feedScheduleMutation === null) {
+    throw new Error("Feed schedule mutation is missing");
+  }
+  return context.feedScheduleMutation;
 }
 
 function requireGroupMemberMutation(context: DashboardContext): GroupMemberMutation {

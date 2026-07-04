@@ -1004,12 +1004,23 @@ button.confirm-icon-button:hover:not(:disabled) {
   padding: 12px;
 }
 
-.feed-format-section {
+.feed-format-section,
+.feed-schedule-section {
   align-items: start;
   grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
 }
 
 .feed-format-select-label {
+  justify-self: end;
+  min-width: 0;
+  width: 100%;
+}
+
+.feed-schedule-form {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
   justify-self: end;
   min-width: 0;
   width: 100%;

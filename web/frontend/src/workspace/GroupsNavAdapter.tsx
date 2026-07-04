@@ -35,7 +35,11 @@ export function GroupsNavAdapter({
   const loadingFeeds = matchesChildState(dashboardStateValue, "groupSelected", "loadingFeeds");
   const refreshingFeedGeneration = matchesChildState(dashboardStateValue, "groupSelected", "refreshingFeedGeneration");
   const changingFeedFormat = matchesChildState(dashboardStateValue, "groupSelected", "changingFeedFormat");
+  const changingFeedSchedule = matchesChildState(dashboardStateValue, "groupSelected", "changingFeedSchedule");
   const pendingFeedFormatFeedId = changingFeedFormat ? (dashboardContext?.feedFormatMutation?.feedId ?? null) : null;
+  const pendingFeedScheduleFeedId = changingFeedSchedule
+    ? (dashboardContext?.feedScheduleMutation?.feedId ?? null)
+    : null;
 
   return (
     <GroupsPanel
@@ -51,6 +55,7 @@ export function GroupsNavAdapter({
       deletingGroupId={dashboardContext?.pendingDeleteGroupId ?? null}
       pendingToggleFeedId={dashboardContext?.pendingToggleFeedId ?? null}
       pendingFeedFormatFeedId={pendingFeedFormatFeedId}
+      pendingFeedScheduleFeedId={pendingFeedScheduleFeedId}
       pendingRefreshFeedId={refreshingFeedGeneration ? (dashboardContext?.pendingRefreshFeedId ?? null) : null}
       pendingDeleteFeedId={dashboardContext?.pendingDeleteFeedId ?? null}
       onCreateGroup={(name) => dashboardRef?.send({ type: "GROUP_CREATE_SUBMITTED", name })}
@@ -70,6 +75,9 @@ export function GroupsNavAdapter({
       onToggleFeedEnabled={(feedId) => dashboardRef?.send({ type: "FEED_ENABLED_TOGGLED", feedId })}
       onChangeFeedFormat={(feedId, evidenceFormatId) =>
         dashboardRef?.send({ type: "FEED_FORMAT_CHANGED", feedId, evidenceFormatId })
+      }
+      onChangeFeedSchedule={(feedId, schedule) =>
+        dashboardRef?.send({ type: "FEED_SCHEDULE_CHANGED", feedId, schedule })
       }
       onRefreshFeedGeneration={(feedId) => {
         if (feedId === selectedFeedId) {
