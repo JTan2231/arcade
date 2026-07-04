@@ -1,0 +1,35 @@
+.form-error {
+  color: var(--color-danger);
+  font-size: 13px;
+  margin-top: 10px;
+  min-height: 20px;
+}
+
+.empty-state {
+  background: var(--color-surface-subtle);
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  padding: 14px;
+}
+
+#toast {
+  background: var(--color-toast);
+  border-radius: 8px;
+  bottom: 16px;
+  box-shadow: var(--shadow-toast);
+  color: var(--color-inverse-text);
+  max-width: min(420px, calc(100vw - 32px));
+  opacity: 0;
+  padding: 10px 12px;
+  pointer-events: none;
+  position: fixed;
+  right: 16px;
+  transform: translateY(8px);
+  transition: 160ms ease;
+}
+
+#toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}

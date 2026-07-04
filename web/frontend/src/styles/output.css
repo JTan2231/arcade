@@ -1,0 +1,126 @@
+.output-actions {
+  align-items: end;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.feed-output-title-row {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.feed-output-title-menu {
+  display: inline-block;
+  max-width: 100%;
+  min-width: 0;
+  position: relative;
+}
+
+.feed-output-title-control {
+  align-items: center;
+  display: inline-flex;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.feed-output-title-label {
+  display: block;
+  min-width: 0;
+}
+
+.feed-output-title-text {
+  overflow-wrap: anywhere;
+}
+
+.feed-output-title-menu-panel {
+  width: min(340px, calc(100vw - 32px));
+}
+
+.output-items {
+  grid-column: 1;
+}
+
+.output-item {
+  align-items: flex-start;
+  display: grid;
+  gap: 12px;
+  grid-column: 1;
+  grid-template-columns: minmax(0, 1fr);
+  padding-bottom: 2px;
+}
+
+.output-item-main {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+.output-item-title-link {
+  color: color-mix(in srgb, var(--color-text-muted) 35%, var(--color-accent) 65%);
+  display: inline;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.output-item-title-link:hover {
+  animation: none;
+  background-image: none;
+  color: var(--color-accent-hover);
+  text-decoration: none;
+  -webkit-text-fill-color: currentcolor;
+}
+
+@supports (background-clip: text) {
+  .output-item-title-link {
+    animation: output-item-title-shine 3.5s linear infinite;
+    background-image: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-text-muted) 35%, var(--color-accent) 65%) 0%,
+      color-mix(in srgb, var(--color-text-muted) 35%, var(--color-accent) 65%) 42%,
+      var(--color-accent-hover) 50%,
+      color-mix(in srgb, var(--color-text-muted) 35%, var(--color-accent) 65%) 58%,
+      color-mix(in srgb, var(--color-text-muted) 35%, var(--color-accent) 65%) 100%
+    );
+    background-position: 100% 50%;
+    background-repeat: no-repeat;
+    background-size: 220% 100%;
+    color: transparent;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+@keyframes output-item-title-shine {
+  from {
+    background-position: 100% 50%;
+  }
+
+  to {
+    background-position: 0% 50%;
+  }
+}
+
+.prompt-details {
+  max-width: min(100%, 42rem);
+}
+
+.prompt-details summary {
+  color: var(--color-accent-hover);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.prompt-details pre {
+  background: var(--color-page);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text);
+  margin: 8px 0 0;
+  max-width: 100%;
+  overflow: auto;
+  padding: 8px;
+  white-space: pre-wrap;
+}

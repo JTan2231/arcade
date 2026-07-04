@@ -1,0 +1,117 @@
+.group-layout .group-dashboard-panel {
+  grid-column: 2;
+}
+
+.group-dashboard-panel {
+  min-height: 420px;
+}
+
+.group-dashboard-feed-panel {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.dashboard-section {
+  min-width: 0;
+}
+
+.feed-output-section {
+  align-items: start;
+  display: grid;
+  gap: 12px 16px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.feed-route-header {
+  align-items: start;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  gap: 12px;
+  grid-column: 1 / -1;
+  justify-content: space-between;
+  padding-bottom: 12px;
+}
+
+.feed-route-header h2 {
+  font-size: 20px;
+  letter-spacing: 0;
+  margin: 2px 0 0;
+}
+
+.feed-route-header p {
+  color: var(--color-text-muted);
+  margin: 6px 0 0;
+}
+
+.date-control {
+  min-width: 160px;
+  width: 180px;
+}
+
+.add-feed-form {
+  display: grid;
+  gap: 12px;
+}
+
+.form-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.two-column {
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
+}
+
+.three-column {
+  grid-template-columns: minmax(180px, 1fr) minmax(160px, 1fr) minmax(140px, 180px);
+}
+
+.status-checkbox {
+  align-content: end;
+  min-height: 60px;
+}
+
+.feed-filters-section {
+  display: grid;
+  gap: 10px;
+}
+
+.filter-row {
+  align-items: end;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(140px, 1fr) minmax(132px, 0.8fr) minmax(160px, 1fr) auto;
+  padding: 10px;
+}
+
+.filter-between-inputs {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.filter-remove-button {
+  min-width: 86px;
+}
+
+.preview-panel {
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
+.preview-items {
+  gap: 6px;
+}
+
+.preview-item {
+  background: var(--color-surface);
+}

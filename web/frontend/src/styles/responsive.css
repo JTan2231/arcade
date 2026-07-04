@@ -1,0 +1,131 @@
+@media (prefers-reduced-motion: reduce) {
+  .output-item-title-link {
+    animation: none;
+    background-image: none;
+    color: color-mix(in srgb, var(--color-text-muted) 35%, var(--color-accent) 65%);
+    -webkit-text-fill-color: currentcolor;
+  }
+}
+
+@media (width <= 980px) {
+  .group-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .group-layout .sidebar-stack,
+  .group-layout .group-dashboard-panel,
+  .group-layout .metrics-section {
+    grid-column: auto;
+  }
+
+  .group-layout .sidebar-stack,
+  .group-layout .metrics-section {
+    max-width: none;
+  }
+}
+
+@media (width <= 720px) {
+  .app-header {
+    padding: 14px;
+  }
+
+  .layout {
+    gap: 10px;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 10px;
+  }
+
+  .public-layout {
+    padding: 10px;
+  }
+
+  .public-page {
+    width: min(100%, calc(100vw - 20px));
+  }
+
+  .sidebar-stack {
+    gap: 10px;
+  }
+
+  .feed-output-section {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .feed-route-header {
+    display: grid;
+  }
+
+  .feed-select-control {
+    flex-basis: auto;
+    justify-self: stretch;
+  }
+
+  .output-items {
+    grid-row: auto;
+  }
+
+  .date-control {
+    width: 100%;
+  }
+
+  .output-actions {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .modal-backdrop {
+    align-items: stretch;
+    padding: 10px;
+  }
+
+  .modal-panel {
+    max-height: calc(100vh - 20px);
+  }
+
+  .modal-header,
+  .section-header-row {
+    display: grid;
+  }
+
+  .two-column,
+  .three-column,
+  .filter-row,
+  .metric-layout,
+  .metric-judgment-grid,
+  .group-settings-grid,
+  .feed-settings-section,
+  .group-member-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .filter-between-inputs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .row-top {
+    align-items: flex-start;
+    display: grid;
+  }
+
+  .post-card-header {
+    display: grid;
+  }
+
+  .post-card-actions {
+    justify-content: flex-start;
+  }
+
+  .metric-settings-row-header {
+    display: grid;
+  }
+
+  .friend-code-row,
+  .social-row {
+    align-items: stretch;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .compact-actions {
+    justify-content: flex-start;
+  }
+}

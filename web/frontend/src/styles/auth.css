@@ -1,0 +1,28 @@
+.auth-layout {
+  display: grid;
+  min-height: 100vh;
+  padding: 16px;
+  place-items: center;
+}
+
+.auth-panel {
+  width: min(420px, 100%);
+}
+
+.auth-tabs {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 14px;
+}
+
+.auth-tab.active {
+  background: var(--color-accent-action);
+  border-color: var(--color-accent-action);
+  color: var(--color-accent-action-text);
+}
+
+.auth-form {
+  display: grid;
+  gap: 12px;
+}

@@ -1,4 +1,4 @@
-import { GroupsPanel } from "../components/GroupsPanel";
+import { GroupsPanel } from "../components/groups/GroupsPanel";
 import { matchesChildState, matchesTopState } from "../machines/stateMatches";
 import type { DashboardContext } from "../machines/dashboardMachine";
 import { feedPath, groupPath } from "../routes";

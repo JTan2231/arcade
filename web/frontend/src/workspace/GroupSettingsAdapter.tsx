@@ -1,4 +1,4 @@
-import { GroupSettingsDialog } from "../components/GroupSettingsDialog";
+import { GroupSettingsDialog } from "../components/settings/GroupSettingsDialog";
 import { matchesChildState, matchesGrandchildState } from "../machines/stateMatches";
 import type { DashboardContext } from "../machines/dashboardMachine";
 import type { InviteCandidateAdapterProps } from "../social/useSocialGraph";
