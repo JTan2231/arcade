@@ -3,7 +3,7 @@
   justify-content: center;
 }
 
-.public-route-layout .group-dashboard-panel {
+.public-route-layout.group-layout .group-dashboard-panel {
   grid-column: 1;
   width: 100%;
 }
