@@ -19,7 +19,7 @@ import type {
 } from "../types";
 import { MetricSettingsManager } from "./MetricSettingsManager";
 
-type GroupSettingsDialogProps = {
+export type GroupSettingsDialogProps = {
   group: Group;
   loading: boolean;
   currentUserId: string | null;

@@ -3,7 +3,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import type { DailyFeed, EvidenceFormat, Group } from "../types";
 import { RowActionMenu, type RowAction } from "./RowActionMenu";
 
-type GroupsPanelProps = {
+export type GroupsPanelProps = {
   groups: Group[];
   feeds: DailyFeed[];
   evidenceFormats: EvidenceFormat[];

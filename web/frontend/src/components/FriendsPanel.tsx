@@ -2,7 +2,7 @@ import { FormEvent, useState } from "react";
 
 import type { Friend, FriendRequest, FriendRequests, GroupInvite, User } from "../types";
 
-type FriendsPanelProps = {
+export type FriendsPanelProps = {
   user: User | null;
   friendRequests: FriendRequests;
   friends: Friend[];

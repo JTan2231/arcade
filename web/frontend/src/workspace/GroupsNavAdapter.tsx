@@ -1,0 +1,91 @@
+import { GroupsPanel } from "../components/GroupsPanel";
+import { matchesChildState, matchesTopState } from "../machines/stateMatches";
+import type { DashboardContext } from "../machines/dashboardMachine";
+import { feedPath, groupPath } from "../routes";
+import type { DailyFeed, Group } from "../types";
+import { copyPublicPath } from "./copyPublicPath";
+import { EMPTY_EVIDENCE_FORMATS } from "./empty";
+import type { DashboardActorRef, Navigate, ToastCallback } from "./types";
+
+export function GroupsNavAdapter({
+  dashboardRef,
+  dashboardContext,
+  dashboardStateValue,
+  groups,
+  feeds,
+  selectedGroupId,
+  selectedFeedId,
+  selectedFeedDate,
+  onNavigate,
+  onToast,
+}: {
+  dashboardRef: DashboardActorRef | undefined;
+  dashboardContext: DashboardContext | null;
+  dashboardStateValue: unknown;
+  groups: Group[];
+  feeds: DailyFeed[];
+  selectedGroupId: string | null;
+  selectedFeedId: string | null;
+  selectedFeedDate: string;
+  onNavigate: Navigate;
+  onToast: ToastCallback;
+}) {
+  const loadingGroups = matchesTopState(dashboardStateValue, "loadingGroups");
+  const creatingGroup = matchesTopState(dashboardStateValue, "creatingGroup");
+  const loadingFeeds = matchesChildState(dashboardStateValue, "groupSelected", "loadingFeeds");
+  const refreshingFeedGeneration = matchesChildState(dashboardStateValue, "groupSelected", "refreshingFeedGeneration");
+  const changingFeedFormat = matchesChildState(dashboardStateValue, "groupSelected", "changingFeedFormat");
+  const pendingFeedFormatFeedId = changingFeedFormat ? (dashboardContext?.feedFormatMutation?.feedId ?? null) : null;
+
+  return (
+    <GroupsPanel
+      groups={groups}
+      feeds={feeds}
+      evidenceFormats={dashboardContext?.evidenceFormats ?? EMPTY_EVIDENCE_FORMATS}
+      selectedGroupId={selectedGroupId}
+      selectedFeedId={selectedFeedId}
+      loading={loadingGroups}
+      feedsLoading={loadingFeeds}
+      feedsError={dashboardContext?.feedsError ?? ""}
+      creating={creatingGroup}
+      deletingGroupId={dashboardContext?.pendingDeleteGroupId ?? null}
+      pendingToggleFeedId={dashboardContext?.pendingToggleFeedId ?? null}
+      pendingFeedFormatFeedId={pendingFeedFormatFeedId}
+      pendingRefreshFeedId={refreshingFeedGeneration ? (dashboardContext?.pendingRefreshFeedId ?? null) : null}
+      pendingDeleteFeedId={dashboardContext?.pendingDeleteFeedId ?? null}
+      onCreateGroup={(name) => dashboardRef?.send({ type: "GROUP_CREATE_SUBMITTED", name })}
+      onSelectGroup={(groupId) => {
+        const group = groups.find((candidate) => candidate.id === groupId);
+        if (group !== undefined) {
+          onNavigate(groupPath(group));
+        }
+        dashboardRef?.send({ type: "GROUP_SELECTED", groupId });
+      }}
+      onOpenGroupSettings={(groupId) => dashboardRef?.send({ type: "GROUP_SETTINGS_OPENED", groupId })}
+      onDeleteGroup={(groupId) => dashboardRef?.send({ type: "GROUP_DELETE_SUBMITTED", groupId })}
+      onSelectFeed={(feedId) => {
+        onNavigate(feedPath(feedId));
+        dashboardRef?.send({ type: "FEED_SELECTED", feedId });
+      }}
+      onToggleFeedEnabled={(feedId) => dashboardRef?.send({ type: "FEED_ENABLED_TOGGLED", feedId })}
+      onChangeFeedFormat={(feedId, evidenceFormatId) =>
+        dashboardRef?.send({ type: "FEED_FORMAT_CHANGED", feedId, evidenceFormatId })
+      }
+      onRefreshFeedGeneration={(feedId) => {
+        if (feedId === selectedFeedId) {
+          onNavigate(feedPath(feedId));
+        }
+        dashboardRef?.send({ type: "FEED_GENERATION_REFRESHED", feedId });
+      }}
+      onCopyPublicFeedLink={(feedId) =>
+        void copyPublicPath(
+          feedPath(feedId, feedId === selectedFeedId && selectedFeedDate !== "" ? selectedFeedDate : null),
+          "Feed link copied",
+          onToast,
+        )
+      }
+      onDeleteFeed={(feedId) => dashboardRef?.send({ type: "FEED_DELETE_SUBMITTED", feedId })}
+      onAddFeed={() => dashboardRef?.send({ type: "ADD_FEED_OPENED" })}
+    />
+  );
+}

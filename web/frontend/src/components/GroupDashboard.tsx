@@ -36,7 +36,7 @@ type UpdateFeedPostPayload = {
   tagIds?: string[];
 };
 
-type GroupDashboardProps = {
+export type GroupDashboardProps = {
   group: Group | null;
   feeds: DailyFeed[];
   selectedFeedId: string | null;

@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { getPublicFeed, getPublicFeedOutput, getPublicGroup, getPublicPost, isNotFound } from "../api";
 import { errorMessage } from "../errors";
+import { feedPath } from "../routes";
 import type {
   DailyFeed,
   DailyFeedOutput,
@@ -18,7 +19,7 @@ import type {
 } from "../types";
 import { GroupDashboard } from "./GroupDashboard";
 
-type PublicPageProps = {
+export type PublicPageProps = {
   route: PublicRoute;
   signedIn: boolean;
   onCopyPublicPostLink: (postId: string) => void;
@@ -565,11 +566,6 @@ function publicPostToGroupPost(post: PublicPost): GroupFeedPost {
     converted.caption = post.caption;
   }
   return converted;
-}
-
-function feedPath(feedId: string, date: string | null = null): string {
-  const encodedFeedId = encodeURIComponent(feedId);
-  return date === null || date === "" ? `/f/${encodedFeedId}` : `/f/${encodedFeedId}/${encodeURIComponent(date)}`;
 }
 
 function noop() {
