@@ -14,9 +14,45 @@ require_command() {
 	fi
 }
 
+configure_ci_caches() {
+	ci_cache_dir="$tmp_dir/cache"
+
+	mkdir -p \
+		"$ci_cache_dir/bun" \
+		"$ci_cache_dir/go-build" \
+		"$ci_cache_dir/go-mod" \
+		"$ci_cache_dir/go-tmp" \
+		"$ci_cache_dir/ms-playwright" \
+		"$ci_cache_dir/node-compile" \
+		"$ci_cache_dir/tmp" \
+		"$ci_cache_dir/xdg" || return 1
+
+	export TMPDIR="$ci_cache_dir/tmp"
+	export XDG_CACHE_HOME="$ci_cache_dir/xdg"
+	export GOCACHE="$ci_cache_dir/go-build"
+	export GOMODCACHE="$ci_cache_dir/go-mod"
+	export GOTMPDIR="$ci_cache_dir/go-tmp"
+	export NODE_COMPILE_CACHE="$ci_cache_dir/node-compile"
+	export PLAYWRIGHT_BROWSERS_PATH="$ci_cache_dir/ms-playwright"
+	export ARCADE_BUN_CACHE_DIR="$ci_cache_dir/bun"
+	export BUN_INSTALL_CACHE_DIR="$ci_cache_dir/bun"
+}
+
+bun_ci() {
+	if [ "${ARCADE_BUN_CACHE_DIR:-}" != "" ]; then
+		bun install --frozen-lockfile --cache-dir "$ARCADE_BUN_CACHE_DIR"
+	else
+		bun ci
+	fi
+}
+
 cleanup() {
 	status=$?
 	trap - EXIT INT TERM
+
+	if [ "${tmp_dir:-}" != "" ] && [ -d "$tmp_dir" ]; then
+		chmod -R u+w "$tmp_dir" >/dev/null 2>&1 || true
+	fi
 
 	if [ "${ci_worktree_path:-}" != "" ]; then
 		git worktree remove --force "$ci_worktree_path" >/dev/null 2>&1 || {
@@ -61,7 +97,7 @@ run_frontend() {
 	require_command bun || return 1
 
 	section "Frontend: installing dependencies"
-	(cd web/frontend && bun ci) || return 1
+	(cd web/frontend && bun_ci) || return 1
 
 	section "Frontend: checking formatting"
 	(cd web/frontend && bun run format:check) || return 1
@@ -141,7 +177,7 @@ run_scenarios() {
 	require_command bun || return 1
 
 	section "Scenarios: installing dependencies"
-	(cd test && bun ci) || return 1
+	(cd test && bun_ci) || return 1
 
 	section "Scenarios: checking formatting"
 	(cd test && bun run format:check) || return 1
@@ -161,6 +197,11 @@ run_e2e() {
 
 run_generated_docs() {
 	require_command bun || return 1
+
+	if [ ! -d web/frontend/node_modules/typescript ]; then
+		section "Generated docs: installing frontend dependencies"
+		(cd web/frontend && bun_ci) || return 1
+	fi
 
 	section "Generated docs: frontend event handler inventory"
 	scripts/generate-frontend-event-docs.sh || return 1
@@ -214,6 +255,8 @@ if [ "${ARCADE_CI_IN_WORKTREE:-}" != "1" ]; then
 	run_in_isolated_worktree "$@"
 	exit $?
 fi
+
+configure_ci_caches || exit 1
 
 frontend_status=0
 backend_status=0

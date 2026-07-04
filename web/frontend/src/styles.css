@@ -1,47 +1,50 @@
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 
-  --color-page: #f6f7f9;
-  --color-surface: #fff;
-  --color-surface-subtle: #fbfcfe;
-  --color-surface-hover: #f5f8fb;
-  --color-surface-muted: #eef2f6;
-  --color-text: #1f2933;
-  --color-text-muted: #637083;
-  --color-text-nav-muted: #758294;
-  --color-icon-muted: #9aa4b2;
-  --color-border: #d8dee8;
-  --color-border-subtle: #c6d1dc;
-  --color-border-hover: #b9c6d3;
-  --color-accent: #0f766e;
-  --color-accent-hover: #0b5d56;
-  --color-accent-surface: #f3fbfa;
-  --color-accent-surface-hover: #eef9f7;
-  --color-accent-badge-surface: #e9f5f4;
-  --color-accent-border: #81b8b2;
-  --color-accent-border-hover: #6aa8a1;
-  --color-accent-badge-border: #bedbd8;
-  --color-danger: #b91c1c;
-  --color-danger-surface: #fff1f1;
-  --color-danger-border: #f0b8b8;
-  --color-danger-border-hover: #d66f6f;
-  --color-header: #263238;
-  --color-header-muted: #dbe5ea;
-  --color-inverse-text: #fff;
-  --color-overlay: rgb(17 24 39 / 42%);
-  --color-toast: #111827;
-  --color-code-fade-start: rgb(246 247 249 / 0%);
-  --color-code-attribute: #0f766e;
-  --color-code-comment: #637083;
-  --color-code-keyword: #6d28d9;
-  --color-code-literal: #b45309;
-  --color-code-meta: #475569;
-  --color-code-string: #047857;
-  --color-code-title: #0369a1;
-  --shadow-panel: 0 1px 2px rgb(20 28 38 / 8%);
-  --shadow-popover: 0 8px 22px rgb(20 28 38 / 16%);
-  --shadow-modal: 0 24px 60px rgb(20 28 38 / 28%);
-  --shadow-toast: 0 8px 24px rgb(0 0 0 / 22%);
+  --color-page: #050505;
+  --color-surface: #111;
+  --color-surface-subtle: #171717;
+  --color-surface-hover: #202020;
+  --color-surface-muted: #262626;
+  --color-text: #f0f0f0;
+  --color-text-muted: #a1a1a1;
+  --color-text-nav-muted: #8a8a8a;
+  --color-icon-muted: #707070;
+  --color-border: #303030;
+  --color-border-subtle: #242424;
+  --color-border-hover: #4a4a4a;
+  --color-accent: #f0f0f0;
+  --color-accent-hover: #fff;
+  --color-accent-surface: #202020;
+  --color-accent-surface-hover: #292929;
+  --color-accent-badge-surface: #202020;
+  --color-accent-border: #5a5a5a;
+  --color-accent-border-hover: #707070;
+  --color-accent-badge-border: #454545;
+  --color-accent-action: #262626;
+  --color-accent-action-hover: #303030;
+  --color-accent-action-text: #fff;
+  --color-danger: #ff9592;
+  --color-danger-surface: #241515;
+  --color-danger-border: #5a2a2a;
+  --color-danger-border-hover: #8a3a38;
+  --color-header: #080808;
+  --color-header-muted: #a1a1a1;
+  --color-inverse-text: #f0f0f0;
+  --color-overlay: rgb(2 6 8 / 64%);
+  --color-toast: #050708;
+  --color-code-fade-start: rgb(5 5 5 / 0%);
+  --color-code-attribute: #ddd;
+  --color-code-comment: #8a8a8a;
+  --color-code-keyword: #e8e8e8;
+  --color-code-literal: #c8c8c8;
+  --color-code-meta: #a1a1a1;
+  --color-code-string: #f0f0f0;
+  --color-code-title: #fff;
+  --shadow-panel: 0 1px 2px rgb(0 0 0 / 30%);
+  --shadow-popover: 0 12px 28px rgb(0 0 0 / 45%);
+  --shadow-modal: 0 24px 80px rgb(0 0 0 / 58%);
+  --shadow-toast: 0 8px 24px rgb(0 0 0 / 48%);
   --bg: var(--color-page);
   --panel: var(--color-surface);
   --ink: var(--color-text);
@@ -80,10 +83,10 @@ textarea {
 
 button {
   align-items: center;
-  background: var(--color-accent);
-  border: 1px solid var(--color-accent);
+  background: var(--color-accent-action);
+  border: 1px solid var(--color-accent-action);
   border-radius: 6px;
-  color: var(--color-inverse-text);
+  color: var(--color-accent-action-text);
   cursor: pointer;
   display: inline-flex;
   justify-content: center;
@@ -92,8 +95,8 @@ button {
 }
 
 button:hover:not(:disabled) {
-  background: var(--color-accent-hover);
-  border-color: var(--color-accent-hover);
+  background: var(--color-accent-action-hover);
+  border-color: var(--color-accent-action-hover);
 }
 
 button:disabled {
@@ -234,9 +237,9 @@ label {
 }
 
 .auth-tab.active {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-  color: var(--color-inverse-text);
+  background: var(--color-accent-action);
+  border-color: var(--color-accent-action);
+  color: var(--color-accent-action-text);
 }
 
 .auth-form {
@@ -264,7 +267,9 @@ label {
 }
 
 .group-layout {
-  grid-template-columns: minmax(220px, 1fr) minmax(0, 1040px) minmax(220px, 1fr);
+  --group-layout-side-column: clamp(220px, calc(50% - 536px), 320px);
+
+  grid-template-columns: var(--group-layout-side-column) minmax(0, 1fr) var(--group-layout-side-column);
 }
 
 .group-layout .sidebar-stack {
@@ -911,6 +916,13 @@ button.confirm-icon-button:hover:not(:disabled) {
 
 .group-dashboard-panel {
   min-height: 420px;
+}
+
+.group-dashboard-feed-panel {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
 }
 
 .dashboard-section {
@@ -1713,18 +1725,58 @@ button.metric-title-menu-option[aria-pressed="true"]:hover:not(:disabled) {
 }
 
 .output-item-title-link {
-  color: var(--color-accent-hover);
+  color: color-mix(in srgb, var(--color-text-muted) 35%, var(--color-accent) 65%);
   display: inline;
   font-weight: 800;
   overflow-wrap: anywhere;
-  text-decoration: underline;
-  text-decoration-thickness: 1.5px;
-  text-underline-offset: 3px;
+  text-decoration: none;
 }
 
 .output-item-title-link:hover {
-  color: var(--color-accent);
-  text-decoration-thickness: 2px;
+  animation: none;
+  background-image: none;
+  color: var(--color-accent-hover);
+  text-decoration: none;
+  -webkit-text-fill-color: currentcolor;
+}
+
+@supports (background-clip: text) {
+  .output-item-title-link {
+    animation: output-item-title-shine 3.5s linear infinite;
+    background-image: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-text-muted) 35%, var(--color-accent) 65%) 0%,
+      color-mix(in srgb, var(--color-text-muted) 35%, var(--color-accent) 65%) 42%,
+      var(--color-accent-hover) 50%,
+      color-mix(in srgb, var(--color-text-muted) 35%, var(--color-accent) 65%) 58%,
+      color-mix(in srgb, var(--color-text-muted) 35%, var(--color-accent) 65%) 100%
+    );
+    background-position: 100% 50%;
+    background-repeat: no-repeat;
+    background-size: 220% 100%;
+    color: transparent;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+@keyframes output-item-title-shine {
+  from {
+    background-position: 100% 50%;
+  }
+
+  to {
+    background-position: 0% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .output-item-title-link {
+    animation: none;
+    background-image: none;
+    color: color-mix(in srgb, var(--color-text-muted) 35%, var(--color-accent) 65%);
+    -webkit-text-fill-color: currentcolor;
+  }
 }
 
 .prompt-details {

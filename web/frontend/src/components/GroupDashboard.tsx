@@ -156,7 +156,7 @@ export function GroupDashboard({
 
   return (
     <>
-      <section className="panel group-dashboard-panel">
+      <section className="panel group-dashboard-panel group-dashboard-feed-panel">
         <section className="dashboard-section feed-output-section" aria-label="Selected feed output">
           {standalone ? (
             <div className="feed-route-header">
@@ -1836,14 +1836,7 @@ function OutputItem({ item }: { item: DailyFeedOutputItem }) {
   const catalogItem = item.item;
   const data = catalogItem.data;
   const rating = primitiveDisplay(data["rating"]);
-  const rawTags = data["tags"];
-  const tags = Array.isArray(rawTags)
-    ? rawTags
-        .filter((tag): tag is string => typeof tag === "string")
-        .slice(0, 4)
-        .join(", ")
-    : "";
-  const details = [rating !== "" ? `Rating ${rating}` : "", tags].filter((detail): detail is string => detail !== "");
+  const details = rating !== "" ? [`Rating ${rating}`] : [];
   const displayTitle = firstNonEmpty(
     catalogItem.title,
     primitiveDisplay(data["name"]),
