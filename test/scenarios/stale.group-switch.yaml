@@ -143,12 +143,6 @@ steps:
       path: /api/groups/*/daily-feeds
       times: 1
 
-  - holdRequest:
-      id: new-feeds
-      method: GET
-      path: /api/groups/*/daily-feeds
-      times: 1
-
   - within: Groups
     click:
       role: button
@@ -161,11 +155,6 @@ steps:
     click:
       role: button
       name: Group B
-
-  - expectRequest:
-      id: new-feeds
-
-  - releaseRequest: new-feeds
 
   - releaseRequest: old-feeds
 

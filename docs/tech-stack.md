@@ -34,6 +34,8 @@ Arcade is a small Go/Postgres web application. The backend serves JSON APIs and 
   `embed.FS`.
 - Runtime: the frontend calls `/api/*` with `fetch`, same-origin credentials,
   and no frontend token storage.
+- API read cache: a short-lived in-memory query cache in `web/frontend/src/cache`;
+  see `docs/frontend-cache.md` for key and invalidation rules.
 - State model: XState actors split app lifecycle, dashboard workspace, and Add
   Feed dialog workflows. React components keep local form draft/editing state
   and send user-intent events to the actor that owns the workflow.

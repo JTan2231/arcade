@@ -191,14 +191,12 @@
 
 .action-row .row-action-menu {
   opacity: 0;
-  pointer-events: none;
   transition: opacity 120ms ease;
 }
 
 .action-row:hover .row-action-menu,
 .row-action-menu:focus-within {
   opacity: 1;
-  pointer-events: auto;
 }
 
 .nav-row button.icon-button {

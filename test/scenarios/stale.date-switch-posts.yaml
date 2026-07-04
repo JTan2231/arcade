@@ -110,12 +110,6 @@ steps:
       path: /api/groups/*/daily-feeds/*/outputs/{{yesterday}}/posts
       times: 1
 
-  - holdRequest:
-      id: new-posts
-      method: GET
-      path: /api/groups/*/daily-feeds/*/outputs/{{today}}/posts
-      times: 1
-
   - within: Selected feed output
     click:
       role: button
@@ -138,11 +132,6 @@ steps:
     click:
       role: button
       name: Select Date Posts Task ({{today}})
-
-  - expectRequest:
-      id: new-posts
-
-  - releaseRequest: new-posts
 
   - within: Posts
     expectVisible:

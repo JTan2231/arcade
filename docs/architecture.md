@@ -190,6 +190,9 @@ The browser app source lives in `web/frontend`:
 - `src/api.ts` wraps same-origin JSON requests to `/api/*` and preserves the
   backend `{ "error": "message" }` error contract. Endpoint calls originate
   from invoked machine actors.
+- `src/cache` defines the in-memory frontend query cache, cached API query
+  definitions, and invalidation helpers. See `docs/frontend-cache.md` for the
+  cache contract.
 - `src/components` contains the auth, group list, dashboard, and toast views.
 - The workspace includes a friends panel for friend-code sharing, request
   management, accepted friends, and pending group invite responses. The

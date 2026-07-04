@@ -163,3 +163,19 @@ steps:
   - within: Selected feed output
     expectHidden:
       text: Output Old Task
+
+  - wait:
+      milliseconds: 50
+
+  - failRequest:
+      method: GET
+      path: /api/groups/*/daily-feeds/*/today
+
+  - within: Feeds
+    click:
+      role: button
+      name: Output Old Practice
+
+  - within: Selected feed output
+    expectVisible:
+      text: Output Old Task

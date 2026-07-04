@@ -138,12 +138,6 @@ steps:
       times: 1
 
   - holdRequest:
-      id: new-output
-      method: GET
-      path: /api/groups/*/daily-feeds/*/outputs/{{today}}
-      times: 1
-
-  - holdRequest:
       id: leaderboard-reload
       method: GET
       path: /api/groups/*/daily-feeds/*/metrics/*/leaderboard
@@ -225,11 +219,6 @@ steps:
     click:
       role: button
       name: Select Date Output Task ({{today}})
-
-  - expectRequest:
-      id: new-output
-
-  - releaseRequest: new-output
 
   - within: Selected feed output
     click:

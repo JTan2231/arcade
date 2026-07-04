@@ -282,7 +282,9 @@ The root `ci.sh` has two testing-related targets:
 - `./ci.sh scenarios`: installs `test` dependencies with `bun ci`, checks
   Prettier formatting, and runs `tsc --noEmit`.
 - `./ci.sh e2e` or `./ci.sh test`: runs the scenario checks first, then runs
-  `cd test && bun run e2e`.
+  `cd test && bun run e2e`. The target installs frontend dependencies first
+  when needed because the E2E harness builds the frontend before starting the
+  app.
 
 The default `./ci.sh` target also runs frontend and backend validation before
 scenario checks and E2E, then regenerates generated docs.
@@ -298,6 +300,17 @@ checks directly in the current checkout for debugging.
 
 E2E requires `go`, `bun`, `psql`, a reachable Postgres server, and installed
 Playwright browser binaries for the chosen project.
+
+`ci.sh` uses temporary caches for package managers and compiler output, but it
+preserves a caller-provided `PLAYWRIGHT_BROWSERS_PATH` or points Playwright at
+the platform's normal user browser cache. This keeps locally installed
+Playwright browsers visible to isolated CI worktree runs. If Chromium is
+missing, install the locked test dependency's browser once with:
+
+```sh
+cd test
+bun run playwright install chromium
+```
 
 ## Adding Coverage
 

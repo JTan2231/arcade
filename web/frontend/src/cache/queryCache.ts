@@ -84,9 +84,12 @@ class QueryCache {
     entry.dependencies = dependencies;
     this.entries.set(id, entry);
     const startedGeneration = entry.generation;
+    const fetchOptions = options.signal === undefined ? options : {};
 
     const promise = definition
-      .fetch(...args, options)
+      // Cache-owned reads should still warm the cache when a subscribing UI
+      // state is abandoned before the network request finishes.
+      .fetch(...args, fetchOptions)
       .then((data) => {
         const current = this.entries.get(id);
         if (current === entry && entry.generation === startedGeneration) {

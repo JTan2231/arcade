@@ -16,13 +16,34 @@ require_command() {
 
 configure_ci_caches() {
 	ci_cache_dir="$tmp_dir/cache"
+	playwright_browsers_path="${PLAYWRIGHT_BROWSERS_PATH:-}"
+
+	if [ "$playwright_browsers_path" = "" ]; then
+		case "$(uname -s 2>/dev/null || printf unknown)" in
+		Darwin)
+			if [ "${HOME:-}" != "" ]; then
+				playwright_browsers_path="$HOME/Library/Caches/ms-playwright"
+			fi
+			;;
+		Linux)
+			if [ "${XDG_CACHE_HOME:-}" != "" ]; then
+				playwright_browsers_path="$XDG_CACHE_HOME/ms-playwright"
+			elif [ "${HOME:-}" != "" ]; then
+				playwright_browsers_path="$HOME/.cache/ms-playwright"
+			fi
+			;;
+		esac
+	fi
+
+	if [ "$playwright_browsers_path" = "" ]; then
+		playwright_browsers_path="$ci_cache_dir/ms-playwright"
+	fi
 
 	mkdir -p \
 		"$ci_cache_dir/bun" \
 		"$ci_cache_dir/go-build" \
 		"$ci_cache_dir/go-mod" \
 		"$ci_cache_dir/go-tmp" \
-		"$ci_cache_dir/ms-playwright" \
 		"$ci_cache_dir/node-compile" \
 		"$ci_cache_dir/tmp" \
 		"$ci_cache_dir/xdg" || return 1
@@ -33,7 +54,7 @@ configure_ci_caches() {
 	export GOMODCACHE="$ci_cache_dir/go-mod"
 	export GOTMPDIR="$ci_cache_dir/go-tmp"
 	export NODE_COMPILE_CACHE="$ci_cache_dir/node-compile"
-	export PLAYWRIGHT_BROWSERS_PATH="$ci_cache_dir/ms-playwright"
+	export PLAYWRIGHT_BROWSERS_PATH="$playwright_browsers_path"
 	export ARCADE_BUN_CACHE_DIR="$ci_cache_dir/bun"
 	export BUN_INSTALL_CACHE_DIR="$ci_cache_dir/bun"
 }
@@ -190,6 +211,11 @@ run_e2e() {
 	require_command go || return 1
 	require_command bun || return 1
 	require_command psql || return 1
+
+	if [ ! -x web/frontend/node_modules/.bin/tsc ] || [ ! -x web/frontend/node_modules/.bin/vite ]; then
+		section "E2E: installing frontend dependencies"
+		(cd web/frontend && bun_ci) || return 1
+	fi
 
 	section "E2E: running browser suite"
 	(cd test && bun run e2e) || return 1
