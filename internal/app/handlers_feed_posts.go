@@ -12,17 +12,13 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const groupFeedPostEvidenceText = "text"
-
 type createGroupFeedPostRequest struct {
-	EvidenceKind string           `json:"evidence_kind"`
 	EvidenceText string           `json:"evidence_text"`
 	Caption      *string          `json:"caption"`
 	TagIDs       stringSliceField `json:"tag_ids"`
 }
 
 type patchGroupFeedPostRequest struct {
-	EvidenceKind optionalStringField         `json:"evidence_kind"`
 	EvidenceText optionalStringField         `json:"evidence_text"`
 	Caption      optionalNullableStringField `json:"caption"`
 	TagIDs       optionalStringSliceField    `json:"tag_ids"`
@@ -61,14 +57,12 @@ func (field *optionalNullableStringField) UnmarshalJSON(data []byte) error {
 }
 
 type normalizedGroupFeedPostPayload struct {
-	EvidenceKind string
 	EvidenceText string
 	Caption      *string
 	TagIDs       []string
 }
 
 type normalizedGroupFeedPostPatch struct {
-	EvidenceKind *string
 	EvidenceText *string
 	CaptionSet   bool
 	Caption      *string
@@ -137,6 +131,16 @@ func (s *Server) handleCreateGroupFeedPost(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	evidenceFormatVersion, err := s.activeEvidenceFormatVersionForFeed(r.Context(), groupID, feedID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	if err := validateEvidenceText(payload.EvidenceText, evidenceFormatVersion); err != nil {
+		handleError(w, err)
+		return
+	}
+
 	tx, err := s.db.Begin(r.Context())
 	if err != nil {
 		handleError(w, err)
@@ -156,8 +160,8 @@ func (s *Server) handleCreateGroupFeedPost(w http.ResponseWriter, r *http.Reques
 			group_id,
 			feed_instance_id,
 			author_user_id,
-			evidence_kind,
 			evidence_text,
+			evidence_format_version_id,
 			caption,
 			deleted_at
 		)
@@ -171,12 +175,12 @@ func (s *Server) handleCreateGroupFeedPost(w http.ResponseWriter, r *http.Reques
 			null
 		)
 		on conflict (feed_instance_id, author_user_id) do update set
-			evidence_kind = excluded.evidence_kind,
 			evidence_text = excluded.evidence_text,
+			evidence_format_version_id = excluded.evidence_format_version_id,
 			caption = excluded.caption,
 			deleted_at = null
 		returning id::text
-	`, groupID, instanceID, current.ID, payload.EvidenceKind, payload.EvidenceText, payload.Caption).Scan(&postID)
+	`, groupID, instanceID, current.ID, payload.EvidenceText, evidenceFormatVersion.ID, payload.Caption).Scan(&postID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -295,6 +299,12 @@ func (s *Server) handlePatchGroupFeedPost(w http.ResponseWriter, r *http.Request
 		handleError(w, errNotFound("feed post"))
 		return
 	}
+	if patch.EvidenceText != nil {
+		if err := validateEvidenceText(*patch.EvidenceText, post.EvidenceFormatVersion); err != nil {
+			handleError(w, err)
+			return
+		}
+	}
 
 	tx, err := s.db.Begin(r.Context())
 	if err != nil {
@@ -305,13 +315,12 @@ func (s *Server) handlePatchGroupFeedPost(w http.ResponseWriter, r *http.Request
 
 	tag, err := tx.Exec(r.Context(), `
 		update group_feed_posts
-		set evidence_kind = coalesce($3, evidence_kind),
-		    evidence_text = coalesce($4, evidence_text),
-		    caption = case when $5 then $6::text else caption end
+		set evidence_text = coalesce($3, evidence_text),
+		    caption = case when $4 then $5::text else caption end
 		where group_id = $1
 		  and id = $2
 		  and deleted_at is null
-	`, groupID, post.ID, patch.EvidenceKind, patch.EvidenceText, patch.CaptionSet, patch.Caption)
+	`, groupID, post.ID, patch.EvidenceText, patch.CaptionSet, patch.Caption)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -525,8 +534,20 @@ func groupFeedPostSelect() string {
 			u.username,
 			u.display_name,
 			u.avatar_url,
-			p.evidence_kind,
 			p.evidence_text,
+			fmt.id::text,
+			fmt.group_id::text,
+			fmt.slug,
+			fmt.name,
+			fmt.description,
+			fmt.archived_at,
+			fmt.created_by_user_id::text,
+			fmt.updated_by_user_id::text,
+			fmt.created_at,
+			fmt.updated_at,
+			coalesce(fmt_feed_counts.assigned_feed_count, 0),
+			` + evidenceFormatVersionSelectColumns("av") + `,
+			` + evidenceFormatVersionSelectColumns("v") + `,
 			p.caption,
 			p.deleted_at,
 			p.created_at,
@@ -534,6 +555,22 @@ func groupFeedPostSelect() string {
 		from group_feed_posts p
 		join group_daily_feed_instances i on i.id = p.feed_instance_id and i.group_id = p.group_id
 		join users u on u.id = p.author_user_id
+		join group_evidence_format_versions v on v.id = p.evidence_format_version_id and v.group_id = p.group_id
+		join group_evidence_formats fmt on fmt.id = v.format_id and fmt.group_id = v.group_id
+		join lateral (
+			select *
+			from group_evidence_format_versions
+			where format_id = fmt.id
+			  and group_id = fmt.group_id
+			order by version_number desc
+			limit 1
+		) av on true
+		left join lateral (
+			select count(*)::integer as assigned_feed_count
+			from group_daily_feeds assigned
+			where assigned.group_id = fmt.group_id
+			  and assigned.evidence_format_id = fmt.id
+		) fmt_feed_counts on true
 	`
 }
 
@@ -543,7 +580,7 @@ func scanGroupFeedPost(row pgx.Row) (GroupFeedPost, error) {
 	var avatarURL sql.NullString
 	var caption sql.NullString
 	var deletedAt sql.NullTime
-	if err := row.Scan(
+	dest := []any{
 		&post.ID,
 		&post.GroupID,
 		&post.FeedInstanceID,
@@ -553,13 +590,17 @@ func scanGroupFeedPost(row pgx.Row) (GroupFeedPost, error) {
 		&post.AuthorUsername,
 		&post.AuthorDisplayName,
 		&avatarURL,
-		&post.EvidenceKind,
 		&post.EvidenceText,
+	}
+	dest = append(dest, scanEvidenceFormatDest(&post.EvidenceFormat)...)
+	dest = append(dest, scanEvidenceFormatVersionDest(&post.EvidenceFormatVersion)...)
+	dest = append(dest,
 		&caption,
 		&deletedAt,
 		&post.CreatedAt,
 		&post.UpdatedAt,
-	); err != nil {
+	)
+	if err := row.Scan(dest...); err != nil {
 		return GroupFeedPost{}, err
 	}
 	post.FeedDate = feedDate.Format(dailyFeedDateLayout)
@@ -571,11 +612,7 @@ func scanGroupFeedPost(row pgx.Row) (GroupFeedPost, error) {
 }
 
 func normalizeCreateGroupFeedPostRequest(req createGroupFeedPostRequest) (normalizedGroupFeedPostPayload, error) {
-	evidenceKind := strings.TrimSpace(req.EvidenceKind)
-	if evidenceKind != groupFeedPostEvidenceText {
-		return normalizedGroupFeedPostPayload{}, badRequest("evidence_kind must be text")
-	}
-	evidenceText := strings.TrimSpace(req.EvidenceText)
+	evidenceText := normalizeEvidenceText(req.EvidenceText)
 	if evidenceText == "" {
 		return normalizedGroupFeedPostPayload{}, badRequest("evidence_text is required")
 	}
@@ -588,7 +625,6 @@ func normalizeCreateGroupFeedPostRequest(req createGroupFeedPostRequest) (normal
 		return normalizedGroupFeedPostPayload{}, err
 	}
 	return normalizedGroupFeedPostPayload{
-		EvidenceKind: evidenceKind,
 		EvidenceText: evidenceText,
 		Caption:      caption,
 		TagIDs:       tagIDs,
@@ -596,20 +632,13 @@ func normalizeCreateGroupFeedPostRequest(req createGroupFeedPostRequest) (normal
 }
 
 func normalizePatchGroupFeedPostRequest(req patchGroupFeedPostRequest) (normalizedGroupFeedPostPatch, error) {
-	if !req.EvidenceKind.Set && !req.EvidenceText.Set && !req.Caption.Set && !req.TagIDs.Set {
+	if !req.EvidenceText.Set && !req.Caption.Set && !req.TagIDs.Set {
 		return normalizedGroupFeedPostPatch{}, badRequest("at least one field is required")
 	}
 
 	var patch normalizedGroupFeedPostPatch
-	if req.EvidenceKind.Set {
-		evidenceKind := strings.TrimSpace(req.EvidenceKind.Value)
-		if evidenceKind != groupFeedPostEvidenceText {
-			return normalizedGroupFeedPostPatch{}, badRequest("evidence_kind must be text")
-		}
-		patch.EvidenceKind = &evidenceKind
-	}
 	if req.EvidenceText.Set {
-		evidenceText := strings.TrimSpace(req.EvidenceText.Value)
+		evidenceText := normalizeEvidenceText(req.EvidenceText.Value)
 		if evidenceText == "" {
 			return normalizedGroupFeedPostPatch{}, badRequest("evidence_text is required")
 		}
@@ -635,7 +664,7 @@ func normalizePatchGroupFeedPostRequest(req patchGroupFeedPostRequest) (normaliz
 }
 
 func groupFeedPostPatchTouchesContent(patch normalizedGroupFeedPostPatch) bool {
-	return patch.EvidenceKind != nil || patch.EvidenceText != nil || patch.CaptionSet
+	return patch.EvidenceText != nil || patch.CaptionSet
 }
 
 func normalizeGroupFeedPostCaption(caption *string) (*string, error) {

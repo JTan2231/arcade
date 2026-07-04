@@ -75,15 +75,16 @@ type PublicGroup struct {
 }
 
 type PublicGroupFeed struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	Slug        string            `json:"slug"`
-	Kind        string            `json:"kind"`
-	Description *string           `json:"description,omitempty"`
-	Enabled     bool              `json:"enabled"`
-	Schedule    DailyFeedSchedule `json:"schedule"`
-	CreatedAt   time.Time         `json:"created_at"`
-	UpdatedAt   time.Time         `json:"updated_at"`
+	ID             string            `json:"id"`
+	Name           string            `json:"name"`
+	Slug           string            `json:"slug"`
+	Kind           string            `json:"kind"`
+	Description    *string           `json:"description,omitempty"`
+	Enabled        bool              `json:"enabled"`
+	EvidenceFormat EvidenceFormat    `json:"evidence_format"`
+	Schedule       DailyFeedSchedule `json:"schedule"`
+	CreatedAt      time.Time         `json:"created_at"`
+	UpdatedAt      time.Time         `json:"updated_at"`
 }
 
 type PublicParentGroup struct {
@@ -138,6 +139,7 @@ type DailyFeed struct {
 	SourceID        *string               `json:"source_id,omitempty"`
 	SourceName      *string               `json:"source_name,omitempty"`
 	ItemCount       *int                  `json:"item_count,omitempty"`
+	EvidenceFormat  EvidenceFormat        `json:"evidence_format"`
 	Schedule        DailyFeedSchedule     `json:"schedule"`
 	Filters         []DailyFeedRuleFilter `json:"filters"`
 	CreatedByUserID *string               `json:"created_by_user_id,omitempty"`
@@ -210,19 +212,20 @@ type DailyFeedAction struct {
 }
 
 type PublicFeed struct {
-	ID          string                 `json:"id"`
-	Group       PublicParentGroup      `json:"group"`
-	Name        string                 `json:"name"`
-	Slug        string                 `json:"slug"`
-	Kind        string                 `json:"kind"`
-	Description *string                `json:"description,omitempty"`
-	Enabled     bool                   `json:"enabled"`
-	Schedule    DailyFeedSchedule      `json:"schedule"`
-	Date        string                 `json:"date"`
-	Items       []PublicFeedOutputItem `json:"items"`
-	Posts       []PublicPost           `json:"posts"`
-	CreatedAt   time.Time              `json:"created_at"`
-	UpdatedAt   time.Time              `json:"updated_at"`
+	ID             string                 `json:"id"`
+	Group          PublicParentGroup      `json:"group"`
+	Name           string                 `json:"name"`
+	Slug           string                 `json:"slug"`
+	Kind           string                 `json:"kind"`
+	Description    *string                `json:"description,omitempty"`
+	Enabled        bool                   `json:"enabled"`
+	EvidenceFormat EvidenceFormat         `json:"evidence_format"`
+	Schedule       DailyFeedSchedule      `json:"schedule"`
+	Date           string                 `json:"date"`
+	Items          []PublicFeedOutputItem `json:"items"`
+	Posts          []PublicPost           `json:"posts"`
+	CreatedAt      time.Time              `json:"created_at"`
+	UpdatedAt      time.Time              `json:"updated_at"`
 }
 
 type PublicFeedOutputItem struct {
@@ -239,22 +242,23 @@ type PublicFeedAction struct {
 }
 
 type GroupFeedPost struct {
-	ID                string         `json:"id"`
-	GroupID           string         `json:"group_id"`
-	FeedInstanceID    string         `json:"feed_instance_id"`
-	FeedID            string         `json:"feed_id"`
-	FeedDate          string         `json:"feed_date"`
-	AuthorUserID      string         `json:"author_user_id"`
-	AuthorUsername    string         `json:"author_username"`
-	AuthorDisplayName string         `json:"author_display_name"`
-	AuthorAvatarURL   *string        `json:"author_avatar_url,omitempty"`
-	EvidenceKind      string         `json:"evidence_kind"`
-	EvidenceText      string         `json:"evidence_text"`
-	Caption           *string        `json:"caption,omitempty"`
-	Tags              []GroupPostTag `json:"tags"`
-	DeletedAt         *time.Time     `json:"deleted_at,omitempty"`
-	CreatedAt         time.Time      `json:"created_at"`
-	UpdatedAt         time.Time      `json:"updated_at"`
+	ID                    string                `json:"id"`
+	GroupID               string                `json:"group_id"`
+	FeedInstanceID        string                `json:"feed_instance_id"`
+	FeedID                string                `json:"feed_id"`
+	FeedDate              string                `json:"feed_date"`
+	AuthorUserID          string                `json:"author_user_id"`
+	AuthorUsername        string                `json:"author_username"`
+	AuthorDisplayName     string                `json:"author_display_name"`
+	AuthorAvatarURL       *string               `json:"author_avatar_url,omitempty"`
+	EvidenceText          string                `json:"evidence_text"`
+	EvidenceFormat        EvidenceFormat        `json:"evidence_format"`
+	EvidenceFormatVersion EvidenceFormatVersion `json:"evidence_format_version"`
+	Caption               *string               `json:"caption,omitempty"`
+	Tags                  []GroupPostTag        `json:"tags"`
+	DeletedAt             *time.Time            `json:"deleted_at,omitempty"`
+	CreatedAt             time.Time             `json:"created_at"`
+	UpdatedAt             time.Time             `json:"updated_at"`
 }
 
 type GroupFeedPostRoute struct {
@@ -264,17 +268,18 @@ type GroupFeedPostRoute struct {
 }
 
 type PublicPost struct {
-	ID           string            `json:"id"`
-	Group        PublicParentGroup `json:"group"`
-	Feed         PublicPostFeed    `json:"feed"`
-	FeedDate     string            `json:"feed_date"`
-	Author       PublicUser        `json:"author"`
-	EvidenceKind string            `json:"evidence_kind"`
-	EvidenceText string            `json:"evidence_text"`
-	Caption      *string           `json:"caption,omitempty"`
-	Tags         []PublicPostTag   `json:"tags"`
-	CreatedAt    time.Time         `json:"created_at"`
-	UpdatedAt    time.Time         `json:"updated_at"`
+	ID                    string                `json:"id"`
+	Group                 PublicParentGroup     `json:"group"`
+	Feed                  PublicPostFeed        `json:"feed"`
+	FeedDate              string                `json:"feed_date"`
+	Author                PublicUser            `json:"author"`
+	EvidenceText          string                `json:"evidence_text"`
+	EvidenceFormat        EvidenceFormat        `json:"evidence_format"`
+	EvidenceFormatVersion EvidenceFormatVersion `json:"evidence_format_version"`
+	Caption               *string               `json:"caption,omitempty"`
+	Tags                  []PublicPostTag       `json:"tags"`
+	CreatedAt             time.Time             `json:"created_at"`
+	UpdatedAt             time.Time             `json:"updated_at"`
 }
 
 type PublicPostFeed struct {
@@ -297,6 +302,38 @@ type GroupPostTag struct {
 	UpdatedByUserID *string    `json:"updated_by_user_id,omitempty"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
+}
+
+type EvidenceFormat struct {
+	ID                string                `json:"id"`
+	GroupID           string                `json:"group_id,omitempty"`
+	Slug              string                `json:"slug"`
+	Name              string                `json:"name"`
+	Description       *string               `json:"description,omitempty"`
+	ArchivedAt        *time.Time            `json:"archived_at,omitempty"`
+	CreatedByUserID   *string               `json:"created_by_user_id,omitempty"`
+	UpdatedByUserID   *string               `json:"updated_by_user_id,omitempty"`
+	ActiveVersion     EvidenceFormatVersion `json:"active_version"`
+	AssignedFeedCount int                   `json:"assigned_feed_count"`
+	CreatedAt         time.Time             `json:"created_at"`
+	UpdatedAt         time.Time             `json:"updated_at"`
+}
+
+type EvidenceFormatVersion struct {
+	ID              string    `json:"id"`
+	GroupID         string    `json:"group_id,omitempty"`
+	FormatID        string    `json:"format_id"`
+	VersionNumber   int       `json:"version_number"`
+	MinChars        int       `json:"min_chars"`
+	MaxChars        *int      `json:"max_chars,omitempty"`
+	MinLines        *int      `json:"min_lines,omitempty"`
+	MaxLines        *int      `json:"max_lines,omitempty"`
+	ExactLines      *int      `json:"exact_lines,omitempty"`
+	LineMinChars    *int      `json:"line_min_chars,omitempty"`
+	LineMaxChars    *int      `json:"line_max_chars,omitempty"`
+	AllowBlankLines bool      `json:"allow_blank_lines"`
+	CreatedByUserID *string   `json:"created_by_user_id,omitempty"`
+	CreatedAt       time.Time `json:"created_at"`
 }
 
 type FeedMetric struct {

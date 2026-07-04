@@ -158,6 +158,7 @@ func TestGroupDailyFeedsMirrorColumnsMatchCurrentSchema(t *testing.T) {
 		"schedule_starts_at",
 		"schedule_timezone",
 		"schedule_interval_seconds",
+		"evidence_format_id",
 	}
 	if strings.Join(columns, ",") != strings.Join(want, ",") {
 		t.Fatalf("group_daily_feeds columns = %#v, want %#v", columns, want)

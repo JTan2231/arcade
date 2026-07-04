@@ -1,11 +1,12 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 
-import type { DailyFeed, Group } from "../types";
+import type { DailyFeed, EvidenceFormat, Group } from "../types";
 import { RowActionMenu, type RowAction } from "./RowActionMenu";
 
 type GroupsPanelProps = {
   groups: Group[];
   feeds: DailyFeed[];
+  evidenceFormats: EvidenceFormat[];
   selectedGroupId: string | null;
   selectedFeedId: string | null;
   loading: boolean;
@@ -14,6 +15,7 @@ type GroupsPanelProps = {
   creating: boolean;
   deletingGroupId: string | null;
   pendingToggleFeedId: string | null;
+  pendingFeedFormatFeedId: string | null;
   pendingRefreshFeedId: string | null;
   pendingDeleteFeedId: string | null;
   onCreateGroup: (name: string) => void;
@@ -22,6 +24,7 @@ type GroupsPanelProps = {
   onDeleteGroup: (id: string) => void;
   onSelectFeed: (id: string) => void;
   onToggleFeedEnabled: (id: string) => void;
+  onChangeFeedFormat: (feedId: string, evidenceFormatId: string) => void;
   onRefreshFeedGeneration: (id: string) => void;
   onCopyPublicFeedLink: (id: string) => void;
   onDeleteFeed: (id: string) => void;
@@ -31,6 +34,7 @@ type GroupsPanelProps = {
 export function GroupsPanel({
   groups,
   feeds,
+  evidenceFormats,
   selectedGroupId,
   selectedFeedId,
   loading,
@@ -39,6 +43,7 @@ export function GroupsPanel({
   creating,
   deletingGroupId,
   pendingToggleFeedId,
+  pendingFeedFormatFeedId,
   pendingRefreshFeedId,
   pendingDeleteFeedId,
   onCreateGroup,
@@ -47,6 +52,7 @@ export function GroupsPanel({
   onDeleteGroup,
   onSelectFeed,
   onToggleFeedEnabled,
+  onChangeFeedFormat,
   onRefreshFeedGeneration,
   onCopyPublicFeedLink,
   onDeleteFeed,
@@ -144,16 +150,19 @@ export function GroupsPanel({
                 {selected ? (
                   <FeedSublist
                     feeds={feeds}
+                    evidenceFormats={evidenceFormats}
                     loading={feedsLoading}
                     error={feedsError}
                     manage={canManageGroup(group)}
                     selectedFeedId={selectedFeedId}
                     pendingToggleFeedId={pendingToggleFeedId}
+                    pendingFeedFormatFeedId={pendingFeedFormatFeedId}
                     pendingRefreshFeedId={pendingRefreshFeedId}
                     pendingDeleteFeedId={pendingDeleteFeedId}
                     publicLinksAvailable={group.visibility === "public"}
                     onSelectFeed={onSelectFeed}
                     onToggleFeedEnabled={onToggleFeedEnabled}
+                    onChangeFeedFormat={onChangeFeedFormat}
                     onRefreshFeedGeneration={onRefreshFeedGeneration}
                     onCopyPublicFeedLink={onCopyPublicFeedLink}
                     onDeleteFeed={onDeleteFeed}
@@ -173,32 +182,38 @@ export function GroupsPanel({
 
 function FeedSublist({
   feeds,
+  evidenceFormats,
   loading,
   error,
   manage,
   selectedFeedId,
   pendingToggleFeedId,
+  pendingFeedFormatFeedId,
   pendingRefreshFeedId,
   pendingDeleteFeedId,
   publicLinksAvailable,
   onSelectFeed,
   onToggleFeedEnabled,
+  onChangeFeedFormat,
   onRefreshFeedGeneration,
   onCopyPublicFeedLink,
   onDeleteFeed,
   onAddFeed,
 }: {
   feeds: DailyFeed[];
+  evidenceFormats: EvidenceFormat[];
   loading: boolean;
   error: string;
   manage: boolean;
   selectedFeedId: string | null;
   pendingToggleFeedId: string | null;
+  pendingFeedFormatFeedId: string | null;
   pendingRefreshFeedId: string | null;
   pendingDeleteFeedId: string | null;
   publicLinksAvailable: boolean;
   onSelectFeed: (id: string) => void;
   onToggleFeedEnabled: (id: string) => void;
+  onChangeFeedFormat: (feedId: string, evidenceFormatId: string) => void;
   onRefreshFeedGeneration: (id: string) => void;
   onCopyPublicFeedLink: (id: string) => void;
   onDeleteFeed: (id: string) => void;
@@ -242,7 +257,10 @@ function FeedSublist({
       {feeds.map((feed) => {
         const selected = feed.id === selectedFeedId;
         const mutating =
-          pendingToggleFeedId === feed.id || pendingRefreshFeedId === feed.id || pendingDeleteFeedId === feed.id;
+          pendingToggleFeedId === feed.id ||
+          pendingFeedFormatFeedId === feed.id ||
+          pendingRefreshFeedId === feed.id ||
+          pendingDeleteFeedId === feed.id;
         const copyPublicLinkAction: RowAction | null =
           publicLinksAvailable && feed.enabled
             ? {
@@ -282,6 +300,7 @@ function FeedSublist({
             {settingsFeedId === feed.id ? (
               <FeedSettingsDialog
                 feed={feed}
+                evidenceFormats={evidenceFormats}
                 mutating={mutating}
                 onClose={() => setSettingsFeedId(null)}
                 onDeleteFeed={() => {
@@ -292,6 +311,7 @@ function FeedSublist({
                   setSettingsFeedId(null);
                   onToggleFeedEnabled(feed.id);
                 }}
+                onChangeFeedFormat={(evidenceFormatId) => onChangeFeedFormat(feed.id, evidenceFormatId)}
                 onRefreshGeneration={() => {
                   setSettingsFeedId(null);
                   onRefreshFeedGeneration(feed.id);
@@ -314,20 +334,28 @@ function FeedSublist({
 
 function FeedSettingsDialog({
   feed,
+  evidenceFormats,
   mutating,
   onClose,
   onToggleFeedEnabled,
+  onChangeFeedFormat,
   onRefreshGeneration,
   onDeleteFeed,
 }: {
   feed: DailyFeed;
+  evidenceFormats: EvidenceFormat[];
   mutating: boolean;
   onClose: () => void;
   onToggleFeedEnabled: () => void;
+  onChangeFeedFormat: (evidenceFormatId: string) => void;
   onRefreshGeneration: () => void;
   onDeleteFeed: () => void;
 }) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const activeFormats = evidenceFormats.filter((format) => format.archived_at === undefined);
+  const formatOptions = activeFormats.some((format) => format.id === feed.evidence_format.id)
+    ? activeFormats
+    : [feed.evidence_format, ...activeFormats];
 
   useEffect(() => {
     closeButtonRef.current?.focus();
@@ -375,6 +403,27 @@ function FeedSettingsDialog({
               </button>
             </section>
           ) : null}
+          <section className="feed-settings-section feed-format-section" aria-label="Post format">
+            <div>
+              <div className="section-title">Post format</div>
+              <div className="meta">{evidenceFormatSummary(feed.evidence_format)}</div>
+            </div>
+            <label className="feed-format-select-label">
+              Format
+              <select
+                disabled={mutating || activeFormats.length === 0}
+                value={feed.evidence_format.id}
+                onChange={(event) => onChangeFeedFormat(event.target.value)}
+              >
+                {formatOptions.map((format) => (
+                  <option disabled={format.archived_at !== undefined} key={format.id} value={format.id}>
+                    {format.name}
+                    {format.archived_at !== undefined ? " (archived)" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </section>
           <section className="feed-settings-section" aria-label="Delete feed">
             <div>
               <div className="section-title">Delete feed</div>
@@ -388,6 +437,10 @@ function FeedSettingsDialog({
       </section>
     </div>
   );
+}
+
+function evidenceFormatSummary(format: EvidenceFormat): string {
+  return `${format.name} · v${format.active_version.version_number}`;
 }
 
 function canManageGroup(group: Group | null): boolean {

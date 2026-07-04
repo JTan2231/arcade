@@ -34,6 +34,7 @@ import type { addFeedMachine } from "./machines/addFeedMachine";
 import type { dashboardMachine } from "./machines/dashboardMachine";
 import type {
   DailyFeed,
+  EvidenceFormat,
   FeedMetric,
   Friend,
   FriendRequests,
@@ -58,6 +59,7 @@ const EMPTY_GROUPS: Group[] = [];
 const EMPTY_FEEDS: DailyFeed[] = [];
 const EMPTY_POSTS: GroupFeedPost[] = [];
 const EMPTY_POST_TAGS: GroupPostTag[] = [];
+const EMPTY_EVIDENCE_FORMATS: EvidenceFormat[] = [];
 const EMPTY_GROUP_MEMBERS: GroupMember[] = [];
 const EMPTY_METRICS: FeedMetric[] = [];
 const EMPTY_FRIENDS: Friend[] = [];
@@ -126,6 +128,8 @@ export default function App() {
   );
   const creatingPost = matchesGrandchildState(dashboardStateValue, "groupSelected", "feedSelected", "creatingPost");
   const creatingPostTag = matchesChildState(dashboardStateValue, "groupSelected", "creatingPostTag");
+  const creatingEvidenceFormat = matchesChildState(dashboardStateValue, "groupSelected", "creatingEvidenceFormat");
+  const changingFeedFormat = matchesChildState(dashboardStateValue, "groupSelected", "changingFeedFormat");
   const creatingMetric = matchesGrandchildState(dashboardStateValue, "groupSelected", "feedSelected", "creatingMetric");
   const creatingJudgment = matchesGrandchildState(
     dashboardStateValue,
@@ -279,7 +283,14 @@ export default function App() {
   }, [publicRoute, selectedGroup, setAppPath, signedIn]);
 
   useEffect(() => {
-    if (!signedIn || memberRouteTarget?.status !== "member" || dashboardRef === undefined) {
+    if (
+      !signedIn ||
+      publicRoute === null ||
+      publicRoute.kind === "group" ||
+      memberRouteTarget?.status !== "member" ||
+      memberRouteTarget.routeKey !== publicRouteKey ||
+      dashboardRef === undefined
+    ) {
       memberRouteGroupRefreshRef.current = null;
       return;
     }
@@ -325,6 +336,8 @@ export default function App() {
     groups,
     loadingGroups,
     memberRouteTarget,
+    publicRoute,
+    publicRouteKey,
     selectedFeedDate,
     selectedFeedId,
     selectedGroupId,
@@ -561,6 +574,13 @@ export default function App() {
   const postTagMutation = dashboardContext?.postTagMutation ?? null;
   const updatingPostTagId = postTagMutation?.kind === "update" ? postTagMutation.tagId : null;
   const deletingPostTagId = postTagMutation?.kind === "delete" ? postTagMutation.tagId : null;
+  const evidenceFormatMutation = dashboardContext?.evidenceFormatMutation ?? null;
+  const updatingEvidenceFormatId =
+    evidenceFormatMutation?.kind === "update" || evidenceFormatMutation?.kind === "version"
+      ? evidenceFormatMutation.formatId
+      : null;
+  const deletingEvidenceFormatId = evidenceFormatMutation?.kind === "delete" ? evidenceFormatMutation.formatId : null;
+  const pendingFeedFormatFeedId = changingFeedFormat ? (dashboardContext?.feedFormatMutation?.feedId ?? null) : null;
   const groupMemberMutation = dashboardContext?.groupMemberMutation ?? null;
   const removingMemberUserId = groupMemberMutation?.userId ?? null;
   const updatingGroupVisibility = (dashboardContext?.groupVisibilityMutation ?? null) !== null;
@@ -699,6 +719,7 @@ export default function App() {
               <GroupsPanel
                 groups={groups}
                 feeds={feeds}
+                evidenceFormats={dashboardContext?.evidenceFormats ?? EMPTY_EVIDENCE_FORMATS}
                 selectedGroupId={selectedGroupId}
                 selectedFeedId={selectedFeedId}
                 loading={loadingGroups}
@@ -707,6 +728,7 @@ export default function App() {
                 creating={creatingGroup}
                 deletingGroupId={dashboardContext?.pendingDeleteGroupId ?? null}
                 pendingToggleFeedId={dashboardContext?.pendingToggleFeedId ?? null}
+                pendingFeedFormatFeedId={pendingFeedFormatFeedId}
                 pendingRefreshFeedId={
                   refreshingFeedGeneration ? (dashboardContext?.pendingRefreshFeedId ?? null) : null
                 }
@@ -726,6 +748,9 @@ export default function App() {
                   dashboardRef?.send({ type: "FEED_SELECTED", feedId });
                 }}
                 onToggleFeedEnabled={(feedId) => dashboardRef?.send({ type: "FEED_ENABLED_TOGGLED", feedId })}
+                onChangeFeedFormat={(feedId, evidenceFormatId) =>
+                  dashboardRef?.send({ type: "FEED_FORMAT_CHANGED", feedId, evidenceFormatId })
+                }
                 onRefreshFeedGeneration={(feedId) => {
                   if (feedId === selectedFeedId) {
                     setAppPath(feedPath(feedId));
@@ -767,6 +792,7 @@ export default function App() {
               currentUserId={context.user?.id ?? null}
               addFeedOpen={addFeedOpen}
               addFeedSources={addFeedContext?.sources ?? []}
+              addFeedEvidenceFormats={addFeedContext?.evidenceFormats ?? EMPTY_EVIDENCE_FORMATS}
               addFeedSourcesLoading={addFeedLoadingSources}
               addFeedPreview={addFeedContext?.preview ?? null}
               addFeedPreviewLoading={addFeedPreviewing}
@@ -814,7 +840,11 @@ export default function App() {
               <GroupSettingsDialog
                 currentUserId={context.user?.id ?? null}
                 deletingTagId={deletingPostTagId}
+                deletingFormatId={deletingEvidenceFormatId}
                 deletingMetricId={deletingMetricId}
+                formatError={dashboardContext.evidenceFormatsError}
+                formatSaving={creatingEvidenceFormat}
+                formats={dashboardContext.evidenceFormats ?? EMPTY_EVIDENCE_FORMATS}
                 feeds={feeds}
                 group={selectedGroup}
                 inviteCandidates={inviteCandidates}
@@ -832,13 +862,21 @@ export default function App() {
                 tagError={dashboardContext.postTagsError}
                 tagSaving={creatingPostTag}
                 tags={dashboardContext.postTags ?? EMPTY_POST_TAGS}
+                updatingFormatId={updatingEvidenceFormatId}
                 updatingMetricId={updatingMetricId}
                 updatingTagId={updatingPostTagId}
                 visibilitySaving={updatingGroupVisibility}
                 onCancelGroupInvite={handleCancelGroupInviteForCandidate}
                 onClose={() => dashboardRef?.send({ type: "GROUP_SETTINGS_CLOSED" })}
                 onCreateMetric={(payload) => dashboardRef?.send({ type: "METRIC_CREATE_SUBMITTED", payload })}
+                onCreateFormat={(payload) => dashboardRef?.send({ type: "EVIDENCE_FORMAT_CREATE_SUBMITTED", payload })}
+                onCreateFormatVersion={(formatId, payload) =>
+                  dashboardRef?.send({ type: "EVIDENCE_FORMAT_VERSION_CREATE_SUBMITTED", formatId, payload })
+                }
                 onCreateTag={(payload) => dashboardRef?.send({ type: "POST_TAG_CREATE_SUBMITTED", payload })}
+                onDeleteFormat={(formatId) =>
+                  dashboardRef?.send({ type: "EVIDENCE_FORMAT_DELETE_SUBMITTED", formatId })
+                }
                 onDeleteMetric={(metricId) => dashboardRef?.send({ type: "METRIC_DELETE_SUBMITTED", metricId })}
                 onDeleteTag={(tagId) => dashboardRef?.send({ type: "POST_TAG_DELETE_SUBMITTED", tagId })}
                 onInviteFriend={handleInviteFriend}
@@ -852,6 +890,9 @@ export default function App() {
                 }
                 onUpdateMetric={(metricId, payload) =>
                   dashboardRef?.send({ type: "METRIC_UPDATE_SUBMITTED", metricId, payload })
+                }
+                onUpdateFormat={(formatId, payload) =>
+                  dashboardRef?.send({ type: "EVIDENCE_FORMAT_UPDATE_SUBMITTED", formatId, payload })
                 }
                 onUpdateTag={(tagId, payload) =>
                   dashboardRef?.send({ type: "POST_TAG_UPDATE_SUBMITTED", tagId, payload })

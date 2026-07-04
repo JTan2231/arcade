@@ -69,7 +69,6 @@ before:
       method: POST
       path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{today}}/posts
       json:
-        evidence_kind: text
         evidence_text: Public proof for the public page.
         caption: Shared for everyone.
       expectStatus: 201
@@ -129,7 +128,6 @@ before:
       method: POST
       path: /api/groups/{{private_group_id}}/daily-feeds/{{private_feed_id}}/outputs/{{today}}/posts
       json:
-        evidence_kind: text
         evidence_text: Private proof for members only.
       expectStatus: 201
       capture:

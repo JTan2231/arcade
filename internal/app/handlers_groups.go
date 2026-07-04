@@ -116,6 +116,12 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	evidenceFormatID, err := createPlainTextEvidenceFormat(r.Context(), tx, groupID, current.ID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
 	if _, err := tx.Exec(r.Context(), `
 		insert into group_daily_feeds (
 			group_id,
@@ -123,6 +129,7 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 			slug,
 			kind,
 			enabled,
+			evidence_format_id,
 			schedule_starts_at,
 			schedule_timezone,
 			schedule_interval_seconds,
@@ -134,12 +141,13 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 			$3,
 			$4,
 			true,
+			$5,
 			date_trunc('day', now()),
 			'UTC',
 			86400,
-			$5
+			$6
 		)
-	`, groupID, defaultDailyThreadFeedName, defaultDailyThreadFeedSlug, dailyFeedKindDailyThread, current.ID); err != nil {
+	`, groupID, defaultDailyThreadFeedName, defaultDailyThreadFeedSlug, dailyFeedKindDailyThread, evidenceFormatID, current.ID); err != nil {
 		handleError(w, err)
 		return
 	}

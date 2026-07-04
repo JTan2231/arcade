@@ -75,7 +75,6 @@ before:
       method: POST
       path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{today}}/posts
       json:
-        evidence_kind: text
         evidence_text: Initial tagged proof.
         caption: Tag coverage.
       expectStatus: 201
@@ -152,7 +151,6 @@ steps:
       method: PATCH
       path: /api/groups/{{group_id}}/feed-posts/{{post_id}}
       json:
-        evidence_kind: text
         evidence_text: Updated proof without tag edits.
         caption: Tag coverage.
         tag_ids: []

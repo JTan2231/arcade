@@ -1,14 +1,17 @@
 import type {
   CatalogSource,
   CreateDailyFeedRequest,
+  CreateEvidenceFormatRequest,
   CreateFeedMetricJudgmentRequest,
   CreateFeedMetricRequest,
   CreateGroupFeedPostRequest,
   CreateGroupPostTagRequest,
   CreateGroupRequest,
+  CreateEvidenceFormatVersionRequest,
   DailyFeed,
   DailyFeedOutput,
   DailyFeedPreview,
+  EvidenceFormat,
   FeedMetric,
   FeedMetricJudgment,
   Friend,
@@ -25,6 +28,8 @@ import type {
   MetricLeaderboard,
   PatchFeedMetricJudgmentRequest,
   PatchFeedMetricRequest,
+  PatchDailyFeedRequest,
+  PatchEvidenceFormatRequest,
   PatchGroupRequest,
   PatchGroupFeedPostRequest,
   PatchGroupPostTagRequest,
@@ -343,6 +348,77 @@ export function listGroupPostTags(
   return api<GroupPostTag[]>(`/api/groups/${encodeURIComponent(groupID)}/post-tags${query}`, options);
 }
 
+export function listGroupEvidenceFormats(
+  groupID: string,
+  params: { includeArchived?: boolean } = {},
+  options: APIOptions = {},
+): Promise<EvidenceFormat[]> {
+  const query = params.includeArchived === true ? "?include_archived=true" : "";
+  return api<EvidenceFormat[]>(`/api/groups/${encodeURIComponent(groupID)}/evidence-formats${query}`, options);
+}
+
+export function createGroupEvidenceFormat(
+  groupID: string,
+  payload: CreateEvidenceFormatRequest,
+  options: APIOptions = {},
+): Promise<EvidenceFormat> {
+  return api<EvidenceFormat>(`/api/groups/${encodeURIComponent(groupID)}/evidence-formats`, {
+    ...options,
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getGroupEvidenceFormat(
+  groupID: string,
+  formatID: string,
+  options: APIOptions = {},
+): Promise<EvidenceFormat> {
+  return api<EvidenceFormat>(
+    `/api/groups/${encodeURIComponent(groupID)}/evidence-formats/${encodeURIComponent(formatID)}`,
+    options,
+  );
+}
+
+export function updateGroupEvidenceFormat(
+  groupID: string,
+  formatID: string,
+  payload: PatchEvidenceFormatRequest,
+  options: APIOptions = {},
+): Promise<EvidenceFormat> {
+  return api<EvidenceFormat>(
+    `/api/groups/${encodeURIComponent(groupID)}/evidence-formats/${encodeURIComponent(formatID)}`,
+    {
+      ...options,
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function createGroupEvidenceFormatVersion(
+  groupID: string,
+  formatID: string,
+  payload: CreateEvidenceFormatVersionRequest,
+  options: APIOptions = {},
+): Promise<EvidenceFormat> {
+  return api<EvidenceFormat>(
+    `/api/groups/${encodeURIComponent(groupID)}/evidence-formats/${encodeURIComponent(formatID)}/versions`,
+    {
+      ...options,
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function deleteGroupEvidenceFormat(groupID: string, formatID: string, options: APIOptions = {}): Promise<null> {
+  return api<null>(`/api/groups/${encodeURIComponent(groupID)}/evidence-formats/${encodeURIComponent(formatID)}`, {
+    ...options,
+    method: "DELETE",
+  });
+}
+
 export function createGroupPostTag(
   groupID: string,
   payload: CreateGroupPostTagRequest,
@@ -545,7 +621,7 @@ export function deleteFeedMetricJudgment(groupID: string, judgmentID: string, op
 export function updateGroupDailyFeed(
   groupID: string,
   feedID: string,
-  payload: Partial<Pick<DailyFeed, "enabled">>,
+  payload: PatchDailyFeedRequest,
   options: APIOptions = {},
 ): Promise<DailyFeed> {
   return api<DailyFeed>(`/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}`, {

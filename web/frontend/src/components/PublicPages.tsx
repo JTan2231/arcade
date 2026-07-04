@@ -270,6 +270,7 @@ function PublicDashboardView({
           addFeedPreview={null}
           addFeedPreviewLoading={false}
           addFeedSaving={false}
+          addFeedEvidenceFormats={[]}
           addFeedSources={[]}
           addFeedSourcesLoading={false}
           currentUserId={null}
@@ -436,6 +437,7 @@ function publicGroupFeedToDailyFeed(group: PublicGroup, feed: PublicGroupFeed): 
     slug: feed.slug,
     kind: feed.kind,
     enabled: feed.enabled,
+    evidence_format: feed.evidence_format,
     schedule: feed.schedule,
     filters: [],
     created_at: feed.created_at,
@@ -456,6 +458,7 @@ function publicFeedToDailyFeed(feed: PublicFeed): DailyFeed {
     slug: feed.slug,
     kind: feed.kind,
     enabled: feed.enabled,
+    evidence_format: feed.evidence_format,
     schedule: feed.schedule,
     filters: [],
     created_at: feed.created_at,
@@ -476,6 +479,7 @@ function publicPostFeedToDailyFeed(post: PublicPost): DailyFeed {
     slug: post.feed.id,
     kind: "daily_thread",
     enabled: false,
+    evidence_format: post.evidence_format,
     schedule: {
       starts_at: `${post.feed_date}T00:00:00Z`,
       timezone: "UTC",
@@ -540,8 +544,9 @@ function publicPostToGroupPost(post: PublicPost): GroupFeedPost {
     author_user_id: post.author.id,
     author_username: post.author.username,
     author_display_name: post.author.display_name,
-    evidence_kind: post.evidence_kind,
     evidence_text: post.evidence_text,
+    evidence_format: post.evidence_format,
+    evidence_format_version: post.evidence_format_version,
     tags: post.tags.map((tag, index) => ({
       id: tag.id,
       group_id: post.group.id,

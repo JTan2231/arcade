@@ -88,7 +88,6 @@ before:
       method: POST
       path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{yesterday}}/posts
       json:
-        evidence_kind: text
         evidence_text: Yesterday evidence should stay hidden.
         caption: Yesterday caption should stay hidden.
       expectStatus: 201

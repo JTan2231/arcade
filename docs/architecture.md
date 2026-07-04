@@ -61,6 +61,8 @@ Routes are grouped by resource in `Server.Routes()`:
 - Dailies: group-owned daily feed definitions and deterministic feed outputs.
 - Public reads: signed-out-safe group, feed, and post pages backed by
   `/api/public/...` routes and visibility checks.
+- Evidence formats: group-owned post text validation formats, immutable
+  versions, and feed assignment.
 - Post tags: group-owned feed post tag definitions and post tag attachments.
 - Feed metrics: feed-owned score definitions, judged score writes, and
   computed leaderboards.
@@ -77,6 +79,8 @@ The main persisted entities are:
 - `groups` and `group_memberships`: social scopes and roles.
 - `divisions` and `division_rules`: group-scoped division metadata.
 - `group_daily_feeds`: durable group-owned daily feed definitions.
+- `group_evidence_formats` and `group_evidence_format_versions`: group-owned
+  post evidence validation formats and immutable constraint versions.
 - `group_daily_feed_instances` and `group_feed_posts`: durable member posts
   attached to one feed on one date.
 - `group_post_tags` and `group_feed_post_tags`: group-managed post metadata
@@ -113,8 +117,10 @@ The current daily feed model follows these rules:
   APIs.
 - Member posts are stored separately from generated output. The first post for a
   feed/date lazily creates a `group_daily_feed_instances` row, and each active
-  member can own at most one post on that instance. Feed post read responses are
-  hydrated with attached group post tags ordered by name,
+  member can own at most one post on that instance. New posts validate
+  normalized `evidence_text` against the feed's assigned evidence format active
+  version, and existing posts keep the exact version used at submission time.
+  Feed post read responses are hydrated with attached group post tags ordered by name,
   including archived tags that remain attached to historical posts.
 - Owners and admins can reroll the current catalog output with
   `POST /api/groups/{group_id}/daily-feeds/{feed_id}/today/refresh`. Refreshes

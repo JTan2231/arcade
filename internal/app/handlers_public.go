@@ -73,21 +73,48 @@ func (s *Server) getPublicGroup(ctx context.Context, slug string) (PublicGroup, 
 
 	rows, err := s.db.Query(ctx, `
 		select
-			id::text,
-			name,
-			slug,
-			kind,
-			description,
-			enabled,
-			schedule_starts_at,
-			schedule_timezone,
-			schedule_interval_seconds,
-			created_at,
-			updated_at
-		from group_daily_feeds
-		where group_id = $1
-		  and enabled
-		order by name, id
+			f.id::text,
+			f.name,
+			f.slug,
+			f.kind,
+			f.description,
+			f.enabled,
+			fmt.id::text,
+			fmt.group_id::text,
+			fmt.slug,
+			fmt.name,
+			fmt.description,
+			fmt.archived_at,
+			fmt.created_by_user_id::text,
+			fmt.updated_by_user_id::text,
+			fmt.created_at,
+			fmt.updated_at,
+			coalesce(fmt_feed_counts.assigned_feed_count, 0),
+			`+evidenceFormatVersionSelectColumns("v")+`,
+			f.schedule_starts_at,
+			f.schedule_timezone,
+			f.schedule_interval_seconds,
+			f.created_at,
+			f.updated_at
+		from group_daily_feeds f
+		join group_evidence_formats fmt on fmt.id = f.evidence_format_id and fmt.group_id = f.group_id
+		join lateral (
+			select *
+			from group_evidence_format_versions
+			where format_id = fmt.id
+			  and group_id = fmt.group_id
+			order by version_number desc
+			limit 1
+		) v on true
+		left join lateral (
+			select count(*)::integer as assigned_feed_count
+			from group_daily_feeds assigned
+			where assigned.group_id = fmt.group_id
+			  and assigned.evidence_format_id = fmt.id
+		) fmt_feed_counts on true
+		where f.group_id = $1
+		  and f.enabled
+		order by f.name, f.id
 	`, group.ID)
 	if err != nil {
 		return PublicGroup{}, err
@@ -97,19 +124,23 @@ func (s *Server) getPublicGroup(ctx context.Context, slug string) (PublicGroup, 
 	for rows.Next() {
 		var feed PublicGroupFeed
 		var feedDescription sql.NullString
-		if err := rows.Scan(
+		dest := []any{
 			&feed.ID,
 			&feed.Name,
 			&feed.Slug,
 			&feed.Kind,
 			&feedDescription,
 			&feed.Enabled,
+		}
+		dest = append(dest, scanEvidenceFormatDest(&feed.EvidenceFormat)...)
+		dest = append(dest,
 			&feed.Schedule.StartsAt,
 			&feed.Schedule.Timezone,
 			&feed.Schedule.IntervalSeconds,
 			&feed.CreatedAt,
 			&feed.UpdatedAt,
-		); err != nil {
+		)
+		if err := rows.Scan(dest...); err != nil {
 			return PublicGroup{}, err
 		}
 		feed.Description = nullStringPtr(feedDescription)
@@ -150,19 +181,20 @@ func (s *Server) getPublicFeed(ctx context.Context, feedID string, requestedDate
 	}
 
 	return PublicFeed{
-		ID:          feed.ID,
-		Group:       group,
-		Name:        feed.Name,
-		Slug:        feed.Slug,
-		Kind:        feed.Kind,
-		Description: feed.Description,
-		Enabled:     feed.Enabled,
-		Schedule:    feed.Schedule,
-		Date:        output.Date,
-		Items:       publicFeedOutputItems(output.Items),
-		Posts:       posts,
-		CreatedAt:   feed.CreatedAt,
-		UpdatedAt:   feed.UpdatedAt,
+		ID:             feed.ID,
+		Group:          group,
+		Name:           feed.Name,
+		Slug:           feed.Slug,
+		Kind:           feed.Kind,
+		Description:    feed.Description,
+		Enabled:        feed.Enabled,
+		EvidenceFormat: feed.EvidenceFormat,
+		Schedule:       feed.Schedule,
+		Date:           output.Date,
+		Items:          publicFeedOutputItems(output.Items),
+		Posts:          posts,
+		CreatedAt:      feed.CreatedAt,
+		UpdatedAt:      feed.UpdatedAt,
 	}, nil
 }
 
@@ -320,8 +352,20 @@ func publicPostSelectSQL() string {
 			u.username,
 			u.display_name,
 			u.avatar_url,
-			p.evidence_kind,
 			p.evidence_text,
+			fmt.id::text,
+			fmt.group_id::text,
+			fmt.slug,
+			fmt.name,
+			fmt.description,
+			fmt.archived_at,
+			fmt.created_by_user_id::text,
+			fmt.updated_by_user_id::text,
+			fmt.created_at,
+			fmt.updated_at,
+			coalesce(fmt_feed_counts.assigned_feed_count, 0),
+			` + evidenceFormatVersionSelectColumns("av") + `,
+			` + evidenceFormatVersionSelectColumns("v") + `,
 			p.caption,
 			p.created_at,
 			p.updated_at
@@ -330,6 +374,22 @@ func publicPostSelectSQL() string {
 		join group_daily_feeds f on f.id = i.feed_id and f.group_id = i.group_id
 		join groups g on g.id = p.group_id
 		join users u on u.id = p.author_user_id
+		join group_evidence_format_versions v on v.id = p.evidence_format_version_id and v.group_id = p.group_id
+		join group_evidence_formats fmt on fmt.id = v.format_id and fmt.group_id = v.group_id
+		join lateral (
+			select *
+			from group_evidence_format_versions
+			where format_id = fmt.id
+			  and group_id = fmt.group_id
+			order by version_number desc
+			limit 1
+		) av on true
+		left join lateral (
+			select count(*)::integer as assigned_feed_count
+			from group_daily_feeds assigned
+			where assigned.group_id = fmt.group_id
+			  and assigned.evidence_format_id = fmt.id
+		) fmt_feed_counts on true
 	`
 }
 
@@ -338,7 +398,7 @@ func scanPublicPost(row pgx.Row) (PublicPost, error) {
 	var feedDate time.Time
 	var authorAvatar sql.NullString
 	var caption sql.NullString
-	if err := row.Scan(
+	dest := []any{
 		&post.ID,
 		&post.Group.ID,
 		&post.Group.Name,
@@ -351,12 +411,16 @@ func scanPublicPost(row pgx.Row) (PublicPost, error) {
 		&post.Author.Username,
 		&post.Author.DisplayName,
 		&authorAvatar,
-		&post.EvidenceKind,
 		&post.EvidenceText,
+	}
+	dest = append(dest, scanEvidenceFormatDest(&post.EvidenceFormat)...)
+	dest = append(dest, scanEvidenceFormatVersionDest(&post.EvidenceFormatVersion)...)
+	dest = append(dest,
 		&caption,
 		&post.CreatedAt,
 		&post.UpdatedAt,
-	); err != nil {
+	)
+	if err := row.Scan(dest...); err != nil {
 		return PublicPost{}, err
 	}
 	post.FeedDate = feedDate.Format(dailyFeedDateLayout)

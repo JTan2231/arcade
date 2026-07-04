@@ -534,6 +534,11 @@ label {
   gap: 8px;
 }
 
+.evidence-format-manager {
+  display: grid;
+  gap: 8px;
+}
+
 .post-tag-manager + .invite-friends-section {
   border-top: 1px solid var(--color-border);
   margin-top: 14px;
@@ -542,6 +547,11 @@ label {
 
 .post-tag-create-form {
   align-items: end;
+  display: grid;
+  gap: 8px;
+}
+
+.evidence-format-create-form {
   display: grid;
   gap: 8px;
 }
@@ -556,6 +566,11 @@ label {
   gap: 8px;
 }
 
+.evidence-format-list {
+  display: grid;
+  gap: 8px;
+}
+
 .post-tag-manager-row {
   background: var(--color-surface-subtle);
   border: 1px solid var(--color-border);
@@ -565,7 +580,21 @@ label {
   padding: 8px;
 }
 
+.evidence-format-row {
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+}
+
 .post-tag-manager-row.archived {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.evidence-format-row.archived {
   background: var(--color-surface);
   color: var(--color-text-muted);
 }
@@ -971,6 +1000,14 @@ button.confirm-icon-button:hover:not(:disabled) {
   gap: 12px;
   grid-template-columns: minmax(0, 1fr) auto;
   padding: 12px;
+}
+
+.feed-format-section {
+  align-items: start;
+}
+
+.feed-format-select-label {
+  min-width: min(240px, 100%);
 }
 
 .group-visibility-section {
@@ -1634,6 +1671,19 @@ button.metric-title-menu-option[aria-pressed="true"]:hover:not(:disabled) {
 .post-caption {
   color: var(--color-text);
   overflow-wrap: anywhere;
+}
+
+.field-hint,
+.post-format-meta {
+  color: var(--color-text-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 3px;
+}
+
+.post-format-meta {
+  margin: 0;
 }
 
 .edit-post-form {

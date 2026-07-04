@@ -34,6 +34,9 @@ erDiagram
     catalog_sources ||--o{ catalog_source_fields : exposes
 
     groups ||--o{ group_daily_feeds : owns
+    groups ||--o{ group_evidence_formats : defines
+    group_evidence_formats ||--o{ group_evidence_format_versions : versions
+    group_evidence_formats ||--o{ group_daily_feeds : validates
     catalog_sources ||--o{ group_daily_feeds : powers
     group_daily_feeds ||--o{ feed_rule_filters : filters
     catalog_source_fields ||--o{ feed_rule_filters : constrains
@@ -42,6 +45,7 @@ erDiagram
     group_daily_feed_metrics ||--o{ group_daily_feed_metric_judgments : collects
     group_daily_feeds ||--o{ group_daily_feed_instances : materializes
     group_daily_feed_instances ||--o{ group_feed_posts : receives
+    group_evidence_format_versions ||--o{ group_feed_posts : validated
     users ||--o{ group_feed_posts : authors
     groups ||--o{ group_post_tags : defines
     group_post_tags ||--o{ group_feed_post_tags : labels
@@ -99,9 +103,10 @@ has a label, value type (`string` or `number`), cardinality flag, and display
 order; operator semantics stay in application code.
 
 `group_daily_feeds` stores the durable daily feed definition owned by a group.
-Each feed has a unique slug within its group, a kind, an enabled flag, explicit
-schedule columns (`schedule_starts_at`, `schedule_timezone`, and
-`schedule_interval_seconds`), and optional practice-feed source/count columns.
+Each feed has a unique slug within its group, a kind, an enabled flag, an
+assigned evidence format for future posts, explicit schedule columns
+(`schedule_starts_at`, `schedule_timezone`, and `schedule_interval_seconds`),
+and optional practice-feed source/count columns.
 The schedule start date cannot be later than the current date in the schedule
 timezone.
 The `catalog_daily` kind selects items from exactly one available
@@ -135,11 +140,27 @@ when durable member content exists for that feed instance. The row carries
 `group_id` for group-scoped lookup and authorization, with composite foreign
 keys keeping it consistent with `group_daily_feeds`.
 
+`group_evidence_formats` stores group-owned reusable post evidence format names.
+Each format has a stable group-local slug, display name, optional description,
+archive timestamp, and creator/updater audit fields. Format names and slugs are
+unique within a group. Archiving hides a format from new feed assignments and
+post creation while preserving historical post references. Every group has a
+`plain-text` format.
+
+`group_evidence_format_versions` stores immutable validation constraints for an
+evidence format. The latest `version_number` is the active version used by new
+posts for feeds assigned to that format. Constraints are relational columns for
+full-body character limits, line count rules, per-line character limits, and
+blank-line allowance. Updating constraints inserts a new version instead of
+rewriting existing rows.
+
 `group_feed_posts` stores one member-authored response per feed instance. A post
-currently requires plaintext evidence with `evidence_kind = 'text'`, and
-`caption` is optional and separate from evidence. Posts are soft deleted with
-`deleted_at`, and the unique `(feed_instance_id, author_user_id)` rule means a
-later post by the same member reuses and reactivates the existing row.
+stores normalized text evidence and the exact
+`group_evidence_format_versions` row that validated that evidence. `caption` is
+optional and separate from evidence. Posts are soft deleted with `deleted_at`,
+and the unique `(feed_instance_id, author_user_id)` rule means a later post by
+the same member reuses and reactivates the existing row with the feed's current
+active evidence format version.
 
 `group_post_tags` stores the post tag vocabulary owned by a group. Arcade does
 not create default tag definitions; a group has no tags until an owner or admin

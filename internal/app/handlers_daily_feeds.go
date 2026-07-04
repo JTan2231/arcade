@@ -30,26 +30,28 @@ const (
 var templateFieldPattern = regexp.MustCompile(`\{([A-Za-z0-9_]+)\}`)
 
 type createDailyFeedRequest struct {
-	Name        string                `json:"name"`
-	Slug        string                `json:"slug"`
-	Kind        string                `json:"kind"`
-	Description *string               `json:"description"`
-	Enabled     *bool                 `json:"enabled"`
-	SourceID    string                `json:"source_id"`
-	ItemCount   int                   `json:"item_count"`
-	Schedule    *DailyFeedSchedule    `json:"schedule"`
-	Filters     []DailyFeedRuleFilter `json:"filters"`
+	Name             string                `json:"name"`
+	Slug             string                `json:"slug"`
+	Kind             string                `json:"kind"`
+	Description      *string               `json:"description"`
+	Enabled          *bool                 `json:"enabled"`
+	SourceID         string                `json:"source_id"`
+	ItemCount        int                   `json:"item_count"`
+	EvidenceFormatID string                `json:"evidence_format_id"`
+	Schedule         *DailyFeedSchedule    `json:"schedule"`
+	Filters          []DailyFeedRuleFilter `json:"filters"`
 }
 
 type patchDailyFeedRequest struct {
-	Name        optionalStringField           `json:"name"`
-	Slug        optionalStringField           `json:"slug"`
-	Description optionalNullableStringField   `json:"description"`
-	Enabled     *bool                         `json:"enabled"`
-	SourceID    optionalStringField           `json:"source_id"`
-	ItemCount   optionalIntField              `json:"item_count"`
-	Schedule    *DailyFeedSchedule            `json:"schedule"`
-	Filters     optionalDailyFeedFiltersField `json:"filters"`
+	Name             optionalStringField           `json:"name"`
+	Slug             optionalStringField           `json:"slug"`
+	Description      optionalNullableStringField   `json:"description"`
+	Enabled          *bool                         `json:"enabled"`
+	SourceID         optionalStringField           `json:"source_id"`
+	ItemCount        optionalIntField              `json:"item_count"`
+	EvidenceFormatID optionalStringField           `json:"evidence_format_id"`
+	Schedule         *DailyFeedSchedule            `json:"schedule"`
+	Filters          optionalDailyFeedFiltersField `json:"filters"`
 }
 
 type optionalIntField struct {
@@ -80,15 +82,16 @@ func (field *optionalDailyFeedFiltersField) UnmarshalJSON(data []byte) error {
 }
 
 type normalizedDailyFeedInput struct {
-	Name        string
-	Slug        string
-	Kind        string
-	Description *string
-	Enabled     bool
-	SourceID    *string
-	ItemCount   *int
-	Schedule    DailyFeedSchedule
-	Filters     []DailyFeedRuleFilter
+	Name             string
+	Slug             string
+	Kind             string
+	Description      *string
+	Enabled          bool
+	SourceID         *string
+	ItemCount        *int
+	EvidenceFormatID string
+	Schedule         DailyFeedSchedule
+	Filters          []DailyFeedRuleFilter
 }
 
 type dailyCatalogCandidate struct {
@@ -198,14 +201,15 @@ func (s *Server) handleCreateGroupDailyFeed(w http.ResponseWriter, r *http.Reque
 			enabled,
 			source_id,
 			item_count,
+			evidence_format_id,
 			schedule_starts_at,
 			schedule_timezone,
 			schedule_interval_seconds,
 			created_by_user_id
 		)
-		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		returning id::text
-	`, groupID, input.Name, input.Slug, input.Kind, input.Description, input.Enabled, input.SourceID, input.ItemCount, input.Schedule.StartsAt, input.Schedule.Timezone, input.Schedule.IntervalSeconds, current.ID).Scan(&feedID)
+	`, groupID, input.Name, input.Slug, input.Kind, input.Description, input.Enabled, input.SourceID, input.ItemCount, input.EvidenceFormatID, input.Schedule.StartsAt, input.Schedule.Timezone, input.Schedule.IntervalSeconds, current.ID).Scan(&feedID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -269,8 +273,11 @@ func (s *Server) handlePreviewGroupDailyFeed(w http.ResponseWriter, r *http.Requ
 		Enabled:   true,
 		SourceID:  input.SourceID,
 		ItemCount: input.ItemCount,
-		Schedule:  input.Schedule,
-		Filters:   input.Filters,
+		EvidenceFormat: EvidenceFormat{
+			ID: input.EvidenceFormatID,
+		},
+		Schedule: input.Schedule,
+		Filters:  input.Filters,
 	}
 	selection, err := s.selectDailyFeedItems(r.Context(), feed, nil, false)
 	if err != nil {
@@ -364,6 +371,16 @@ func (s *Server) handlePatchGroupDailyFeed(w http.ResponseWriter, r *http.Reques
 		enabled = *req.Enabled
 	}
 
+	evidenceFormatID := currentFeed.EvidenceFormat.ID
+	if req.EvidenceFormatID.Set {
+		resolved, err := s.resolveActiveEvidenceFormatID(r.Context(), groupID, req.EvidenceFormatID.Value, false)
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+		evidenceFormatID = resolved
+	}
+
 	schedule := currentFeed.Schedule
 	if req.Schedule != nil {
 		normalized, err := normalizeDailyFeedSchedule(req.Schedule)
@@ -442,11 +459,12 @@ func (s *Server) handlePatchGroupDailyFeed(w http.ResponseWriter, r *http.Reques
 		    enabled = $7,
 		    source_id = $8,
 		    item_count = $9,
-		    schedule_starts_at = $10,
-		    schedule_timezone = $11,
-		    schedule_interval_seconds = $12
+		    evidence_format_id = $10,
+		    schedule_starts_at = $11,
+		    schedule_timezone = $12,
+		    schedule_interval_seconds = $13
 		where group_id = $1 and id = $2
-	`, groupID, currentFeed.ID, name, slug, descriptionSet, description, enabled, sourceID, itemCount, schedule.StartsAt, schedule.Timezone, schedule.IntervalSeconds)
+	`, groupID, currentFeed.ID, name, slug, descriptionSet, description, enabled, sourceID, itemCount, evidenceFormatID, schedule.StartsAt, schedule.Timezone, schedule.IntervalSeconds)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -684,6 +702,18 @@ func dailyFeedSelectSQL() string {
 			f.source_id::text,
 			cs.name,
 			f.item_count,
+			ef.id::text,
+			ef.group_id::text,
+			ef.slug,
+			ef.name,
+			ef.description,
+			ef.archived_at,
+			ef.created_by_user_id::text,
+			ef.updated_by_user_id::text,
+			ef.created_at,
+			ef.updated_at,
+			coalesce(ef_feed_counts.assigned_feed_count, 0),
+			` + evidenceFormatVersionSelectColumns("efv") + `,
 			f.schedule_starts_at,
 			f.schedule_timezone,
 			f.schedule_interval_seconds,
@@ -693,6 +723,21 @@ func dailyFeedSelectSQL() string {
 		from group_daily_feeds f
 		join groups g on g.id = f.group_id
 		left join catalog_sources cs on cs.id = f.source_id
+		join group_evidence_formats ef on ef.id = f.evidence_format_id and ef.group_id = f.group_id
+		join lateral (
+			select *
+			from group_evidence_format_versions
+			where format_id = ef.id
+			  and group_id = ef.group_id
+			order by version_number desc
+			limit 1
+		) efv on true
+		left join lateral (
+			select count(*)::integer as assigned_feed_count
+			from group_daily_feeds assigned
+			where assigned.group_id = ef.group_id
+			  and assigned.evidence_format_id = ef.id
+		) ef_feed_counts on true
 	`
 }
 
@@ -704,7 +749,7 @@ func scanDailyFeed(row pgx.Row) (DailyFeed, error) {
 	var sourceName sql.NullString
 	var itemCount sql.NullInt64
 	var createdByUserID sql.NullString
-	if err := row.Scan(
+	dest := []any{
 		&feed.ID,
 		&feed.GroupID,
 		&groupName,
@@ -716,13 +761,17 @@ func scanDailyFeed(row pgx.Row) (DailyFeed, error) {
 		&sourceID,
 		&sourceName,
 		&itemCount,
+	}
+	dest = append(dest, scanEvidenceFormatDest(&feed.EvidenceFormat)...)
+	dest = append(dest,
 		&feed.Schedule.StartsAt,
 		&feed.Schedule.Timezone,
 		&feed.Schedule.IntervalSeconds,
 		&createdByUserID,
 		&feed.CreatedAt,
 		&feed.UpdatedAt,
-	); err != nil {
+	)
+	if err := row.Scan(dest...); err != nil {
 		return DailyFeed{}, err
 	}
 	feed.GroupName = nullStringPtr(groupName)
@@ -1507,6 +1556,12 @@ func (s *Server) normalizeCreateDailyFeed(ctx context.Context, groupID string, r
 		Enabled:     enabled,
 		Schedule:    schedule,
 	}
+
+	evidenceFormatID, err := s.resolveActiveEvidenceFormatID(ctx, groupID, req.EvidenceFormatID, true)
+	if err != nil {
+		return normalizedDailyFeedInput{}, err
+	}
+	input.EvidenceFormatID = evidenceFormatID
 
 	if kind == dailyFeedKindDailyThread {
 		if strings.TrimSpace(req.SourceID) != "" || req.ItemCount != 0 || len(req.Filters) > 0 {

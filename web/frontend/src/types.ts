@@ -79,6 +79,7 @@ export type PublicGroupFeed = {
   kind: "catalog_daily" | "daily_thread";
   description?: string;
   enabled: boolean;
+  evidence_format: EvidenceFormat;
   schedule: DailyFeedSchedule;
   created_at: string;
   updated_at: string;
@@ -148,6 +149,7 @@ export type DailyFeed = {
   source_id?: string;
   source_name?: string;
   item_count?: number;
+  evidence_format: EvidenceFormat;
   schedule: DailyFeedSchedule;
   filters: DailyFeedRuleFilter[];
   created_by_user_id?: string;
@@ -215,8 +217,9 @@ export type PublicPost = {
   };
   feed_date: string;
   author: PublicUser;
-  evidence_kind: "text";
   evidence_text: string;
+  evidence_format: EvidenceFormat;
+  evidence_format_version: EvidenceFormatVersion;
   caption?: string;
   tags: PublicPostTag[];
   created_at: string;
@@ -231,6 +234,7 @@ export type PublicFeed = {
   kind: "catalog_daily" | "daily_thread";
   description?: string;
   enabled: boolean;
+  evidence_format: EvidenceFormat;
   schedule: DailyFeedSchedule;
   date: string;
   items: PublicFeedOutputItem[];
@@ -275,8 +279,14 @@ export type CreateDailyFeedRequest = {
   enabled: boolean;
   source_id?: string;
   item_count?: number;
+  evidence_format_id?: string;
   schedule: DailyFeedSchedule;
   filters?: DailyFeedRuleFilter[];
+};
+
+export type PatchDailyFeedRequest = {
+  enabled?: boolean;
+  evidence_format_id?: string;
 };
 
 export type GroupFeedPost = {
@@ -289,8 +299,9 @@ export type GroupFeedPost = {
   author_username: string;
   author_display_name: string;
   author_avatar_url?: string;
-  evidence_kind: "text";
   evidence_text: string;
+  evidence_format: EvidenceFormat;
+  evidence_format_version: EvidenceFormatVersion;
   caption?: string;
   tags: GroupPostTag[];
   deleted_at?: string;
@@ -317,13 +328,12 @@ export type GroupPostTag = {
 };
 
 export type CreateGroupFeedPostRequest = {
-  evidence_kind: "text";
   evidence_text: string;
   caption?: string;
+  tag_ids?: string[];
 };
 
 export type PatchGroupFeedPostRequest = {
-  evidence_kind?: "text";
   evidence_text?: string;
   caption?: string | null;
   tag_ids?: string[];
@@ -337,6 +347,69 @@ export type CreateGroupPostTagRequest = {
 export type PatchGroupPostTagRequest = {
   name?: string;
   display_order?: number;
+  archived?: boolean;
+};
+
+export type EvidenceFormatVersion = {
+  id: string;
+  group_id?: string;
+  format_id: string;
+  version_number: number;
+  min_chars: number;
+  max_chars?: number;
+  min_lines?: number;
+  max_lines?: number;
+  exact_lines?: number;
+  line_min_chars?: number;
+  line_max_chars?: number;
+  allow_blank_lines: boolean;
+  created_by_user_id?: string;
+  created_at: string;
+};
+
+export type EvidenceFormat = {
+  id: string;
+  group_id?: string;
+  slug: string;
+  name: string;
+  description?: string;
+  archived_at?: string;
+  active_version: EvidenceFormatVersion;
+  assigned_feed_count: number;
+  created_by_user_id?: string;
+  updated_by_user_id?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreateEvidenceFormatRequest = {
+  slug: string;
+  name: string;
+  description?: string;
+  min_chars?: number;
+  max_chars?: number;
+  min_lines?: number;
+  max_lines?: number;
+  exact_lines?: number;
+  line_min_chars?: number;
+  line_max_chars?: number;
+  allow_blank_lines?: boolean;
+};
+
+export type CreateEvidenceFormatVersionRequest = {
+  min_chars?: number;
+  max_chars?: number;
+  min_lines?: number;
+  max_lines?: number;
+  exact_lines?: number;
+  line_min_chars?: number;
+  line_max_chars?: number;
+  allow_blank_lines?: boolean;
+};
+
+export type PatchEvidenceFormatRequest = {
+  name?: string;
+  description?: string | null;
   archived?: boolean;
 };
 

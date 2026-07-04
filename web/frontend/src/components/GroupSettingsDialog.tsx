@@ -1,15 +1,19 @@
 import { FormEvent, useEffect, useState } from "react";
 
 import type {
+  CreateEvidenceFormatRequest,
+  CreateEvidenceFormatVersionRequest,
   CreateFeedMetricRequest,
   CreateGroupPostTagRequest,
   DailyFeed,
+  EvidenceFormat,
   FeedMetric,
   Group,
   GroupInviteCandidate,
   GroupMember,
   GroupPostTag,
   PatchFeedMetricRequest,
+  PatchEvidenceFormatRequest,
   PatchGroupPostTagRequest,
   Visibility,
 } from "../types";
@@ -32,6 +36,11 @@ type GroupSettingsDialogProps = {
   tagSaving: boolean;
   updatingTagId: string | null;
   deletingTagId: string | null;
+  formats: EvidenceFormat[];
+  formatError: string;
+  formatSaving: boolean;
+  updatingFormatId: string | null;
+  deletingFormatId: string | null;
   members: GroupMember[];
   membersError: string;
   removingMemberUserId: string | null;
@@ -47,6 +56,10 @@ type GroupSettingsDialogProps = {
   onCreateTag: (payload: CreateGroupPostTagRequest) => void;
   onUpdateTag: (tagId: string, payload: PatchGroupPostTagRequest) => void;
   onDeleteTag: (tagId: string) => void;
+  onCreateFormat: (payload: CreateEvidenceFormatRequest) => void;
+  onUpdateFormat: (formatId: string, payload: PatchEvidenceFormatRequest) => void;
+  onCreateFormatVersion: (formatId: string, payload: CreateEvidenceFormatVersionRequest) => void;
+  onDeleteFormat: (formatId: string) => void;
   onRemoveMember: (userId: string) => void;
   onInviteFriend: (userId: string) => void;
   onCancelGroupInvite: (userId: string) => void;
@@ -70,6 +83,11 @@ export function GroupSettingsDialog({
   tagSaving,
   updatingTagId,
   deletingTagId,
+  formats,
+  formatError,
+  formatSaving,
+  updatingFormatId,
+  deletingFormatId,
   members,
   membersError,
   removingMemberUserId,
@@ -85,6 +103,10 @@ export function GroupSettingsDialog({
   onCreateTag,
   onUpdateTag,
   onDeleteTag,
+  onCreateFormat,
+  onUpdateFormat,
+  onCreateFormatVersion,
+  onDeleteFormat,
   onRemoveMember,
   onInviteFriend,
   onCancelGroupInvite,
@@ -138,6 +160,18 @@ export function GroupSettingsDialog({
             onCreateTag={onCreateTag}
             onDeleteTag={onDeleteTag}
             onUpdateTag={onUpdateTag}
+          />
+          <EvidenceFormatManager
+            deletingFormatId={deletingFormatId}
+            error={formatError}
+            formats={formats}
+            loading={loading}
+            saving={formatSaving}
+            updatingFormatId={updatingFormatId}
+            onCreateFormat={onCreateFormat}
+            onCreateFormatVersion={onCreateFormatVersion}
+            onDeleteFormat={onDeleteFormat}
+            onUpdateFormat={onUpdateFormat}
           />
           <GroupMembersManager
             currentUserId={currentUserId}
@@ -357,6 +391,493 @@ function PostTagManagerRow({
       ) : null}
     </form>
   );
+}
+
+type EvidenceFormatDraft = {
+  slug: string;
+  name: string;
+  description: string;
+  minChars: string;
+  maxChars: string;
+  lineMode: "range" | "exact";
+  minLines: string;
+  maxLines: string;
+  exactLines: string;
+  lineMinChars: string;
+  lineMaxChars: string;
+  allowBlankLines: boolean;
+};
+
+const emptyFormatDraft: EvidenceFormatDraft = {
+  slug: "",
+  name: "",
+  description: "",
+  minChars: "1",
+  maxChars: "",
+  lineMode: "range",
+  minLines: "",
+  maxLines: "",
+  exactLines: "",
+  lineMinChars: "",
+  lineMaxChars: "",
+  allowBlankLines: true,
+};
+
+function EvidenceFormatManager({
+  formats,
+  error,
+  loading,
+  saving,
+  updatingFormatId,
+  deletingFormatId,
+  onCreateFormat,
+  onUpdateFormat,
+  onCreateFormatVersion,
+  onDeleteFormat,
+}: {
+  formats: EvidenceFormat[];
+  error: string;
+  loading: boolean;
+  saving: boolean;
+  updatingFormatId: string | null;
+  deletingFormatId: string | null;
+  onCreateFormat: (payload: CreateEvidenceFormatRequest) => void;
+  onUpdateFormat: (formatId: string, payload: PatchEvidenceFormatRequest) => void;
+  onCreateFormatVersion: (formatId: string, payload: CreateEvidenceFormatVersionRequest) => void;
+  onDeleteFormat: (formatId: string) => void;
+}) {
+  const [draft, setDraft] = useState<EvidenceFormatDraft>(emptyFormatDraft);
+  const [formError, setFormError] = useState("");
+
+  function updateDraft(patch: Partial<EvidenceFormatDraft>) {
+    setDraft((current) => ({ ...current, ...patch }));
+    setFormError("");
+  }
+
+  function handleCreate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const payload = buildFormatPayload(draft);
+    if (typeof payload === "string") {
+      setFormError(payload);
+      return;
+    }
+    setFormError("");
+    onCreateFormat(payload);
+    setDraft(emptyFormatDraft);
+  }
+
+  return (
+    <section className="evidence-format-manager" aria-label="Evidence formats">
+      <div className="section-title">Post formats</div>
+      {error !== "" ? (
+        <div className="form-error" role="alert">
+          {error}
+        </div>
+      ) : null}
+      <form className="evidence-format-create-form" onSubmit={handleCreate}>
+        <div className="form-grid two-column">
+          <label>
+            Slug
+            <input value={draft.slug} onChange={(event) => updateDraft({ slug: event.target.value })} />
+          </label>
+          <label>
+            Name
+            <input value={draft.name} onChange={(event) => updateDraft({ name: event.target.value })} />
+          </label>
+        </div>
+        <label>
+          Description
+          <textarea value={draft.description} onChange={(event) => updateDraft({ description: event.target.value })} />
+        </label>
+        <EvidenceFormatConstraintFields draft={draft} onChange={updateDraft} />
+        <button type="submit" disabled={loading || saving || draft.slug.trim() === "" || draft.name.trim() === ""}>
+          Add format
+        </button>
+      </form>
+      {formError !== "" ? (
+        <div className="form-error" role="alert">
+          {formError}
+        </div>
+      ) : null}
+      <div className="evidence-format-list">
+        {loading ? <div className="meta">Loading formats...</div> : null}
+        {!loading && formats.length === 0 ? <div className="meta">No formats</div> : null}
+        {formats.map((format) => (
+          <EvidenceFormatManagerRow
+            deleting={deletingFormatId === format.id}
+            format={format}
+            key={format.id}
+            updating={updatingFormatId === format.id}
+            onCreateFormatVersion={onCreateFormatVersion}
+            onDeleteFormat={onDeleteFormat}
+            onUpdateFormat={onUpdateFormat}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function EvidenceFormatManagerRow({
+  format,
+  updating,
+  deleting,
+  onUpdateFormat,
+  onCreateFormatVersion,
+  onDeleteFormat,
+}: {
+  format: EvidenceFormat;
+  updating: boolean;
+  deleting: boolean;
+  onUpdateFormat: (formatId: string, payload: PatchEvidenceFormatRequest) => void;
+  onCreateFormatVersion: (formatId: string, payload: CreateEvidenceFormatVersionRequest) => void;
+  onDeleteFormat: (formatId: string) => void;
+}) {
+  const [name, setName] = useState(format.name);
+  const [description, setDescription] = useState(format.description ?? "");
+  const [draft, setDraft] = useState<EvidenceFormatDraft>(() => formatVersionToDraft(format.active_version));
+  const [formError, setFormError] = useState("");
+  const archived = format.archived_at !== undefined;
+  const busy = updating || deleting;
+  const metadataChanged = name.trim() !== format.name || description.trim() !== (format.description ?? "");
+  const constraintsChanged =
+    JSON.stringify(buildVersionPayload(draft)) !== JSON.stringify(versionPayload(format.active_version));
+  const archiveBlocked = !archived && format.assigned_feed_count > 0;
+
+  useEffect(() => {
+    if (busy) {
+      return;
+    }
+    setName(format.name);
+    setDescription(format.description ?? "");
+    setDraft(formatVersionToDraft(format.active_version));
+  }, [busy, format]);
+
+  function updateDraft(patch: Partial<EvidenceFormatDraft>) {
+    setDraft((current) => ({ ...current, ...patch }));
+    setFormError("");
+  }
+
+  function handleSave(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedName = name.trim();
+    if (trimmedName === "") {
+      setFormError("Name is required");
+      return;
+    }
+    const metadataPayload: PatchEvidenceFormatRequest = {};
+    if (trimmedName !== format.name) {
+      metadataPayload.name = trimmedName;
+    }
+    const trimmedDescription = description.trim();
+    if (trimmedDescription !== (format.description ?? "")) {
+      metadataPayload.description = trimmedDescription === "" ? null : trimmedDescription;
+    }
+    const constraintsPayload = buildVersionPayload(draft);
+    if (typeof constraintsPayload === "string") {
+      setFormError(constraintsPayload);
+      return;
+    }
+    setFormError("");
+    if (Object.keys(metadataPayload).length > 0) {
+      onUpdateFormat(format.id, metadataPayload);
+    }
+    if (constraintsChanged) {
+      onCreateFormatVersion(format.id, constraintsPayload);
+    }
+  }
+
+  return (
+    <form className={`evidence-format-row ${archived ? "archived" : ""}`} onSubmit={handleSave}>
+      <div className="row-top">
+        <div>
+          <div className="title">{format.name}</div>
+          <div className="meta">
+            {format.slug} · v{format.active_version.version_number} · {formatConstraintSummary(format.active_version)}
+          </div>
+        </div>
+        <div className="meta">{format.assigned_feed_count} feeds</div>
+      </div>
+      <div className="form-grid two-column">
+        <label>
+          Name
+          <input value={name} onChange={(event) => setName(event.target.value)} />
+        </label>
+        <label>
+          Description
+          <input value={description} onChange={(event) => setDescription(event.target.value)} />
+        </label>
+      </div>
+      <EvidenceFormatConstraintFields draft={draft} onChange={updateDraft} />
+      <div className="post-tag-manager-actions">
+        <button
+          type="submit"
+          className="secondary"
+          disabled={busy || (!metadataChanged && !constraintsChanged) || name.trim() === "" || archived}
+        >
+          Save
+        </button>
+        {archived ? (
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy}
+            onClick={() => onUpdateFormat(format.id, { archived: false })}
+          >
+            Unarchive
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="danger"
+            disabled={busy || archiveBlocked}
+            title={archiveBlocked ? "Move feeds to another format before archiving." : undefined}
+            onClick={() => onDeleteFormat(format.id)}
+          >
+            Archive
+          </button>
+        )}
+      </div>
+      {archived ? <div className="meta">Archived</div> : null}
+      {archiveBlocked ? <div className="meta">Assigned feeds block archiving.</div> : null}
+      {formError !== "" ? (
+        <div className="form-error" role="alert">
+          {formError}
+        </div>
+      ) : null}
+    </form>
+  );
+}
+
+function EvidenceFormatConstraintFields({
+  draft,
+  onChange,
+}: {
+  draft: EvidenceFormatDraft;
+  onChange: (patch: Partial<EvidenceFormatDraft>) => void;
+}) {
+  return (
+    <>
+      <div className="form-grid three-column">
+        <label>
+          Min chars
+          <input
+            min="1"
+            type="number"
+            value={draft.minChars}
+            onChange={(event) => onChange({ minChars: event.target.value })}
+          />
+        </label>
+        <label>
+          Max chars
+          <input
+            min="1"
+            type="number"
+            value={draft.maxChars}
+            onChange={(event) => onChange({ maxChars: event.target.value })}
+          />
+        </label>
+        <label className="checkbox-row status-checkbox">
+          <input
+            checked={draft.allowBlankLines}
+            type="checkbox"
+            onChange={(event) => onChange({ allowBlankLines: event.target.checked })}
+          />
+          Blank lines
+        </label>
+      </div>
+      <div className="form-grid three-column">
+        <label>
+          Line mode
+          <select
+            value={draft.lineMode}
+            onChange={(event) => onChange({ lineMode: event.target.value as "range" | "exact" })}
+          >
+            <option value="range">Range</option>
+            <option value="exact">Exact</option>
+          </select>
+        </label>
+        {draft.lineMode === "exact" ? (
+          <label>
+            Exact lines
+            <input
+              min="1"
+              type="number"
+              value={draft.exactLines}
+              onChange={(event) => onChange({ exactLines: event.target.value })}
+            />
+          </label>
+        ) : (
+          <>
+            <label>
+              Min lines
+              <input
+                min="1"
+                type="number"
+                value={draft.minLines}
+                onChange={(event) => onChange({ minLines: event.target.value })}
+              />
+            </label>
+            <label>
+              Max lines
+              <input
+                min="1"
+                type="number"
+                value={draft.maxLines}
+                onChange={(event) => onChange({ maxLines: event.target.value })}
+              />
+            </label>
+          </>
+        )}
+      </div>
+      <div className="form-grid two-column">
+        <label>
+          Line min chars
+          <input
+            min="1"
+            type="number"
+            value={draft.lineMinChars}
+            onChange={(event) => onChange({ lineMinChars: event.target.value })}
+          />
+        </label>
+        <label>
+          Line max chars
+          <input
+            min="1"
+            type="number"
+            value={draft.lineMaxChars}
+            onChange={(event) => onChange({ lineMaxChars: event.target.value })}
+          />
+        </label>
+      </div>
+    </>
+  );
+}
+
+function buildFormatPayload(draft: EvidenceFormatDraft): CreateEvidenceFormatRequest | string {
+  const version = buildVersionPayload(draft);
+  if (typeof version === "string") {
+    return version;
+  }
+  const slug = draft.slug.trim();
+  const name = draft.name.trim();
+  if (slug === "") {
+    return "Slug is required";
+  }
+  if (name === "") {
+    return "Name is required";
+  }
+  return {
+    slug,
+    name,
+    ...(draft.description.trim() !== "" ? { description: draft.description.trim() } : {}),
+    ...version,
+  };
+}
+
+function buildVersionPayload(draft: EvidenceFormatDraft): CreateEvidenceFormatVersionRequest | string {
+  const parsedMinChars = parsePositiveInteger(draft.minChars);
+  const maxChars = parseOptionalPositiveInteger(draft.maxChars);
+  const minLines = draft.lineMode === "range" ? parseOptionalPositiveInteger(draft.minLines) : undefined;
+  const maxLines = draft.lineMode === "range" ? parseOptionalPositiveInteger(draft.maxLines) : undefined;
+  const exactLines = draft.lineMode === "exact" ? parsePositiveInteger(draft.exactLines) : undefined;
+  const lineMinChars = parseOptionalPositiveInteger(draft.lineMinChars);
+  const lineMaxChars = parseOptionalPositiveInteger(draft.lineMaxChars);
+  if (
+    parsedMinChars === "invalid" ||
+    maxChars === "invalid" ||
+    minLines === "invalid" ||
+    maxLines === "invalid" ||
+    exactLines === "invalid" ||
+    lineMinChars === "invalid" ||
+    lineMaxChars === "invalid"
+  ) {
+    return "Constraint values must be positive integers";
+  }
+  const minChars = parsedMinChars ?? 1;
+  if (draft.lineMode === "exact" && exactLines === undefined) {
+    return "Exact lines is required";
+  }
+  if (maxChars !== undefined && maxChars < minChars) {
+    return "Max chars must be at least min chars";
+  }
+  if (minLines !== undefined && maxLines !== undefined && maxLines < minLines) {
+    return "Max lines must be at least min lines";
+  }
+  if (lineMinChars !== undefined && lineMaxChars !== undefined && lineMaxChars < lineMinChars) {
+    return "Line max chars must be at least line min chars";
+  }
+  return {
+    min_chars: minChars,
+    ...(maxChars !== undefined ? { max_chars: maxChars } : {}),
+    ...(minLines !== undefined ? { min_lines: minLines } : {}),
+    ...(maxLines !== undefined ? { max_lines: maxLines } : {}),
+    ...(exactLines !== undefined ? { exact_lines: exactLines } : {}),
+    ...(lineMinChars !== undefined ? { line_min_chars: lineMinChars } : {}),
+    ...(lineMaxChars !== undefined ? { line_max_chars: lineMaxChars } : {}),
+    allow_blank_lines: draft.allowBlankLines,
+  };
+}
+
+function parsePositiveInteger(value: string): number | "invalid" | undefined {
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    return undefined;
+  }
+  const parsed = Number(trimmed);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : "invalid";
+}
+
+function parseOptionalPositiveInteger(value: string): number | "invalid" | undefined {
+  return parsePositiveInteger(value);
+}
+
+function formatVersionToDraft(version: EvidenceFormat["active_version"]): EvidenceFormatDraft {
+  return {
+    slug: "",
+    name: "",
+    description: "",
+    minChars: String(version.min_chars),
+    maxChars: version.max_chars?.toString() ?? "",
+    lineMode: version.exact_lines !== undefined ? "exact" : "range",
+    minLines: version.min_lines?.toString() ?? "",
+    maxLines: version.max_lines?.toString() ?? "",
+    exactLines: version.exact_lines?.toString() ?? "",
+    lineMinChars: version.line_min_chars?.toString() ?? "",
+    lineMaxChars: version.line_max_chars?.toString() ?? "",
+    allowBlankLines: version.allow_blank_lines,
+  };
+}
+
+function versionPayload(version: EvidenceFormat["active_version"]): CreateEvidenceFormatVersionRequest {
+  return {
+    min_chars: version.min_chars,
+    ...(version.max_chars !== undefined ? { max_chars: version.max_chars } : {}),
+    ...(version.min_lines !== undefined ? { min_lines: version.min_lines } : {}),
+    ...(version.max_lines !== undefined ? { max_lines: version.max_lines } : {}),
+    ...(version.exact_lines !== undefined ? { exact_lines: version.exact_lines } : {}),
+    ...(version.line_min_chars !== undefined ? { line_min_chars: version.line_min_chars } : {}),
+    ...(version.line_max_chars !== undefined ? { line_max_chars: version.line_max_chars } : {}),
+    allow_blank_lines: version.allow_blank_lines,
+  };
+}
+
+function formatConstraintSummary(version: EvidenceFormat["active_version"]): string {
+  const parts: string[] = [];
+  if (version.max_chars !== undefined) {
+    parts.push(`${version.min_chars}-${version.max_chars} chars`);
+  } else {
+    parts.push(`${version.min_chars}+ chars`);
+  }
+  if (version.exact_lines !== undefined) {
+    parts.push(`${version.exact_lines} lines`);
+  } else if (version.min_lines !== undefined || version.max_lines !== undefined) {
+    parts.push(`${version.min_lines ?? 1}-${version.max_lines ?? "any"} lines`);
+  }
+  if (!version.allow_blank_lines) {
+    parts.push("no blanks");
+  }
+  return parts.join(" · ");
 }
 
 function GroupMembersManager({

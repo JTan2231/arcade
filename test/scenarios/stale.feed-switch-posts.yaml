@@ -127,7 +127,6 @@ before:
       method: POST
       path: /api/groups/{{group_id}}/daily-feeds/{{old_feed_id}}/outputs/{{feed_date}}/posts
       json:
-        evidence_kind: text
         evidence_text: Old feed evidence should stay hidden.
         caption: Old feed caption should stay hidden.
       expectStatus: 201

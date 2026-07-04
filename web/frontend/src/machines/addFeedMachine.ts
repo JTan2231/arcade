@@ -1,9 +1,15 @@
 import { assign, fromPromise, sendParent, setup } from "xstate";
 import type { DoneActorEvent, ErrorActorEvent, EventObject } from "xstate";
 
-import { createGroupDailyFeed, isUnauthorized, listGroupCatalogSources, previewGroupDailyFeed } from "../api";
+import {
+  createGroupDailyFeed,
+  isUnauthorized,
+  listGroupCatalogSources,
+  listGroupEvidenceFormats,
+  previewGroupDailyFeed,
+} from "../api";
 import { errorMessage } from "../errors";
-import type { CatalogSource, CreateDailyFeedRequest, DailyFeed, DailyFeedPreview } from "../types";
+import type { CatalogSource, CreateDailyFeedRequest, DailyFeed, DailyFeedPreview, EvidenceFormat } from "../types";
 
 type AddFeedInput = {
   groupId: string;
@@ -12,6 +18,7 @@ type AddFeedInput = {
 export type AddFeedContext = {
   groupId: string;
   sources: CatalogSource[];
+  evidenceFormats: EvidenceFormat[];
   preview: DailyFeedPreview | null;
   error: string;
   pendingPayload: CreateDailyFeedRequest | null;
@@ -33,6 +40,11 @@ type FeedPayloadInput = {
   payload: CreateDailyFeedRequest;
 };
 
+type AddFeedLoadOutput = {
+  sources: CatalogSource[];
+  evidenceFormats: EvidenceFormat[];
+};
+
 const addFeedSetup = setup({
   types: {
     context: {} as AddFeedContext,
@@ -43,9 +55,13 @@ const addFeedSetup = setup({
     isUnauthorizedError: ({ event }) => "error" in event && isUnauthorized(event.error),
   },
   actors: {
-    listGroupCatalogSources: fromPromise<CatalogSource[], { groupId: string }>(({ input, signal }) =>
-      listGroupCatalogSources(input.groupId, { signal }),
-    ),
+    loadAddFeedData: fromPromise<AddFeedLoadOutput, { groupId: string }>(async ({ input, signal }) => {
+      const [sources, evidenceFormats] = await Promise.all([
+        listGroupCatalogSources(input.groupId, { signal }),
+        listGroupEvidenceFormats(input.groupId, {}, { signal }),
+      ]);
+      return { sources, evidenceFormats };
+    }),
     previewGroupDailyFeed: fromPromise<DailyFeedPreview, FeedPayloadInput>(({ input, signal }) =>
       previewGroupDailyFeed(input.groupId, input.payload, { signal }),
     ),
@@ -60,6 +76,7 @@ export const addFeedMachine = addFeedSetup.createMachine({
   context: ({ input }) => ({
     groupId: input.groupId,
     sources: [],
+    evidenceFormats: [],
     preview: null,
     error: "",
     pendingPayload: null,
@@ -73,12 +90,13 @@ export const addFeedMachine = addFeedSetup.createMachine({
   states: {
     loadingSources: {
       invoke: {
-        src: "listGroupCatalogSources",
+        src: "loadAddFeedData",
         input: ({ context }) => ({ groupId: context.groupId }),
         onDone: {
           target: "editing",
           actions: assign(({ event }) => ({
-            sources: event.output,
+            sources: event.output.sources,
+            evidenceFormats: event.output.evidenceFormats,
             error: "",
           })),
         },
@@ -91,6 +109,7 @@ export const addFeedMachine = addFeedSetup.createMachine({
             target: "editing",
             actions: assign(({ event }) => ({
               sources: [],
+              evidenceFormats: [],
               error: errorMessage(event.error),
             })),
           },

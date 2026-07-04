@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useId, useRef, useState } from "react";
 
 import { feedDateOptions, formatDateLabel } from "../dates";
 import { errorMessage } from "../errors";
@@ -13,6 +13,8 @@ import type {
   DailyFeedOutputItem,
   DailyFeedPreview,
   DailyFeedRuleFilter,
+  EvidenceFormat,
+  EvidenceFormatVersion,
   FeedMetric,
   Group,
   GroupFeedPost,
@@ -59,6 +61,7 @@ type GroupDashboardProps = {
   currentUserId: string | null;
   addFeedOpen: boolean;
   addFeedSources: CatalogSource[];
+  addFeedEvidenceFormats: EvidenceFormat[];
   addFeedSourcesLoading: boolean;
   addFeedPreview: DailyFeedPreview | null;
   addFeedPreviewLoading: boolean;
@@ -110,6 +113,7 @@ export function GroupDashboard({
   currentUserId,
   addFeedOpen,
   addFeedSources,
+  addFeedEvidenceFormats,
   addFeedSourcesLoading,
   addFeedPreview,
   addFeedPreviewLoading,
@@ -224,6 +228,7 @@ export function GroupDashboard({
           <AddFeedDialog
             feeds={feeds}
             formError={addFeedError}
+            evidenceFormats={addFeedEvidenceFormats}
             preview={addFeedPreview}
             previewLoading={addFeedPreviewLoading}
             saving={addFeedSaving}
@@ -267,6 +272,7 @@ type DraftFilter = {
 function AddFeedDialog({
   feeds,
   formError,
+  evidenceFormats,
   preview,
   previewLoading,
   saving,
@@ -279,6 +285,7 @@ function AddFeedDialog({
 }: {
   feeds: DailyFeed[];
   formError: string;
+  evidenceFormats: EvidenceFormat[];
   preview: DailyFeedPreview | null;
   previewLoading: boolean;
   saving: boolean;
@@ -295,6 +302,7 @@ function AddFeedDialog({
   const [description, setDescription] = useState("");
   const [enabled, setEnabled] = useState(true);
   const [sourceId, setSourceId] = useState("");
+  const [evidenceFormatId, setEvidenceFormatId] = useState("");
   const [itemCount, setItemCount] = useState("3");
   const [startsAt, setStartsAt] = useState(defaultStartsAtInput);
   const [timezone, setTimezone] = useState(defaultTimezone);
@@ -312,6 +320,18 @@ function AddFeedDialog({
       setSourceId(firstSourceId);
     }
   }, [sourceId, sources]);
+
+  useEffect(() => {
+    const plainTextFormat = evidenceFormats.find((format) => format.slug === "plain-text");
+    const firstFormatId = plainTextFormat?.id ?? evidenceFormats[0]?.id ?? "";
+    if (evidenceFormatId === "") {
+      setEvidenceFormatId(firstFormatId);
+      return;
+    }
+    if (!evidenceFormats.some((format) => format.id === evidenceFormatId)) {
+      setEvidenceFormatId(firstFormatId);
+    }
+  }, [evidenceFormatId, evidenceFormats]);
 
   const selectedSource = sources.find((source) => source.id === sourceId) || null;
   const sourceFields = selectedSource?.fields || [];
@@ -386,6 +406,9 @@ function AddFeedDialog({
       enabled,
       schedule,
     };
+    if (evidenceFormatId !== "") {
+      payload.evidence_format_id = evidenceFormatId;
+    }
     const trimmedDescription = description.trim();
     if (trimmedDescription) {
       payload.description = trimmedDescription;
@@ -485,6 +508,24 @@ function AddFeedDialog({
               Active
             </label>
           </div>
+
+          <label>
+            Post format
+            <select
+              disabled={!evidenceFormats.length}
+              value={evidenceFormatId}
+              onChange={(event) => {
+                setEvidenceFormatId(event.target.value);
+                markDraftChanged();
+              }}
+            >
+              {evidenceFormats.map((format) => (
+                <option value={format.id} key={format.id}>
+                  {format.name}
+                </option>
+              ))}
+            </select>
+          </label>
 
           <label>
             Description
@@ -1075,6 +1116,7 @@ function FeedOutput({
       <FeedPostSection
         key={`${feed.id}-${output.date}`}
         disabled={!feed.enabled}
+        evidenceFormat={feed.evidence_format}
         posts={posts}
         postTags={postTags}
         loading={postsLoading}
@@ -1101,6 +1143,7 @@ function FeedOutput({
 
 function FeedPostSection({
   disabled,
+  evidenceFormat,
   posts,
   postTags,
   loading,
@@ -1122,6 +1165,7 @@ function FeedPostSection({
   onCreateMetricJudgment,
 }: {
   disabled: boolean;
+  evidenceFormat: EvidenceFormat;
   posts: GroupFeedPost[];
   postTags: GroupPostTag[];
   loading: boolean;
@@ -1149,6 +1193,9 @@ function FeedPostSection({
   const [formOpen, setFormOpen] = useState(false);
   const [evidenceText, setEvidenceText] = useState("");
   const [caption, setCaption] = useState("");
+  const [formError, setFormError] = useState("");
+  const evidenceInputId = useId();
+  const evidenceHintId = `${evidenceInputId}-hint`;
   const activePostTags = postTags.filter((tag) => tag.archived_at === undefined);
   const ownPost = currentUserId !== null ? (posts.find((post) => post.author_user_id === currentUserId) ?? null) : null;
   const postUnavailable = !canPost || disabled || loading || Boolean(ownPost);
@@ -1170,12 +1217,15 @@ function FeedPostSection({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const trimmedEvidence = evidenceText.trim();
-    if (!trimmedEvidence || postUnavailable) {
+    const normalizedEvidence = normalizeEvidenceText(evidenceText);
+    const validationMessage = validateEvidenceText(normalizedEvidence, evidenceFormat.active_version);
+    if (validationMessage !== "" || postUnavailable) {
+      setFormError(validationMessage);
       return;
     }
 
-    onCreateFeedPost({ evidenceText: trimmedEvidence, caption });
+    setFormError("");
+    onCreateFeedPost({ evidenceText: normalizedEvidence, caption });
   }
 
   return (
@@ -1227,15 +1277,21 @@ function FeedPostSection({
 
       {formOpen ? (
         <form className="feed-post-form" onSubmit={handleSubmit}>
-          <label>
-            Evidence
-            <textarea
-              className="evidence-textarea"
-              required
-              value={evidenceText}
-              onChange={(event) => setEvidenceText(event.target.value)}
-            />
-          </label>
+          <label htmlFor={evidenceInputId}>Evidence</label>
+          <span id={evidenceHintId} className="field-hint">
+            {evidenceFormatConstraintSummary(evidenceFormat.active_version)}
+          </span>
+          <textarea
+            id={evidenceInputId}
+            className="evidence-textarea"
+            required
+            aria-describedby={evidenceHintId}
+            value={evidenceText}
+            onChange={(event) => {
+              setEvidenceText(event.target.value);
+              setFormError("");
+            }}
+          />
           <label>
             Caption
             <textarea
@@ -1252,6 +1308,11 @@ function FeedPostSection({
               Submit
             </button>
           </div>
+          {formError !== "" ? (
+            <div className="form-error" role="alert">
+              {formError}
+            </div>
+          ) : null}
         </form>
       ) : null}
     </section>
@@ -1297,6 +1358,9 @@ function FeedPostCard({
   const [tagMenuOpen, setTagMenuOpen] = useState(false);
   const [evidenceText, setEvidenceText] = useState(post.evidence_text);
   const [caption, setCaption] = useState(post.caption ?? "");
+  const [formError, setFormError] = useState("");
+  const evidenceInputId = useId();
+  const evidenceHintId = `${evidenceInputId}-hint`;
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(() => selectedActivePostTagIDs(post, activePostTags));
   const [initialTagIds, setInitialTagIds] = useState<string[]>(() => selectedActivePostTagIDs(post, activePostTags));
   const [submittedUpdate, setSubmittedUpdate] = useState<{
@@ -1327,6 +1391,7 @@ function FeedPostCard({
   function beginEdit() {
     setEvidenceText(post.evidence_text);
     setCaption(post.caption ?? "");
+    setFormError("");
     setTagMenuOpen(false);
     setEditing(true);
   }
@@ -1358,15 +1423,18 @@ function FeedPostCard({
 
   function handleUpdate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const trimmedEvidence = evidenceText.trim();
-    if (!trimmedEvidence || saving || deleting) {
+    const normalizedEvidence = normalizeEvidenceText(evidenceText);
+    const validationMessage = validateEvidenceText(normalizedEvidence, post.evidence_format_version);
+    if (validationMessage !== "" || saving || deleting) {
+      setFormError(validationMessage);
       return;
     }
 
     const trimmedCaption = caption.trim();
-    setSubmittedUpdate({ evidenceText: trimmedEvidence, caption: trimmedCaption, seenSaving: false });
+    setFormError("");
+    setSubmittedUpdate({ evidenceText: normalizedEvidence, caption: trimmedCaption, seenSaving: false });
     onUpdateFeedPost(post.id, {
-      evidenceText: trimmedEvidence,
+      evidenceText: normalizedEvidence,
       caption: trimmedCaption,
     });
   }
@@ -1432,15 +1500,21 @@ function FeedPostCard({
 
       {editing ? (
         <form className="feed-post-form edit-post-form" onSubmit={handleUpdate}>
-          <label>
-            Evidence
-            <textarea
-              className="evidence-textarea"
-              required
-              value={evidenceText}
-              onChange={(event) => setEvidenceText(event.target.value)}
-            />
-          </label>
+          <label htmlFor={evidenceInputId}>Evidence</label>
+          <span id={evidenceHintId} className="field-hint">
+            {evidenceFormatConstraintSummary(post.evidence_format_version)}
+          </span>
+          <textarea
+            id={evidenceInputId}
+            className="evidence-textarea"
+            required
+            aria-describedby={evidenceHintId}
+            value={evidenceText}
+            onChange={(event) => {
+              setEvidenceText(event.target.value);
+              setFormError("");
+            }}
+          />
           <label>
             Caption
             <textarea
@@ -1457,9 +1531,20 @@ function FeedPostCard({
               Save
             </button>
           </div>
+          {formError !== "" ? (
+            <div className="form-error" role="alert">
+              {formError}
+            </div>
+          ) : null}
         </form>
       ) : (
         <>
+          {shouldShowPostFormat(post) ? (
+            <div className="post-format-meta">
+              {post.evidence_format.name} · v{post.evidence_format_version.version_number}
+              {post.evidence_format.archived_at !== undefined ? " · Archived" : ""}
+            </div>
+          ) : null}
           <EvidenceCodeBlock value={post.evidence_text} />
           {post.caption !== undefined && post.caption !== "" ? (
             <div className="post-caption">{post.caption}</div>
@@ -1669,6 +1754,81 @@ function EvidenceCodeBlock({ value }: { value: string }) {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function normalizeEvidenceText(input: string): string {
+  return input.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+}
+
+function validateEvidenceText(text: string, version: EvidenceFormatVersion): string {
+  const charCount = Array.from(text).length;
+  if (charCount < version.min_chars) {
+    return version.min_chars === 1
+      ? "Evidence is required"
+      : `Evidence must be at least ${version.min_chars} characters`;
+  }
+  if (version.max_chars !== undefined && charCount > version.max_chars) {
+    return `Evidence must be at most ${version.max_chars} characters`;
+  }
+
+  const lines = text.split("\n");
+  if (version.exact_lines !== undefined && lines.length !== version.exact_lines) {
+    return `Evidence must be exactly ${version.exact_lines} lines`;
+  }
+  if (version.min_lines !== undefined && lines.length < version.min_lines) {
+    return `Evidence must be at least ${version.min_lines} lines`;
+  }
+  if (version.max_lines !== undefined && lines.length > version.max_lines) {
+    return `Evidence must be at most ${version.max_lines} lines`;
+  }
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed === "") {
+      if (!version.allow_blank_lines) {
+        return "Evidence cannot contain blank lines";
+      }
+      continue;
+    }
+    const lineChars = Array.from(trimmed).length;
+    if (version.line_min_chars !== undefined && lineChars < version.line_min_chars) {
+      return `Each non-blank line must be at least ${version.line_min_chars} characters`;
+    }
+    if (version.line_max_chars !== undefined && lineChars > version.line_max_chars) {
+      return `Each non-blank line must be at most ${version.line_max_chars} characters`;
+    }
+  }
+
+  return "";
+}
+
+function evidenceFormatConstraintSummary(version: EvidenceFormatVersion): string {
+  const parts: string[] = [`v${version.version_number}`];
+  if (version.max_chars !== undefined) {
+    parts.push(`${version.min_chars}-${version.max_chars} chars`);
+  } else if (version.min_chars > 1) {
+    parts.push(`${version.min_chars}+ chars`);
+  }
+  if (version.exact_lines !== undefined) {
+    parts.push(`${version.exact_lines} lines`);
+  } else if (version.min_lines !== undefined || version.max_lines !== undefined) {
+    parts.push(`${version.min_lines ?? 1}-${version.max_lines ?? "any"} lines`);
+  }
+  if (version.line_max_chars !== undefined) {
+    parts.push(`line max ${version.line_max_chars}`);
+  }
+  if (!version.allow_blank_lines) {
+    parts.push("no blank lines");
+  }
+  return parts.join(" · ");
+}
+
+function shouldShowPostFormat(post: GroupFeedPost): boolean {
+  return (
+    post.evidence_format.slug !== "plain-text" ||
+    post.evidence_format.archived_at !== undefined ||
+    post.evidence_format_version.version_number !== 1
   );
 }
 

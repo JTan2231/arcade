@@ -4,17 +4,21 @@ import type { DoneActorEvent, ErrorActorEvent, EventObject } from "xstate";
 import {
   createFeedMetric,
   createFeedMetricJudgment,
+  createGroupEvidenceFormat,
+  createGroupEvidenceFormatVersion,
   createGroup,
   createGroupFeedPost,
   createGroupPostTag,
   deleteFeedMetricJudgment,
   deleteFeedMetric,
+  deleteGroupEvidenceFormat,
   deleteGroup,
   deleteGroupDailyFeed,
   deleteGroupFeedPost,
   deleteGroupMember,
   deleteGroupPostTag,
   getFeedMetric,
+  getGroupEvidenceFormat,
   getGroupDailyFeedOutput,
   getGroupDailyFeedToday,
   getGroupPostTag,
@@ -22,6 +26,7 @@ import {
   isUnauthorized,
   listFeedMetrics,
   listGroupDailyFeeds,
+  listGroupEvidenceFormats,
   listGroupFeedPosts,
   listGroupMembers,
   listGroupPostTags,
@@ -29,6 +34,7 @@ import {
   refreshGroupDailyFeedToday,
   updateFeedMetric,
   updateFeedMetricJudgment,
+  updateGroupEvidenceFormat,
   updateGroup,
   updateGroupDailyFeed,
   updateGroupFeedPost,
@@ -40,9 +46,12 @@ import type { AddFeedOutputEvent } from "./addFeedMachine";
 import { addFeedMachine } from "./addFeedMachine";
 import type {
   CreateFeedMetricRequest,
+  CreateEvidenceFormatRequest,
+  CreateEvidenceFormatVersionRequest,
   CreateGroupPostTagRequest,
   DailyFeed,
   DailyFeedOutput,
+  EvidenceFormat,
   FeedMetric,
   Group,
   GroupFeedPost,
@@ -50,6 +59,7 @@ import type {
   GroupPostTag,
   MetricLeaderboard,
   PatchFeedMetricRequest,
+  PatchEvidenceFormatRequest,
   PatchGroupRequest,
   PatchGroupPostTagRequest,
   User,
@@ -100,6 +110,31 @@ type PostTagMutation =
       tagId: string;
     };
 
+type EvidenceFormatMutation =
+  | {
+      kind: "create";
+      payload: CreateEvidenceFormatRequest;
+    }
+  | {
+      kind: "update";
+      formatId: string;
+      payload: PatchEvidenceFormatRequest;
+    }
+  | {
+      kind: "version";
+      formatId: string;
+      payload: CreateEvidenceFormatVersionRequest;
+    }
+  | {
+      kind: "delete";
+      formatId: string;
+    };
+
+type FeedFormatMutation = {
+  feedId: string;
+  evidenceFormatId: string;
+};
+
 type GroupMemberMutation = {
   userId: string;
 };
@@ -146,6 +181,8 @@ export type DashboardContext = {
 
   postTags: GroupPostTag[];
   postTagsError: string;
+  evidenceFormats: EvidenceFormat[];
+  evidenceFormatsError: string;
   groupMembers: GroupMember[];
   groupMembersError: string;
   groupSettingsOpen: boolean;
@@ -165,6 +202,8 @@ export type DashboardContext = {
   pendingDeleteFeedId: string | null;
   postMutation: PostMutation | null;
   postTagMutation: PostTagMutation | null;
+  evidenceFormatMutation: EvidenceFormatMutation | null;
+  feedFormatMutation: FeedFormatMutation | null;
   groupMemberMutation: GroupMemberMutation | null;
   metricMutation: MetricMutation | null;
   judgmentMutation: JudgmentMutation | null;
@@ -185,6 +224,7 @@ type DashboardUserEvent =
   | { type: "FEED_SELECTED"; feedId: string }
   | { type: "FEED_DATE_CHANGED"; date: string }
   | { type: "FEED_ENABLED_TOGGLED"; feedId: string }
+  | { type: "FEED_FORMAT_CHANGED"; feedId: string; evidenceFormatId: string }
   | { type: "FEED_GENERATION_REFRESHED"; feedId: string }
   | { type: "FEED_DELETE_SUBMITTED"; feedId: string }
   | { type: "POST_CREATE_SUBMITTED"; payload: CreatePostPayload }
@@ -193,6 +233,10 @@ type DashboardUserEvent =
   | { type: "POST_TAG_CREATE_SUBMITTED"; payload: CreateGroupPostTagRequest }
   | { type: "POST_TAG_UPDATE_SUBMITTED"; tagId: string; payload: PatchGroupPostTagRequest }
   | { type: "POST_TAG_DELETE_SUBMITTED"; tagId: string }
+  | { type: "EVIDENCE_FORMAT_CREATE_SUBMITTED"; payload: CreateEvidenceFormatRequest }
+  | { type: "EVIDENCE_FORMAT_UPDATE_SUBMITTED"; formatId: string; payload: PatchEvidenceFormatRequest }
+  | { type: "EVIDENCE_FORMAT_VERSION_CREATE_SUBMITTED"; formatId: string; payload: CreateEvidenceFormatVersionRequest }
+  | { type: "EVIDENCE_FORMAT_DELETE_SUBMITTED"; formatId: string }
   | { type: "GROUP_MEMBER_REMOVE_SUBMITTED"; userId: string }
   | { type: "METRIC_SELECTED"; metricId: string }
   | { type: "METRIC_CREATE_SUBMITTED"; payload: CreateFeedMetricRequest }
@@ -214,6 +258,7 @@ type FeedInput = {
 type GroupWorkspaceInput = {
   groupId: string;
   includeArchivedPostTags: boolean;
+  includeArchivedEvidenceFormats: boolean;
   includeGroupMembers: boolean;
 };
 
@@ -221,6 +266,8 @@ type GroupWorkspaceOutput = {
   feeds: DailyFeed[];
   postTags: GroupPostTag[];
   postTagsError: string;
+  evidenceFormats: EvidenceFormat[];
+  evidenceFormatsError: string;
   groupMembers: GroupMember[];
   groupMembersError: string;
 };
@@ -236,6 +283,10 @@ type MetricInput = FeedInput & {
 type ToggleFeedInput = {
   groupId: string;
   feed: DailyFeed;
+};
+
+type ChangeFeedFormatInput = FeedInput & {
+  evidenceFormatId: string;
 };
 
 type UpdateGroupVisibilityInput = {
@@ -278,6 +329,23 @@ type UpdatePostTagInput = {
   groupId: string;
   tagId: string;
   payload: PatchGroupPostTagRequest;
+};
+
+type CreateEvidenceFormatInput = {
+  groupId: string;
+  payload: CreateEvidenceFormatRequest;
+};
+
+type UpdateEvidenceFormatInput = {
+  groupId: string;
+  formatId: string;
+  payload: PatchEvidenceFormatRequest;
+};
+
+type CreateEvidenceFormatVersionInput = {
+  groupId: string;
+  formatId: string;
+  payload: CreateEvidenceFormatVersionRequest;
 };
 
 type CreateMetricInput = FeedInput & {
@@ -363,6 +431,21 @@ const dashboardSetup = setup({
         postTagsError = errorMessage(error);
       }
 
+      let evidenceFormats: EvidenceFormat[] = [];
+      let evidenceFormatsError = "";
+      try {
+        evidenceFormats = await listGroupEvidenceFormats(
+          input.groupId,
+          { includeArchived: input.includeArchivedEvidenceFormats },
+          { signal },
+        );
+      } catch (error) {
+        if (isUnauthorized(error)) {
+          throw error;
+        }
+        evidenceFormatsError = errorMessage(error);
+      }
+
       let groupMembers: GroupMember[] = [];
       let groupMembersError = "";
       if (input.includeGroupMembers) {
@@ -376,7 +459,7 @@ const dashboardSetup = setup({
         }
       }
 
-      return { feeds, postTags, postTagsError, groupMembers, groupMembersError };
+      return { feeds, postTags, postTagsError, evidenceFormats, evidenceFormatsError, groupMembers, groupMembersError };
     }),
     getGroupDailyFeedToday: fromPromise<DailyFeedOutput, FeedInput>(({ input, signal }) =>
       getGroupDailyFeedToday(input.groupId, input.feedId, { signal }),
@@ -399,6 +482,9 @@ const dashboardSetup = setup({
     toggleFeed: fromPromise<DailyFeed, ToggleFeedInput>(({ input, signal }) =>
       updateGroupDailyFeed(input.groupId, input.feed.id, { enabled: !input.feed.enabled }, { signal }),
     ),
+    changeFeedFormat: fromPromise<DailyFeed, ChangeFeedFormatInput>(({ input, signal }) =>
+      updateGroupDailyFeed(input.groupId, input.feedId, { evidence_format_id: input.evidenceFormatId }, { signal }),
+    ),
     refreshFeedGeneration: fromPromise<DailyFeedOutput, FeedInput>(({ input, signal }) =>
       refreshGroupDailyFeedToday(input.groupId, input.feedId, { signal }),
     ),
@@ -412,7 +498,6 @@ const dashboardSetup = setup({
         input.feedId,
         input.date,
         {
-          evidence_kind: "text",
           evidence_text: input.evidenceText,
           ...(input.caption !== "" ? { caption: input.caption } : {}),
         },
@@ -426,7 +511,6 @@ const dashboardSetup = setup({
         {
           ...(input.evidenceText !== undefined
             ? {
-                evidence_kind: "text" as const,
                 evidence_text: input.evidenceText,
               }
             : {}),
@@ -452,6 +536,21 @@ const dashboardSetup = setup({
       await deleteGroupPostTag(input.groupId, input.tagId, { signal });
       return getGroupPostTag(input.groupId, input.tagId, { signal });
     }),
+    createGroupEvidenceFormat: fromPromise<EvidenceFormat, CreateEvidenceFormatInput>(({ input, signal }) =>
+      createGroupEvidenceFormat(input.groupId, input.payload, { signal }),
+    ),
+    updateGroupEvidenceFormat: fromPromise<EvidenceFormat, UpdateEvidenceFormatInput>(({ input, signal }) =>
+      updateGroupEvidenceFormat(input.groupId, input.formatId, input.payload, { signal }),
+    ),
+    createGroupEvidenceFormatVersion: fromPromise<EvidenceFormat, CreateEvidenceFormatVersionInput>(
+      ({ input, signal }) => createGroupEvidenceFormatVersion(input.groupId, input.formatId, input.payload, { signal }),
+    ),
+    deleteGroupEvidenceFormat: fromPromise<EvidenceFormat, { groupId: string; formatId: string }>(
+      async ({ input, signal }) => {
+        await deleteGroupEvidenceFormat(input.groupId, input.formatId, { signal });
+        return getGroupEvidenceFormat(input.groupId, input.formatId, { signal });
+      },
+    ),
     createFeedMetric: fromPromise<FeedMetric, CreateMetricInput>(({ input, signal }) =>
       createFeedMetric(input.groupId, input.feedId, input.payload, { signal }),
     ),
@@ -599,6 +698,21 @@ export const dashboardMachine = dashboardSetup.createMachine({
         pendingToggleFeedId: event.feedId,
       })),
     },
+    FEED_FORMAT_CHANGED: {
+      guard: ({ context, event }) =>
+        context.selectedGroupId !== null &&
+        context.feeds.some((feed) => feed.id === event.feedId && feed.evidence_format.id !== event.evidenceFormatId) &&
+        context.evidenceFormats.some(
+          (format) => format.id === event.evidenceFormatId && format.archived_at === undefined,
+        ),
+      target: ".groupSelected.changingFeedFormat",
+      actions: assign(({ event }) => ({
+        feedFormatMutation: {
+          feedId: event.feedId,
+          evidenceFormatId: event.evidenceFormatId,
+        },
+      })),
+    },
     FEED_GENERATION_REFRESHED: {
       guard: ({ context, event }) =>
         context.selectedGroupId !== null &&
@@ -627,6 +741,11 @@ export const dashboardMachine = dashboardSetup.createMachine({
       actions: [
         assign(({ context, event }) => ({
           feeds: [...context.feeds.filter((feed) => feed.id !== event.feed.id), event.feed],
+          evidenceFormats: updateEvidenceFormatAssignedFeedCount(
+            context.evidenceFormats,
+            event.feed.evidence_format.id,
+            1,
+          ),
           selectedFeedId: event.feed.id,
           selectedFeedDate: todayDateValue(),
           output: null,
@@ -718,6 +837,49 @@ export const dashboardMachine = dashboardSetup.createMachine({
         postTagMutation: {
           kind: "delete",
           tagId: event.tagId,
+        },
+      })),
+    },
+    EVIDENCE_FORMAT_CREATE_SUBMITTED: {
+      guard: ({ context, event }) =>
+        context.selectedGroupId !== null && event.payload.slug.trim() !== "" && event.payload.name.trim() !== "",
+      target: ".groupSelected.creatingEvidenceFormat",
+      actions: assign(({ event }) => ({
+        evidenceFormatMutation: {
+          kind: "create",
+          payload: normalizeEvidenceFormatCreatePayload(event.payload),
+        },
+      })),
+    },
+    EVIDENCE_FORMAT_UPDATE_SUBMITTED: {
+      guard: ({ context, event }) => context.evidenceFormats.some((format) => format.id === event.formatId),
+      target: ".groupSelected.updatingEvidenceFormat",
+      actions: assign(({ event }) => ({
+        evidenceFormatMutation: {
+          kind: "update",
+          formatId: event.formatId,
+          payload: event.payload,
+        },
+      })),
+    },
+    EVIDENCE_FORMAT_VERSION_CREATE_SUBMITTED: {
+      guard: ({ context, event }) => context.evidenceFormats.some((format) => format.id === event.formatId),
+      target: ".groupSelected.creatingEvidenceFormatVersion",
+      actions: assign(({ event }) => ({
+        evidenceFormatMutation: {
+          kind: "version",
+          formatId: event.formatId,
+          payload: event.payload,
+        },
+      })),
+    },
+    EVIDENCE_FORMAT_DELETE_SUBMITTED: {
+      guard: ({ context, event }) => context.evidenceFormats.some((format) => format.id === event.formatId),
+      target: ".groupSelected.deletingEvidenceFormat",
+      actions: assign(({ event }) => ({
+        evidenceFormatMutation: {
+          kind: "delete",
+          formatId: event.formatId,
         },
       })),
     },
@@ -868,6 +1030,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
             input: ({ context }) => ({
               groupId: requireSelectedGroupId(context),
               includeArchivedPostTags: selectedGroupCanManage(context),
+              includeArchivedEvidenceFormats: selectedGroupCanManage(context),
               includeGroupMembers: selectedGroupCanManage(context),
             }),
             onDone: [
@@ -880,6 +1043,8 @@ export const dashboardMachine = dashboardSetup.createMachine({
                     feeds: event.output.feeds,
                     postTags: event.output.postTags,
                     postTagsError: event.output.postTagsError,
+                    evidenceFormats: event.output.evidenceFormats,
+                    evidenceFormatsError: event.output.evidenceFormatsError,
                     groupMembers: event.output.groupMembers,
                     groupMembersError: event.output.groupMembersError,
                     selectedFeedId: firstFeed?.id ?? null,
@@ -891,6 +1056,8 @@ export const dashboardMachine = dashboardSetup.createMachine({
                     postsError: "",
                     postMutation: null,
                     postTagMutation: null,
+                    evidenceFormatMutation: null,
+                    feedFormatMutation: null,
                     groupMemberMutation: null,
                     ...resetMetricContext(),
                     pendingToggleFeedId: null,
@@ -905,6 +1072,8 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   feeds: event.output.feeds,
                   postTags: event.output.postTags,
                   postTagsError: event.output.postTagsError,
+                  evidenceFormats: event.output.evidenceFormats,
+                  evidenceFormatsError: event.output.evidenceFormatsError,
                   groupMembers: event.output.groupMembers,
                   groupMembersError: event.output.groupMembersError,
                   selectedFeedId: null,
@@ -916,6 +1085,8 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   postsError: "",
                   postMutation: null,
                   postTagMutation: null,
+                  evidenceFormatMutation: null,
+                  feedFormatMutation: null,
                   groupMemberMutation: null,
                   ...resetMetricContext(),
                   pendingToggleFeedId: null,
@@ -932,6 +1103,8 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   feeds: [],
                   postTags: [],
                   postTagsError: "",
+                  evidenceFormats: [],
+                  evidenceFormatsError: "",
                   groupMembers: [],
                   groupMembersError: "",
                   selectedFeedId: null,
@@ -943,6 +1116,8 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   postsError: "",
                   postMutation: null,
                   postTagMutation: null,
+                  evidenceFormatMutation: null,
+                  feedFormatMutation: null,
                   groupMemberMutation: null,
                   ...resetMetricContext(),
                   pendingToggleFeedId: null,
@@ -1506,6 +1681,61 @@ export const dashboardMachine = dashboardSetup.createMachine({
             onError: postTagMutationErrorTransitions(),
           },
         },
+        creatingEvidenceFormat: {
+          invoke: {
+            src: "createGroupEvidenceFormat",
+            input: ({ context }) => ({
+              groupId: requireSelectedGroupId(context),
+              payload: requireEvidenceFormatMutation(context, "create").payload,
+            }),
+            onDone: evidenceFormatMutationDoneTransitions("Format added"),
+            onError: evidenceFormatMutationErrorTransitions(),
+          },
+        },
+        updatingEvidenceFormat: {
+          invoke: {
+            src: "updateGroupEvidenceFormat",
+            input: ({ context }) => {
+              const mutation = requireEvidenceFormatMutation(context, "update");
+              return {
+                groupId: requireSelectedGroupId(context),
+                formatId: mutation.formatId,
+                payload: mutation.payload,
+              };
+            },
+            onDone: evidenceFormatMutationDoneTransitions("Format updated"),
+            onError: evidenceFormatMutationErrorTransitions(),
+          },
+        },
+        creatingEvidenceFormatVersion: {
+          invoke: {
+            src: "createGroupEvidenceFormatVersion",
+            input: ({ context }) => {
+              const mutation = requireEvidenceFormatMutation(context, "version");
+              return {
+                groupId: requireSelectedGroupId(context),
+                formatId: mutation.formatId,
+                payload: mutation.payload,
+              };
+            },
+            onDone: evidenceFormatMutationDoneTransitions("Format rules updated"),
+            onError: evidenceFormatMutationErrorTransitions(),
+          },
+        },
+        deletingEvidenceFormat: {
+          invoke: {
+            src: "deleteGroupEvidenceFormat",
+            input: ({ context }) => {
+              const mutation = requireEvidenceFormatMutation(context, "delete");
+              return {
+                groupId: requireSelectedGroupId(context),
+                formatId: mutation.formatId,
+              };
+            },
+            onDone: evidenceFormatMutationDoneTransitions("Format archived"),
+            onError: evidenceFormatMutationErrorTransitions(),
+          },
+        },
         removingGroupMember: {
           invoke: {
             src: "deleteGroupMember",
@@ -1613,6 +1843,41 @@ export const dashboardMachine = dashboardSetup.createMachine({
             ],
           },
         },
+        changingFeedFormat: {
+          invoke: {
+            src: "changeFeedFormat",
+            input: ({ context }) => {
+              const mutation = requireFeedFormatMutation(context);
+              return {
+                groupId: requireSelectedGroupId(context),
+                feedId: mutation.feedId,
+                evidenceFormatId: mutation.evidenceFormatId,
+              };
+            },
+            onDone: {
+              target: "feedSelected.ready",
+              actions: [
+                assign(({ context, event }) => ({
+                  feeds: replaceFeed(context.feeds, event.output),
+                  evidenceFormats: updateEvidenceFormatFeedCountsForFeedChange(
+                    context.evidenceFormats,
+                    context.feeds.find((feed) => feed.id === event.output.id)?.evidence_format.id ?? null,
+                    event.output.evidence_format.id,
+                  ),
+                  feedFormatMutation: null,
+                })),
+                sendToastToParent("Feed format updated"),
+              ],
+            },
+            onError: [
+              unauthorizedToParentTransition(),
+              {
+                target: "feedSelected.ready",
+                actions: [clearFeedFormatMutationOnError(), sendErrorToastToParent()],
+              },
+            ],
+          },
+        },
         refreshingFeedGeneration: {
           invoke: {
             src: "refreshFeedGeneration",
@@ -1675,10 +1940,18 @@ export const dashboardMachine = dashboardSetup.createMachine({
                 guard: ({ context, event }) =>
                   context.selectedFeedId !== null && context.selectedFeedId !== event.output.feedId,
                 actions: [
-                  assign(({ context, event }) => ({
-                    feeds: removeFeed(context.feeds, event.output.feedId),
-                    pendingDeleteFeedId: null,
-                  })),
+                  assign(({ context, event }) => {
+                    const deletedFormatId = context.feeds.find((feed) => feed.id === event.output.feedId)
+                      ?.evidence_format.id;
+                    return {
+                      feeds: removeFeed(context.feeds, event.output.feedId),
+                      evidenceFormats:
+                        deletedFormatId === undefined
+                          ? context.evidenceFormats
+                          : updateEvidenceFormatAssignedFeedCount(context.evidenceFormats, deletedFormatId, -1),
+                      pendingDeleteFeedId: null,
+                    };
+                  }),
                   sendToastToParent("Feed deleted"),
                 ],
               },
@@ -1689,8 +1962,14 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   assign(({ context, event }) => {
                     const remainingFeeds = removeFeed(context.feeds, event.output.feedId);
                     const nextFeed = remainingFeeds[0];
+                    const deletedFormatId = context.feeds.find((feed) => feed.id === event.output.feedId)
+                      ?.evidence_format.id;
                     return {
                       feeds: remainingFeeds,
+                      evidenceFormats:
+                        deletedFormatId === undefined
+                          ? context.evidenceFormats
+                          : updateEvidenceFormatAssignedFeedCount(context.evidenceFormats, deletedFormatId, -1),
                       selectedFeedId: nextFeed?.id ?? null,
                       selectedFeedDate: todayDateValue(),
                       output: null,
@@ -1710,20 +1989,28 @@ export const dashboardMachine = dashboardSetup.createMachine({
               {
                 target: "noFeed",
                 actions: [
-                  assign(({ context, event }) => ({
-                    feeds: removeFeed(context.feeds, event.output.feedId),
-                    selectedFeedId: null,
-                    selectedFeedDate: todayDateValue(),
-                    output: null,
-                    outputError: "",
-                    posts: [],
-                    postsError: "",
-                    postMutation: null,
-                    ...resetMetricContext(),
-                    pendingToggleFeedId: null,
-                    pendingRefreshFeedId: null,
-                    pendingDeleteFeedId: null,
-                  })),
+                  assign(({ context, event }) => {
+                    const deletedFormatId = context.feeds.find((feed) => feed.id === event.output.feedId)
+                      ?.evidence_format.id;
+                    return {
+                      feeds: removeFeed(context.feeds, event.output.feedId),
+                      evidenceFormats:
+                        deletedFormatId === undefined
+                          ? context.evidenceFormats
+                          : updateEvidenceFormatAssignedFeedCount(context.evidenceFormats, deletedFormatId, -1),
+                      selectedFeedId: null,
+                      selectedFeedDate: todayDateValue(),
+                      output: null,
+                      outputError: "",
+                      posts: [],
+                      postsError: "",
+                      postMutation: null,
+                      ...resetMetricContext(),
+                      pendingToggleFeedId: null,
+                      pendingRefreshFeedId: null,
+                      pendingDeleteFeedId: null,
+                    };
+                  }),
                   sendToastToParent("Feed deleted"),
                 ],
               },
@@ -1769,6 +2056,8 @@ function resetSelectedGroupContext(): Omit<
     outputError: "",
     postTags: [],
     postTagsError: "",
+    evidenceFormats: [],
+    evidenceFormatsError: "",
     groupMembers: [],
     groupMembersError: "",
     groupSettingsOpen: false,
@@ -1781,6 +2070,8 @@ function resetSelectedGroupContext(): Omit<
     pendingDeleteFeedId: null,
     postMutation: null,
     postTagMutation: null,
+    evidenceFormatMutation: null,
+    feedFormatMutation: null,
     groupMemberMutation: null,
   };
 }
@@ -1960,6 +2251,35 @@ function postTagMutationErrorTransitions() {
   ] as const;
 }
 
+function evidenceFormatMutationDoneTransitions(message: string) {
+  return [
+    {
+      target: "feedSelected.ready",
+      guard: { type: "hasRestorableFeed" },
+      actions: [upsertEvidenceFormatOnDone(), sendToastToParent<DoneActorEvent<EvidenceFormat>>(message)],
+    },
+    {
+      target: "noFeed",
+      actions: [upsertEvidenceFormatOnDone(), sendToastToParent<DoneActorEvent<EvidenceFormat>>(message)],
+    },
+  ] as const;
+}
+
+function evidenceFormatMutationErrorTransitions() {
+  return [
+    unauthorizedToParentTransition(),
+    {
+      target: "feedSelected.ready",
+      guard: { type: "hasRestorableFeed" },
+      actions: [clearEvidenceFormatMutationOnError(), sendErrorToastToParent()],
+    },
+    {
+      target: "noFeed",
+      actions: [clearEvidenceFormatMutationOnError(), sendErrorToastToParent()],
+    },
+  ] as const;
+}
+
 function groupMemberMutationErrorTransitions() {
   return [
     unauthorizedToParentTransition(),
@@ -2021,10 +2341,8 @@ function toastRequested(message: string): DashboardOutputEvent {
   return { type: "TOAST_REQUESTED", message };
 }
 
-function sendToastToParent(message: string) {
-  return sendParent<DashboardContext, EventObject, undefined, DashboardOutputEvent, DashboardEvent>(
-    toastRequested(message),
-  );
+function sendToastToParent<TEvent extends EventObject = EventObject>(message: string) {
+  return sendParent<DashboardContext, TEvent, undefined, DashboardOutputEvent, DashboardEvent>(toastRequested(message));
 }
 
 function sendErrorToastToParent() {
@@ -2066,6 +2384,28 @@ function clearPostMutationOnError() {
 function clearPostTagMutationOnError() {
   return assign<DashboardContext, ErrorActorEvent, undefined, DashboardEvent, never>({
     postTagMutation: null,
+  });
+}
+
+function upsertEvidenceFormatOnDone() {
+  return assign<DashboardContext, DoneActorEvent<EvidenceFormat>, undefined, DashboardEvent, never>(
+    ({ context, event }) => ({
+      evidenceFormats: upsertEvidenceFormat(context.evidenceFormats, event.output),
+      evidenceFormatsError: "",
+      evidenceFormatMutation: null,
+    }),
+  );
+}
+
+function clearEvidenceFormatMutationOnError() {
+  return assign<DashboardContext, ErrorActorEvent, undefined, DashboardEvent, never>({
+    evidenceFormatMutation: null,
+  });
+}
+
+function clearFeedFormatMutationOnError() {
+  return assign<DashboardContext, ErrorActorEvent, undefined, DashboardEvent, never>({
+    feedFormatMutation: null,
   });
 }
 
@@ -2190,6 +2530,24 @@ function requirePostTagMutation<TKind extends PostTagMutation["kind"]>(
   return mutation as Extract<PostTagMutation, { kind: TKind }>;
 }
 
+function requireEvidenceFormatMutation<TKind extends EvidenceFormatMutation["kind"]>(
+  context: DashboardContext,
+  kind: TKind,
+): Extract<EvidenceFormatMutation, { kind: TKind }> {
+  const mutation = context.evidenceFormatMutation;
+  if (mutation === null || mutation.kind !== kind) {
+    throw new Error("Evidence format mutation is missing");
+  }
+  return mutation as Extract<EvidenceFormatMutation, { kind: TKind }>;
+}
+
+function requireFeedFormatMutation(context: DashboardContext): FeedFormatMutation {
+  if (context.feedFormatMutation === null) {
+    throw new Error("Feed format mutation is missing");
+  }
+  return context.feedFormatMutation;
+}
+
 function requireGroupMemberMutation(context: DashboardContext): GroupMemberMutation {
   if (context.groupMemberMutation === null) {
     throw new Error("Group member mutation is missing");
@@ -2238,6 +2596,39 @@ function upsertPostTag(tags: GroupPostTag[], tag: GroupPostTag): GroupPostTag[] 
   return [...tags.filter((candidate) => candidate.id !== tag.id), tag].sort(postTagSort);
 }
 
+function upsertEvidenceFormat(formats: EvidenceFormat[], format: EvidenceFormat): EvidenceFormat[] {
+  return [...formats.filter((candidate) => candidate.id !== format.id), format].sort(evidenceFormatSort);
+}
+
+function updateEvidenceFormatAssignedFeedCount(
+  formats: EvidenceFormat[],
+  formatId: string,
+  delta: number,
+): EvidenceFormat[] {
+  return formats
+    .map((format) =>
+      format.id === formatId
+        ? { ...format, assigned_feed_count: Math.max(0, format.assigned_feed_count + delta) }
+        : format,
+    )
+    .sort(evidenceFormatSort);
+}
+
+function updateEvidenceFormatFeedCountsForFeedChange(
+  formats: EvidenceFormat[],
+  previousFormatId: string | null,
+  nextFormatId: string,
+): EvidenceFormat[] {
+  if (previousFormatId === null || previousFormatId === nextFormatId) {
+    return formats;
+  }
+  return updateEvidenceFormatAssignedFeedCount(
+    updateEvidenceFormatAssignedFeedCount(formats, previousFormatId, -1),
+    nextFormatId,
+    1,
+  );
+}
+
 function upsertMetric(metrics: FeedMetric[], metric: FeedMetric): FeedMetric[] {
   return [...metrics.filter((candidate) => candidate.id !== metric.id), metric].sort(metricSort);
 }
@@ -2275,4 +2666,26 @@ function postTagSort(left: GroupPostTag, right: GroupPostTag): number {
     return byName;
   }
   return left.id.localeCompare(right.id);
+}
+
+function evidenceFormatSort(left: EvidenceFormat, right: EvidenceFormat): number {
+  const leftArchived = left.archived_at !== undefined;
+  const rightArchived = right.archived_at !== undefined;
+  if (leftArchived !== rightArchived) {
+    return leftArchived ? 1 : -1;
+  }
+  const byName = left.name.localeCompare(right.name, undefined, { sensitivity: "base" });
+  if (byName !== 0) {
+    return byName;
+  }
+  return left.id.localeCompare(right.id);
+}
+
+function normalizeEvidenceFormatCreatePayload(payload: CreateEvidenceFormatRequest): CreateEvidenceFormatRequest {
+  return {
+    ...payload,
+    slug: payload.slug.trim(),
+    name: payload.name.trim(),
+    ...(payload.description !== undefined ? { description: payload.description.trim() } : {}),
+  };
 }

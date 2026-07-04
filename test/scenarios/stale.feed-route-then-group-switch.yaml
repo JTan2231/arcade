@@ -1,0 +1,170 @@
+name: keep group selection after navigating from feed route to group route
+
+vars:
+  email: feed-route-group-switch-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Feed Route Group Switch Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: login_owner
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: create_dojo
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Dojo
+      expectStatus: 201
+      capture:
+        dojo_id: $.id
+
+  - request:
+      id: create_cf_grind
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: CF Grind
+      expectStatus: 201
+      capture:
+        cf_grind_id: $.id
+
+  - request:
+      id: create_cf_daily_source
+      client: browser
+      method: POST
+      path: /api/groups/{{cf_grind_id}}/catalog-sources
+      json:
+        name: CF Daily Source
+        template: https://example.test/{slug}
+        items:
+          - title: CF Daily Task
+            data:
+              slug: cf-daily-task
+      expectStatus: 201
+      capture:
+        cf_daily_source_id: $.id
+
+  - request:
+      id: create_cf_weekly_source
+      client: browser
+      method: POST
+      path: /api/groups/{{cf_grind_id}}/catalog-sources
+      json:
+        name: CF Weekly Source
+        template: https://example.test/{slug}
+        items:
+          - title: CF Weekly Task
+            data:
+              slug: cf-weekly-task
+      expectStatus: 201
+      capture:
+        cf_weekly_source_id: $.id
+
+  - request:
+      id: create_cf_daily
+      client: browser
+      method: POST
+      path: /api/groups/{{cf_grind_id}}/daily-feeds
+      json:
+        name: CF Daily
+        kind: catalog_daily
+        enabled: true
+        source_id: "{{cf_daily_source_id}}"
+        item_count: 1
+        filters: []
+        schedule:
+          starts_at: "2020-01-01T00:00:00.000Z"
+          timezone: UTC
+          interval_seconds: 86400
+      expectStatus: 201
+
+  - request:
+      id: create_cf_weekly
+      client: browser
+      method: POST
+      path: /api/groups/{{cf_grind_id}}/daily-feeds
+      json:
+        name: CF Weekly Set
+        kind: catalog_daily
+        enabled: true
+        source_id: "{{cf_weekly_source_id}}"
+        item_count: 1
+        filters: []
+        schedule:
+          starts_at: "2020-01-01T00:00:00.000Z"
+          timezone: UTC
+          interval_seconds: 604800
+      expectStatus: 201
+
+steps:
+  - visit: /
+
+  - within: Groups
+    expectPressed:
+      role: button
+      name: CF Grind
+      pressed: true
+
+  - within: Feeds
+    click:
+      role: button
+      name: CF Weekly Set
+
+  - within: Selected feed output
+    expectVisible:
+      text: CF Weekly Task
+
+  - within: Feeds
+    click:
+      role: button
+      name: CF Daily
+
+  - within: Selected feed output
+    expectVisible:
+      text: CF Daily Task
+
+  - wait:
+      milliseconds: 100
+
+  - within: Groups
+    click:
+      role: button
+      name: Dojo
+
+  - within: Groups
+    expectPressed:
+      role: button
+      name: Dojo
+      pressed: true
+
+  - within: Groups
+    expectPressed:
+      role: button
+      name: CF Grind
+      pressed: false
+
+  - within: Feeds
+    expectHidden:
+      role: button
+      name: CF Daily
