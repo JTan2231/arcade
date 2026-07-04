@@ -976,7 +976,10 @@ button.confirm-icon-button:hover:not(:disabled) {
 .feed-settings-dialog {
   display: grid;
   gap: 14px;
-  width: min(640px, 100%);
+}
+
+.modal-panel.feed-settings-dialog {
+  width: min(640px, calc(100vw - 32px));
 }
 
 .group-settings-grid {
@@ -1004,10 +1007,13 @@ button.confirm-icon-button:hover:not(:disabled) {
 
 .feed-format-section {
   align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
 }
 
 .feed-format-select-label {
-  min-width: min(240px, 100%);
+  justify-self: end;
+  min-width: 0;
+  width: 100%;
 }
 
 .group-visibility-section {
