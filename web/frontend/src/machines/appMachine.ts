@@ -1,6 +1,7 @@
 import { assign, fromPromise, setup } from "xstate";
 
 import { getSession, login, logout, signup } from "../api";
+import { queryCache } from "../cache/queryCache";
 import { errorMessage } from "../errors";
 import type { LoginRequest, SignupRequest, User } from "../types";
 import { dashboardMachine, type DashboardOutputEvent } from "./dashboardMachine";
@@ -33,10 +34,13 @@ const appSetup = setup({
     logout: fromPromise<null, undefined>(({ signal }) => logout({ signal })),
   },
   actions: {
-    clearAuthenticatedData: assign({
-      user: null,
-      authError: "",
-      toastMessage: null,
+    clearAuthenticatedData: assign(({ context }) => {
+      evictAuthenticatedCache(context.user);
+      return {
+        user: null,
+        authError: "",
+        toastMessage: null,
+      };
     }),
     showToast: assign(({ event }) => {
       if (event.type !== "TOAST_REQUESTED") {
@@ -67,10 +71,7 @@ export const appMachine = appSetup.createMachine({
         input: () => undefined,
         onDone: {
           target: "signedIn",
-          actions: assign(({ event }) => ({
-            user: event.output,
-            authError: "",
-          })),
+          actions: assign(({ context, event }) => setAuthenticatedUser(context.user, event.output)),
         },
         onError: {
           target: "signedOut.idle",
@@ -109,9 +110,8 @@ export const appMachine = appSetup.createMachine({
             },
             onDone: {
               target: "#app.signedIn",
-              actions: assign(({ event }) => ({
-                user: event.output,
-                authError: "",
+              actions: assign(({ context, event }) => ({
+                ...setAuthenticatedUser(context.user, event.output),
                 toastMessage: "Signed in",
               })),
             },
@@ -134,9 +134,8 @@ export const appMachine = appSetup.createMachine({
             },
             onDone: {
               target: "#app.signedIn",
-              actions: assign(({ event }) => ({
-                user: event.output,
-                authError: "",
+              actions: assign(({ context, event }) => ({
+                ...setAuthenticatedUser(context.user, event.output),
                 toastMessage: "Account created",
               })),
             },
@@ -182,17 +181,23 @@ export const appMachine = appSetup.createMachine({
         input: () => undefined,
         onDone: {
           target: "signedOut.idle",
-          actions: assign(() => ({
-            ...resetAuthenticatedContext(),
-            toastMessage: "Signed out",
-          })),
+          actions: assign(({ context }) => {
+            evictAuthenticatedCache(context.user);
+            return {
+              ...resetAuthenticatedContext(),
+              toastMessage: "Signed out",
+            };
+          }),
         },
         onError: {
           target: "signedOut.idle",
-          actions: assign(() => ({
-            ...resetAuthenticatedContext(),
-            toastMessage: "Signed out",
-          })),
+          actions: assign(({ context }) => {
+            evictAuthenticatedCache(context.user);
+            return {
+              ...resetAuthenticatedContext(),
+              toastMessage: "Signed out",
+            };
+          }),
         },
       },
     },
@@ -213,4 +218,21 @@ function resetAuthenticatedContext(): AppContext {
     authError: "",
     toastMessage: null,
   };
+}
+
+function setAuthenticatedUser(previousUser: User | null, nextUser: User): Pick<AppContext, "user" | "authError"> {
+  if (previousUser !== null && previousUser.id !== nextUser.id) {
+    queryCache.invalidate(["user", previousUser.id]);
+  }
+  return {
+    user: nextUser,
+    authError: "",
+  };
+}
+
+function evictAuthenticatedCache(user: User | null): void {
+  if (user !== null) {
+    queryCache.invalidate(["user", user.id]);
+  }
+  queryCache.invalidate(["anon"]);
 }

@@ -1,9 +1,10 @@
 import { todayDateValue } from "../../dates";
 import type { FeedMetric, Group } from "../../types";
-import type { DashboardContext, UpdatePostPayload } from "./events";
+import type { DashboardContext, DashboardInput, UpdatePostPayload } from "./events";
 
-export function initialDashboardContext(): DashboardContext {
+export function initialDashboardContext(input: DashboardInput): DashboardContext {
   return {
+    currentUserId: input.user?.id ?? "",
     groups: [],
     selectedGroupId: null,
     preferredGroupId: null,
@@ -15,7 +16,7 @@ export function initialDashboardContext(): DashboardContext {
 
 export function resetSelectedGroupContext(): Omit<
   DashboardContext,
-  "groups" | "selectedGroupId" | "preferredGroupId" | "pendingGroupName" | "pendingDeleteGroupId"
+  "currentUserId" | "groups" | "selectedGroupId" | "preferredGroupId" | "pendingGroupName" | "pendingDeleteGroupId"
 > {
   return {
     feeds: [],

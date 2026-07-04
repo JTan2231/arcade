@@ -1,13 +1,8 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
-import {
-  getPublicFeed,
-  getPublicFeedOutput,
-  getPublicGroup,
-  getPublicPost,
-  isNotFound,
-  listPublicFeedOutputSummaries,
-} from "../api";
+import { isNotFound } from "../api";
+import { queries } from "../cache/queries";
+import { queryCache } from "../cache/queryCache";
 import { errorMessage } from "../errors";
 import { feedPath } from "../routes";
 import type {
@@ -101,7 +96,8 @@ function PublicGroupPage({
     const controller = new AbortController();
     setState({ status: "loading" });
 
-    getPublicGroup(slug, { signal: controller.signal })
+    queryCache
+      .read(queries.publicGroup, slug, { signal: controller.signal })
       .then(async (group) => {
         if (controller.signal.aborted) {
           return;
@@ -117,7 +113,7 @@ function PublicGroupPage({
           return;
         }
 
-        const feed = await getPublicFeed(firstFeed.id, { signal: controller.signal });
+        const feed = await readPublicFeed(firstFeed.id, null, controller.signal);
         if (controller.signal.aborted) {
           return;
         }
@@ -162,9 +158,7 @@ function PublicFeedPage({
     const controller = new AbortController();
     setState({ status: "loading" });
     const request =
-      date === null
-        ? getPublicFeed(feedId, { signal: controller.signal })
-        : getPublicFeedOutput(feedId, date, { signal: controller.signal });
+      date === null ? readPublicFeed(feedId, null, controller.signal) : readPublicFeed(feedId, date, controller.signal);
 
     request
       .then((feed) => {
@@ -209,13 +203,14 @@ function PublicPostPage({
     const controller = new AbortController();
     setState({ status: "loading" });
 
-    getPublicPost(postId, { signal: controller.signal })
+    queryCache
+      .read(queries.publicPost, postId, { signal: controller.signal })
       .then(async (post) => {
         if (controller.signal.aborted) {
           return;
         }
         try {
-          const feed = await getPublicFeedOutput(post.feed.id, post.feed_date, { signal: controller.signal });
+          const feed = await readPublicFeed(post.feed.id, post.feed_date, controller.signal);
           if (!controller.signal.aborted) {
             setState({ status: "ready", data: publicFeedToDashboard(feed) });
           }
@@ -266,7 +261,7 @@ function PublicDashboardView({
       if (selectedFeedId === null) {
         return Promise.reject(new Error("No feed selected"));
       }
-      return listPublicFeedOutputSummaries(selectedFeedId, selectedDate, { signal });
+      return queryCache.read(queries.publicFeedOutputSummaries, selectedFeedId, selectedDate, { signal });
     },
     [selectedFeedId],
   );
@@ -360,6 +355,12 @@ function PublicShell({ children, signedIn }: { children: ReactNode; signedIn: bo
       </main>
     </>
   );
+}
+
+async function readPublicFeed(feedId: string, date: string | null, signal: AbortSignal): Promise<PublicFeed> {
+  const feed = await queryCache.read(queries.publicFeed, feedId, date, { signal });
+  queryCache.write(queries.publicFeed, feed, feedId, feed.date);
+  return feed;
 }
 
 function PublicStatusPanel({ children }: { children: ReactNode }) {

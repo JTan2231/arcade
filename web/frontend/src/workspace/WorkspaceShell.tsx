@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { useSelector } from "@xstate/react";
 
-import { getMemberFeedPostRoute, isUnauthorized, listMeDailyFeeds } from "../api";
+import { isUnauthorized } from "../api";
+import { queries } from "../cache/queries";
+import { queryCache } from "../cache/queryCache";
 import { matchesTopState } from "../machines/stateMatches";
 import { groupPath, publicRouteCacheKey, type AppRoute } from "../routes";
 import { useSocialGraph } from "../social/useSocialGraph";
@@ -65,6 +67,7 @@ export function WorkspaceShell({
   const feeds = dashboardContext?.feeds ?? EMPTY_FEEDS;
   const selectedFeedId = dashboardContext?.selectedFeedId ?? null;
   const selectedFeedDate = dashboardContext?.selectedFeedDate ?? "";
+  const currentUserId = currentUser?.id ?? null;
 
   const selectedGroup = useMemo(
     () => groups.find((group) => group.id === selectedGroupId) ?? null,
@@ -105,7 +108,7 @@ export function WorkspaceShell({
   });
 
   useEffect(() => {
-    if (!signedIn || publicRoute === null || publicRoute.kind === "group") {
+    if (!signedIn || currentUserId === null || publicRoute === null || publicRoute.kind === "group") {
       setMemberRouteTarget(null);
       return undefined;
     }
@@ -124,7 +127,8 @@ export function WorkspaceShell({
     setMemberRouteTarget({ routeKey, status: "loading" });
 
     if (publicRoute.kind === "feed") {
-      listMeDailyFeeds({ signal: controller.signal })
+      queryCache
+        .read(queries.meDailyFeeds, currentUserId, { signal: controller.signal })
         .then((memberFeeds) => {
           if (controller.signal.aborted) {
             return;
@@ -155,7 +159,8 @@ export function WorkspaceShell({
       return () => controller.abort();
     }
 
-    getMemberFeedPostRoute(publicRoute.postId, { signal: controller.signal })
+    queryCache
+      .read(queries.memberFeedPostRoute, currentUserId, publicRoute.postId, { signal: controller.signal })
       .then((target) => {
         if (controller.signal.aborted) {
           return;
@@ -179,7 +184,7 @@ export function WorkspaceShell({
         setMemberRouteTarget({ routeKey, status: "public" });
       });
     return () => controller.abort();
-  }, [feeds, onUnauthorized, publicRoute, publicRouteKey, selectedGroup, signedIn]);
+  }, [currentUserId, feeds, onUnauthorized, publicRoute, publicRouteKey, selectedGroup, signedIn]);
 
   useEffect(() => {
     if (!signedIn || publicRoute?.kind !== "group" || loadingGroups || dashboardRef === undefined) {

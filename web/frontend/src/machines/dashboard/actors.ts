@@ -16,20 +16,9 @@ import {
   deleteGroupFeedPost,
   deleteGroupMember,
   deleteGroupPostTag,
-  getFeedMetric,
-  getGroupDailyFeedOutput,
-  getGroupDailyFeedToday,
   getGroupEvidenceFormat,
   getGroupPostTag,
-  getMetricLeaderboard,
   isUnauthorized,
-  listFeedMetrics,
-  listGroupDailyFeeds,
-  listGroupEvidenceFormats,
-  listGroupFeedPosts,
-  listGroupMembers,
-  listGroupPostTags,
-  listGroups,
   refreshGroupDailyFeedToday,
   updateFeedMetric,
   updateFeedMetricJudgment,
@@ -39,6 +28,8 @@ import {
   updateGroupFeedPost,
   updateGroupPostTag,
 } from "../../api";
+import { archiveMode, queries } from "../../cache/queries";
+import { queryCache } from "../../cache/queryCache";
 import { errorMessage } from "../../errors";
 import type {
   DailyFeed,
@@ -62,6 +53,7 @@ import type {
   CreatePostInput,
   CreatePostTagInput,
   DatedFeedInput,
+  DeletePostInput,
   DeletePostOutput,
   DeleteFeedOutput,
   DeleteGroupMemberOutput,
@@ -79,33 +71,53 @@ import type {
   UpdateMetricInput,
   UpdatePostInput,
   UpdatePostTagInput,
+  UserScopedInput,
 } from "./events";
 
 export const dashboardActors = {
   addFeedMachine,
-  listGroups: fromPromise<Group[], undefined>(({ signal }) => listGroups({ signal })),
-  createGroup: fromPromise<Group, { name: string }>(({ input, signal }) =>
-    createGroup({ name: input.name }, { signal }),
+  listGroups: fromPromise<Group[], UserScopedInput>(({ input, signal }) =>
+    queryCache.read(queries.groups, input.currentUserId, { signal }),
   ),
-  updateGroupVisibility: fromPromise<Group, UpdateGroupVisibilityInput>(({ input, signal }) =>
-    updateGroup(input.groupId, input.payload, { signal }),
-  ),
-  deleteGroup: fromPromise<DeleteGroupOutput, { groupId: string }>(async ({ input, signal }) => {
+  createGroup: fromPromise<Group, UserScopedInput & { name: string }>(async ({ input, signal }) => {
+    const group = await createGroup({ name: input.name }, { signal });
+    queryCache.touched(["user", input.currentUserId, "groups"]);
+    return group;
+  }),
+  updateGroupVisibility: fromPromise<Group, UpdateGroupVisibilityInput>(async ({ input, signal }) => {
+    const group = await updateGroup(input.groupId, input.payload, { signal });
+    queryCache.touched(["user", input.currentUserId, "groups"]);
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId]);
+    queryCache.touched(["anon", "public"]);
+    return group;
+  }),
+  deleteGroup: fromPromise<DeleteGroupOutput, UserScopedInput & { groupId: string }>(async ({ input, signal }) => {
     await deleteGroup(input.groupId, { signal });
+    queryCache.touched(["user", input.currentUserId, "groups"]);
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId]);
+    queryCache.touched(["anon", "public"]);
     return { groupId: input.groupId };
   }),
-  deleteGroupMember: fromPromise<DeleteGroupMemberOutput, { groupId: string; userId: string }>(
+  deleteGroupMember: fromPromise<DeleteGroupMemberOutput, UserScopedInput & { groupId: string; userId: string }>(
     async ({ input, signal }) => {
       await deleteGroupMember(input.groupId, input.userId, { signal });
+      queryCache.touched(["user", input.currentUserId, "group", input.groupId, "members"]);
+      queryCache.touched(["user", input.currentUserId, "group", input.groupId, "invite-candidates"]);
       return { userId: input.userId };
     },
   ),
   loadGroupWorkspace: fromPromise<GroupWorkspaceOutput, GroupWorkspaceInput>(async ({ input, signal }) => {
-    const feeds = await listGroupDailyFeeds(input.groupId, { signal });
+    const feeds = await queryCache.read(queries.groupFeeds, input.currentUserId, input.groupId, { signal });
     let postTags: GroupPostTag[] = [];
     let postTagsError = "";
     try {
-      postTags = await listGroupPostTags(input.groupId, { includeArchived: input.includeArchivedPostTags }, { signal });
+      postTags = await queryCache.read(
+        queries.groupPostTags,
+        input.currentUserId,
+        input.groupId,
+        archiveMode(input.includeArchivedPostTags),
+        { signal },
+      );
     } catch (error) {
       if (isUnauthorized(error)) {
         throw error;
@@ -116,9 +128,11 @@ export const dashboardActors = {
     let evidenceFormats: EvidenceFormat[] = [];
     let evidenceFormatsError = "";
     try {
-      evidenceFormats = await listGroupEvidenceFormats(
+      evidenceFormats = await queryCache.read(
+        queries.groupEvidenceFormats,
+        input.currentUserId,
         input.groupId,
-        { includeArchived: input.includeArchivedEvidenceFormats },
+        archiveMode(input.includeArchivedEvidenceFormats),
         { signal },
       );
     } catch (error) {
@@ -132,7 +146,7 @@ export const dashboardActors = {
     let groupMembersError = "";
     if (input.includeGroupMembers) {
       try {
-        groupMembers = await listGroupMembers(input.groupId, { signal });
+        groupMembers = await queryCache.read(queries.groupMembers, input.currentUserId, input.groupId, { signal });
       } catch (error) {
         if (isUnauthorized(error)) {
           throw error;
@@ -143,42 +157,89 @@ export const dashboardActors = {
 
     return { feeds, postTags, postTagsError, evidenceFormats, evidenceFormatsError, groupMembers, groupMembersError };
   }),
-  getGroupDailyFeedToday: fromPromise<DailyFeedOutput, FeedInput>(({ input, signal }) =>
-    getGroupDailyFeedToday(input.groupId, input.feedId, { signal }),
-  ),
+  getGroupDailyFeedToday: fromPromise<DailyFeedOutput, FeedInput>(async ({ input, signal }) => {
+    const output = await queryCache.read(queries.feedToday, input.currentUserId, input.groupId, input.feedId, {
+      signal,
+    });
+    queryCache.write(queries.feedOutput, output, input.currentUserId, input.groupId, input.feedId, output.date);
+    return output;
+  }),
   getGroupDailyFeedOutput: fromPromise<DailyFeedOutput, DatedFeedInput>(({ input, signal }) =>
-    getGroupDailyFeedOutput(input.groupId, input.feedId, input.date, { signal }),
+    queryCache.read(queries.feedOutput, input.currentUserId, input.groupId, input.feedId, input.date, { signal }),
   ),
   listGroupFeedPosts: fromPromise<GroupFeedPost[], DatedFeedInput>(({ input, signal }) =>
-    listGroupFeedPosts(input.groupId, input.feedId, input.date, { signal }),
+    queryCache.read(queries.feedPosts, input.currentUserId, input.groupId, input.feedId, input.date, { signal }),
   ),
   listFeedMetrics: fromPromise<FeedMetric[], FeedInput>(({ input, signal }) =>
-    listFeedMetrics(input.groupId, input.feedId, { signal }),
+    queryCache.read(queries.feedMetrics, input.currentUserId, input.groupId, input.feedId, { signal }),
   ),
   getFeedMetric: fromPromise<FeedMetric, MetricInput>(({ input, signal }) =>
-    getFeedMetric(input.groupId, input.feedId, input.metricId, { signal }),
+    queryCache.read(queries.feedMetric, input.currentUserId, input.groupId, input.feedId, input.metricId, { signal }),
   ),
   getMetricLeaderboard: fromPromise<MetricLeaderboard, MetricInput>(({ input, signal }) =>
-    getMetricLeaderboard(input.groupId, input.feedId, input.metricId, { signal }),
+    queryCache.read(queries.metricLeaderboard, input.currentUserId, input.groupId, input.feedId, input.metricId, {
+      signal,
+    }),
   ),
-  toggleFeed: fromPromise<DailyFeed, ToggleFeedInput>(({ input, signal }) =>
-    updateGroupDailyFeed(input.groupId, input.feed.id, { enabled: !input.feed.enabled }, { signal }),
-  ),
-  changeFeedFormat: fromPromise<DailyFeed, ChangeFeedFormatInput>(({ input, signal }) =>
-    updateGroupDailyFeed(input.groupId, input.feedId, { evidence_format_id: input.evidenceFormatId }, { signal }),
-  ),
-  changeFeedSchedule: fromPromise<DailyFeed, ChangeFeedScheduleInput>(({ input, signal }) =>
-    updateGroupDailyFeed(input.groupId, input.feedId, { schedule: input.schedule }, { signal }),
-  ),
-  refreshFeedGeneration: fromPromise<DailyFeedOutput, FeedInput>(({ input, signal }) =>
-    refreshGroupDailyFeedToday(input.groupId, input.feedId, { signal }),
-  ),
+  toggleFeed: fromPromise<DailyFeed, ToggleFeedInput>(async ({ input, signal }) => {
+    const feed = await updateGroupDailyFeed(input.groupId, input.feed.id, { enabled: !input.feed.enabled }, { signal });
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId, "feeds"]);
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId, "feed", input.feed.id]);
+    queryCache.touched(["user", input.currentUserId, "me", "daily-feeds"]);
+    queryCache.touched(["anon", "public", "feed", input.feed.id]);
+    return feed;
+  }),
+  changeFeedFormat: fromPromise<DailyFeed, ChangeFeedFormatInput>(async ({ input, signal }) => {
+    const feed = await updateGroupDailyFeed(
+      input.groupId,
+      input.feedId,
+      { evidence_format_id: input.evidenceFormatId },
+      { signal },
+    );
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId, "feeds"]);
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId, "feed", input.feedId]);
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId, "evidence-formats"]);
+    queryCache.touched(["user", input.currentUserId, "me", "daily-feeds"]);
+    queryCache.touched(["anon", "public", "feed", input.feedId]);
+    return feed;
+  }),
+  changeFeedSchedule: fromPromise<DailyFeed, ChangeFeedScheduleInput>(async ({ input, signal }) => {
+    const feed = await updateGroupDailyFeed(input.groupId, input.feedId, { schedule: input.schedule }, { signal });
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId, "feeds"]);
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId, "feed", input.feedId]);
+    queryCache.touched(["user", input.currentUserId, "me", "daily-feeds"]);
+    queryCache.touched(["anon", "public", "feed", input.feedId]);
+    return feed;
+  }),
+  refreshFeedGeneration: fromPromise<DailyFeedOutput, FeedInput>(async ({ input, signal }) => {
+    const output = await refreshGroupDailyFeedToday(input.groupId, input.feedId, { signal });
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId, "feed", input.feedId, "today"]);
+    queryCache.touched([
+      "user",
+      input.currentUserId,
+      "group",
+      input.groupId,
+      "feed",
+      input.feedId,
+      "output",
+      output.date,
+    ]);
+    queryCache.touched(["anon", "public", "feed", input.feedId]);
+    queryCache.write(queries.feedToday, output, input.currentUserId, input.groupId, input.feedId);
+    queryCache.write(queries.feedOutput, output, input.currentUserId, input.groupId, input.feedId, output.date);
+    return output;
+  }),
   deleteFeed: fromPromise<DeleteFeedOutput, FeedInput>(async ({ input, signal }) => {
     await deleteGroupDailyFeed(input.groupId, input.feedId, { signal });
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId, "feeds"]);
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId, "feed", input.feedId]);
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId, "evidence-formats"]);
+    queryCache.touched(["user", input.currentUserId, "me", "daily-feeds"]);
+    queryCache.touched(["anon", "public", "feed", input.feedId]);
     return { feedId: input.feedId };
   }),
-  createGroupFeedPost: fromPromise<GroupFeedPost, CreatePostInput>(({ input, signal }) =>
-    createGroupFeedPost(
+  createGroupFeedPost: fromPromise<GroupFeedPost, CreatePostInput>(async ({ input, signal }) => {
+    const post = await createGroupFeedPost(
       input.groupId,
       input.feedId,
       input.date,
@@ -187,10 +248,23 @@ export const dashboardActors = {
         ...(input.caption !== "" ? { caption: input.caption } : {}),
       },
       { signal },
-    ),
-  ),
-  updateGroupFeedPost: fromPromise<GroupFeedPost, UpdatePostInput>(({ input, signal }) =>
-    updateGroupFeedPost(
+    );
+    queryCache.touched([
+      "user",
+      input.currentUserId,
+      "group",
+      input.groupId,
+      "feed",
+      input.feedId,
+      "posts",
+      input.date,
+    ]);
+    queryCache.touched(["anon", "public", "post", post.id]);
+    queryCache.touched(["anon", "public", "feed", input.feedId, input.date]);
+    return post;
+  }),
+  updateGroupFeedPost: fromPromise<GroupFeedPost, UpdatePostInput>(async ({ input, signal }) => {
+    const post = await updateGroupFeedPost(
       input.groupId,
       input.postId,
       {
@@ -203,49 +277,105 @@ export const dashboardActors = {
         ...(input.tagIds !== undefined ? { tag_ids: input.tagIds } : {}),
       },
       { signal },
-    ),
-  ),
-  deleteGroupFeedPost: fromPromise<DeletePostOutput, { groupId: string; postId: string }>(async ({ input, signal }) => {
+    );
+    queryCache.touched([
+      "user",
+      input.currentUserId,
+      "group",
+      input.groupId,
+      "feed",
+      post.feed_id,
+      "posts",
+      post.feed_date,
+    ]);
+    queryCache.touched(["anon", "public", "post", post.id]);
+    queryCache.touched(["anon", "public", "feed", post.feed_id, post.feed_date]);
+    return post;
+  }),
+  deleteGroupFeedPost: fromPromise<DeletePostOutput, DeletePostInput>(async ({ input, signal }) => {
     await deleteGroupFeedPost(input.groupId, input.postId, { signal });
+    queryCache.touched([
+      "user",
+      input.currentUserId,
+      "group",
+      input.groupId,
+      "feed",
+      input.feedId,
+      "posts",
+      input.date,
+    ]);
+    queryCache.touched(["user", input.currentUserId, "me", "feed-post-route", input.postId]);
+    queryCache.touched(["anon", "public", "post", input.postId]);
+    queryCache.touched(["anon", "public", "feed", input.feedId, input.date]);
     return { postId: input.postId };
   }),
-  createGroupPostTag: fromPromise<GroupPostTag, CreatePostTagInput>(({ input, signal }) =>
-    createGroupPostTag(input.groupId, input.payload, { signal }),
-  ),
-  updateGroupPostTag: fromPromise<GroupPostTag, UpdatePostTagInput>(({ input, signal }) =>
-    updateGroupPostTag(input.groupId, input.tagId, input.payload, { signal }),
-  ),
-  deleteGroupPostTag: fromPromise<GroupPostTag, { groupId: string; tagId: string }>(async ({ input, signal }) => {
-    await deleteGroupPostTag(input.groupId, input.tagId, { signal });
-    return getGroupPostTag(input.groupId, input.tagId, { signal });
+  createGroupPostTag: fromPromise<GroupPostTag, CreatePostTagInput>(async ({ input, signal }) => {
+    const tag = await createGroupPostTag(input.groupId, input.payload, { signal });
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId, "post-tags"]);
+    queryCache.touched(["anon", "public"]);
+    return tag;
   }),
-  createGroupEvidenceFormat: fromPromise<EvidenceFormat, CreateEvidenceFormatInput>(({ input, signal }) =>
-    createGroupEvidenceFormat(input.groupId, input.payload, { signal }),
-  ),
-  updateGroupEvidenceFormat: fromPromise<EvidenceFormat, UpdateEvidenceFormatInput>(({ input, signal }) =>
-    updateGroupEvidenceFormat(input.groupId, input.formatId, input.payload, { signal }),
-  ),
-  createGroupEvidenceFormatVersion: fromPromise<EvidenceFormat, CreateEvidenceFormatVersionInput>(({ input, signal }) =>
-    createGroupEvidenceFormatVersion(input.groupId, input.formatId, input.payload, { signal }),
-  ),
-  deleteGroupEvidenceFormat: fromPromise<EvidenceFormat, { groupId: string; formatId: string }>(
+  updateGroupPostTag: fromPromise<GroupPostTag, UpdatePostTagInput>(async ({ input, signal }) => {
+    const tag = await updateGroupPostTag(input.groupId, input.tagId, input.payload, { signal });
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId, "post-tags"]);
+    queryCache.touched(["anon", "public"]);
+    return tag;
+  }),
+  deleteGroupPostTag: fromPromise<GroupPostTag, UserScopedInput & { groupId: string; tagId: string }>(
     async ({ input, signal }) => {
-      await deleteGroupEvidenceFormat(input.groupId, input.formatId, { signal });
-      return getGroupEvidenceFormat(input.groupId, input.formatId, { signal });
+      await deleteGroupPostTag(input.groupId, input.tagId, { signal });
+      const tag = await getGroupPostTag(input.groupId, input.tagId, { signal });
+      queryCache.touched(["user", input.currentUserId, "group", input.groupId, "post-tags"]);
+      queryCache.touched(["anon", "public"]);
+      return tag;
     },
   ),
-  createFeedMetric: fromPromise<FeedMetric, CreateMetricInput>(({ input, signal }) =>
-    createFeedMetric(input.groupId, input.feedId, input.payload, { signal }),
+  createGroupEvidenceFormat: fromPromise<EvidenceFormat, CreateEvidenceFormatInput>(async ({ input, signal }) => {
+    const format = await createGroupEvidenceFormat(input.groupId, input.payload, { signal });
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId, "evidence-formats"]);
+    queryCache.touched(["anon", "public"]);
+    return format;
+  }),
+  updateGroupEvidenceFormat: fromPromise<EvidenceFormat, UpdateEvidenceFormatInput>(async ({ input, signal }) => {
+    const format = await updateGroupEvidenceFormat(input.groupId, input.formatId, input.payload, { signal });
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId, "evidence-formats"]);
+    queryCache.touched(["anon", "public"]);
+    return format;
+  }),
+  createGroupEvidenceFormatVersion: fromPromise<EvidenceFormat, CreateEvidenceFormatVersionInput>(
+    async ({ input, signal }) => {
+      const format = await createGroupEvidenceFormatVersion(input.groupId, input.formatId, input.payload, { signal });
+      queryCache.touched(["user", input.currentUserId, "group", input.groupId, "evidence-formats"]);
+      queryCache.touched(["anon", "public"]);
+      return format;
+    },
   ),
-  updateFeedMetric: fromPromise<FeedMetric, UpdateMetricInput>(({ input, signal }) =>
-    updateFeedMetric(input.groupId, input.feedId, input.metricId, input.payload, { signal }),
+  deleteGroupEvidenceFormat: fromPromise<EvidenceFormat, UserScopedInput & { groupId: string; formatId: string }>(
+    async ({ input, signal }) => {
+      await deleteGroupEvidenceFormat(input.groupId, input.formatId, { signal });
+      const format = await getGroupEvidenceFormat(input.groupId, input.formatId, { signal });
+      queryCache.touched(["user", input.currentUserId, "group", input.groupId, "evidence-formats"]);
+      queryCache.touched(["anon", "public"]);
+      return format;
+    },
   ),
+  createFeedMetric: fromPromise<FeedMetric, CreateMetricInput>(async ({ input, signal }) => {
+    const metric = await createFeedMetric(input.groupId, input.feedId, input.payload, { signal });
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId, "feed", input.feedId, "metrics"]);
+    return metric;
+  }),
+  updateFeedMetric: fromPromise<FeedMetric, UpdateMetricInput>(async ({ input, signal }) => {
+    const metric = await updateFeedMetric(input.groupId, input.feedId, input.metricId, input.payload, { signal });
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId, "feed", input.feedId, "metrics"]);
+    return metric;
+  }),
   deleteFeedMetric: fromPromise<DeleteMetricOutput, MetricInput>(async ({ input, signal }) => {
     await deleteFeedMetric(input.groupId, input.feedId, input.metricId, { signal });
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId, "feed", input.feedId, "metrics"]);
     return { metricId: input.metricId };
   }),
-  createFeedMetricJudgment: fromPromise<unknown, CreateJudgmentInput>(({ input, signal }) =>
-    createFeedMetricJudgment(
+  createFeedMetricJudgment: fromPromise<unknown, CreateJudgmentInput>(async ({ input, signal }) => {
+    const judgment = await createFeedMetricJudgment(
       input.groupId,
       input.feedId,
       input.metricId,
@@ -255,10 +385,22 @@ export const dashboardActors = {
         ...(input.note.trim() !== "" ? { note: input.note.trim() } : {}),
       },
       { signal },
-    ),
-  ),
-  updateFeedMetricJudgment: fromPromise<unknown, UpdateJudgmentInput>(({ input, signal }) =>
-    updateFeedMetricJudgment(
+    );
+    queryCache.touched([
+      "user",
+      input.currentUserId,
+      "group",
+      input.groupId,
+      "feed",
+      input.feedId,
+      "metric",
+      input.metricId,
+      "judgments",
+    ]);
+    return judgment;
+  }),
+  updateFeedMetricJudgment: fromPromise<unknown, UpdateJudgmentInput>(async ({ input, signal }) => {
+    const judgment = await updateFeedMetricJudgment(
       input.groupId,
       input.judgmentId,
       {
@@ -266,9 +408,32 @@ export const dashboardActors = {
         ...(input.note !== undefined ? { note: input.note } : {}),
       },
       { signal },
-    ),
-  ),
+    );
+    queryCache.touched([
+      "user",
+      input.currentUserId,
+      "group",
+      input.groupId,
+      "feed",
+      input.feedId,
+      "metric",
+      input.metricId,
+      "judgments",
+    ]);
+    return judgment;
+  }),
   deleteFeedMetricJudgment: fromPromise<unknown, DeleteJudgmentInput>(async ({ input, signal }) => {
     await deleteFeedMetricJudgment(input.groupId, input.judgmentId, { signal });
+    queryCache.touched([
+      "user",
+      input.currentUserId,
+      "group",
+      input.groupId,
+      "feed",
+      input.feedId,
+      "metric",
+      input.metricId,
+      "judgments",
+    ]);
   }),
 };

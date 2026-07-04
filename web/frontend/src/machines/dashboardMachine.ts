@@ -60,7 +60,7 @@ const dashboardSetup = setup({
 
 export const dashboardMachine = dashboardSetup.createMachine({
   id: "dashboard",
-  context: initialDashboardContext,
+  context: ({ input }) => initialDashboardContext(input),
   initial: "loadingGroups",
   on: {
     GROUPS_REFRESH_REQUESTED: {
@@ -442,7 +442,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
     loadingGroups: {
       invoke: {
         src: "listGroups",
-        input: () => undefined,
+        input: ({ context }) => ({ currentUserId: context.currentUserId }),
         onDone: [
           {
             target: "groupSelected.loadingFeeds",
@@ -473,7 +473,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
     creatingGroup: {
       invoke: {
         src: "createGroup",
-        input: ({ context }) => ({ name: context.pendingGroupName }),
+        input: ({ context }) => ({ currentUserId: context.currentUserId, name: context.pendingGroupName }),
         onDone: {
           target: "loadingGroups",
           actions: [
@@ -490,7 +490,10 @@ export const dashboardMachine = dashboardSetup.createMachine({
     deletingGroup: {
       invoke: {
         src: "deleteGroup",
-        input: ({ context }) => ({ groupId: requirePendingDeleteGroupId(context) }),
+        input: ({ context }) => ({
+          currentUserId: context.currentUserId,
+          groupId: requirePendingDeleteGroupId(context),
+        }),
         onDone: {
           target: "loadingGroups",
           actions: [
@@ -512,6 +515,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
           invoke: {
             src: "loadGroupWorkspace",
             input: ({ context }) => ({
+              currentUserId: context.currentUserId,
               groupId: requireSelectedGroupId(context),
               includeArchivedPostTags: selectedGroupCanManage(context),
               includeArchivedEvidenceFormats: selectedGroupCanManage(context),
@@ -623,6 +627,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
               invoke: {
                 src: "getGroupDailyFeedToday",
                 input: ({ context }) => ({
+                  currentUserId: context.currentUserId,
                   groupId: requireSelectedGroupId(context),
                   feedId: requireSelectedFeedId(context),
                 }),
@@ -654,6 +659,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
               invoke: {
                 src: "getGroupDailyFeedOutput",
                 input: ({ context }) => ({
+                  currentUserId: context.currentUserId,
                   groupId: requireSelectedGroupId(context),
                   feedId: requireSelectedFeedId(context),
                   date: context.selectedFeedDate,
@@ -686,6 +692,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
               invoke: {
                 src: "listGroupFeedPosts",
                 input: ({ context }) => ({
+                  currentUserId: context.currentUserId,
                   groupId: requireSelectedGroupId(context),
                   feedId: requireSelectedFeedId(context),
                   date: requireOutputDate(context),
@@ -735,6 +742,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
               invoke: {
                 src: "listGroupFeedPosts",
                 input: ({ context }) => ({
+                  currentUserId: context.currentUserId,
                   groupId: requireSelectedGroupId(context),
                   feedId: requireSelectedFeedId(context),
                   date: requireOutputDate(context),
@@ -764,6 +772,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
               invoke: {
                 src: "listFeedMetrics",
                 input: ({ context }) => ({
+                  currentUserId: context.currentUserId,
                   groupId: requireSelectedGroupId(context),
                   feedId: requireSelectedFeedId(context),
                 }),
@@ -818,6 +827,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
               invoke: {
                 src: "getMetricLeaderboard",
                 input: ({ context }) => ({
+                  currentUserId: context.currentUserId,
                   groupId: requireSelectedGroupId(context),
                   feedId: requireSelectedFeedId(context),
                   metricId: requireSelectedMetricId(context),
@@ -851,6 +861,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                 input: ({ context }) => {
                   const mutation = requirePostMutation(context, "create");
                   return {
+                    currentUserId: context.currentUserId,
                     groupId: requireSelectedGroupId(context),
                     feedId: requireSelectedFeedId(context),
                     date: requireOutputDate(context),
@@ -893,6 +904,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                 input: ({ context }) => {
                   const mutation = requirePostMutation(context, "update");
                   const input: UpdatePostInput = {
+                    currentUserId: context.currentUserId,
                     groupId: requireSelectedGroupId(context),
                     postId: mutation.postId,
                   };
@@ -942,7 +954,10 @@ export const dashboardMachine = dashboardSetup.createMachine({
                 input: ({ context }) => {
                   const mutation = requirePostMutation(context, "delete");
                   return {
+                    currentUserId: context.currentUserId,
                     groupId: requireSelectedGroupId(context),
+                    feedId: requireSelectedFeedId(context),
+                    date: requireOutputDate(context),
                     postId: mutation.postId,
                   };
                 },
@@ -979,6 +994,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
               invoke: {
                 src: "createFeedMetric",
                 input: ({ context }) => ({
+                  currentUserId: context.currentUserId,
                   groupId: requireSelectedGroupId(context),
                   feedId: requireSelectedFeedId(context),
                   payload: requireMetricMutation(context, "create").payload,
@@ -1005,6 +1021,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                 input: ({ context }) => {
                   const mutation = requireMetricMutation(context, "update");
                   return {
+                    currentUserId: context.currentUserId,
                     groupId: requireSelectedGroupId(context),
                     feedId: requireSelectedFeedId(context),
                     metricId: mutation.metricId,
@@ -1033,6 +1050,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                 input: ({ context }) => {
                   const mutation = requireMetricMutation(context, "delete");
                   return {
+                    currentUserId: context.currentUserId,
                     groupId: requireSelectedGroupId(context),
                     feedId: requireSelectedFeedId(context),
                     metricId: mutation.metricId,
@@ -1083,6 +1101,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                 input: ({ context }) => {
                   const mutation = requireJudgmentMutation(context);
                   return {
+                    currentUserId: context.currentUserId,
                     groupId: requireSelectedGroupId(context),
                     feedId: requireSelectedFeedId(context),
                     metricId: mutation.metricId,
@@ -1112,6 +1131,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
           invoke: {
             src: "createGroupPostTag",
             input: ({ context }) => ({
+              currentUserId: context.currentUserId,
               groupId: requireSelectedGroupId(context),
               payload: requirePostTagMutation(context, "create").payload,
             }),
@@ -1149,6 +1169,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
             input: ({ context }) => {
               const mutation = requirePostTagMutation(context, "update");
               return {
+                currentUserId: context.currentUserId,
                 groupId: requireSelectedGroupId(context),
                 tagId: mutation.tagId,
                 payload: mutation.payload,
@@ -1188,6 +1209,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
             input: ({ context }) => {
               const mutation = requirePostTagMutation(context, "delete");
               return {
+                currentUserId: context.currentUserId,
                 groupId: requireSelectedGroupId(context),
                 tagId: mutation.tagId,
               };
@@ -1224,6 +1246,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
           invoke: {
             src: "createGroupEvidenceFormat",
             input: ({ context }) => ({
+              currentUserId: context.currentUserId,
               groupId: requireSelectedGroupId(context),
               payload: requireEvidenceFormatMutation(context, "create").payload,
             }),
@@ -1237,6 +1260,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
             input: ({ context }) => {
               const mutation = requireEvidenceFormatMutation(context, "update");
               return {
+                currentUserId: context.currentUserId,
                 groupId: requireSelectedGroupId(context),
                 formatId: mutation.formatId,
                 payload: mutation.payload,
@@ -1252,6 +1276,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
             input: ({ context }) => {
               const mutation = requireEvidenceFormatMutation(context, "version");
               return {
+                currentUserId: context.currentUserId,
                 groupId: requireSelectedGroupId(context),
                 formatId: mutation.formatId,
                 payload: mutation.payload,
@@ -1267,6 +1292,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
             input: ({ context }) => {
               const mutation = requireEvidenceFormatMutation(context, "delete");
               return {
+                currentUserId: context.currentUserId,
                 groupId: requireSelectedGroupId(context),
                 formatId: mutation.formatId,
               };
@@ -1281,6 +1307,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
             input: ({ context }) => {
               const mutation = requireGroupMemberMutation(context);
               return {
+                currentUserId: context.currentUserId,
                 groupId: requireSelectedGroupId(context),
                 userId: mutation.userId,
               };
@@ -1319,6 +1346,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
             input: ({ context }) => {
               const mutation = requireGroupVisibilityMutation(context);
               return {
+                currentUserId: context.currentUserId,
                 groupId: mutation.groupId,
                 payload: {
                   visibility: mutation.visibility,
@@ -1355,6 +1383,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
           invoke: {
             src: "toggleFeed",
             input: ({ context }) => ({
+              currentUserId: context.currentUserId,
               groupId: requireSelectedGroupId(context),
               feed: requirePendingToggleFeed(context),
             }),
@@ -1388,6 +1417,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
             input: ({ context }) => {
               const mutation = requireFeedFormatMutation(context);
               return {
+                currentUserId: context.currentUserId,
                 groupId: requireSelectedGroupId(context),
                 feedId: mutation.feedId,
                 evidenceFormatId: mutation.evidenceFormatId,
@@ -1423,6 +1453,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
             input: ({ context }) => {
               const mutation = requireFeedScheduleMutation(context);
               return {
+                currentUserId: context.currentUserId,
                 groupId: requireSelectedGroupId(context),
                 feedId: mutation.feedId,
                 schedule: mutation.schedule,
@@ -1482,6 +1513,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
           invoke: {
             src: "refreshFeedGeneration",
             input: ({ context }) => ({
+              currentUserId: context.currentUserId,
               groupId: requireSelectedGroupId(context),
               feedId: requirePendingRefreshFeedId(context),
             }),
@@ -1531,6 +1563,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
           invoke: {
             src: "deleteFeed",
             input: ({ context }) => ({
+              currentUserId: context.currentUserId,
               groupId: requireSelectedGroupId(context),
               feedId: requirePendingDeleteFeedId(context),
             }),
@@ -1623,6 +1656,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
             id: "addFeed",
             src: "addFeedMachine",
             input: ({ context }) => ({
+              currentUserId: context.currentUserId,
               groupId: requireSelectedGroupId(context),
             }),
           },

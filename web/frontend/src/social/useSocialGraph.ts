@@ -11,12 +11,10 @@ import {
   declineGroupInvite,
   deleteFriend,
   isUnauthorized,
-  listFriendRequests,
-  listFriends,
-  listGroupInviteCandidates,
-  listGroupInvites,
   rotateFriendCode,
 } from "../api";
+import { queries } from "../cache/queries";
+import { queryCache } from "../cache/queryCache";
 import type { FriendsPanelProps } from "../components/FriendsPanel";
 import { errorMessage } from "../errors";
 import type { Friend, FriendRequests, Group, GroupInvite, GroupInviteCandidate, User } from "../types";
@@ -72,6 +70,7 @@ export function useSocialGraph({
   const [socialError, setSocialError] = useState("");
   const [socialMutating, setSocialMutating] = useState<string | null>(null);
   const [invitingUserId, setInvitingUserId] = useState<string | null>(null);
+  const currentUserId = currentUser?.id ?? null;
 
   const handleSocialError = useCallback(
     (error: unknown) => {
@@ -88,14 +87,17 @@ export function useSocialGraph({
 
   const refreshSocial = useCallback(
     async (options: { signal?: AbortSignal } = {}) => {
+      if (currentUserId === null) {
+        return;
+      }
       setSocialLoading(true);
       setSocialError("");
       try {
         const apiOptions = options.signal === undefined ? {} : { signal: options.signal };
         const [nextRequests, nextFriends, nextGroupInvites] = await Promise.all([
-          listFriendRequests(apiOptions),
-          listFriends(apiOptions),
-          listGroupInvites(apiOptions),
+          queryCache.read(queries.friendRequests, currentUserId, apiOptions),
+          queryCache.read(queries.friends, currentUserId, apiOptions),
+          queryCache.read(queries.groupInvites, currentUserId, apiOptions),
         ]);
         if (options.signal?.aborted === true) {
           return;
@@ -113,12 +115,12 @@ export function useSocialGraph({
         }
       }
     },
-    [handleSocialError],
+    [currentUserId, handleSocialError],
   );
 
   const refreshInviteCandidatesForGroup = useCallback(
     async (group: Group | null, options: { signal?: AbortSignal } = {}) => {
-      if (group === null || group.my_status !== "active") {
+      if (currentUserId === null || group === null || group.my_status !== "active") {
         setInviteCandidates(EMPTY_INVITE_CANDIDATES);
         setInviteCandidatesLoading(false);
         return;
@@ -126,7 +128,7 @@ export function useSocialGraph({
       setInviteCandidatesLoading(true);
       try {
         const apiOptions = options.signal === undefined ? {} : { signal: options.signal };
-        const nextCandidates = await listGroupInviteCandidates(group.id, apiOptions);
+        const nextCandidates = await queryCache.read(queries.inviteCandidates, currentUserId, group.id, apiOptions);
         if (options.signal?.aborted === true) {
           return;
         }
@@ -141,7 +143,7 @@ export function useSocialGraph({
         }
       }
     },
-    [handleSocialError],
+    [currentUserId, handleSocialError],
   );
 
   useEffect(() => {
@@ -195,50 +197,55 @@ export function useSocialGraph({
     (friendCode: string) => {
       void runSocialMutation("add-friend", async () => {
         const request = await createFriendRequest(friendCode);
+        touchSocial(currentUserId, selectedGroup?.id ?? null);
         return request.status === "accepted" ? "Friend added" : "Friend request sent";
       });
     },
-    [runSocialMutation],
+    [currentUserId, runSocialMutation, selectedGroup],
   );
 
   const handleAcceptFriendRequest = useCallback(
     (requestId: string) => {
       void runSocialMutation(`accept-request:${requestId}`, async () => {
         await acceptFriendRequest(requestId);
+        touchSocial(currentUserId, selectedGroup?.id ?? null);
         return "Friend added";
       });
     },
-    [runSocialMutation],
+    [currentUserId, runSocialMutation, selectedGroup],
   );
 
   const handleDeclineFriendRequest = useCallback(
     (requestId: string) => {
       void runSocialMutation(`decline-request:${requestId}`, async () => {
         await declineFriendRequest(requestId);
+        touchSocial(currentUserId, selectedGroup?.id ?? null);
         return "Friend request declined";
       });
     },
-    [runSocialMutation],
+    [currentUserId, runSocialMutation, selectedGroup],
   );
 
   const handleCancelFriendRequest = useCallback(
     (requestId: string) => {
       void runSocialMutation(`cancel-request:${requestId}`, async () => {
         await cancelFriendRequest(requestId);
+        touchSocial(currentUserId, selectedGroup?.id ?? null);
         return "Friend request canceled";
       });
     },
-    [runSocialMutation],
+    [currentUserId, runSocialMutation, selectedGroup],
   );
 
   const handleDeleteFriend = useCallback(
     (userId: string) => {
       void runSocialMutation(`delete-friend:${userId}`, async () => {
         await deleteFriend(userId);
+        touchSocial(currentUserId, selectedGroup?.id ?? null);
         return "Friend removed";
       });
     },
-    [runSocialMutation],
+    [currentUserId, runSocialMutation, selectedGroup],
   );
 
   const handleRotateFriendCode = useCallback(() => {
@@ -257,10 +264,11 @@ export function useSocialGraph({
       setInvitingUserId(userId);
       void runSocialMutation(`invite-friend:${userId}`, async () => {
         await createGroupInvite(selectedGroup.id, userId);
+        touchGroupInvite(currentUserId, selectedGroup.id);
         return "Group invite sent";
       }).finally(() => setInvitingUserId(null));
     },
-    [runSocialMutation, selectedGroup],
+    [currentUserId, runSocialMutation, selectedGroup],
   );
 
   const handleCancelGroupInviteForCandidate = useCallback(
@@ -271,10 +279,11 @@ export function useSocialGraph({
       setInvitingUserId(userId);
       void runSocialMutation(`cancel-group-invite:${userId}`, async () => {
         await cancelGroupInvite(selectedGroup.id, userId);
+        touchGroupInvite(currentUserId, selectedGroup.id);
         return "Group invite canceled";
       }).finally(() => setInvitingUserId(null));
     },
-    [runSocialMutation, selectedGroup],
+    [currentUserId, runSocialMutation, selectedGroup],
   );
 
   const handleAcceptGroupInvite = useCallback(
@@ -285,6 +294,8 @@ export function useSocialGraph({
       const userId = currentUser.id;
       void runSocialMutation(`accept-group:${invite.group.id}`, async () => {
         await acceptGroupInvite(invite.group.id, userId);
+        queryCache.touched(["user", userId, "groups"]);
+        queryCache.touched(["user", userId, "social", "group-invites"]);
         onGroupInviteAccepted(invite.group.id);
         return "Group invite accepted";
       });
@@ -300,6 +311,7 @@ export function useSocialGraph({
       const userId = currentUser.id;
       void runSocialMutation(`decline-group:${invite.group.id}`, async () => {
         await declineGroupInvite(invite.group.id, userId);
+        queryCache.touched(["user", userId, "social", "group-invites"]);
         return "Group invite declined";
       });
     },
@@ -364,4 +376,22 @@ export function useSocialGraph({
     friendsPanelProps,
     inviteCandidateProps,
   };
+}
+
+function touchSocial(currentUserId: string | null, selectedGroupId: string | null): void {
+  if (currentUserId === null) {
+    return;
+  }
+  queryCache.touched(["user", currentUserId, "social"]);
+  if (selectedGroupId !== null) {
+    queryCache.touched(["user", currentUserId, "group", selectedGroupId, "invite-candidates"]);
+  }
+}
+
+function touchGroupInvite(currentUserId: string | null, groupId: string): void {
+  if (currentUserId === null) {
+    return;
+  }
+  queryCache.touched(["user", currentUserId, "group", groupId, "invite-candidates"]);
+  queryCache.touched(["user", currentUserId, "social", "group-invites"]);
 }

@@ -128,6 +128,7 @@ export type JudgmentMutation = {
 };
 
 export type DashboardContext = {
+  currentUserId: string;
   groups: Group[];
   selectedGroupId: string | null;
   preferredGroupId: string | null;
@@ -214,12 +215,16 @@ export type DashboardOutputEvent = { type: "UNAUTHORIZED" } | { type: "TOAST_REQ
 
 export type DashboardEvent = DashboardUserEvent | AddFeedOutputEvent;
 
-export type FeedInput = {
+export type UserScopedInput = {
+  currentUserId: string;
+};
+
+export type FeedInput = UserScopedInput & {
   groupId: string;
   feedId: string;
 };
 
-export type GroupWorkspaceInput = {
+export type GroupWorkspaceInput = UserScopedInput & {
   groupId: string;
   includeArchivedPostTags: boolean;
   includeArchivedEvidenceFormats: boolean;
@@ -244,7 +249,7 @@ export type MetricInput = FeedInput & {
   metricId: string;
 };
 
-export type ToggleFeedInput = {
+export type ToggleFeedInput = UserScopedInput & {
   groupId: string;
   feed: DailyFeed;
 };
@@ -257,7 +262,7 @@ export type ChangeFeedScheduleInput = FeedInput & {
   schedule: DailyFeedSchedule;
 };
 
-export type UpdateGroupVisibilityInput = {
+export type UpdateGroupVisibilityInput = UserScopedInput & {
   groupId: string;
   payload: PatchGroupRequest;
 };
@@ -276,7 +281,7 @@ export type DeleteFeedOutput = {
 
 export type CreatePostInput = DatedFeedInput & CreatePostPayload;
 
-export type UpdatePostInput = {
+export type UpdatePostInput = UserScopedInput & {
   groupId: string;
   postId: string;
   evidenceText?: string;
@@ -288,29 +293,36 @@ export type DeletePostOutput = {
   postId: string;
 };
 
-export type CreatePostTagInput = {
+export type DeletePostInput = UserScopedInput & {
+  groupId: string;
+  feedId: string;
+  date: string;
+  postId: string;
+};
+
+export type CreatePostTagInput = UserScopedInput & {
   groupId: string;
   payload: CreateGroupPostTagRequest;
 };
 
-export type UpdatePostTagInput = {
+export type UpdatePostTagInput = UserScopedInput & {
   groupId: string;
   tagId: string;
   payload: PatchGroupPostTagRequest;
 };
 
-export type CreateEvidenceFormatInput = {
+export type CreateEvidenceFormatInput = UserScopedInput & {
   groupId: string;
   payload: CreateEvidenceFormatRequest;
 };
 
-export type UpdateEvidenceFormatInput = {
+export type UpdateEvidenceFormatInput = UserScopedInput & {
   groupId: string;
   formatId: string;
   payload: PatchEvidenceFormatRequest;
 };
 
-export type CreateEvidenceFormatVersionInput = {
+export type CreateEvidenceFormatVersionInput = UserScopedInput & {
   groupId: string;
   formatId: string;
   payload: CreateEvidenceFormatVersionRequest;
@@ -334,14 +346,18 @@ export type CreateJudgmentInput = MetricInput & {
   note: string;
 };
 
-export type UpdateJudgmentInput = {
+export type UpdateJudgmentInput = UserScopedInput & {
   groupId: string;
+  feedId: string;
+  metricId: string;
   judgmentId: string;
   value?: number;
   note?: string | null;
 };
 
-export type DeleteJudgmentInput = {
+export type DeleteJudgmentInput = UserScopedInput & {
   groupId: string;
+  feedId: string;
+  metricId: string;
   judgmentId: string;
 };
