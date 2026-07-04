@@ -8,7 +8,17 @@ button.confirm-icon-button {
 
 button.group-add-button,
 button.metric-add-button {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-icon-muted);
   justify-self: end;
+}
+
+button.group-add-button:hover:not(:disabled),
+button.metric-add-button:hover:not(:disabled) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-accent-hover);
 }
 
 .metric-settings-manager {
