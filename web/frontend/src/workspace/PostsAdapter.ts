@@ -36,6 +36,12 @@ export function usePostsAdapter({
   onToast: ToastCallback;
 }): PostsProps {
   const loadingPosts = matchesGrandchildState(dashboardStateValue, "groupSelected", "feedSelected", "loadingPosts");
+  const loadingDatedPosts = matchesGrandchildState(
+    dashboardStateValue,
+    "groupSelected",
+    "feedSelected",
+    "loadingDatedPosts",
+  );
   const creatingPost = matchesGrandchildState(dashboardStateValue, "groupSelected", "feedSelected", "creatingPost");
   const postMutation = dashboardContext?.postMutation ?? null;
   const updatingPostId = postMutation?.kind === "update" ? postMutation.postId : null;
@@ -44,7 +50,7 @@ export function usePostsAdapter({
   return {
     posts: dashboardContext?.posts ?? EMPTY_POSTS,
     postTags: dashboardContext?.postTags ?? EMPTY_POST_TAGS,
-    postsLoading: loadingPosts,
+    postsLoading: loadingPosts || loadingDatedPosts,
     postsError: dashboardContext?.postsError ?? "",
     postSubmitting: creatingPost,
     updatingPostId,

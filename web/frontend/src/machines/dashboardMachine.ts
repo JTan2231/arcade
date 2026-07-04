@@ -193,6 +193,7 @@ export type DashboardContext = {
   metrics: FeedMetric[];
   selectedMetricId: string | null;
   metricLeaderboard: MetricLeaderboard | null;
+  metricsLoaded: boolean;
   metricsError: string;
 
   pendingGroupName: string;
@@ -676,7 +677,8 @@ export const dashboardMachine = dashboardSetup.createMachine({
       })),
     },
     FEED_DATE_CHANGED: {
-      guard: { type: "hasSelectedFeed" },
+      guard: ({ context, event }) =>
+        context.selectedGroupId !== null && context.selectedFeedId !== null && event.date !== context.selectedFeedDate,
       target: ".groupSelected.feedSelected.loadingDatedOutput",
       reenter: true,
       actions: assign(({ event }) => ({
@@ -686,8 +688,6 @@ export const dashboardMachine = dashboardSetup.createMachine({
         posts: [],
         postsError: "",
         postMutation: null,
-        metricLeaderboard: null,
-        metricsError: "",
       })),
     },
     FEED_ENABLED_TOGGLED: {
@@ -1172,7 +1172,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   date: context.selectedFeedDate,
                 }),
                 onDone: {
-                  target: "loadingPosts",
+                  target: "loadingDatedPosts",
                   actions: assign(({ event }) => ({
                     output: event.output,
                     selectedFeedDate: event.output.date,
@@ -1190,6 +1190,55 @@ export const dashboardMachine = dashboardSetup.createMachine({
                       outputError: errorMessage(event.error),
                       posts: [],
                       postsError: "",
+                    })),
+                  },
+                ],
+              },
+            },
+            loadingDatedPosts: {
+              invoke: {
+                src: "listGroupFeedPosts",
+                input: ({ context }) => ({
+                  groupId: requireSelectedGroupId(context),
+                  feedId: requireSelectedFeedId(context),
+                  date: requireOutputDate(context),
+                }),
+                onDone: [
+                  {
+                    target: "ready",
+                    guard: ({ context }) => context.metricsLoaded,
+                    actions: assign(({ event }) => ({
+                      posts: event.output,
+                      postsError: "",
+                      postMutation: null,
+                    })),
+                  },
+                  {
+                    target: "loadingMetrics",
+                    actions: assign(({ event }) => ({
+                      posts: event.output,
+                      postsError: "",
+                      postMutation: null,
+                    })),
+                  },
+                ],
+                onError: [
+                  unauthorizedToParentTransition(),
+                  {
+                    target: "ready",
+                    guard: ({ context }) => context.metricsLoaded,
+                    actions: assign(({ event }) => ({
+                      posts: [],
+                      postsError: errorMessage(event.error),
+                      postMutation: null,
+                    })),
+                  },
+                  {
+                    target: "loadingMetrics",
+                    actions: assign(({ event }) => ({
+                      posts: [],
+                      postsError: errorMessage(event.error),
+                      postMutation: null,
                     })),
                   },
                 ],
@@ -1241,6 +1290,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                         metrics: event.output,
                         selectedMetricId,
                         metricLeaderboard: null,
+                        metricsLoaded: true,
                         metricsError: "",
                         metricMutation: null,
                         judgmentMutation: null,
@@ -1253,6 +1303,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                       metrics: event.output,
                       selectedMetricId: null,
                       metricLeaderboard: null,
+                      metricsLoaded: true,
                       metricsError: "",
                       metricMutation: null,
                       judgmentMutation: null,
@@ -1267,6 +1318,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                       metrics: [],
                       selectedMetricId: null,
                       metricLeaderboard: null,
+                      metricsLoaded: true,
                       metricsError: errorMessage(event.error),
                       metricMutation: null,
                       judgmentMutation: null,
@@ -2078,12 +2130,19 @@ function resetSelectedGroupContext(): Omit<
 
 function resetMetricContext(): Pick<
   DashboardContext,
-  "metrics" | "selectedMetricId" | "metricLeaderboard" | "metricsError" | "metricMutation" | "judgmentMutation"
+  | "metrics"
+  | "selectedMetricId"
+  | "metricLeaderboard"
+  | "metricsLoaded"
+  | "metricsError"
+  | "metricMutation"
+  | "judgmentMutation"
 > {
   return {
     metrics: [],
     selectedMetricId: null,
     metricLeaderboard: null,
+    metricsLoaded: false,
     metricsError: "",
     metricMutation: null,
     judgmentMutation: null,

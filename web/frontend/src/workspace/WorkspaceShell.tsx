@@ -18,6 +18,8 @@ type MemberRouteTarget =
   | { routeKey: string; status: "loading" | "public" }
   | { routeKey: string; status: "member"; groupId: string; feedId?: string; date?: string | null };
 
+type ResolvedMemberRouteTarget = Extract<MemberRouteTarget, { status: "member" }>;
+
 const EMPTY_GROUPS: Group[] = [];
 
 export function WorkspaceShell({
@@ -69,6 +71,27 @@ export function WorkspaceShell({
     [groups, selectedGroupId],
   );
 
+  const workspaceMemberRouteTarget = useMemo<ResolvedMemberRouteTarget | null>(() => {
+    if (publicRoute?.kind === "feed" && signedIn && selectedGroup?.my_status === "active") {
+      const feed = feeds.find((candidate) => candidate.id === publicRoute.feedId);
+      if (feed !== undefined) {
+        return {
+          routeKey: publicRouteKey,
+          status: "member",
+          groupId: feed.group_id,
+          feedId: feed.id,
+          date: publicRoute.date,
+        };
+      }
+    }
+
+    if (memberRouteTarget?.status === "member" && memberRouteTarget.routeKey === publicRouteKey) {
+      return memberRouteTarget;
+    }
+
+    return null;
+  }, [feeds, memberRouteTarget, publicRoute, publicRouteKey, selectedGroup, signedIn]);
+
   const socialGraph = useSocialGraph({
     signedIn,
     showingProfile,
@@ -83,6 +106,15 @@ export function WorkspaceShell({
 
   useEffect(() => {
     if (!signedIn || publicRoute === null || publicRoute.kind === "group") {
+      setMemberRouteTarget(null);
+      return undefined;
+    }
+
+    if (
+      publicRoute.kind === "feed" &&
+      selectedGroup?.my_status === "active" &&
+      feeds.some((feed) => feed.id === publicRoute.feedId)
+    ) {
       setMemberRouteTarget(null);
       return undefined;
     }
@@ -147,7 +179,7 @@ export function WorkspaceShell({
         setMemberRouteTarget({ routeKey, status: "public" });
       });
     return () => controller.abort();
-  }, [onUnauthorized, publicRoute, publicRouteKey, signedIn]);
+  }, [feeds, onUnauthorized, publicRoute, publicRouteKey, selectedGroup, signedIn]);
 
   useEffect(() => {
     if (!signedIn || publicRoute?.kind !== "group" || loadingGroups || dashboardRef === undefined) {
@@ -181,61 +213,61 @@ export function WorkspaceShell({
       !signedIn ||
       publicRoute === null ||
       publicRoute.kind === "group" ||
-      memberRouteTarget?.status !== "member" ||
-      memberRouteTarget.routeKey !== publicRouteKey ||
+      workspaceMemberRouteTarget === null ||
       dashboardRef === undefined
     ) {
       memberRouteGroupRefreshRef.current = null;
       return;
     }
 
-    const targetGroup = groups.find((group) => group.id === memberRouteTarget.groupId && group.my_status === "active");
+    const targetGroup = groups.find(
+      (group) => group.id === workspaceMemberRouteTarget.groupId && group.my_status === "active",
+    );
     if (targetGroup === undefined) {
       if (!loadingGroups) {
-        const refreshKey = `${memberRouteTarget.routeKey}:${memberRouteTarget.groupId}`;
+        const refreshKey = `${workspaceMemberRouteTarget.routeKey}:${workspaceMemberRouteTarget.groupId}`;
         if (memberRouteGroupRefreshRef.current !== refreshKey) {
           memberRouteGroupRefreshRef.current = refreshKey;
-          dashboardRef.send({ type: "GROUPS_REFRESH_REQUESTED", preferredGroupId: memberRouteTarget.groupId });
+          dashboardRef.send({ type: "GROUPS_REFRESH_REQUESTED", preferredGroupId: workspaceMemberRouteTarget.groupId });
         }
       }
       return;
     }
 
     memberRouteGroupRefreshRef.current = null;
-    if (selectedGroupId !== memberRouteTarget.groupId) {
-      dashboardRef.send({ type: "GROUP_SELECTED", groupId: memberRouteTarget.groupId });
+    if (selectedGroupId !== workspaceMemberRouteTarget.groupId) {
+      dashboardRef.send({ type: "GROUP_SELECTED", groupId: workspaceMemberRouteTarget.groupId });
       return;
     }
-    if (memberRouteTarget.feedId === undefined) {
+    if (workspaceMemberRouteTarget.feedId === undefined) {
       return;
     }
-    if (!feeds.some((feed) => feed.id === memberRouteTarget.feedId)) {
+    if (!feeds.some((feed) => feed.id === workspaceMemberRouteTarget.feedId)) {
       return;
     }
-    if (selectedFeedId !== memberRouteTarget.feedId) {
-      dashboardRef.send({ type: "FEED_SELECTED", feedId: memberRouteTarget.feedId });
+    if (selectedFeedId !== workspaceMemberRouteTarget.feedId) {
+      dashboardRef.send({ type: "FEED_SELECTED", feedId: workspaceMemberRouteTarget.feedId });
       return;
     }
     if (
-      memberRouteTarget.date !== undefined &&
-      memberRouteTarget.date !== null &&
+      workspaceMemberRouteTarget.date !== undefined &&
+      workspaceMemberRouteTarget.date !== null &&
       selectedFeedDate !== "" &&
-      selectedFeedDate !== memberRouteTarget.date
+      selectedFeedDate !== workspaceMemberRouteTarget.date
     ) {
-      dashboardRef.send({ type: "FEED_DATE_CHANGED", date: memberRouteTarget.date });
+      dashboardRef.send({ type: "FEED_DATE_CHANGED", date: workspaceMemberRouteTarget.date });
     }
   }, [
     dashboardRef,
     feeds,
     groups,
     loadingGroups,
-    memberRouteTarget,
     publicRoute,
-    publicRouteKey,
     selectedFeedDate,
     selectedFeedId,
     selectedGroupId,
     signedIn,
+    workspaceMemberRouteTarget,
   ]);
 
   useEffect(() => {
@@ -248,23 +280,16 @@ export function WorkspaceShell({
   const groupRouteGroup =
     publicRoute?.kind === "group" ? (groups.find((group) => group.slug === publicRoute.slug) ?? null) : null;
   const memberRouteTargetGroup =
-    memberRouteTarget?.status === "member"
-      ? (groups.find((group) => group.id === memberRouteTarget.groupId && group.my_status === "active") ?? null)
+    workspaceMemberRouteTarget !== null
+      ? (groups.find((group) => group.id === workspaceMemberRouteTarget.groupId && group.my_status === "active") ??
+        null)
       : null;
   const groupRouteUsesWorkspace = publicRoute?.kind === "group" && signedIn && groupRouteGroup?.my_status === "active";
-  const memberRouteResolutionPending =
-    publicRoute !== null &&
-    publicRoute.kind !== "group" &&
-    signedIn &&
-    (memberRouteTarget === null ||
-      memberRouteTarget.routeKey !== publicRouteKey ||
-      memberRouteTarget.status === "loading");
   const memberRouteUsesWorkspace =
     publicRoute !== null &&
     publicRoute.kind !== "group" &&
     signedIn &&
-    !memberRouteResolutionPending &&
-    memberRouteTarget?.routeKey === publicRouteKey &&
+    workspaceMemberRouteTarget !== null &&
     memberRouteTargetGroup !== null;
   const publicRouteUsesWorkspace = groupRouteUsesWorkspace || memberRouteUsesWorkspace;
 

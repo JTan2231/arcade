@@ -82,6 +82,26 @@ before:
         set created_at = '{{daysAgo:2}}T12:00:00.000Z'::timestamptz
         where id = '{{feed_id}}'::uuid
 
+  - request:
+      id: create_metric
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/metrics
+      json:
+        system_key: post_count
+        display_name: Date output posts
+        aggregation: count
+      expectStatus: 201
+
+  - request:
+      id: create_today_post
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{today}}/posts
+      json:
+        evidence_text: Today evidence keeps the leaderboard populated.
+      expectStatus: 201
+
 steps:
   - visit: /
 
@@ -93,6 +113,23 @@ steps:
   - within: Selected feed output
     expectVisible:
       text: Date Output Task
+
+  - within: Metrics
+    expectVisible:
+      text: Posts
+      exact: true
+
+  - holdRequest:
+      id: member-route-resolution
+      method: GET
+      path: /api/me/daily-feeds
+      times: 1
+
+  - holdRequest:
+      id: older-output
+      method: GET
+      path: /api/groups/*/daily-feeds/*/outputs/{{daysAgo:2}}
+      times: 1
 
   - holdRequest:
       id: old-output
@@ -106,6 +143,37 @@ steps:
       path: /api/groups/*/daily-feeds/*/outputs/{{today}}
       times: 1
 
+  - holdRequest:
+      id: leaderboard-reload
+      method: GET
+      path: /api/groups/*/daily-feeds/*/metrics/*/leaderboard
+      times: 1
+
+  - within: Selected feed output
+    select:
+      label: Date
+      exact: false
+      value: "{{daysAgo:2}}"
+
+  - expectRequest:
+      id: older-output
+
+  - releaseRequest: older-output
+
+  - wait:
+      milliseconds: 250
+
+  - within: Selected feed output
+    expectValue:
+      label: Date
+      exact: false
+      value: "{{daysAgo:2}}"
+
+  - within: Metrics
+    expectVisible:
+      text: Posts
+      exact: true
+
   - within: Selected feed output
     select:
       label: Date
@@ -114,6 +182,21 @@ steps:
 
   - expectRequest:
       id: old-output
+
+  - within: Groups
+    expectVisible:
+      text: Date Switch Output Dojo
+
+  - within: Feeds
+    expectPressed:
+      role: button
+      name: Date Output Practice
+      pressed: true
+
+  - within: Metrics
+    expectVisible:
+      text: Posts
+      exact: true
 
   - within: Selected feed output
     select:

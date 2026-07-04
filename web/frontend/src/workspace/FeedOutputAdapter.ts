@@ -37,10 +37,10 @@ export function useFeedOutputAdapter({
     outputLoading: loadingTodayOutput || loadingDatedOutput,
     outputError: dashboardContext?.outputError ?? "",
     onChangeFeedDate: (date) => {
+      dashboardRef?.send({ type: "FEED_DATE_CHANGED", date });
       if (selectedFeedId !== null) {
         onNavigate(feedPath(selectedFeedId, date));
       }
-      dashboardRef?.send({ type: "FEED_DATE_CHANGED", date });
     },
   };
 }
