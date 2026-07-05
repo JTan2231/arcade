@@ -153,8 +153,13 @@ export function FeedSublist({
       })}
       {manage ? (
         <div className="feed-branch">
-          <button className="add-feed-button nav-add-feed-button" type="button" onClick={onAddFeed}>
-            Add feed
+          <button
+            className="add-feed-button nav-add-feed-button"
+            type="button"
+            aria-label="Add feed"
+            onClick={onAddFeed}
+          >
+            <span aria-hidden="true">+</span>
           </button>
         </div>
       ) : null}

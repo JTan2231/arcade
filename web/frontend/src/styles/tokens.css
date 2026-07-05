@@ -55,6 +55,7 @@
 
   --font-workspace-title:
     "arcade workspace geometric", "jost", "erbar", "erbar grotesk", "futura", "avenir next", avenir, sans-serif;
+  --font-group-nav: var(--font-workspace-title);
   --font-leaderboard-title: "arcade leaderboard title", rye, "playbill", "showcard gothic", fantasy;
   --font-leaderboard-entry:
     "arcade leaderboard entry", oswald, "knockout", "arial narrow", "helvetica condensed", sans-serif;

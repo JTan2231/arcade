@@ -51,12 +51,19 @@ button.metric-add-button:hover:not(:disabled) {
 
 .metrics-section {
   align-content: start;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-panel);
   display: grid;
   gap: 8px;
   grid-column: 3;
   justify-self: start;
+  margin-left: -8px;
+  margin-right: 8px;
   max-width: 320px;
   min-width: 0;
+  padding: 14px;
   width: 100%;
 }
 
