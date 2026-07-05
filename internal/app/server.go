@@ -19,10 +19,11 @@ import (
 )
 
 type Server struct {
-	db                 *pgxpool.Pool
-	static             http.Handler
-	staticFS           fs.FS
-	catalogImportToken string
+	db                    *pgxpool.Pool
+	static                http.Handler
+	staticFS              fs.FS
+	catalogImportToken    string
+	devPersistentSessions bool
 }
 
 func NewServer(_ context.Context, db *pgxpool.Pool, config Config) (*Server, error) {
@@ -32,10 +33,11 @@ func NewServer(_ context.Context, db *pgxpool.Pool, config Config) (*Server, err
 	}
 
 	return &Server{
-		db:                 db,
-		static:             http.FileServer(http.FS(staticFS)),
-		staticFS:           staticFS,
-		catalogImportToken: strings.TrimSpace(config.CatalogImportToken),
+		db:                    db,
+		static:                http.FileServer(http.FS(staticFS)),
+		staticFS:              staticFS,
+		catalogImportToken:    strings.TrimSpace(config.CatalogImportToken),
+		devPersistentSessions: config.DevPersistentSessions,
 	}, nil
 }
 

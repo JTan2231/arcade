@@ -361,21 +361,30 @@ func (s *Server) createSession(ctx context.Context, w http.ResponseWriter, r *ht
 		return err
 	}
 
-	lifetime := normalSessionLifetime
-	if rememberMe {
-		lifetime = rememberSessionLifetime
-	}
+	persistentSession := s.persistentSessionRequested(rememberMe)
+	lifetime := sessionLifetime(persistentSession)
 	expiresAt := time.Now().UTC().Add(lifetime)
 
 	if _, err := s.db.Exec(ctx, `
 		insert into user_sessions (user_id, token_hash, remember_me, user_agent, ip_address, expires_at)
 		values ($1, $2, $3, $4, $5, $6)
-	`, userID, hashSessionToken(rawToken), rememberMe, nullableText(trimForStorage(r.UserAgent(), 1024)), requestIP(r), expiresAt); err != nil {
+	`, userID, hashSessionToken(rawToken), persistentSession, nullableText(trimForStorage(r.UserAgent(), 1024)), requestIP(r), expiresAt); err != nil {
 		return err
 	}
 
-	setSessionCookie(w, r, cookieToken, expiresAt, rememberMe)
+	setSessionCookie(w, r, cookieToken, expiresAt, persistentSession)
 	return nil
+}
+
+func (s *Server) persistentSessionRequested(rememberMe bool) bool {
+	return rememberMe || s.devPersistentSessions
+}
+
+func sessionLifetime(persistentSession bool) time.Duration {
+	if persistentSession {
+		return rememberSessionLifetime
+	}
+	return normalSessionLifetime
 }
 
 func (s *Server) revokeSessionToken(ctx context.Context, cookieToken string) error {

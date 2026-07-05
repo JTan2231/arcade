@@ -62,3 +62,14 @@ func TestSetSessionCookieLifetime(t *testing.T) {
 		t.Fatalf("remember cookie MaxAge = %d, want positive", rememberCookie.MaxAge)
 	}
 }
+
+func TestDevPersistentSessionsRequestRememberedSession(t *testing.T) {
+	server := &Server{devPersistentSessions: true}
+
+	if !server.persistentSessionRequested(false) {
+		t.Fatal("dev persistent sessions should remember login requests without remember_me")
+	}
+	if sessionLifetime(server.persistentSessionRequested(false)) != rememberSessionLifetime {
+		t.Fatal("dev persistent sessions should use the remembered session lifetime")
+	}
+}

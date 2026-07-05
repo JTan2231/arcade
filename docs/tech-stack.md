@@ -51,6 +51,7 @@ Configuration is loaded from environment variables in `internal/app/config.go`.
 | `ARCADE_DATABASE_URL` | `postgres://localhost:5432/arcade?sslmode=disable` | Postgres connection URL. |
 | `DATABASE_URL` | unset | Fallback database URL when `ARCADE_DATABASE_URL` is unset. |
 | `ARCADE_CATALOG_IMPORT_TOKEN` | unset | Shared bearer token required by the admin-only catalog import endpoint and upload helper. |
+| `ARCADE_DEV_PERSIST_SESSIONS` | unset | Development-only flag. Truthy values make new login/signup sessions use the remembered 30-day cookie lifetime even when the request omits `remember_me`; `./run.sh` sets this to `1` by default. |
 
 ## Runtime Dependencies
 

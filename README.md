@@ -75,6 +75,10 @@ To start the API server and Vite dev server together:
 
 The command starts both services in the background and exits. Open the Vite URL
 printed by the script. It proxies `/api` to the Go backend.
+For this dev runner, backend login sessions are persistent by default so a
+refresh or browser restart does not require another sign-in. Set
+`ARCADE_DEV_PERSIST_SESSIONS=0` before `./run.sh restart backend` to restore
+normal session-cookie behavior.
 
 Useful process-manager commands:
 

@@ -25,6 +25,7 @@ if [ "${ARCADE_ADDR:-}" != "" ] && [ "$ARCADE_ADDR" != ":8080" ]; then
 fi
 
 export ARCADE_ADDR="${ARCADE_ADDR:-:8080}"
+export ARCADE_DEV_PERSIST_SESSIONS="${ARCADE_DEV_PERSIST_SESSIONS:-1}"
 
 state_dir="${ARCADE_RUN_STATE_DIR:-$repo_root/.arcade/run}"
 bin_dir="$state_dir/backend"

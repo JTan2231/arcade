@@ -1,11 +1,15 @@
 package app
 
-import "os"
+import (
+	"os"
+	"strings"
+)
 
 type Config struct {
-	Addr               string
-	DatabaseURL        string
-	CatalogImportToken string
+	Addr                  string
+	DatabaseURL           string
+	CatalogImportToken    string
+	DevPersistentSessions bool
 }
 
 func LoadConfig() Config {
@@ -17,9 +21,10 @@ func LoadConfig() Config {
 	addr := firstNonEmpty(os.Getenv("ARCADE_ADDR"), addrFromPort(os.Getenv("PORT")), ":8080")
 
 	return Config{
-		Addr:               addr,
-		DatabaseURL:        databaseURL,
-		CatalogImportToken: os.Getenv("ARCADE_CATALOG_IMPORT_TOKEN"),
+		Addr:                  addr,
+		DatabaseURL:           databaseURL,
+		CatalogImportToken:    os.Getenv("ARCADE_CATALOG_IMPORT_TOKEN"),
+		DevPersistentSessions: truthyEnv(os.Getenv("ARCADE_DEV_PERSIST_SESSIONS")),
 	}
 }
 
@@ -37,4 +42,13 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func truthyEnv(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "1", "t", "true", "y", "yes", "on":
+		return true
+	default:
+		return false
+	}
 }
