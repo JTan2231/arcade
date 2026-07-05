@@ -51,8 +51,8 @@ Routes are grouped by resource in `Server.Routes()`:
 
 - Auth: signup, login, logout, and session bootstrap.
 - Identity: `/api/me` profile lookup and updates.
-- Friends: friend-code rotation, friend requests, accepted friends, and
-  friend-gated group invite helpers.
+- Invite links: owner/admin group invite-link management, signed-out-safe link
+  previews, and authenticated link redemption.
 - Catalog: group-owned catalog sources and items.
 - Catalog imports: admin-only normalized JSONL uploads through a shared bearer
   token.
@@ -72,11 +72,12 @@ Routes are grouped by resource in `Server.Routes()`:
 The main persisted entities are:
 
 - `users`: local users with email/password credentials.
-- `user_friendships`: friend requests and accepted mutual friendships.
 - `user_sessions`: hashed session tokens for secure cookie-backed login.
 - `catalog_sources` and `catalog_items`: group-owned or global source templates
   and rows for group daily feeds.
-- `groups` and `group_memberships`: social scopes and roles.
+- `groups`, `group_memberships`, `group_invite_links`, and
+  `group_invite_link_redemptions`: social scopes, roles, invite links, and join
+  accountability.
 - `divisions` and `division_rules`: group-scoped division metadata.
 - `group_daily_feeds`: durable group-owned daily feed definitions.
 - `group_evidence_formats` and `group_evidence_format_versions`: group-owned
@@ -196,10 +197,9 @@ The browser app source lives in `web/frontend`:
   definitions, and invalidation helpers. See `docs/frontend-cache.md` for the
   cache contract.
 - `src/components` contains the auth, group list, dashboard, and toast views.
-- The workspace includes a friends panel for friend-code sharing, request
-  management, accepted friends, and pending group invite responses. The
-  selected group dashboard exposes friend-gated invite candidates for active
-  members.
+- Group settings include invite-link management. Owners and admins create,
+  inspect, and revoke expiring links; the `/join/{token}` route previews a link
+  for signed-out users and redeems it after authentication.
 - The selected feed dashboard includes a metric and leaderboard section. Judged
   metrics show prompt-driven score controls on post cards for group owners and
   admins.

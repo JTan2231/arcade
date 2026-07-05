@@ -22,12 +22,13 @@ the JSON shape exposed by the API.
 ```mermaid
 erDiagram
     users ||--o{ user_sessions : authenticates
-    users ||--o{ user_friendships : requests
-    users ||--o{ user_friendships : receives
 
     users ||--o{ groups : creates
     groups ||--o{ group_memberships : has
     users ||--o{ group_memberships : joins
+    groups ||--o{ group_invite_links : owns
+    users ||--o{ group_invite_links : creates
+    group_invite_links ||--o{ group_invite_link_redemptions : redeems
 
     groups ||--o{ catalog_sources : owns
     catalog_sources ||--o{ catalog_items : catalogs
@@ -61,26 +62,15 @@ erDiagram
 
 ## Identity
 
-`users` stores local account credentials, profile data, and a shareable friend
-code. Email is normalized before storage and enforced uniquely by
-`lower(email)`. Passwords are stored as hashes only; plaintext passwords are
-never persisted. `username` remains for compatibility and display URLs, but
-login uses email. `friend_code` is stored normalized without separators, is
-unique, and can be rotated without changing existing friendships or group
-memberships.
+`users` stores local account credentials and profile data. Email is normalized
+before storage and enforced uniquely by `lower(email)`. Passwords are stored as
+hashes only; plaintext passwords are never persisted. `username` remains for
+compatibility and display URLs, but login uses email.
 
 `user_sessions` stores cookie-backed sessions. Only a SHA-256 hash of the raw
 session token is stored; the browser receives the raw token in the
 `arcade_session` cookie. Sessions track expiration, optional remember-me
 lifetime, revocation, and last-seen metadata.
-
-`user_friendships` stores one durable row per unordered pair of users. The
-`user_low_id` and `user_high_id` columns enforce pair uniqueness, while
-`requester_user_id` and `addressee_user_id` preserve the direction of the
-latest pending request. Friendship status is constrained to `pending`,
-`accepted`, `declined`, or `canceled`. Accepted friendships authorize social
-actions such as group invites; they do not grant group permissions by
-themselves.
 
 ## Group Catalog And Daily Feeds
 
@@ -216,18 +206,28 @@ to older outputs do not extend the streak.
 
 `groups` represents a social or team scope. Group slugs are globally unique.
 Visibility defaults to `public` and is constrained to `public` or `private`.
-Invites are represented by membership rows with `status = 'invited'`; invite
-state is not a group visibility mode. Group visibility is the only
-public/private content setting: when a group is public, its enabled feeds and
-non-deleted posts are public; when a group is private, public group, feed, and
-post routes return 404.
+Invite links are separate group-owned rows; invite state is not a group
+visibility mode. Group visibility is the only public/private content setting:
+when a group is public, its enabled feeds and non-deleted posts are public; when
+a group is private, public group, feed, and post routes return 404.
 
 `group_memberships` connects users to groups with a role and lifecycle status.
-Roles are `owner`, `admin`, or `member`; statuses are `invited`, `active`,
-`removed`, or `left`. A user has at most one membership row per group. Social
-group invites reuse `status = 'invited'` and record `invited_by_user_id` plus
-`invited_at`; the friendship requirement is between that inviter and the
-invitee, not between the invitee and every group member.
+Roles are `owner`, `admin`, or `member`; statuses are `active`, `removed`, or
+`left`. A user has at most one membership row per group. Invite-link joins
+activate a membership directly and record `invited_by_user_id`, `invited_at`,
+and `invite_link_id` for accountability.
+
+`group_invite_links` stores owner/admin-created admission links for a group.
+Only a SHA-256 hash of the raw token is stored. Each link records its creator,
+optional label, expiration, optional max-use limit, revocation timestamp, and
+created/updated timestamps. A link is redeemable only while unrevoked,
+unexpired, under its use limit, and created by a user who is still an active
+member of the group.
+
+`group_invite_link_redemptions` stores durable audit rows for successful link
+redemptions. Each redemption records the group, link, joining user, link creator
+copied as `invited_by_user_id`, and redemption time. Redemptions survive link
+creator deletion by setting the creator reference to null.
 
 `divisions` partitions a group or defines a global division when `group_id` is
 null. Slugs are unique within a group via `(group_id, slug)`, and global

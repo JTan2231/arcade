@@ -121,8 +121,7 @@
     display: grid;
   }
 
-  .friend-code-row,
-  .social-row {
+  .invite-link-row {
     align-items: stretch;
     grid-template-columns: minmax(0, 1fr);
   }

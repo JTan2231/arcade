@@ -51,8 +51,8 @@ DATABASE_URL='postgres://...' scripts/prod-db-readonly.sh -c 'select now();'
 To replace local group/feed/source data with production data, use the mirror
 utility. It runs local migrations, truncates local app data, and copies the
 production graph needed by groups, daily feeds, catalog sources/items, posts,
-tags, metrics, friendships, and memberships. It does not copy production
-sessions, and it sanitizes user email/password/friend-code fields by default:
+tags, metrics, memberships, and invite links. It does not copy production
+sessions, and it sanitizes user email/password fields by default:
 
 ```sh
 ARCADE_PROD_DATABASE_URL='postgres://...' scripts/mirror-prod-to-local.sh

@@ -6,13 +6,10 @@ import type {
   DailyFeedOutputSummary,
   EvidenceFormat,
   FeedMetric,
-  Friend,
-  FriendRequests,
   Group,
   GroupFeedPost,
   GroupFeedPostRoute,
-  GroupInvite,
-  GroupInviteCandidate,
+  GroupInviteLink,
   GroupMember,
   GroupPostTag,
   MetricLeaderboard,
@@ -186,38 +183,12 @@ export const queries = {
     ],
   }),
 
-  friendRequests: defineQuery({
-    key: (uid: string) => ["user", uid, "social", "friend-requests"] as const,
-    fetch: (_uid: string, options: QueryFetcherOptions): Promise<FriendRequests> => api.listFriendRequests(options),
+  groupInviteLinks: defineQuery({
+    key: (uid: string, groupID: string) => ["user", uid, "group", groupID, "invite-links"] as const,
+    fetch: (_uid: string, groupID: string, options: QueryFetcherOptions): Promise<GroupInviteLink[]> =>
+      api.listGroupInviteLinks(groupID, options),
     staleMs: QUERY_TTL_MS,
     expiresMs: QUERY_TTL_MS,
-  }),
-
-  friends: defineQuery({
-    key: (uid: string) => ["user", uid, "social", "friends"] as const,
-    fetch: (_uid: string, options: QueryFetcherOptions): Promise<Friend[]> => api.listFriends(options),
-    staleMs: QUERY_TTL_MS,
-    expiresMs: QUERY_TTL_MS,
-  }),
-
-  groupInvites: defineQuery({
-    key: (uid: string) => ["user", uid, "social", "group-invites"] as const,
-    fetch: (_uid: string, options: QueryFetcherOptions): Promise<GroupInvite[]> => api.listGroupInvites(options),
-    staleMs: QUERY_TTL_MS,
-    expiresMs: QUERY_TTL_MS,
-  }),
-
-  inviteCandidates: defineQuery({
-    key: (uid: string, groupID: string) => ["user", uid, "group", groupID, "invite-candidates"] as const,
-    fetch: (_uid: string, groupID: string, options: QueryFetcherOptions): Promise<GroupInviteCandidate[]> =>
-      api.listGroupInviteCandidates(groupID, options),
-    staleMs: QUERY_TTL_MS,
-    expiresMs: QUERY_TTL_MS,
-    dependsOn: (uid: string, groupID: string) => [
-      ["user", uid, "social", "friends"],
-      ["user", uid, "social", "group-invites"],
-      ["user", uid, "group", groupID, "members"],
-    ],
   }),
 
   meDailyFeeds: defineQuery({

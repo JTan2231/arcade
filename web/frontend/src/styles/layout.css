@@ -67,19 +67,10 @@
   width: 100%;
 }
 
-.profile-layout {
-  grid-template-columns: minmax(280px, 520px);
-  justify-content: center;
-}
-
 .sidebar-stack {
   display: grid;
   gap: 16px;
   align-content: start;
-}
-
-.profile-stack {
-  min-width: 0;
 }
 
 .panel {

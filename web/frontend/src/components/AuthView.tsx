@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, type ReactNode } from "react";
 
 import type { LoginRequest, SignupRequest } from "../types";
 
@@ -6,13 +6,14 @@ type AuthMode = "login" | "signup";
 
 type AuthViewProps = {
   error: string;
+  intro?: ReactNode;
   submitting: boolean;
   onClearError: () => void;
   onLogin: (payload: LoginRequest) => void;
   onSignup: (payload: SignupRequest) => void;
 };
 
-export function AuthView({ error, submitting, onClearError, onLogin, onSignup }: AuthViewProps) {
+export function AuthView({ error, intro, submitting, onClearError, onLogin, onSignup }: AuthViewProps) {
   const [mode, setMode] = useState<AuthMode>("login");
 
   function switchMode(nextMode: AuthMode) {
@@ -45,6 +46,7 @@ export function AuthView({ error, submitting, onClearError, onLogin, onSignup }:
   return (
     <main className="auth-layout">
       <section className="panel auth-panel" aria-label="Authentication">
+        {intro}
         <div className="auth-tabs" role="tablist" aria-label="Authentication">
           <button
             className={`auth-tab ${mode === "login" ? "active" : "secondary"}`}

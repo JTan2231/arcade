@@ -82,7 +82,7 @@ func validGroupRole(role string) bool {
 
 func validGroupStatus(status string) bool {
 	switch status {
-	case "invited", "active", "removed", "left":
+	case "active", "removed", "left":
 		return true
 	default:
 		return false

@@ -4,7 +4,6 @@ export type User = {
   username: string;
   display_name: string;
   avatar_url?: string;
-  friend_code: string;
   created_at: string;
   updated_at: string;
 };
@@ -16,36 +15,6 @@ export type PublicUser = {
   avatar_url?: string;
 };
 
-export type FriendRequest = {
-  id: string;
-  status: "pending" | "accepted" | "declined" | "canceled";
-  requester: PublicUser;
-  addressee: PublicUser;
-  created_at: string;
-  updated_at: string;
-};
-
-export type FriendRequests = {
-  incoming: FriendRequest[];
-  outgoing: FriendRequest[];
-};
-
-export type Friend = {
-  user: PublicUser;
-  friends_since: string;
-};
-
-export type GroupInvite = {
-  group: Group;
-  invited_by?: PublicUser;
-  invited_at?: string;
-};
-
-export type GroupInviteCandidate = {
-  user: PublicUser;
-  membership_status?: "invited" | "active" | "removed" | "left";
-};
-
 export type Group = {
   id: string;
   name: string;
@@ -54,7 +23,7 @@ export type Group = {
   visibility: Visibility;
   created_by_user_id: string;
   my_role?: "owner" | "admin" | "member";
-  my_status?: "invited" | "active" | "removed" | "left";
+  my_status?: "active" | "removed" | "left";
   created_at: string;
   updated_at: string;
 };
@@ -98,10 +67,48 @@ export type GroupMember = {
   display_name: string;
   avatar_url?: string;
   role: "owner" | "admin" | "member";
-  status: "invited" | "active" | "removed" | "left";
+  status: "active" | "removed" | "left";
   joined_at?: string;
+  invited_by?: PublicUser;
+  invited_at?: string;
+  invite_link?: GroupInviteLinkSummary;
   created_at: string;
   updated_at: string;
+};
+
+type GroupInviteLinkSummary = {
+  id: string;
+  label?: string;
+};
+
+export type GroupInviteLink = {
+  id: string;
+  group_id: string;
+  label?: string;
+  created_by?: PublicUser;
+  expires_at: string;
+  revoked_at?: string;
+  max_uses?: number;
+  use_count: number;
+  token?: string;
+  url_path?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type GroupInviteLinkPreview = {
+  group: PublicParentGroup;
+  created_by?: PublicUser;
+  expires_at: string;
+  revoked_at?: string;
+  max_uses?: number;
+  use_count: number;
+};
+
+export type CreateGroupInviteLinkRequest = {
+  label?: string;
+  expires_at?: string;
+  max_uses?: number;
 };
 
 export type DailyFeedSchedule = {

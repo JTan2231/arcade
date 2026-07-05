@@ -94,7 +94,6 @@ func TestUserSelectSQLSanitizesAuthByDefault(t *testing.T) {
 	for _, want := range []string{
 		"local.arcade.invalid",
 		"'disabled'",
-		"'ARCD' || upper(replace(id::text, '-', ''))",
 	} {
 		if !strings.Contains(query, want) {
 			t.Fatalf("default user select missing %q in %s", want, query)
@@ -114,7 +113,7 @@ func TestUserSelectSQLCanSetSharedLocalPassword(t *testing.T) {
 }
 
 func TestCopyValueOverrideSetsSharedLocalPassword(t *testing.T) {
-	values := []any{"id", "username", "display", nil, "created", "updated", "email", "disabled", "friend"}
+	values := []any{"id", "username", "display", nil, "created", "updated", "email", "disabled"}
 	override := copyValueOverride(mirrorTable{name: "users"}, mirrorOptions{localPassword: "hashed-local-password"})
 	if override == nil {
 		t.Fatal("copyValueOverride returned nil")
@@ -125,7 +124,7 @@ func TestCopyValueOverrideSetsSharedLocalPassword(t *testing.T) {
 	if values[7] != "hashed-local-password" {
 		t.Fatalf("password hash value = %v", values[7])
 	}
-	if values[6] != "email" || values[8] != "friend" {
+	if values[6] != "email" {
 		t.Fatalf("override changed neighboring values: %#v", values)
 	}
 }
@@ -171,7 +170,6 @@ func TestUserSelectSQLCanPreserveProductionAuth(t *testing.T) {
 	for _, want := range []string{
 		"email as email",
 		"password_hash as password_hash",
-		"friend_code as friend_code",
 	} {
 		if !strings.Contains(query, want) {
 			t.Fatalf("preserved user select missing %q in %s", want, query)

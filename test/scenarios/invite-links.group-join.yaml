@@ -1,0 +1,124 @@
+name: invite link joins group with attribution
+
+vars:
+  owner_email: invite-link-owner@example.test
+  bob_email: invite-link-bob@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      client: browser
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Link Owner
+        email: "{{owner_email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+      capture:
+        owner_id: $.id
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Invite Link Group
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: create_invite_link
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/invite-links
+      json:
+        label: July cohort
+        expires_at: "2099-01-01T00:00:00Z"
+        max_uses: 3
+      expectStatus: 201
+      capture:
+        invite_link_id: $.id
+        invite_token: $.token
+
+  - request:
+      id: logout_owner
+      client: browser
+      method: POST
+      path: /api/auth/logout
+      expectStatus: 204
+
+  - request:
+      id: signup_bob
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Link Bob
+        email: "{{bob_email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+      capture:
+        bob_id: $.id
+
+steps:
+  - visit: /join/{{invite_token}}
+
+  - within: Authentication
+    expectVisible:
+      text: Invite Link Group
+
+  - within: Authentication
+    fill:
+      label: Username
+      value: "{{bob_email}}"
+
+  - within: Authentication
+    fill:
+      label: Password
+      value: "{{password}}"
+
+  - within: Authentication
+    click:
+      role: button
+      name: Login
+
+  - expectStatus:
+      text: Signed in
+
+  - within: Invite link
+    click:
+      role: button
+      name: Join group
+
+  - expectStatus:
+      text: Joined group
+
+  - request:
+      id: list_bob_groups
+      client: browser
+      method: GET
+      path: /api/groups
+      expectStatus: 200
+      expectJson:
+        - id: "{{group_id}}"
+          my_status: active
+
+  - request:
+      id: list_members
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/members
+      expectStatus: 200
+      expectJson:
+        - user_id: "{{owner_id}}"
+        - user_id: "{{bob_id}}"
+          invited_by:
+            id: "{{owner_id}}"
+          invite_link:
+            id: "{{invite_link_id}}"
+            label: July cohort

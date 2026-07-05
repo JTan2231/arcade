@@ -8,7 +8,6 @@ type User struct {
 	Username    string    `json:"username"`
 	DisplayName string    `json:"display_name"`
 	AvatarURL   *string   `json:"avatar_url,omitempty"`
-	FriendCode  string    `json:"friend_code"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -18,36 +17,6 @@ type PublicUser struct {
 	Username    string  `json:"username"`
 	DisplayName string  `json:"display_name"`
 	AvatarURL   *string `json:"avatar_url,omitempty"`
-}
-
-type FriendRequest struct {
-	ID        string     `json:"id"`
-	Status    string     `json:"status"`
-	Requester PublicUser `json:"requester"`
-	Addressee PublicUser `json:"addressee"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
-}
-
-type FriendRequests struct {
-	Incoming []FriendRequest `json:"incoming"`
-	Outgoing []FriendRequest `json:"outgoing"`
-}
-
-type Friend struct {
-	User         PublicUser `json:"user"`
-	FriendsSince time.Time  `json:"friends_since"`
-}
-
-type GroupInvite struct {
-	Group     Group       `json:"group"`
-	InvitedBy *PublicUser `json:"invited_by,omitempty"`
-	InvitedAt *time.Time  `json:"invited_at,omitempty"`
-}
-
-type GroupInviteCandidate struct {
-	User             PublicUser `json:"user"`
-	MembershipStatus *string    `json:"membership_status,omitempty"`
 }
 
 type Group struct {
@@ -95,15 +64,47 @@ type PublicParentGroup struct {
 }
 
 type GroupMember struct {
-	UserID      string     `json:"user_id"`
-	Username    string     `json:"username"`
-	DisplayName string     `json:"display_name"`
-	AvatarURL   *string    `json:"avatar_url,omitempty"`
-	Role        string     `json:"role"`
-	Status      string     `json:"status"`
-	JoinedAt    *time.Time `json:"joined_at,omitempty"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	UserID      string                  `json:"user_id"`
+	Username    string                  `json:"username"`
+	DisplayName string                  `json:"display_name"`
+	AvatarURL   *string                 `json:"avatar_url,omitempty"`
+	Role        string                  `json:"role"`
+	Status      string                  `json:"status"`
+	JoinedAt    *time.Time              `json:"joined_at,omitempty"`
+	InvitedBy   *PublicUser             `json:"invited_by,omitempty"`
+	InvitedAt   *time.Time              `json:"invited_at,omitempty"`
+	InviteLink  *GroupInviteLinkSummary `json:"invite_link,omitempty"`
+	CreatedAt   time.Time               `json:"created_at"`
+	UpdatedAt   time.Time               `json:"updated_at"`
+}
+
+type GroupInviteLinkSummary struct {
+	ID    string  `json:"id"`
+	Label *string `json:"label,omitempty"`
+}
+
+type GroupInviteLink struct {
+	ID        string      `json:"id"`
+	GroupID   string      `json:"group_id"`
+	Label     *string     `json:"label,omitempty"`
+	CreatedBy *PublicUser `json:"created_by,omitempty"`
+	ExpiresAt time.Time   `json:"expires_at"`
+	RevokedAt *time.Time  `json:"revoked_at,omitempty"`
+	MaxUses   *int        `json:"max_uses,omitempty"`
+	UseCount  int         `json:"use_count"`
+	Token     *string     `json:"token,omitempty"`
+	URLPath   *string     `json:"url_path,omitempty"`
+	CreatedAt time.Time   `json:"created_at"`
+	UpdatedAt time.Time   `json:"updated_at"`
+}
+
+type GroupInviteLinkPreview struct {
+	Group     PublicParentGroup `json:"group"`
+	CreatedBy *PublicUser       `json:"created_by,omitempty"`
+	ExpiresAt time.Time         `json:"expires_at"`
+	RevokedAt *time.Time        `json:"revoked_at,omitempty"`
+	MaxUses   *int              `json:"max_uses,omitempty"`
+	UseCount  int               `json:"use_count"`
 }
 
 type Division struct {

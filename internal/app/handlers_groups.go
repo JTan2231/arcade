@@ -350,7 +350,7 @@ func (s *Server) handleAddGroupMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !validGroupStatus(req.Status) {
-		writeError(w, http.StatusBadRequest, "status must be invited, active, removed, or left")
+		writeError(w, http.StatusBadRequest, "status must be active, removed, or left")
 		return
 	}
 	if actorRole == "admin" && req.Role != "member" {
@@ -367,17 +367,12 @@ func (s *Server) handleAddGroupMember(w http.ResponseWriter, r *http.Request) {
 
 	var userID string
 	for attempt := 0; attempt < 6 && userID == ""; attempt++ {
-		friendCode, err := generateFriendCode()
-		if err != nil {
-			handleError(w, err)
-			return
-		}
 		err = tx.QueryRow(r.Context(), `
-			insert into users (username, email, display_name, password_hash, friend_code)
-			values ($1, $2, $3, $4, $5)
+			insert into users (username, email, display_name, password_hash)
+			values ($1, $2, $3, $4)
 			on conflict (username) do nothing
 			returning id::text
-		`, req.Username, placeholderEmail(req.Username), req.DisplayName, disabledPasswordHash, friendCode).Scan(&userID)
+		`, req.Username, placeholderEmail(req.Username), req.DisplayName, disabledPasswordHash).Scan(&userID)
 		if err == nil {
 			break
 		}
@@ -388,14 +383,11 @@ func (s *Server) handleAddGroupMember(w http.ResponseWriter, r *http.Request) {
 			}
 			break
 		}
-		if isUniqueConstraint(err, "users_friend_code_unique") {
-			continue
-		}
 		handleError(w, err)
 		return
 	}
 	if userID == "" {
-		handleError(w, errors.New("create user friend code"))
+		handleError(w, errors.New("create user"))
 		return
 	}
 
@@ -469,7 +461,7 @@ func (s *Server) handlePatchGroupMember(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if req.Status != nil && !validGroupStatus(*req.Status) {
-		writeError(w, http.StatusBadRequest, "status must be invited, active, removed, or left")
+		writeError(w, http.StatusBadRequest, "status must be active, removed, or left")
 		return
 	}
 
@@ -622,10 +614,19 @@ func (s *Server) listGroupMembers(ctx context.Context, groupID string) ([]GroupM
 			gm.role,
 			gm.status,
 			gm.joined_at,
+			inviter.id::text,
+			inviter.username,
+			inviter.display_name,
+			inviter.avatar_url,
+			gm.invited_at,
+			link.id::text,
+			link.label,
 			gm.created_at,
 			gm.updated_at
 		from group_memberships gm
 		join users u on u.id = gm.user_id
+		left join users inviter on inviter.id = gm.invited_by_user_id
+		left join group_invite_links link on link.id = gm.invite_link_id
 		where gm.group_id = $1
 		order by
 			case gm.role when 'owner' then 0 when 'admin' then 1 else 2 end,
@@ -651,6 +652,13 @@ func scanGroupMember(row pgx.Row) (GroupMember, error) {
 	var member GroupMember
 	var avatar sql.NullString
 	var joinedAt sql.NullTime
+	var inviterID sql.NullString
+	var inviterUsername sql.NullString
+	var inviterDisplayName sql.NullString
+	var inviterAvatarURL sql.NullString
+	var invitedAt sql.NullTime
+	var inviteLinkID sql.NullString
+	var inviteLinkLabel sql.NullString
 	if err := row.Scan(
 		&member.UserID,
 		&member.Username,
@@ -659,6 +667,13 @@ func scanGroupMember(row pgx.Row) (GroupMember, error) {
 		&member.Role,
 		&member.Status,
 		&joinedAt,
+		&inviterID,
+		&inviterUsername,
+		&inviterDisplayName,
+		&inviterAvatarURL,
+		&invitedAt,
+		&inviteLinkID,
+		&inviteLinkLabel,
 		&member.CreatedAt,
 		&member.UpdatedAt,
 	); err != nil {
@@ -666,5 +681,20 @@ func scanGroupMember(row pgx.Row) (GroupMember, error) {
 	}
 	member.AvatarURL = nullStringPtr(avatar)
 	member.JoinedAt = nullTimePtr(joinedAt)
+	if inviterID.Valid {
+		member.InvitedBy = &PublicUser{
+			ID:          inviterID.String,
+			Username:    inviterUsername.String,
+			DisplayName: inviterDisplayName.String,
+			AvatarURL:   nullStringPtr(inviterAvatarURL),
+		}
+	}
+	member.InvitedAt = nullTimePtr(invitedAt)
+	if inviteLinkID.Valid {
+		member.InviteLink = &GroupInviteLinkSummary{
+			ID:    inviteLinkID.String,
+			Label: nullStringPtr(inviteLinkLabel),
+		}
+	}
 	return member, nil
 }

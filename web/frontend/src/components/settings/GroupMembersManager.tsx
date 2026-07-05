@@ -30,6 +30,7 @@ export function GroupMembersManager({
         {!loading && members.length === 0 ? <div className="meta">No members</div> : null}
         {members.map((member) => {
           const displayName = member.display_name || member.username;
+          const inviteLinkLabel = member.invite_link?.label ?? "";
           const removing = removingUserId === member.user_id;
           const removable = canRemoveMember(group, member, members);
           return (
@@ -37,9 +38,15 @@ export function GroupMembersManager({
               <div className="group-member-summary">
                 <div className="title">{displayName}</div>
                 <div className="meta">
-                  @{member.username} · {roleLabel(member.role)} · {statusLabel(member.status)}
-                  {member.user_id === currentUserId ? " · You" : ""}
+                  @{member.username} - {roleLabel(member.role)} - {statusLabel(member.status)}
+                  {member.user_id === currentUserId ? " - You" : ""}
                 </div>
+                {member.invited_by ? (
+                  <div className="meta">
+                    Invited by {member.invited_by.display_name}
+                    {inviteLinkLabel !== "" ? ` via ${inviteLinkLabel}` : ""}
+                  </div>
+                ) : null}
               </div>
               <button
                 aria-label={`Remove ${displayName}`}
@@ -94,8 +101,6 @@ function statusLabel(status: GroupMember["status"]): string {
   switch (status) {
     case "active":
       return "Active";
-    case "invited":
-      return "Invited";
     case "left":
       return "Left";
     case "removed":

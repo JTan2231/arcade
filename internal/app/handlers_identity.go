@@ -61,14 +61,13 @@ func (s *Server) handlePatchMe(w http.ResponseWriter, r *http.Request) {
 		    display_name = $3,
 		    avatar_url = coalesce($4, avatar_url)
 		where id = $1
-		returning id::text, email, username, display_name, avatar_url, friend_code, created_at, updated_at
+		returning id::text, email, username, display_name, avatar_url, created_at, updated_at
 	`, current.ID, username, displayName, avatarURL).Scan(
 		&user.ID,
 		&user.Email,
 		&user.Username,
 		&user.DisplayName,
 		&avatar,
-		&user.FriendCode,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -80,26 +79,11 @@ func (s *Server) handlePatchMe(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, user)
 }
 
-func (s *Server) handleRotateFriendCode(w http.ResponseWriter, r *http.Request) {
-	current, err := requireUser(r.Context())
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-
-	user, err := s.rotateFriendCode(r.Context(), current.ID)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, user)
-}
-
 func (s *Server) getUser(ctx context.Context, userID string) (User, error) {
 	var user User
 	var avatarURL sql.NullString
 	err := s.db.QueryRow(ctx, `
-		select id::text, email, username, display_name, avatar_url, friend_code, created_at, updated_at
+		select id::text, email, username, display_name, avatar_url, created_at, updated_at
 		from users
 		where id = $1
 	`, userID).Scan(
@@ -108,7 +92,6 @@ func (s *Server) getUser(ctx context.Context, userID string) (User, error) {
 		&user.Username,
 		&user.DisplayName,
 		&avatarURL,
-		&user.FriendCode,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -120,45 +103,4 @@ func (s *Server) getUser(ctx context.Context, userID string) (User, error) {
 	}
 	user.AvatarURL = nullStringPtr(avatarURL)
 	return user, nil
-}
-
-func (s *Server) rotateFriendCode(ctx context.Context, userID string) (User, error) {
-	var lastErr error
-	for range 6 {
-		friendCode, err := generateFriendCode()
-		if err != nil {
-			return User{}, err
-		}
-
-		var user User
-		var avatarURL sql.NullString
-		err = s.db.QueryRow(ctx, `
-			update users
-			set friend_code = $2
-			where id = $1
-			returning id::text, email, username, display_name, avatar_url, friend_code, created_at, updated_at
-		`, userID, friendCode).Scan(
-			&user.ID,
-			&user.Email,
-			&user.Username,
-			&user.DisplayName,
-			&avatarURL,
-			&user.FriendCode,
-			&user.CreatedAt,
-			&user.UpdatedAt,
-		)
-		if err == nil {
-			user.AvatarURL = nullStringPtr(avatarURL)
-			return user, nil
-		}
-		if isUniqueConstraint(err, "users_friend_code_unique") {
-			lastErr = err
-			continue
-		}
-		if errors.Is(err, pgx.ErrNoRows) {
-			return User{}, errNotFound("user")
-		}
-		return User{}, err
-	}
-	return User{}, lastErr
 }

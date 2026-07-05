@@ -74,10 +74,10 @@ Production group/feed/source data can be mirrored into the local database with
 ./cmd/mirror-prod-db`, connects to production in read-only mode, runs local
 migrations without starting the HTTP server, validates the configured mirror
 tables and columns against both live schemas, truncates the mirrored local app
-tables, and copies users, friendships, groups, memberships, divisions, catalog
+tables, and copies users, groups, memberships, invite links, divisions, catalog
 sources/items/fields, daily feeds, feed filters, feed posts, post tags, and feed
 metrics. It intentionally excludes `user_sessions`. By default it replaces user
-email, password hash, and friend code values with local-safe values; set
+email and password hash values with local-safe values; set
 `ARCADE_MIRROR_LOCAL_PASSWORD` or pass `-local-password` to make mirrored users
 loggable locally with one shared password.
 

@@ -2,12 +2,13 @@ import type {
   CreateEvidenceFormatRequest,
   CreateEvidenceFormatVersionRequest,
   CreateFeedMetricRequest,
+  CreateGroupInviteLinkRequest,
   CreateGroupPostTagRequest,
   DailyFeed,
   EvidenceFormat,
   FeedMetric,
   Group,
-  GroupInviteCandidate,
+  GroupInviteLink,
   GroupMember,
   GroupPostTag,
   PatchEvidenceFormatRequest,
@@ -19,7 +20,7 @@ import { MetricSettingsManager } from "../MetricSettingsManager";
 import { EvidenceFormatManager } from "./EvidenceFormatManager";
 import { GroupMembersManager } from "./GroupMembersManager";
 import { GroupVisibilityControl } from "./GroupVisibilityControl";
-import { InviteFriends } from "./InviteFriends";
+import { InviteLinksManager } from "./InviteLinksManager";
 import { PostTagManager } from "./PostTagManager";
 
 export type GroupSettingsDialogProps = {
@@ -47,9 +48,12 @@ export type GroupSettingsDialogProps = {
   members: GroupMember[];
   membersError: string;
   removingMemberUserId: string | null;
-  inviteCandidates: GroupInviteCandidate[];
-  inviteCandidatesLoading: boolean;
-  invitingUserId: string | null;
+  inviteLinks: GroupInviteLink[];
+  inviteLinksLoading: boolean;
+  inviteLinksError: string;
+  creatingInviteLink: boolean;
+  revokingInviteLinkId: string | null;
+  createdInviteURL: string;
   visibilitySaving: boolean;
   onClose: () => void;
   onSelectFeed: (feedId: string) => void;
@@ -64,8 +68,9 @@ export type GroupSettingsDialogProps = {
   onCreateFormatVersion: (formatId: string, payload: CreateEvidenceFormatVersionRequest) => void;
   onDeleteFormat: (formatId: string) => void;
   onRemoveMember: (userId: string) => void;
-  onInviteFriend: (userId: string) => void;
-  onCancelGroupInvite: (userId: string) => void;
+  onCreateInviteLink: (payload: CreateGroupInviteLinkRequest) => void;
+  onRevokeInviteLink: (linkId: string) => void;
+  onClearCreatedInviteURL: () => void;
   onUpdateVisibility: (visibility: Visibility) => void;
 };
 
@@ -94,9 +99,12 @@ export function GroupSettingsDialog({
   members,
   membersError,
   removingMemberUserId,
-  inviteCandidates,
-  inviteCandidatesLoading,
-  invitingUserId,
+  inviteLinks,
+  inviteLinksLoading,
+  inviteLinksError,
+  creatingInviteLink,
+  revokingInviteLinkId,
+  createdInviteURL,
   visibilitySaving,
   onClose,
   onSelectFeed,
@@ -111,8 +119,9 @@ export function GroupSettingsDialog({
   onCreateFormatVersion,
   onDeleteFormat,
   onRemoveMember,
-  onInviteFriend,
-  onCancelGroupInvite,
+  onCreateInviteLink,
+  onRevokeInviteLink,
+  onClearCreatedInviteURL,
   onUpdateVisibility,
 }: GroupSettingsDialogProps) {
   if (!canManageGroup(group)) {
@@ -185,12 +194,16 @@ export function GroupSettingsDialog({
             removingUserId={removingMemberUserId}
             onRemoveMember={onRemoveMember}
           />
-          <InviteFriends
-            candidates={inviteCandidates}
-            loading={inviteCandidatesLoading}
-            invitingUserId={invitingUserId}
-            onCancelGroupInvite={onCancelGroupInvite}
-            onInviteFriend={onInviteFriend}
+          <InviteLinksManager
+            createdInviteURL={createdInviteURL}
+            creating={creatingInviteLink}
+            error={inviteLinksError}
+            links={inviteLinks}
+            loading={inviteLinksLoading}
+            revokingLinkId={revokingInviteLinkId}
+            onClearCreatedInviteURL={onClearCreatedInviteURL}
+            onCreateInviteLink={onCreateInviteLink}
+            onRevokeInviteLink={onRevokeInviteLink}
           />
         </div>
       </section>

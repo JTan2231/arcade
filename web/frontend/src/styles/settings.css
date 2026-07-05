@@ -1,33 +1,6 @@
-.friends-panel {
-  display: grid;
-  gap: 12px;
-}
-
-.friend-code-row {
-  align-items: center;
-  background: var(--color-surface-subtle);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  padding: 10px;
-}
-
-.friend-code {
-  color: var(--color-text);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-weight: 700;
-  overflow-wrap: anywhere;
-}
-
-.social-section,
-.invite-friends-section {
+.invite-links-section {
   display: grid;
   gap: 8px;
-}
-
-.invite-friends-section {
   border-top: 1px solid var(--color-border);
   margin-top: 14px;
   padding-top: 14px;
@@ -38,10 +11,24 @@
   gap: 8px;
 }
 
-.post-tag-manager + .invite-friends-section {
+.post-tag-manager + .invite-links-section {
   border-top: 1px solid var(--color-border);
   margin-top: 14px;
   padding-top: 14px;
+}
+
+.invite-link-form {
+  display: grid;
+  gap: 8px;
+}
+
+.created-invite-link {
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 8px;
 }
 
 .evidence-format-create-form {
@@ -98,7 +85,7 @@
   min-height: 30px;
 }
 
-.social-row {
+.invite-link-row {
   align-items: center;
   display: grid;
   gap: 10px;
@@ -106,7 +93,7 @@
 }
 
 .compact-actions button,
-.social-row button {
+.invite-link-row button {
   font-size: 13px;
   min-height: 32px;
 }

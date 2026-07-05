@@ -9,6 +9,27 @@
   width: min(420px, 100%);
 }
 
+.invite-join-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.invite-preview {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.invite-join-panel .invite-preview {
+  margin-bottom: 0;
+}
+
+.invite-preview h1 {
+  font-size: 24px;
+  line-height: 1.15;
+  margin: 0;
+}
+
 .auth-tabs {
   display: grid;
   gap: 8px;

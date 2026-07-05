@@ -57,25 +57,8 @@ var mirrorTables = []mirrorTable{
 			"updated_at",
 			"email",
 			"password_hash",
-			"friend_code",
 		},
 		selectSQL: userSelectSQL,
-	},
-	{
-		name: "user_friendships",
-		columns: []string{
-			"id",
-			"requester_user_id",
-			"addressee_user_id",
-			"user_low_id",
-			"user_high_id",
-			"status",
-			"requested_at",
-			"responded_at",
-			"accepted_at",
-			"created_at",
-			"updated_at",
-		},
 	},
 	{
 		name: "groups",
@@ -86,6 +69,21 @@ var mirrorTables = []mirrorTable{
 			"description",
 			"visibility",
 			"created_by_user_id",
+			"created_at",
+			"updated_at",
+		},
+	},
+	{
+		name: "group_invite_links",
+		columns: []string{
+			"id",
+			"group_id",
+			"token_hash",
+			"label",
+			"created_by_user_id",
+			"expires_at",
+			"revoked_at",
+			"max_uses",
 			"created_at",
 			"updated_at",
 		},
@@ -103,6 +101,18 @@ var mirrorTables = []mirrorTable{
 			"updated_at",
 			"invited_by_user_id",
 			"invited_at",
+			"invite_link_id",
+		},
+	},
+	{
+		name: "group_invite_link_redemptions",
+		columns: []string{
+			"id",
+			"invite_link_id",
+			"group_id",
+			"redeemed_by_user_id",
+			"invited_by_user_id",
+			"redeemed_at",
 		},
 	},
 	{
@@ -352,11 +362,11 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout io.Writer, 
 	fmt.Fprintf(stdout, "Production source: %s\n", redactedDatabaseURL(opts.prodURL))
 	fmt.Fprintf(stdout, "Local target:      %s\n", redactedDatabaseURL(opts.localURL))
 	if opts.preserveUserAuth {
-		fmt.Fprintln(stdout, "User auth fields:  preserving production email/password/friend_code")
+		fmt.Fprintln(stdout, "User auth fields:  preserving production email/password")
 	} else if opts.localPassword != "" {
-		fmt.Fprintln(stdout, "User auth fields:  sanitized emails/friend codes with a shared local password")
+		fmt.Fprintln(stdout, "User auth fields:  sanitized emails with a shared local password")
 	} else {
-		fmt.Fprintln(stdout, "User auth fields:  sanitized emails/friend codes with disabled passwords")
+		fmt.Fprintln(stdout, "User auth fields:  sanitized emails with disabled passwords")
 	}
 
 	prodConn, err := connectProduction(ctx, opts.prodURL, opts.statementTimeout)
@@ -424,7 +434,7 @@ func parseOptions(args []string, output io.Writer) (mirrorOptions, error) {
 	flags.BoolVar(&opts.dryRun, "dry-run", false, "show the production row counts without changing the local database")
 	flags.BoolVar(&opts.yes, "yes", false, "skip the destructive confirmation prompt")
 	flags.BoolVar(&opts.allowNonlocalTarget, "allow-nonlocal-target", false, "allow truncating a target database whose host is not local")
-	flags.BoolVar(&opts.preserveUserAuth, "preserve-user-auth", false, "copy production user email, password_hash, and friend_code instead of sanitizing them")
+	flags.BoolVar(&opts.preserveUserAuth, "preserve-user-auth", false, "copy production user email and password_hash instead of sanitizing them")
 	flags.StringVar(&opts.localPassword, "local-password", opts.localPassword, "shared password for mirrored users; ARCADE_MIRROR_LOCAL_PASSWORD avoids putting it in shell history")
 	flags.DurationVar(&opts.statementTimeout, "statement-timeout", opts.statementTimeout, "statement timeout for production read queries; use 0 to disable")
 
@@ -827,19 +837,16 @@ func (t mirrorTable) selectQuery(opts mirrorOptions) string {
 func userSelectSQL(opts mirrorOptions) string {
 	email := "('prod-user-' || replace(id::text, '-', '') || '@local.arcade.invalid')::text"
 	passwordHash := quoteLiteral(disabledPasswordHash)
-	friendCode := "('ARCD' || upper(replace(id::text, '-', '')))::text"
 
 	if opts.preserveUserAuth {
 		email = "email"
 		passwordHash = "password_hash"
-		friendCode = "friend_code"
 	}
 
 	return fmt.Sprintf(
-		`select id, username, display_name, avatar_url, created_at, updated_at, %s as email, %s as password_hash, %s as friend_code from %s`,
+		`select id, username, display_name, avatar_url, created_at, updated_at, %s as email, %s as password_hash from %s`,
 		email,
 		passwordHash,
-		friendCode,
 		qualifiedTableName("users"),
 	)
 }

@@ -2,9 +2,10 @@ import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react
 import { useMachine } from "@xstate/react";
 
 import { AuthView } from "./components/AuthView";
+import { InviteJoinView } from "./components/InviteJoinView";
 import { Toast } from "./components/Toast";
 import { appMachine } from "./machines/appMachine";
-import { readAppRoute, userProfilePath, type AppRoute } from "./routes";
+import { groupPath, readAppRoute, type AppRoute } from "./routes";
 import { PublicRouteAdapter } from "./workspace/PublicRouteAdapter";
 import { WorkspaceShell } from "./workspace/WorkspaceShell";
 import type { DashboardActorRef } from "./workspace/types";
@@ -21,7 +22,8 @@ export default function App() {
   const signedIn = snapshot.matches("signedIn");
   const loggingIn = snapshot.matches({ signedOut: "loggingIn" });
   const signingUp = snapshot.matches({ signedOut: "signingUp" });
-  const publicRoute = typeof route === "object" ? route : null;
+  const publicRoute = typeof route === "object" && route.kind !== "invite" ? route : null;
+  const inviteRoute = typeof route === "object" && route.kind === "invite" ? route : null;
 
   const setAppPath = useCallback((path: string, mode: "push" | "replace" = "push") => {
     if (window.location.pathname === path) {
@@ -104,6 +106,29 @@ export default function App() {
     );
   }
 
+  if (inviteRoute !== null) {
+    return (
+      <>
+        <InviteJoinView
+          authError={context.authError}
+          authSubmitting={loggingIn || signingUp}
+          currentUser={context.user}
+          token={inviteRoute.token}
+          onAccepted={(group) => {
+            dashboardRef?.send({ type: "GROUPS_REFRESH_REQUESTED", preferredGroupId: group.id });
+            setAppPath(groupPath(group), "replace");
+          }}
+          onClearAuthError={() => send({ type: "AUTH_ERROR_CLEARED" })}
+          onLogin={(payload) => send({ type: "LOGIN_SUBMITTED", payload })}
+          onSignup={(payload) => send({ type: "SIGNUP_SUBMITTED", payload })}
+          onToast={requestToast}
+          onUnauthorized={handleUnauthorized}
+        />
+        <Toast message={context.toastMessage} />
+      </>
+    );
+  }
+
   if (signedOut) {
     return (
       <>
@@ -119,7 +144,6 @@ export default function App() {
     );
   }
 
-  const profilePath = context.user === null ? "/" : userProfilePath(context.user);
   const header = (
     <header className="app-header">
       <div>
@@ -128,15 +152,7 @@ export default function App() {
             Arcade
           </a>
         </h1>
-        {context.user !== null ? (
-          <a
-            className="header-user"
-            href={profilePath}
-            onClick={(event) => handleInternalLinkClick(event, profilePath)}
-          >
-            {context.user.display_name}
-          </a>
-        ) : null}
+        {context.user !== null ? <div className="header-user">{context.user.display_name}</div> : null}
       </div>
       <button className="secondary" type="button" onClick={() => send({ type: "LOGOUT_REQUESTED" })}>
         Logout
@@ -156,7 +172,6 @@ export default function App() {
         onNavigate={setAppPath}
         onToast={requestToast}
         onUnauthorized={handleUnauthorized}
-        onUserUpdated={(user) => send({ type: "USER_UPDATED", user })}
       />
       <Toast message={context.toastMessage} />
     </>

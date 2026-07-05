@@ -251,7 +251,7 @@ button.metric-title-menu-option[aria-pressed="true"]:hover:not(:disabled) {
 
 .leaderboard-table tbody td {
   font-family: var(--font-leaderboard-entry);
-  font-size: 14px;
+  font-size: 20px;
   font-weight: 500;
 }
 

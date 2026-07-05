@@ -1,6 +1,11 @@
-import type { Group, PublicRoute, User } from "./types";
+import type { Group, PublicRoute } from "./types";
 
-export type AppRoute = "workspace" | "profile" | PublicRoute;
+type InviteRoute = {
+  kind: "invite";
+  token: string;
+};
+
+export type AppRoute = "workspace" | PublicRoute | InviteRoute;
 
 export function readAppRoute(): AppRoute {
   let segments: string[];
@@ -9,10 +14,13 @@ export function readAppRoute(): AppRoute {
   } catch {
     return "workspace";
   }
-  if (segments[0] === "user") {
-    return "profile";
-  }
   const resourceId = segments[1];
+  if (segments[0] === "join" && segments.length === 2 && resourceId !== undefined && resourceId !== "") {
+    return {
+      kind: "invite",
+      token: resourceId,
+    };
+  }
   if (segments[0] === "g" && segments.length === 2 && resourceId !== undefined && resourceId !== "") {
     return {
       kind: "group",
@@ -38,10 +46,6 @@ export function readAppRoute(): AppRoute {
     };
   }
   return "workspace";
-}
-
-export function userProfilePath(user: User): string {
-  return `/user/${encodeURIComponent(user.display_name)}`;
 }
 
 export function groupPath(group: Group): string {

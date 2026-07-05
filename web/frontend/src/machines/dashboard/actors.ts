@@ -102,7 +102,7 @@ export const dashboardActors = {
     async ({ input, signal }) => {
       await deleteGroupMember(input.groupId, input.userId, { signal });
       queryCache.touched(["user", input.currentUserId, "group", input.groupId, "members"]);
-      queryCache.touched(["user", input.currentUserId, "group", input.groupId, "invite-candidates"]);
+      queryCache.touched(["user", input.currentUserId, "group", input.groupId, "invite-links"]);
       return { userId: input.userId };
     },
   ),

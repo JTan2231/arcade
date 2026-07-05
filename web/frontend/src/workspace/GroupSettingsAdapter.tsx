@@ -1,7 +1,7 @@
 import { GroupSettingsDialog } from "../components/settings/GroupSettingsDialog";
+import type { InviteLinkAdapterProps } from "../invites/useInviteLinks";
 import { matchesChildState, matchesGrandchildState } from "../machines/stateMatches";
 import type { DashboardContext } from "../machines/dashboardMachine";
-import type { InviteCandidateAdapterProps } from "../social/useSocialGraph";
 import { feedPath } from "../routes";
 import type { DailyFeed, Group } from "../types";
 import { EMPTY_EVIDENCE_FORMATS, EMPTY_GROUP_MEMBERS, EMPTY_METRICS, EMPTY_POST_TAGS } from "./empty";
@@ -15,7 +15,7 @@ export function GroupSettingsAdapter({
   feeds,
   selectedFeedId,
   currentUserId,
-  inviteCandidateProps,
+  inviteLinkProps,
   onNavigate,
 }: {
   dashboardRef: DashboardActorRef | undefined;
@@ -25,7 +25,7 @@ export function GroupSettingsAdapter({
   feeds: DailyFeed[];
   selectedFeedId: string | null;
   currentUserId: string | null;
-  inviteCandidateProps: InviteCandidateAdapterProps;
+  inviteLinkProps: InviteLinkAdapterProps;
   onNavigate: Navigate;
 }) {
   if (dashboardContext?.groupSettingsOpen !== true || selectedGroup === null) {
@@ -64,9 +64,12 @@ export function GroupSettingsAdapter({
       formats={dashboardContext.evidenceFormats ?? EMPTY_EVIDENCE_FORMATS}
       feeds={feeds}
       group={selectedGroup}
-      inviteCandidates={inviteCandidateProps.inviteCandidates}
-      inviteCandidatesLoading={inviteCandidateProps.inviteCandidatesLoading}
-      invitingUserId={inviteCandidateProps.invitingUserId}
+      inviteLinks={inviteLinkProps.inviteLinks}
+      inviteLinksLoading={inviteLinkProps.inviteLinksLoading}
+      inviteLinksError={inviteLinkProps.inviteLinksError}
+      creatingInviteLink={inviteLinkProps.creatingInviteLink}
+      revokingInviteLinkId={inviteLinkProps.revokingInviteLinkId}
+      createdInviteURL={inviteLinkProps.createdInviteURL}
       loading={loadingFeeds}
       members={dashboardContext.groupMembers ?? EMPTY_GROUP_MEMBERS}
       membersError={dashboardContext.groupMembersError}
@@ -83,7 +86,7 @@ export function GroupSettingsAdapter({
       updatingMetricId={updatingMetricId}
       updatingTagId={updatingPostTagId}
       visibilitySaving={updatingGroupVisibility}
-      onCancelGroupInvite={inviteCandidateProps.onCancelGroupInvite}
+      onClearCreatedInviteURL={inviteLinkProps.onClearCreatedInviteURL}
       onClose={() => dashboardRef?.send({ type: "GROUP_SETTINGS_CLOSED" })}
       onCreateMetric={(payload) => dashboardRef?.send({ type: "METRIC_CREATE_SUBMITTED", payload })}
       onCreateFormat={(payload) => dashboardRef?.send({ type: "EVIDENCE_FORMAT_CREATE_SUBMITTED", payload })}
@@ -94,8 +97,9 @@ export function GroupSettingsAdapter({
       onDeleteFormat={(formatId) => dashboardRef?.send({ type: "EVIDENCE_FORMAT_DELETE_SUBMITTED", formatId })}
       onDeleteMetric={(metricId) => dashboardRef?.send({ type: "METRIC_DELETE_SUBMITTED", metricId })}
       onDeleteTag={(tagId) => dashboardRef?.send({ type: "POST_TAG_DELETE_SUBMITTED", tagId })}
-      onInviteFriend={inviteCandidateProps.onInviteFriend}
+      onCreateInviteLink={inviteLinkProps.onCreateInviteLink}
       onRemoveMember={(userId) => dashboardRef?.send({ type: "GROUP_MEMBER_REMOVE_SUBMITTED", userId })}
+      onRevokeInviteLink={inviteLinkProps.onRevokeInviteLink}
       onSelectFeed={(feedId) => {
         onNavigate(feedPath(feedId));
         dashboardRef?.send({ type: "FEED_SELECTED", feedId });

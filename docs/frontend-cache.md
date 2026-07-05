@@ -154,7 +154,6 @@ resource family. The current dependency relationships are:
 | `feedPosts` | group post tags, group evidence formats |
 | `feedMetric` | feed metrics |
 | `metricLeaderboard` | feed posts, feed metrics, metric judgments |
-| `inviteCandidates` | friends, group invites, group members |
 | `meDailyFeeds` | groups |
 
 When adding dependencies, use the broadest prefix that represents the upstream
@@ -197,10 +196,7 @@ post tags, and evidence formats can all alter public route rendering.
 | `feedMetrics` | `["user", uid, "group", groupID, "feed", feedID, "metrics"]` | Feed metric list. |
 | `feedMetric` | `["user", uid, "group", groupID, "feed", feedID, "metric", metricID]` | Depends on feed metrics. |
 | `metricLeaderboard` | `["user", uid, "group", groupID, "feed", feedID, "metric", metricID, "leaderboard"]` | Depends on posts, metrics, and judgments. |
-| `friendRequests` | `["user", uid, "social", "friend-requests"]` | Social panel. |
-| `friends` | `["user", uid, "social", "friends"]` | Social panel and invite candidates. |
-| `groupInvites` | `["user", uid, "social", "group-invites"]` | Social panel and invite candidates. |
-| `inviteCandidates` | `["user", uid, "group", groupID, "invite-candidates"]` | Depends on social and group membership data. |
+| `groupInviteLinks` | `["user", uid, "group", groupID, "invite-links"]` | Owner/admin invite-link manager. |
 | `meDailyFeeds` | `["user", uid, "me", "daily-feeds"]` | Used for signed-in public route resolution. |
 | `memberFeedPostRoute` | `["user", uid, "me", "feed-post-route", postID]` | Used for signed-in public post route resolution. |
 | `publicGroup` | `["anon", "public", "group", slug]` | Signed-out-safe public group page. |
@@ -218,8 +214,9 @@ Current mutation patterns:
 
 - Groups: creation touches the authenticated group list. Visibility updates and
   deletion touch the group list, the group subtree, and public data.
-- Group membership: member removal touches group members and invite candidates.
-  Accepting a group invite touches the invitee's group list and group invites.
+- Group membership: member removal touches group members and invite links,
+  because removing a link creator can make their links invalid. Accepting an
+  invite link touches the invitee's group list.
 - Feeds: add, toggle, schedule changes, format changes, and deletion touch group
   feeds, affected feed subtrees, `meDailyFeeds`, and affected public feed data.
 - Feed refresh: touches today's output, the returned dated output, and public
@@ -238,9 +235,8 @@ Current mutation patterns:
   Metric detail and leaderboard reads invalidate through dependencies.
 - Judgments: judgment create, update, and delete touch the metric judgment
   prefix. Leaderboards invalidate through their judgment dependency.
-- Social graph: friend request and friendship mutations touch the social prefix
-  and the selected group's invite candidates. Group invite send/cancel touches
-  group invite candidates and group invites.
+- Invite links: create and revoke touch the selected group's invite-link
+  prefix. Link redemption touches the joining user's authenticated group list.
 
 If a mutation changes more than one visible surface, touch all of them. For
 example, changing feed enablement affects the member feed list, member route
@@ -274,7 +270,7 @@ When a view shows stale data:
 5. Check archive modes. Touching the shared `"post-tags"` or
    `"evidence-formats"` prefix invalidates both `"active"` and `"all"` entries.
 6. Check whether the stale surface is actually a derived query such as
-   `metricLeaderboard`, `feedPosts`, `inviteCandidates`, or `meDailyFeeds`; if
+   `metricLeaderboard`, `feedPosts`, `groupInviteLinks`, or `meDailyFeeds`; if
    so, fix the dependency or touch the upstream dependency prefix.
 
 The fastest local search paths are:

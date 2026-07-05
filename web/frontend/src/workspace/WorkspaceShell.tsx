@@ -4,11 +4,10 @@ import { useSelector } from "@xstate/react";
 import { isUnauthorized } from "../api";
 import { queries } from "../cache/queries";
 import { queryCache } from "../cache/queryCache";
+import { useInviteLinks } from "../invites/useInviteLinks";
 import { matchesTopState } from "../machines/stateMatches";
 import { groupPath, publicRouteCacheKey, type AppRoute } from "../routes";
-import { useSocialGraph } from "../social/useSocialGraph";
-import type { Group } from "../types";
-import { FriendsAdapter } from "./FriendsAdapter";
+import type { Group, User } from "../types";
 import { GroupDashboardAdapter } from "./GroupDashboardAdapter";
 import { GroupSettingsAdapter } from "./GroupSettingsAdapter";
 import { GroupsNavAdapter } from "./GroupsNavAdapter";
@@ -34,10 +33,9 @@ export function WorkspaceShell({
   onNavigate,
   onToast,
   onUnauthorized,
-  onUserUpdated,
 }: {
   dashboardRef: DashboardActorRef | undefined;
-  currentUser: Parameters<typeof useSocialGraph>[0]["currentUser"];
+  currentUser: User | null;
   route: AppRoute;
   signedIn: boolean;
   header: ReactNode;
@@ -45,7 +43,6 @@ export function WorkspaceShell({
   onNavigate: Navigate;
   onToast: ToastCallback;
   onUnauthorized: () => void;
-  onUserUpdated: Parameters<typeof useSocialGraph>[0]["onUserUpdated"];
 }) {
   const dashboardSnapshot = useSelector(dashboardRef, (childSnapshot) => childSnapshot);
   const addFeedRef = dashboardSnapshot?.children["addFeed"] as AddFeedActorRef | undefined;
@@ -58,9 +55,8 @@ export function WorkspaceShell({
   const dashboardStateValue = dashboardSnapshot?.value;
   const addFeedStateValue = addFeedSnapshot?.value;
   const loadingGroups = matchesTopState(dashboardStateValue, "loadingGroups");
-  const publicRoute = typeof route === "object" ? route : null;
+  const publicRoute = typeof route === "object" && route.kind !== "invite" ? route : null;
   const publicRouteKey = publicRoute === null ? "" : publicRouteCacheKey(publicRoute);
-  const showingProfile = route === "profile";
 
   const groups = dashboardContext?.groups ?? EMPTY_GROUPS;
   const selectedGroupId = dashboardContext?.selectedGroupId ?? null;
@@ -95,16 +91,12 @@ export function WorkspaceShell({
     return null;
   }, [feeds, memberRouteTarget, publicRoute, publicRouteKey, selectedGroup, signedIn]);
 
-  const socialGraph = useSocialGraph({
+  const inviteLinks = useInviteLinks({
     signedIn,
-    showingProfile,
     selectedGroup,
-    currentUser,
+    currentUserId,
     onUnauthorized,
     onToast,
-    onUserUpdated,
-    onGroupInviteAccepted: (groupId) =>
-      dashboardRef?.send({ type: "GROUPS_REFRESH_REQUESTED", preferredGroupId: groupId }),
   });
 
   useEffect(() => {
@@ -305,59 +297,48 @@ export function WorkspaceShell({
   return (
     <>
       {header}
-      <main
-        className={`layout ${showingProfile ? "profile-layout" : "group-layout"}`}
-        aria-label={showingProfile ? "User profile" : "Arcade workspace"}
-      >
-        {showingProfile ? (
-          <div className="profile-stack">
-            <FriendsAdapter socialGraph={socialGraph} />
-          </div>
-        ) : (
-          <>
-            <div className="sidebar-stack">
-              <GroupsNavAdapter
-                dashboardRef={dashboardRef}
-                dashboardContext={dashboardContext}
-                dashboardStateValue={dashboardStateValue}
-                groups={groups}
-                feeds={feeds}
-                selectedGroupId={selectedGroupId}
-                selectedFeedId={selectedFeedId}
-                selectedFeedDate={selectedFeedDate}
-                onNavigate={onNavigate}
-                onToast={onToast}
-              />
-            </div>
-            <GroupDashboardAdapter
-              dashboardRef={dashboardRef}
-              addFeedRef={addFeedRef}
-              dashboardContext={dashboardContext}
-              addFeedContext={addFeedContext}
-              dashboardStateValue={dashboardStateValue}
-              addFeedStateValue={addFeedStateValue}
-              selectedGroup={selectedGroup}
-              selectedGroupId={selectedGroupId}
-              feeds={feeds}
-              selectedFeedId={selectedFeedId}
-              selectedFeedDate={selectedFeedDate}
-              currentUserId={currentUser?.id ?? null}
-              onNavigate={onNavigate}
-              onToast={onToast}
-            />
-            <GroupSettingsAdapter
-              dashboardRef={dashboardRef}
-              dashboardContext={dashboardContext}
-              dashboardStateValue={dashboardStateValue}
-              selectedGroup={selectedGroup}
-              feeds={feeds}
-              selectedFeedId={selectedFeedId}
-              currentUserId={currentUser?.id ?? null}
-              inviteCandidateProps={socialGraph.inviteCandidateProps}
-              onNavigate={onNavigate}
-            />
-          </>
-        )}
+      <main className="layout group-layout" aria-label="Arcade workspace">
+        <div className="sidebar-stack">
+          <GroupsNavAdapter
+            dashboardRef={dashboardRef}
+            dashboardContext={dashboardContext}
+            dashboardStateValue={dashboardStateValue}
+            groups={groups}
+            feeds={feeds}
+            selectedGroupId={selectedGroupId}
+            selectedFeedId={selectedFeedId}
+            selectedFeedDate={selectedFeedDate}
+            onNavigate={onNavigate}
+            onToast={onToast}
+          />
+        </div>
+        <GroupDashboardAdapter
+          dashboardRef={dashboardRef}
+          addFeedRef={addFeedRef}
+          dashboardContext={dashboardContext}
+          addFeedContext={addFeedContext}
+          dashboardStateValue={dashboardStateValue}
+          addFeedStateValue={addFeedStateValue}
+          selectedGroup={selectedGroup}
+          selectedGroupId={selectedGroupId}
+          feeds={feeds}
+          selectedFeedId={selectedFeedId}
+          selectedFeedDate={selectedFeedDate}
+          currentUserId={currentUser?.id ?? null}
+          onNavigate={onNavigate}
+          onToast={onToast}
+        />
+        <GroupSettingsAdapter
+          dashboardRef={dashboardRef}
+          dashboardContext={dashboardContext}
+          dashboardStateValue={dashboardStateValue}
+          selectedGroup={selectedGroup}
+          feeds={feeds}
+          selectedFeedId={selectedFeedId}
+          currentUserId={currentUser?.id ?? null}
+          inviteLinkProps={inviteLinks}
+          onNavigate={onNavigate}
+        />
       </main>
     </>
   );
