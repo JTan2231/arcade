@@ -114,8 +114,9 @@
 }
 
 .prompt-details pre {
-  background: var(--color-page);
-  border: 1px solid var(--color-border);
+  background: var(--color-code-surface);
+  border: 1px solid var(--color-code-border);
+  border-left-width: 3px;
   border-radius: 6px;
   color: var(--color-text);
   margin: 8px 0 0;

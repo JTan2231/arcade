@@ -179,6 +179,9 @@ Built-in date tokens are:
 - `{{yesterday}}`
 - `{{daysAgo:N}}`
 
+Date tokens resolve as UTC calendar dates, matching the default UTC schedule
+used by scenario-created daily thread feeds.
+
 Interpolation is applied to paths, labels, role names, text assertions, request
 headers, request bodies, SQL statements, and JSON-like data. Captures can store
 objects and arrays, but only scalar captured values can be interpolated into
