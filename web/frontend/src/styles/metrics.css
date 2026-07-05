@@ -211,7 +211,6 @@ button.metric-title-menu-option[aria-pressed="true"]:hover:not(:disabled) {
 }
 
 .leaderboard-panel {
-  border-top: 1px solid var(--color-border);
   display: grid;
   gap: 8px;
   min-width: 0;
@@ -234,6 +233,33 @@ button.metric-title-menu-option[aria-pressed="true"]:hover:not(:disabled) {
 .leaderboard-table th {
   color: var(--color-text-muted);
   font-weight: 700;
+}
+
+.leaderboard-placement td {
+  border-bottom-color: var(--leaderboard-placement-color);
+  color: var(--leaderboard-placement-color);
+  font-weight: 700;
+}
+
+.leaderboard-placement-first {
+  --leaderboard-placement-color: var(--color-leaderboard-gold);
+}
+
+.leaderboard-placement-first td {
+  background-image: linear-gradient(var(--leaderboard-placement-color), var(--leaderboard-placement-color));
+  background-position: top left;
+  background-repeat: no-repeat;
+  background-size: 100% 1px;
+  filter: var(--filter-leaderboard-gold-glow);
+  text-shadow: var(--shadow-leaderboard-gold-text);
+}
+
+.leaderboard-placement-second {
+  --leaderboard-placement-color: var(--color-leaderboard-silver);
+}
+
+.leaderboard-placement-third {
+  --leaderboard-placement-color: var(--color-leaderboard-bronze);
 }
 
 .metric-form {

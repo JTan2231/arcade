@@ -28,6 +28,9 @@
   --color-danger-surface: #241515;
   --color-danger-border: #5a2a2a;
   --color-danger-border-hover: #8a3a38;
+  --color-leaderboard-gold: #e7d17a;
+  --color-leaderboard-silver: #d6d6d6;
+  --color-leaderboard-bronze: #d6985e;
   --color-header: #080808;
   --color-header-muted: #a1a1a1;
   --color-inverse-text: #f0f0f0;
@@ -48,6 +51,8 @@
   --shadow-popover: 0 12px 28px rgb(0 0 0 / 45%);
   --shadow-modal: 0 24px 80px rgb(0 0 0 / 58%);
   --shadow-toast: 0 8px 24px rgb(0 0 0 / 48%);
+  --filter-leaderboard-gold-glow: drop-shadow(0 0 3px rgb(231 209 122 / 45%));
+  --shadow-leaderboard-gold-text: 0 0 5px rgb(231 209 122 / 38%);
   --bg: var(--color-page);
   --panel: var(--color-surface);
   --ink: var(--color-text);

@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
 import { queries } from "../cache/queries";
 import { queryCache } from "../cache/queryCache";
@@ -64,6 +64,13 @@ export function GroupDashboardAdapter({
     },
     [currentUserId, selectedFeedId, selectedGroupId],
   );
+  useEffect(() => {
+    if (currentUserId === null || selectedGroupId === null || selectedFeedId === null) {
+      return;
+    }
+
+    queryCache.prefetch(queries.feedOutputSummaries, currentUserId, selectedGroupId, selectedFeedId, selectedFeedDate);
+  }, [currentUserId, selectedFeedDate, selectedFeedId, selectedGroupId]);
   const feedOutputProps = useFeedOutputAdapter({
     dashboardRef,
     dashboardContext,

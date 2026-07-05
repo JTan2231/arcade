@@ -178,7 +178,7 @@ function LeaderboardTable({ leaderboard }: { leaderboard: MetricLeaderboard }) {
       </thead>
       <tbody>
         {leaderboard.rows.map((row) => (
-          <tr key={row.user.id}>
+          <tr className={leaderboardPlacementClassName(row)} key={row.user.id}>
             <td>{leaderboardRankDisplay(row)}</td>
             <td>{publicUserDisplayName(row.user)}</td>
             <td>{row.value}</td>
@@ -214,6 +214,19 @@ function leaderboardValueColumnLabel(metric: FeedMetric): string {
 
 function leaderboardRankDisplay(row: MetricLeaderboardRow): string | number {
   return row.rank ?? "-";
+}
+
+function leaderboardPlacementClassName(row: MetricLeaderboardRow): string | undefined {
+  switch (row.rank) {
+    case 1:
+      return "leaderboard-placement leaderboard-placement-first";
+    case 2:
+      return "leaderboard-placement leaderboard-placement-second";
+    case 3:
+      return "leaderboard-placement leaderboard-placement-third";
+    default:
+      return undefined;
+  }
 }
 
 function publicUserDisplayName(user: PublicUser): string {

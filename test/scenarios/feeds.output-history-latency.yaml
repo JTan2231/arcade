@@ -1,0 +1,116 @@
+name: show usable feed output history while summaries are loading
+
+vars:
+  email: output-history-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Output History Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: login_owner
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Output History Dojo
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: create_source
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/catalog-sources
+      json:
+        name: Output History Source
+        template: https://example.test/{slug}
+        items:
+          - title: History Task
+            data:
+              slug: history-task
+      expectStatus: 201
+      capture:
+        source_id: $.id
+
+  - request:
+      id: create_feed
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds
+      json:
+        name: A History Practice
+        kind: catalog_daily
+        enabled: true
+        source_id: "{{source_id}}"
+        item_count: 1
+        filters: []
+        schedule:
+          starts_at: "2020-01-01T00:00:00.000Z"
+          timezone: UTC
+          interval_seconds: 86400
+      expectStatus: 201
+      capture:
+        feed_id: $.id
+
+  - sql:
+      statement: |
+        update group_daily_feeds
+        set created_at = '{{daysAgo:2}}T12:00:00.000Z'::timestamptz
+        where id = '{{feed_id}}'::uuid
+
+steps:
+  - holdRequest:
+      id: output-summaries
+      method: GET
+      path: /api/groups/*/daily-feeds/*/outputs
+
+  - visit: /
+
+  - within: Selected feed output
+    expectVisible:
+      text: History Task
+
+  - expectRequest:
+      id: output-summaries
+
+  - within: Selected feed output
+    click:
+      role: button
+      name: Feed output choices
+
+  - within: Selected feed output
+    expectVisible:
+      text: "{{yesterday}}"
+
+  - within: Selected feed output
+    expectHidden:
+      text: Loading output...
+
+  - releaseRequest: output-summaries
+
+  - within: Selected feed output
+    expectVisible:
+      role: button
+      name: Select History Task ({{yesterday}})

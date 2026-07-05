@@ -445,11 +445,15 @@ function FeedOutputTitleMenu({
         </button>
       </span>
       {menuOpen ? (
-        <div className="metric-title-menu-panel feed-output-title-menu-panel" aria-label="Feed output choices">
+        <div
+          aria-busy={historyLoading}
+          aria-label="Feed output choices"
+          className="metric-title-menu-panel feed-output-title-menu-panel"
+        >
           {visibleDateOptions.map((option) => {
             const summary = summariesByDate[option.value] ?? null;
-            const optionTitle = summary?.title ?? (historyLoading ? "Loading output..." : option.label);
-            const optionSubtitle = summary?.subtitle ?? (historyLoading ? option.value : undefined);
+            const optionTitle = summary?.title ?? option.label;
+            const optionSubtitle = summary?.subtitle;
             return (
               <button
                 aria-label={`Select ${optionTitle} (${option.value})`}
