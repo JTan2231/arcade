@@ -58,12 +58,12 @@ button.metric-add-button:hover:not(:disabled) {
   display: grid;
   gap: 8px;
   grid-column: 3;
-  justify-self: start;
   margin-left: -8px;
   margin-right: 8px;
   max-width: 320px;
   min-width: 0;
   padding: 14px;
+  place-self: start;
   width: 100%;
 }
 

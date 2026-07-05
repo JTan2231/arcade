@@ -68,10 +68,15 @@ export function formatDateTime(value: string): string {
   if (Number.isNaN(date.getTime())) {
     return "";
   }
-  return new Intl.DateTimeFormat(undefined, {
+  const datePart = new Intl.DateTimeFormat(undefined, {
     month: "short",
     day: "numeric",
+  })
+    .format(date)
+    .toUpperCase();
+  const timePart = new Intl.DateTimeFormat(undefined, {
     hour: "numeric",
     minute: "2-digit",
   }).format(date);
+  return `${datePart} · ${timePart}`;
 }

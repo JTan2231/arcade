@@ -31,7 +31,8 @@
 
 .feed-output-title-label {
   display: block;
-  font-size: 30px;
+  font-family: var(--font-post-display);
+  font-size: 34px;
   min-width: 0;
 }
 

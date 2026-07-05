@@ -339,9 +339,9 @@ function FeedPostCard({
   return (
     <article className="row feed-post-card">
       <div className="post-card-header">
-        <div>
-          <div className="title">{post.author_display_name || post.author_username}</div>
-          <div className="meta">{formatDateTime(post.created_at)}</div>
+        <div className="post-card-byline">
+          <div className="title post-author-name">{post.author_display_name || post.author_username}</div>
+          <div className="meta post-timestamp">{formatDateTime(post.created_at)}</div>
         </div>
         {postActionsVisible && !editing ? (
           <div className="post-card-actions">

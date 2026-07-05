@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Jost:wght@400;500;600;700&display=swap");
+
 @font-face {
   font-display: swap;
   font-family: "arcade workspace geometric";
@@ -55,6 +57,8 @@
 
   --font-workspace-title:
     "arcade workspace geometric", "jost", "erbar", "erbar grotesk", "futura", "avenir next", avenir, sans-serif;
+  --font-post-display: "Jost", "arcade workspace geometric", "futura", "avenir next", avenir, sans-serif;
+  --font-post-code: "DM Mono", "SFMono-Regular", consolas, "liberation mono", monospace;
   --font-group-nav: var(--font-workspace-title);
   --font-leaderboard-title: "arcade leaderboard title", rye, "playbill", "showcard gothic", fantasy;
   --font-leaderboard-entry:
