@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useId, useState } from "react";
+import { FormEvent, useEffect, useId, useState, type ReactNode } from "react";
 
 import { highlightCodeBlock, prepareCodeBlock } from "../../syntaxHighlight";
 import type {
@@ -346,27 +346,65 @@ function FeedPostCard({
         {postActionsVisible && !editing ? (
           <div className="post-card-actions">
             {taggable ? (
-              <button className="secondary" type="button" disabled={saving || deleting} onClick={toggleTagMenu}>
-                Tag
+              <button
+                aria-label="Tag"
+                className="icon-button post-action-button"
+                title="Tag"
+                type="button"
+                disabled={saving || deleting}
+                onClick={toggleTagMenu}
+              >
+                <PostActionIcon>
+                  <path d="M20 10V5a2 2 0 0 0-2-2h-5L3 13l8 8 9-11Z" />
+                  <path d="M17.5 6.5h.01" />
+                </PostActionIcon>
               </button>
             ) : null}
             {publicLinksAvailable ? (
               <button
-                className="secondary"
+                aria-label="Copy link"
+                className="icon-button post-action-button"
+                title="Copy link"
                 type="button"
                 disabled={saving || deleting}
                 onClick={() => onCopyPublicPostLink(post.id)}
               >
-                Copy link
+                <PostActionIcon>
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                </PostActionIcon>
               </button>
             ) : null}
             {mine ? (
               <>
-                <button className="secondary" type="button" disabled={deleting} onClick={beginEdit}>
-                  Edit
+                <button
+                  aria-label="Edit"
+                  className="icon-button post-action-button"
+                  title="Edit"
+                  type="button"
+                  disabled={deleting}
+                  onClick={beginEdit}
+                >
+                  <PostActionIcon>
+                    <path d="M12 20h9" />
+                    <path d="m16.5 3.5 4 4L7 21H3v-4L16.5 3.5Z" />
+                  </PostActionIcon>
                 </button>
-                <button className="danger" type="button" disabled={deleting} onClick={handleDelete}>
-                  Delete
+                <button
+                  aria-label="Delete"
+                  className="icon-button post-action-button post-action-button-danger"
+                  title="Delete"
+                  type="button"
+                  disabled={deleting}
+                  onClick={handleDelete}
+                >
+                  <PostActionIcon>
+                    <path d="M3 6h18" />
+                    <path d="M8 6V4h8v2" />
+                    <path d="M6 6l1 15h10l1-15" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                  </PostActionIcon>
                 </button>
               </>
             ) : null}
@@ -451,6 +489,24 @@ function FeedPostCard({
         </div>
       ) : null}
     </article>
+  );
+}
+
+function PostActionIcon({ children }: { children: ReactNode }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className="post-action-icon"
+      fill="none"
+      focusable="false"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      {children}
+    </svg>
   );
 }
 

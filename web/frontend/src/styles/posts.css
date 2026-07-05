@@ -153,6 +153,27 @@
   min-height: 32px;
 }
 
+.post-card-actions button.post-action-button {
+  min-width: 32px;
+  padding: 0;
+}
+
+.post-action-icon {
+  display: block;
+  height: 16px;
+  width: 16px;
+}
+
+button.post-action-button-danger {
+  color: var(--color-danger);
+}
+
+button.post-action-button-danger:hover:not(:disabled) {
+  background: var(--color-danger-surface);
+  border-color: var(--color-danger-border-hover);
+  color: var(--color-danger);
+}
+
 .post-evidence-code-wrap {
   position: relative;
 }

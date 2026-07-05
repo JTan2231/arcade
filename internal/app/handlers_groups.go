@@ -30,9 +30,9 @@ func (s *Server) handleListGroups(w http.ResponseWriter, r *http.Request) {
 			g.created_at,
 			g.updated_at
 		from groups g
-		left join group_memberships gm on gm.group_id = g.id and gm.user_id = $1
-		where g.visibility = 'public'
-		   or gm.status = 'active'
+		join group_memberships gm on gm.group_id = g.id
+		where gm.user_id = $1
+		  and gm.status = 'active'
 		order by g.created_at desc
 	`, current.ID)
 	if err != nil {

@@ -132,7 +132,9 @@ The current daily feed model follows these rules:
 - Group visibility controls public reads for the group, its enabled feeds, and
   non-deleted posts. Authenticated active members continue reading private group
   content through member routes, while public routes return 404 for private
-  groups.
+  groups. The authenticated group list contains the signed-in user's active
+  memberships; public group discovery and signed-out-safe rendering use
+  `/api/public/...` routes instead.
 - Group post tags are a group-managed vocabulary. Owners and admins create,
   rename, archive, and unarchive tag definitions under
   `/api/groups/{group_id}/post-tags`; post authors can attach active tags to

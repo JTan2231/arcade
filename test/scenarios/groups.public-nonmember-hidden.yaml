@@ -1,0 +1,74 @@
+name: workspace group list excludes public groups without membership
+
+vars:
+  member_email: member-groups@example.test
+  public_owner_email: public-owner-groups@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_member
+      client: browser
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Member Groups User
+        email: "{{member_email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: create_member_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Member Visible Group
+      expectStatus: 201
+
+  - request:
+      id: signup_public_owner
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Public Owner User
+        email: "{{public_owner_email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: create_public_group
+      method: POST
+      path: /api/groups
+      json:
+        name: Public Stranger Group
+        visibility: public
+      expectStatus: 201
+
+steps:
+  - visit: /
+
+  - within: Groups
+    expectVisible:
+      role: button
+      name: Member Visible Group
+
+  - within: Groups
+    expectHidden:
+      role: button
+      name: Public Stranger Group
+
+  - visit: /g/public-stranger-group
+
+  - within: Arcade workspace
+    expectVisible:
+      text: Public Stranger Group
+
+  - visit: /
+
+  - within: Groups
+    expectVisible:
+      role: button
+      name: Member Visible Group

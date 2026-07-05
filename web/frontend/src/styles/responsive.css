@@ -2,7 +2,7 @@
   .output-item-title-link {
     animation: none;
     background-image: none;
-    color: color-mix(in srgb, var(--color-text-muted) 35%, var(--color-accent) 65%);
+    color: var(--output-item-title-dim-color);
     -webkit-text-fill-color: currentcolor;
   }
 }

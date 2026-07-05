@@ -58,7 +58,9 @@
 }
 
 .output-item-title-link {
-  color: color-mix(in srgb, var(--color-text-muted) 35%, var(--color-accent) 65%);
+  --output-item-title-dim-color: color-mix(in srgb, var(--color-text-muted) 85%, var(--color-accent) 15%);
+
+  color: var(--output-item-title-dim-color);
   display: inline;
   font-weight: 800;
   overflow-wrap: anywhere;
@@ -78,11 +80,11 @@
     animation: output-item-title-shine 3.5s linear infinite;
     background-image: linear-gradient(
       90deg,
-      color-mix(in srgb, var(--color-text-muted) 35%, var(--color-accent) 65%) 0%,
-      color-mix(in srgb, var(--color-text-muted) 35%, var(--color-accent) 65%) 42%,
+      var(--output-item-title-dim-color) 0%,
+      var(--output-item-title-dim-color) 42%,
       var(--color-accent-hover) 50%,
-      color-mix(in srgb, var(--color-text-muted) 35%, var(--color-accent) 65%) 58%,
-      color-mix(in srgb, var(--color-text-muted) 35%, var(--color-accent) 65%) 100%
+      var(--output-item-title-dim-color) 58%,
+      var(--output-item-title-dim-color) 100%
     );
     background-position: 100% 50%;
     background-repeat: no-repeat;
