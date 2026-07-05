@@ -45,6 +45,12 @@
   font-weight: 400;
 }
 
+.output-item .meta,
+.feed-output-title-menu-panel .meta {
+  font-family: var(--font-post-display);
+  user-select: none;
+}
+
 .feed-output-title-menu-panel {
   width: min(340px, calc(100vw - 32px));
 }
