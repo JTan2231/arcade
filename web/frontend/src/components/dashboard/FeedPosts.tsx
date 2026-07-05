@@ -342,6 +342,7 @@ function FeedPostCard({
         <div className="post-card-byline">
           <div className="title post-author-name">{post.author_display_name || post.author_username}</div>
           <div className="meta post-timestamp">{formatDateTime(post.created_at)}</div>
+          <PostTagPills tags={post.tags} />
         </div>
         {postActionsVisible && !editing ? (
           <div className="post-card-actions">
@@ -473,7 +474,6 @@ function FeedPostCard({
           {post.caption !== undefined && post.caption !== "" ? (
             <div className="post-caption">{post.caption}</div>
           ) : null}
-          <PostTagPills tags={post.tags} />
         </>
       )}
       {canJudge && !editing && judgedMetrics.length > 0 ? (

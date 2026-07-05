@@ -105,22 +105,14 @@
 }
 
 .post-tag-pill {
-  background: var(--color-surface-muted);
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  color: var(--color-text);
+  color: var(--color-post-tag);
   display: inline-flex;
+  font-family: var(--font-post-tag);
   font-size: 12px;
   line-height: 1.2;
   max-width: 100%;
   overflow-wrap: anywhere;
-  padding: 3px 8px;
-}
-
-.post-tag-pill.archived {
-  background: var(--color-surface);
-  border-style: dashed;
-  color: var(--color-text-muted);
+  text-transform: uppercase;
 }
 
 .feed-post-card {
@@ -147,6 +139,18 @@
   flex-wrap: wrap;
   gap: 6px;
   justify-content: flex-end;
+}
+
+@media (hover: hover) {
+  .post-card-actions {
+    opacity: 0;
+    transition: opacity 120ms ease;
+  }
+
+  .feed-post-card:hover .post-card-actions,
+  .feed-post-card:focus-within .post-card-actions {
+    opacity: 1;
+  }
 }
 
 .post-card-actions button {
@@ -190,6 +194,11 @@
   flex-wrap: wrap;
   gap: 2px 8px;
   min-width: 0;
+}
+
+.post-card-byline .post-tag-list {
+  align-items: center;
+  display: inline-flex;
 }
 
 .post-author-name {
