@@ -124,6 +124,8 @@
 }
 
 .feed-post-card {
+  background: transparent;
+  border: 0;
   display: grid;
   gap: 8px;
 }
