@@ -11,7 +11,12 @@
 }
 
 .feed-output-title-menu {
+  color: var(--color-text-muted);
   display: inline-block;
+  font-family: var(--font-workspace-title);
+  font-size: 17px;
+  font-style: normal;
+  font-weight: 600;
   max-width: 100%;
   min-width: 0;
   position: relative;
@@ -31,6 +36,11 @@
 
 .feed-output-title-text {
   overflow-wrap: anywhere;
+}
+
+.feed-output-title-menu .title,
+.feed-output-title-menu .output-item-title-link {
+  font-weight: 400;
 }
 
 .feed-output-title-menu-panel {
@@ -103,6 +113,10 @@
   to {
     background-position: 0% 50%;
   }
+}
+
+.feed-output-title-menu .output-item-title-link {
+  font-weight: 600;
 }
 
 .prompt-details {

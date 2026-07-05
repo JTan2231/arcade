@@ -1,6 +1,16 @@
+@font-face {
+  font-display: swap;
+  font-family: "arcade workspace geometric";
+  font-style: normal;
+  font-weight: 600;
+  src: url("../assets/fonts/jost/Jost-SemiBold.woff2") format("woff2");
+}
+
 :root {
   color-scheme: dark;
 
+  --font-workspace-title:
+    "arcade workspace geometric", "jost", "erbar", "erbar grotesk", "futura", "avenir next", avenir, sans-serif;
   --color-page: #050505;
   --color-surface: #111;
   --color-surface-subtle: #171717;
