@@ -75,6 +75,9 @@ button.metric-add-button:hover:not(:disabled) {
 
 .metric-title-static {
   display: block;
+  font-family: var(--font-leaderboard-title);
+  font-weight: 400;
+  line-height: 1.05;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -93,9 +96,11 @@ button.metric-title-button {
   color: var(--color-text-muted);
   display: inline-flex;
   flex: 1 1 auto;
+  font-family: var(--font-leaderboard-title);
   font-size: 19px;
-  font-weight: 600;
+  font-weight: 400;
   justify-content: flex-start;
+  line-height: 1.05;
   max-width: 100%;
   min-height: 32px;
   min-width: 0;
@@ -233,6 +238,11 @@ button.metric-title-menu-option[aria-pressed="true"]:hover:not(:disabled) {
 .leaderboard-table th {
   color: var(--color-text-muted);
   font-weight: 700;
+}
+
+.leaderboard-table tbody td {
+  font-family: var(--font-leaderboard-entry);
+  font-weight: 500;
 }
 
 .leaderboard-placement td {
