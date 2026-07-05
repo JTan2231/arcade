@@ -127,7 +127,7 @@
   background: transparent;
   border: 0;
   display: grid;
-  gap: 8px;
+  gap: 4px;
 }
 
 .feed-posts-empty {
@@ -135,7 +135,7 @@
 }
 
 .post-card-header {
-  align-items: flex-start;
+  align-items: flex-end;
   display: flex;
   gap: 10px;
   justify-content: space-between;
@@ -154,8 +154,17 @@
 }
 
 .post-card-actions button.post-action-button {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-icon-muted);
   min-width: 32px;
   padding: 0;
+}
+
+.post-card-actions button.post-action-button:hover:not(:disabled) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-accent-hover);
 }
 
 .post-action-icon {
@@ -164,13 +173,13 @@
   width: 16px;
 }
 
-button.post-action-button-danger {
-  color: var(--color-danger);
+.post-card-actions button.post-action-button.post-action-button-danger {
+  color: color-mix(in srgb, var(--color-danger) 58%, var(--color-icon-muted));
 }
 
-button.post-action-button-danger:hover:not(:disabled) {
-  background: var(--color-danger-surface);
-  border-color: var(--color-danger-border-hover);
+.post-card-actions button.post-action-button.post-action-button-danger:hover:not(:disabled) {
+  background: transparent;
+  border-color: transparent;
   color: var(--color-danger);
 }
 

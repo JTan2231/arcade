@@ -30,6 +30,7 @@ keyword such as `transparent`, `currentcolor`, or `inherit`.
 | `--color-text`                 | `#f0f0f0`           | Primary text.                                          |
 | `--color-text-muted`           | `#a1a1a1`           | Metadata, labels, and supporting text.                 |
 | `--color-text-nav-muted`       | `#8a8a8a`           | Unselected sidebar navigation text.                    |
+| `--color-text-nav-active-parent` | `#c8c8c8`          | Selected sidebar parent when a child item is selected. |
 | `--color-icon-muted`           | `#707070`           | Muted sidebar icon controls.                           |
 | `--color-border`               | `#303030`           | Default borders and dividers.                          |
 | `--color-border-subtle`        | `#242424`           | Tree connector lines.                                  |
