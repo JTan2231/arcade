@@ -10,6 +10,14 @@
 
 @font-face {
   font-display: swap;
+  font-family: "arcade hanken grotesk";
+  font-style: normal;
+  font-weight: 100 900;
+  src: url("../assets/fonts/hanken-grotesk/HankenGrotesk-wght.ttf") format("truetype");
+}
+
+@font-face {
+  font-display: swap;
   font-family: "arcade leaderboard title";
   font-style: normal;
   font-weight: 400;
@@ -58,7 +66,9 @@
   --font-workspace-title:
     "arcade workspace geometric", "jost", "erbar", "erbar grotesk", "futura", "avenir next", avenir, sans-serif;
   --font-post-display: "Jost", "arcade workspace geometric", "futura", "avenir next", avenir, sans-serif;
-  --font-post-tag: "Copperplate Gothic", "Copperplate Gothic Light", copperplate, fantasy;
+  --font-post-meta: "arcade hanken grotesk", "Hanken Grotesk", "avenir next", avenir, sans-serif;
+  --font-post-text: var(--font-post-meta);
+  --font-post-tag: var(--font-post-meta);
   --font-post-code: "DM Mono", "SFMono-Regular", consolas, "liberation mono", monospace;
   --font-group-nav: var(--font-workspace-title);
   --font-leaderboard-title: "arcade leaderboard title", rye, "playbill", "showcard gothic", fantasy;
