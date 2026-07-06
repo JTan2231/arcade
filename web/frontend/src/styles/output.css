@@ -42,7 +42,7 @@
 
 .output-item .meta,
 .feed-output-title-menu-panel .meta {
-  font-family: var(--font-post-display);
+  -webkit-user-select: none;
   user-select: none;
 }
 
