@@ -117,6 +117,11 @@ steps:
   - within: Posts
     click:
       role: button
+      name: Post actions
+
+  - within: Posts
+    click:
+      role: button
       name: Edit
 
   - within: Posts

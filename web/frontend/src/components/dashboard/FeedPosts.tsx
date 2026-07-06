@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useId, useState, type ReactNode } from "react";
+import { FormEvent, useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 import { highlightCodeBlock, prepareCodeBlock } from "../../syntaxHighlight";
 import type {
@@ -38,7 +38,6 @@ export function FeedPostSection({
   updatingPostId,
   deletingPostId,
   currentUserId,
-  publicLinksAvailable,
   judgedMetrics,
   canPost,
   canJudge,
@@ -46,7 +45,6 @@ export function FeedPostSection({
   judgingPostId,
   onCreateFeedPost,
   onUpdateFeedPost,
-  onCopyPublicPostLink,
   onDeleteFeedPost,
   onCreateMetricJudgment,
 }: {
@@ -60,7 +58,6 @@ export function FeedPostSection({
   updatingPostId: string | null;
   deletingPostId: string | null;
   currentUserId: string | null;
-  publicLinksAvailable: boolean;
   judgedMetrics: FeedMetric[];
   canPost: boolean;
   canJudge: boolean;
@@ -68,7 +65,6 @@ export function FeedPostSection({
   judgingPostId: string | null;
   onCreateFeedPost: (payload: CreateFeedPostPayload) => void;
   onUpdateFeedPost: (postId: string, payload: UpdateFeedPostPayload) => void;
-  onCopyPublicPostLink: (postId: string) => void;
   onDeleteFeedPost: (postId: string) => void;
   onCreateMetricJudgment: (
     metricId: string,
@@ -129,7 +125,6 @@ export function FeedPostSection({
               key={post.id}
               canTag={currentUserId === post.author_user_id || canManagePostTags}
               mine={currentUserId === post.author_user_id}
-              publicLinksAvailable={publicLinksAvailable}
               post={post}
               activePostTags={activePostTags}
               saving={updatingPostId === post.id}
@@ -138,7 +133,6 @@ export function FeedPostSection({
               canJudge={canJudge && currentUserId !== post.author_user_id}
               judging={judgingPostId === post.id}
               onUpdateFeedPost={onUpdateFeedPost}
-              onCopyPublicPostLink={onCopyPublicPostLink}
               onDeleteFeedPost={onDeleteFeedPost}
               onCreateMetricJudgment={onCreateMetricJudgment}
             />
@@ -210,14 +204,12 @@ function FeedPostCard({
   activePostTags,
   canTag,
   mine,
-  publicLinksAvailable,
   saving,
   deleting,
   judgedMetrics,
   canJudge,
   judging,
   onUpdateFeedPost,
-  onCopyPublicPostLink,
   onDeleteFeedPost,
   onCreateMetricJudgment,
 }: {
@@ -225,14 +217,12 @@ function FeedPostCard({
   activePostTags: GroupPostTag[];
   canTag: boolean;
   mine: boolean;
-  publicLinksAvailable: boolean;
   saving: boolean;
   deleting: boolean;
   judgedMetrics: FeedMetric[];
   canJudge: boolean;
   judging: boolean;
   onUpdateFeedPost: (postId: string, payload: UpdateFeedPostPayload) => void;
-  onCopyPublicPostLink: (postId: string) => void;
   onDeleteFeedPost: (postId: string) => void;
   onCreateMetricJudgment: (
     metricId: string,
@@ -242,11 +232,13 @@ function FeedPostCard({
 }) {
   const [editing, setEditing] = useState(false);
   const [tagMenuOpen, setTagMenuOpen] = useState(false);
+  const [actionMenuOpen, setActionMenuOpen] = useState(false);
   const [evidenceText, setEvidenceText] = useState(post.evidence_text);
   const [caption, setCaption] = useState(post.caption ?? "");
   const [formError, setFormError] = useState("");
   const evidenceInputId = useId();
   const evidenceHintId = `${evidenceInputId}-hint`;
+  const actionMenuRef = useRef<HTMLDivElement>(null);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(() => selectedActivePostTagIDs(post, activePostTags));
   const [initialTagIds, setInitialTagIds] = useState<string[]>(() => selectedActivePostTagIDs(post, activePostTags));
   const [submittedUpdate, setSubmittedUpdate] = useState<{
@@ -274,11 +266,38 @@ function FeedPostCard({
     setSubmittedUpdate(null);
   }, [post.caption, post.evidence_text, saving, submittedUpdate]);
 
+  useEffect(() => {
+    if (!actionMenuOpen) {
+      return undefined;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (actionMenuRef.current?.contains(event.target as Node) === true) {
+        return;
+      }
+      setActionMenuOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setActionMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [actionMenuOpen]);
+
   function beginEdit() {
     setEvidenceText(post.evidence_text);
     setCaption(post.caption ?? "");
     setFormError("");
     setTagMenuOpen(false);
+    setActionMenuOpen(false);
     setEditing(true);
   }
 
@@ -286,6 +305,7 @@ function FeedPostCard({
     const nextTagIds = selectedActivePostTagIDs(post, activePostTags);
     setSelectedTagIds(nextTagIds);
     setInitialTagIds(nextTagIds);
+    setActionMenuOpen(false);
     setTagMenuOpen(true);
   }
 
@@ -330,11 +350,12 @@ function FeedPostCard({
       return;
     }
 
+    setActionMenuOpen(false);
     onDeleteFeedPost(post.id);
   }
 
   const taggable = canTag && activePostTags.length > 0;
-  const postActionsVisible = taggable || mine || publicLinksAvailable;
+  const postActionsVisible = taggable || mine;
   const hasCaption = post.caption !== undefined && post.caption !== "";
   const byline = (
     <div className="post-card-byline">
@@ -345,69 +366,74 @@ function FeedPostCard({
   );
   const postActions =
     postActionsVisible && !editing ? (
-      <div className="post-card-actions">
-        {taggable ? (
-          <button
-            aria-label="Tag"
-            className="icon-button post-action-button"
-            title="Tag"
-            type="button"
-            disabled={saving || deleting}
-            onClick={toggleTagMenu}
-          >
-            <PostActionIcon>
-              <path d="M20 10V5a2 2 0 0 0-2-2h-5L3 13l8 8 9-11Z" />
-              <path d="M17.5 6.5h.01" />
-            </PostActionIcon>
-          </button>
-        ) : null}
-        {publicLinksAvailable ? (
-          <button
-            aria-label="Copy link"
-            className="icon-button post-action-button"
-            title="Copy link"
-            type="button"
-            disabled={saving || deleting}
-            onClick={() => onCopyPublicPostLink(post.id)}
-          >
-            <PostActionIcon>
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-            </PostActionIcon>
-          </button>
-        ) : null}
-        {mine ? (
-          <>
-            <button
-              aria-label="Edit"
-              className="icon-button post-action-button"
-              title="Edit"
-              type="button"
-              disabled={deleting}
-              onClick={beginEdit}
-            >
-              <PostActionIcon>
-                <path d="M12 20h9" />
-                <path d="m16.5 3.5 4 4L7 21H3v-4L16.5 3.5Z" />
-              </PostActionIcon>
-            </button>
-            <button
-              aria-label="Delete"
-              className="icon-button post-action-button post-action-button-danger"
-              title="Delete"
-              type="button"
-              disabled={deleting}
-              onClick={handleDelete}
-            >
-              <PostActionIcon>
-                <path d="M3 6h18" />
-                <path d="M8 6V4h8v2" />
-                <path d="M6 6l1 15h10l1-15" />
-                <path d="M10 11v6" />
-                <path d="M14 11v6" />
-              </PostActionIcon>
-            </button>
-          </>
+      <div className="post-card-actions" ref={actionMenuRef}>
+        <button
+          aria-label="Post actions"
+          aria-expanded={actionMenuOpen}
+          aria-haspopup="true"
+          className="icon-button post-action-button post-action-menu-button"
+          title="Post actions"
+          type="button"
+          disabled={saving || deleting}
+          onClick={() => setActionMenuOpen((open) => !open)}
+        >
+          <span className="post-action-menu-dots" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+        </button>
+        {actionMenuOpen ? (
+          <div className="post-action-menu-panel">
+            {taggable ? (
+              <button
+                aria-label="Tag"
+                className="icon-button post-action-button"
+                title="Tag"
+                type="button"
+                disabled={saving || deleting}
+                onClick={toggleTagMenu}
+              >
+                <PostActionIcon>
+                  <path d="M20 10V5a2 2 0 0 0-2-2h-5L3 13l8 8 9-11Z" />
+                  <path d="M17.5 6.5h.01" />
+                </PostActionIcon>
+              </button>
+            ) : null}
+            {mine ? (
+              <>
+                <button
+                  aria-label="Edit"
+                  className="icon-button post-action-button"
+                  title="Edit"
+                  type="button"
+                  disabled={deleting}
+                  onClick={beginEdit}
+                >
+                  <PostActionIcon>
+                    <path d="M12 20h9" />
+                    <path d="m16.5 3.5 4 4L7 21H3v-4L16.5 3.5Z" />
+                  </PostActionIcon>
+                </button>
+                <button
+                  aria-label="Delete"
+                  className="icon-button post-action-button post-action-button-danger"
+                  title="Delete"
+                  type="button"
+                  disabled={deleting}
+                  onClick={handleDelete}
+                >
+                  <PostActionIcon>
+                    <path d="M3 6h18" />
+                    <path d="M8 6V4h8v2" />
+                    <path d="M6 6l1 15h10l1-15" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                  </PostActionIcon>
+                </button>
+              </>
+            ) : null}
+          </div>
         ) : null}
       </div>
     ) : null;

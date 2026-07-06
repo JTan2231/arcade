@@ -57,10 +57,6 @@ export function feedPath(feedId: string, date: string | null = null): string {
   return date === null || date === "" ? `/f/${encodedFeedId}` : `/f/${encodedFeedId}/${encodeURIComponent(date)}`;
 }
 
-export function postPath(postId: string): string {
-  return `/p/${encodeURIComponent(postId)}`;
-}
-
 export function publicRouteCacheKey(route: PublicRoute): string {
   switch (route.kind) {
     case "group":

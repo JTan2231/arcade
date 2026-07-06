@@ -87,7 +87,7 @@ export default function App() {
   if (publicRoute !== null && !signedIn) {
     return (
       <>
-        <PublicRouteAdapter onNavigate={setAppPath} onToast={requestToast} route={publicRoute} signedIn={signedIn} />
+        <PublicRouteAdapter onNavigate={setAppPath} route={publicRoute} signedIn={signedIn} />
         <Toast message={context.toastMessage} />
       </>
     );

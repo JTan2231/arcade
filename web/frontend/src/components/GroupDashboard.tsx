@@ -57,7 +57,6 @@ export type GroupDashboardProps = {
   onCreateFeed: (payload: CreateDailyFeedRequest) => void;
   onCreateFeedPost: (payload: CreateFeedPostPayload) => void;
   onUpdateFeedPost: (postId: string, payload: UpdateFeedPostPayload) => void;
-  onCopyPublicPostLink: (postId: string) => void;
   onDeleteFeedPost: (postId: string) => void;
   onSelectMetric: (metricId: string) => void;
   onAddMetric?: () => void;
@@ -110,7 +109,6 @@ export function GroupDashboard({
   onCreateFeed,
   onCreateFeedPost,
   onUpdateFeedPost,
-  onCopyPublicPostLink,
   onDeleteFeedPost,
   onSelectMetric,
   onAddMetric,
@@ -135,7 +133,6 @@ export function GroupDashboard({
   const canPost = !readOnly && activeMember;
   const canManageMetrics = !readOnly && activeMember && (group.my_role === "owner" || group.my_role === "admin");
   const canManagePostTags = !readOnly && activeMember && (group.my_role === "owner" || group.my_role === "admin");
-  const publicLinksAvailable = group.visibility === "public";
   const judgedMetrics = metrics.filter((metric) => metric.system_key === "judged");
 
   return (
@@ -181,7 +178,6 @@ export function GroupDashboard({
             updatingPostId={updatingPostId}
             deletingPostId={deletingPostId}
             currentUserId={currentUserId}
-            publicLinksAvailable={publicLinksAvailable}
             judgedMetrics={judgedMetrics}
             canPost={canPost}
             canJudge={canManageMetrics}
@@ -191,7 +187,6 @@ export function GroupDashboard({
             onChangeFeedDate={onChangeFeedDate}
             onCreateFeedPost={onCreateFeedPost}
             onUpdateFeedPost={onUpdateFeedPost}
-            onCopyPublicPostLink={onCopyPublicPostLink}
             onDeleteFeedPost={onDeleteFeedPost}
             onCreateMetricJudgment={onCreateMetricJudgment}
           />

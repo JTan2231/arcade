@@ -135,22 +135,11 @@
 }
 
 .post-card-actions {
+  align-items: center;
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-wrap: nowrap;
   justify-content: flex-end;
-}
-
-@media (hover: hover) {
-  .post-card-actions {
-    opacity: 0;
-    transition: opacity 120ms ease;
-  }
-
-  .feed-post-card:hover .post-card-actions,
-  .feed-post-card:focus-within .post-card-actions {
-    opacity: 1;
-  }
+  position: relative;
 }
 
 .post-card-actions button {
@@ -166,10 +155,43 @@
   padding: 0;
 }
 
-.post-card-actions button.post-action-button:hover:not(:disabled) {
+.post-card-actions button.post-action-button:hover:not(:disabled),
+.post-card-actions button.post-action-button[aria-expanded="true"] {
   background: transparent;
   border-color: transparent;
   color: var(--color-accent-hover);
+}
+
+.post-action-menu-dots {
+  align-items: center;
+  display: inline-flex;
+  gap: 3px;
+  height: 12px;
+  justify-content: center;
+  width: 16px;
+}
+
+.post-action-menu-dots span {
+  background: currentcolor;
+  border-radius: 999px;
+  display: block;
+  height: 3px;
+  width: 3px;
+}
+
+.post-action-menu-panel {
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  bottom: calc(100% + 6px);
+  box-shadow: var(--shadow-popover);
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  position: absolute;
+  right: 0;
+  z-index: 10;
 }
 
 .post-action-icon {
@@ -200,8 +222,9 @@
 .post-card-byline *,
 .post-caption,
 .post-caption * {
-  -webkit-user-select: none;
   pointer-events: none;
+  /* stylelint-disable-next-line property-no-vendor-prefix -- Safari still needs the prefixed form for reliable post text suppression. */
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -274,7 +297,7 @@
 }
 
 .post-caption-heading:has(.post-card-actions) {
-  padding-right: 150px;
+  padding-right: 40px;
 }
 
 .post-caption-heading .post-card-actions {

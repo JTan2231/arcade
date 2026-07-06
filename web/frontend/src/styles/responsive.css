@@ -136,13 +136,15 @@
   }
 
   .post-caption-heading {
-    display: grid;
-    justify-content: stretch;
-    padding-right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding-right: 40px;
   }
 
   .post-caption-heading .post-card-actions {
-    position: static;
+    position: absolute;
+    right: 0;
+    top: 0;
   }
 
   .metric-settings-row-header {

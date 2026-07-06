@@ -10,7 +10,7 @@ import { useAddFeedAdapter } from "./AddFeedAdapter";
 import { useFeedOutputAdapter } from "./FeedOutputAdapter";
 import { useMetricsAdapter } from "./MetricsAdapter";
 import { usePostsAdapter } from "./PostsAdapter";
-import type { AddFeedActorRef, DashboardActorRef, Navigate, ToastCallback } from "./types";
+import type { AddFeedActorRef, DashboardActorRef, Navigate } from "./types";
 
 export function GroupDashboardAdapter({
   dashboardRef,
@@ -26,7 +26,6 @@ export function GroupDashboardAdapter({
   selectedFeedDate,
   currentUserId,
   onNavigate,
-  onToast,
 }: {
   dashboardRef: DashboardActorRef | undefined;
   addFeedRef: AddFeedActorRef | undefined;
@@ -41,7 +40,6 @@ export function GroupDashboardAdapter({
   selectedFeedDate: string;
   currentUserId: string | null;
   onNavigate: Navigate;
-  onToast: ToastCallback;
 }) {
   const loadFeedOutputSummaries = useCallback(
     (selectedDate: string, signal: AbortSignal) => {
@@ -83,7 +81,6 @@ export function GroupDashboardAdapter({
     dashboardContext,
     dashboardStateValue,
     currentUserId,
-    onToast,
   });
   const metricsProps = useMetricsAdapter({
     dashboardRef,

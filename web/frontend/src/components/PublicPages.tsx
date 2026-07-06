@@ -24,7 +24,6 @@ import { GroupDashboard } from "./GroupDashboard";
 export type PublicPageProps = {
   route: PublicRoute;
   signedIn: boolean;
-  onCopyPublicPostLink: (postId: string) => void;
   onNavigate: (path: string, mode?: "push" | "replace") => void;
 };
 
@@ -46,48 +45,24 @@ type PublicDashboardData = {
 const EMPTY_POSTS: GroupFeedPost[] = [];
 const EMPTY_POST_TAGS: GroupPostTag[] = [];
 
-export function PublicPage({ route, signedIn, onCopyPublicPostLink, onNavigate }: PublicPageProps) {
+export function PublicPage({ route, signedIn, onNavigate }: PublicPageProps) {
   switch (route.kind) {
     case "group":
-      return (
-        <PublicGroupPage
-          onCopyPublicPostLink={onCopyPublicPostLink}
-          onNavigate={onNavigate}
-          signedIn={signedIn}
-          slug={route.slug}
-        />
-      );
+      return <PublicGroupPage onNavigate={onNavigate} signedIn={signedIn} slug={route.slug} />;
     case "feed":
-      return (
-        <PublicFeedPage
-          date={route.date}
-          feedId={route.feedId}
-          onCopyPublicPostLink={onCopyPublicPostLink}
-          onNavigate={onNavigate}
-          signedIn={signedIn}
-        />
-      );
+      return <PublicFeedPage date={route.date} feedId={route.feedId} onNavigate={onNavigate} signedIn={signedIn} />;
     case "post":
-      return (
-        <PublicPostPage
-          onCopyPublicPostLink={onCopyPublicPostLink}
-          onNavigate={onNavigate}
-          postId={route.postId}
-          signedIn={signedIn}
-        />
-      );
+      return <PublicPostPage onNavigate={onNavigate} postId={route.postId} signedIn={signedIn} />;
   }
 }
 
 function PublicGroupPage({
   slug,
   signedIn,
-  onCopyPublicPostLink,
   onNavigate,
 }: {
   slug: string;
   signedIn: boolean;
-  onCopyPublicPostLink: (postId: string) => void;
   onNavigate: (path: string, mode?: "push" | "replace") => void;
 }) {
   const [state, setState] = useState<LoadState<PublicDashboardData>>({ status: "loading" });
@@ -129,27 +104,18 @@ function PublicGroupPage({
     return () => controller.abort();
   }, [slug]);
 
-  return (
-    <PublicDashboardView
-      onCopyPublicPostLink={onCopyPublicPostLink}
-      onNavigate={onNavigate}
-      signedIn={signedIn}
-      state={state}
-    />
-  );
+  return <PublicDashboardView onNavigate={onNavigate} signedIn={signedIn} state={state} />;
 }
 
 function PublicFeedPage({
   feedId,
   date,
   signedIn,
-  onCopyPublicPostLink,
   onNavigate,
 }: {
   feedId: string;
   date: string | null;
   signedIn: boolean;
-  onCopyPublicPostLink: (postId: string) => void;
   onNavigate: (path: string, mode?: "push" | "replace") => void;
 }) {
   const [state, setState] = useState<LoadState<PublicDashboardData>>({ status: "loading" });
@@ -176,25 +142,16 @@ function PublicFeedPage({
     return () => controller.abort();
   }, [date, feedId]);
 
-  return (
-    <PublicDashboardView
-      onCopyPublicPostLink={onCopyPublicPostLink}
-      onNavigate={onNavigate}
-      signedIn={signedIn}
-      state={state}
-    />
-  );
+  return <PublicDashboardView onNavigate={onNavigate} signedIn={signedIn} state={state} />;
 }
 
 function PublicPostPage({
   postId,
   signedIn,
-  onCopyPublicPostLink,
   onNavigate,
 }: {
   postId: string;
   signedIn: boolean;
-  onCopyPublicPostLink: (postId: string) => void;
   onNavigate: (path: string, mode?: "push" | "replace") => void;
 }) {
   const [state, setState] = useState<LoadState<PublicDashboardData>>({ status: "loading" });
@@ -234,25 +191,16 @@ function PublicPostPage({
     return () => controller.abort();
   }, [postId]);
 
-  return (
-    <PublicDashboardView
-      onCopyPublicPostLink={onCopyPublicPostLink}
-      onNavigate={onNavigate}
-      signedIn={signedIn}
-      state={state}
-    />
-  );
+  return <PublicDashboardView onNavigate={onNavigate} signedIn={signedIn} state={state} />;
 }
 
 function PublicDashboardView({
   state,
   signedIn,
-  onCopyPublicPostLink,
   onNavigate,
 }: {
   state: LoadState<PublicDashboardData>;
   signedIn: boolean;
-  onCopyPublicPostLink: (postId: string) => void;
   onNavigate: (path: string, mode?: "push" | "replace") => void;
 }) {
   const selectedFeedId = state.status === "ready" ? state.data.selectedFeedId : null;
@@ -305,7 +253,6 @@ function PublicDashboardView({
             }
           }}
           onCloseAddFeed={noop}
-          onCopyPublicPostLink={onCopyPublicPostLink}
           onCreateFeed={noop}
           onCreateFeedPost={noop}
           onCreateMetricJudgment={noop}

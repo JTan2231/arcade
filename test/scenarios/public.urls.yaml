@@ -265,6 +265,11 @@ steps:
       text: Public proof for the public page.
 
   - within: Posts
+    click:
+      role: button
+      name: Post actions
+
+  - within: Posts
     expectVisible:
       role: button
       name: Edit

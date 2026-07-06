@@ -291,7 +291,7 @@ export function WorkspaceShell({
   const publicRouteUsesWorkspace = groupRouteUsesWorkspace || memberRouteUsesWorkspace;
 
   if (publicRoute !== null && !publicRouteUsesWorkspace) {
-    return <PublicRouteAdapter onNavigate={onNavigate} onToast={onToast} route={publicRoute} signedIn={signedIn} />;
+    return <PublicRouteAdapter onNavigate={onNavigate} route={publicRoute} signedIn={signedIn} />;
   }
 
   return (
@@ -326,7 +326,6 @@ export function WorkspaceShell({
           selectedFeedDate={selectedFeedDate}
           currentUserId={currentUser?.id ?? null}
           onNavigate={onNavigate}
-          onToast={onToast}
         />
         <GroupSettingsAdapter
           dashboardRef={dashboardRef}

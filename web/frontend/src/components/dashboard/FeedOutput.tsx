@@ -30,7 +30,6 @@ export function FeedOutput({
   updatingPostId,
   deletingPostId,
   currentUserId,
-  publicLinksAvailable,
   judgedMetrics,
   canPost,
   canJudge,
@@ -40,7 +39,6 @@ export function FeedOutput({
   onChangeFeedDate,
   onCreateFeedPost,
   onUpdateFeedPost,
-  onCopyPublicPostLink,
   onDeleteFeedPost,
   onCreateMetricJudgment,
 }: {
@@ -57,7 +55,6 @@ export function FeedOutput({
   updatingPostId: string | null;
   deletingPostId: string | null;
   currentUserId: string | null;
-  publicLinksAvailable: boolean;
   judgedMetrics: FeedMetric[];
   canPost: boolean;
   canJudge: boolean;
@@ -67,7 +64,6 @@ export function FeedOutput({
   onChangeFeedDate: (date: string) => void;
   onCreateFeedPost: (payload: CreateFeedPostPayload) => void;
   onUpdateFeedPost: (postId: string, payload: UpdateFeedPostPayload) => void;
-  onCopyPublicPostLink: (postId: string) => void;
   onDeleteFeedPost: (postId: string) => void;
   onCreateMetricJudgment: (
     metricId: string,
@@ -133,7 +129,6 @@ export function FeedOutput({
       updatingPostId={updatingPostId}
       deletingPostId={deletingPostId}
       currentUserId={currentUserId}
-      publicLinksAvailable={publicLinksAvailable}
       judgedMetrics={judgedMetrics}
       canPost={canPost}
       canJudge={canJudge}
@@ -143,7 +138,6 @@ export function FeedOutput({
       onChangeFeedDate={onChangeFeedDate}
       onCreateFeedPost={onCreateFeedPost}
       onUpdateFeedPost={onUpdateFeedPost}
-      onCopyPublicPostLink={onCopyPublicPostLink}
       onDeleteFeedPost={onDeleteFeedPost}
       onCreateMetricJudgment={onCreateMetricJudgment}
     />
@@ -194,7 +188,6 @@ function LoadedFeedOutput({
   updatingPostId,
   deletingPostId,
   currentUserId,
-  publicLinksAvailable,
   judgedMetrics,
   canPost,
   canJudge,
@@ -204,7 +197,6 @@ function LoadedFeedOutput({
   onChangeFeedDate,
   onCreateFeedPost,
   onUpdateFeedPost,
-  onCopyPublicPostLink,
   onDeleteFeedPost,
   onCreateMetricJudgment,
 }: {
@@ -219,7 +211,6 @@ function LoadedFeedOutput({
   updatingPostId: string | null;
   deletingPostId: string | null;
   currentUserId: string | null;
-  publicLinksAvailable: boolean;
   judgedMetrics: FeedMetric[];
   canPost: boolean;
   canJudge: boolean;
@@ -229,7 +220,6 @@ function LoadedFeedOutput({
   onChangeFeedDate: (date: string) => void;
   onCreateFeedPost: (payload: CreateFeedPostPayload) => void;
   onUpdateFeedPost: (postId: string, payload: UpdateFeedPostPayload) => void;
-  onCopyPublicPostLink: (postId: string) => void;
   onDeleteFeedPost: (postId: string) => void;
   onCreateMetricJudgment: (
     metricId: string,
@@ -280,7 +270,6 @@ function LoadedFeedOutput({
         updatingPostId={updatingPostId}
         deletingPostId={deletingPostId}
         currentUserId={currentUserId}
-        publicLinksAvailable={publicLinksAvailable}
         judgedMetrics={judgedMetrics}
         canPost={canPost}
         canJudge={canJudge}
@@ -288,7 +277,6 @@ function LoadedFeedOutput({
         judgingPostId={judgingPostId}
         onCreateFeedPost={onCreateFeedPost}
         onUpdateFeedPost={onUpdateFeedPost}
-        onCopyPublicPostLink={onCopyPublicPostLink}
         onDeleteFeedPost={onDeleteFeedPost}
         onCreateMetricJudgment={onCreateMetricJudgment}
       />

@@ -1,10 +1,8 @@
 import type { GroupDashboardProps } from "../components/GroupDashboard";
 import { matchesGrandchildState } from "../machines/stateMatches";
 import type { DashboardContext } from "../machines/dashboardMachine";
-import { postPath } from "../routes";
-import { copyPublicPath } from "./copyPublicPath";
 import { EMPTY_POSTS, EMPTY_POST_TAGS } from "./empty";
-import type { DashboardActorRef, ToastCallback } from "./types";
+import type { DashboardActorRef } from "./types";
 
 type PostsProps = Pick<
   GroupDashboardProps,
@@ -18,7 +16,6 @@ type PostsProps = Pick<
   | "currentUserId"
   | "onCreateFeedPost"
   | "onUpdateFeedPost"
-  | "onCopyPublicPostLink"
   | "onDeleteFeedPost"
 >;
 
@@ -27,13 +24,11 @@ export function usePostsAdapter({
   dashboardContext,
   dashboardStateValue,
   currentUserId,
-  onToast,
 }: {
   dashboardRef: DashboardActorRef | undefined;
   dashboardContext: DashboardContext | null;
   dashboardStateValue: unknown;
   currentUserId: string | null;
-  onToast: ToastCallback;
 }): PostsProps {
   const loadingPosts = matchesGrandchildState(dashboardStateValue, "groupSelected", "feedSelected", "loadingPosts");
   const loadingDatedPosts = matchesGrandchildState(
@@ -58,7 +53,6 @@ export function usePostsAdapter({
     currentUserId,
     onCreateFeedPost: (payload) => dashboardRef?.send({ type: "POST_CREATE_SUBMITTED", payload }),
     onUpdateFeedPost: (postId, payload) => dashboardRef?.send({ type: "POST_UPDATE_SUBMITTED", postId, payload }),
-    onCopyPublicPostLink: (postId) => void copyPublicPath(postPath(postId), "Post link copied", onToast),
     onDeleteFeedPost: (postId) => dashboardRef?.send({ type: "POST_DELETE_SUBMITTED", postId }),
   };
 }
