@@ -117,6 +117,34 @@
     justify-content: flex-start;
   }
 
+  .post-evidence-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .post-evidence-column,
+  .post-caption-column,
+  .post-evidence-code-wrap,
+  .post-evidence-code-button,
+  .post-evidence-code {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .post-caption-column {
+    min-width: 0;
+  }
+
+  .post-caption-heading {
+    display: grid;
+    justify-content: stretch;
+    padding-right: 0;
+  }
+
+  .post-caption-heading .post-card-actions {
+    position: static;
+  }
+
   .metric-settings-row-header {
     display: grid;
   }

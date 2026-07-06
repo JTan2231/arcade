@@ -335,83 +335,86 @@ function FeedPostCard({
 
   const taggable = canTag && activePostTags.length > 0;
   const postActionsVisible = taggable || mine || publicLinksAvailable;
+  const hasCaption = post.caption !== undefined && post.caption !== "";
+  const byline = (
+    <div className="post-card-byline">
+      <div className="title post-author-name">{post.author_display_name || post.author_username}</div>
+      <div className="meta post-timestamp">{formatDateTime(post.created_at)}</div>
+      <PostTagPills tags={post.tags} />
+    </div>
+  );
+  const postActions =
+    postActionsVisible && !editing ? (
+      <div className="post-card-actions">
+        {taggable ? (
+          <button
+            aria-label="Tag"
+            className="icon-button post-action-button"
+            title="Tag"
+            type="button"
+            disabled={saving || deleting}
+            onClick={toggleTagMenu}
+          >
+            <PostActionIcon>
+              <path d="M20 10V5a2 2 0 0 0-2-2h-5L3 13l8 8 9-11Z" />
+              <path d="M17.5 6.5h.01" />
+            </PostActionIcon>
+          </button>
+        ) : null}
+        {publicLinksAvailable ? (
+          <button
+            aria-label="Copy link"
+            className="icon-button post-action-button"
+            title="Copy link"
+            type="button"
+            disabled={saving || deleting}
+            onClick={() => onCopyPublicPostLink(post.id)}
+          >
+            <PostActionIcon>
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </PostActionIcon>
+          </button>
+        ) : null}
+        {mine ? (
+          <>
+            <button
+              aria-label="Edit"
+              className="icon-button post-action-button"
+              title="Edit"
+              type="button"
+              disabled={deleting}
+              onClick={beginEdit}
+            >
+              <PostActionIcon>
+                <path d="M12 20h9" />
+                <path d="m16.5 3.5 4 4L7 21H3v-4L16.5 3.5Z" />
+              </PostActionIcon>
+            </button>
+            <button
+              aria-label="Delete"
+              className="icon-button post-action-button post-action-button-danger"
+              title="Delete"
+              type="button"
+              disabled={deleting}
+              onClick={handleDelete}
+            >
+              <PostActionIcon>
+                <path d="M3 6h18" />
+                <path d="M8 6V4h8v2" />
+                <path d="M6 6l1 15h10l1-15" />
+                <path d="M10 11v6" />
+                <path d="M14 11v6" />
+              </PostActionIcon>
+            </button>
+          </>
+        ) : null}
+      </div>
+    ) : null;
 
   return (
     <article className="row feed-post-card">
-      <div className="post-card-header">
-        <div className="post-card-byline">
-          <div className="title post-author-name">{post.author_display_name || post.author_username}</div>
-          <div className="meta post-timestamp">{formatDateTime(post.created_at)}</div>
-          <PostTagPills tags={post.tags} />
-        </div>
-        {postActionsVisible && !editing ? (
-          <div className="post-card-actions">
-            {taggable ? (
-              <button
-                aria-label="Tag"
-                className="icon-button post-action-button"
-                title="Tag"
-                type="button"
-                disabled={saving || deleting}
-                onClick={toggleTagMenu}
-              >
-                <PostActionIcon>
-                  <path d="M20 10V5a2 2 0 0 0-2-2h-5L3 13l8 8 9-11Z" />
-                  <path d="M17.5 6.5h.01" />
-                </PostActionIcon>
-              </button>
-            ) : null}
-            {publicLinksAvailable ? (
-              <button
-                aria-label="Copy link"
-                className="icon-button post-action-button"
-                title="Copy link"
-                type="button"
-                disabled={saving || deleting}
-                onClick={() => onCopyPublicPostLink(post.id)}
-              >
-                <PostActionIcon>
-                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                </PostActionIcon>
-              </button>
-            ) : null}
-            {mine ? (
-              <>
-                <button
-                  aria-label="Edit"
-                  className="icon-button post-action-button"
-                  title="Edit"
-                  type="button"
-                  disabled={deleting}
-                  onClick={beginEdit}
-                >
-                  <PostActionIcon>
-                    <path d="M12 20h9" />
-                    <path d="m16.5 3.5 4 4L7 21H3v-4L16.5 3.5Z" />
-                  </PostActionIcon>
-                </button>
-                <button
-                  aria-label="Delete"
-                  className="icon-button post-action-button post-action-button-danger"
-                  title="Delete"
-                  type="button"
-                  disabled={deleting}
-                  onClick={handleDelete}
-                >
-                  <PostActionIcon>
-                    <path d="M3 6h18" />
-                    <path d="M8 6V4h8v2" />
-                    <path d="M6 6l1 15h10l1-15" />
-                    <path d="M10 11v6" />
-                    <path d="M14 11v6" />
-                  </PostActionIcon>
-                </button>
-              </>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
+      {editing ? <div className="post-card-header">{byline}</div> : null}
 
       {tagMenuOpen && !editing ? (
         <PostTagMenu
@@ -464,16 +467,24 @@ function FeedPostCard({
         </form>
       ) : (
         <>
-          {shouldShowPostFormat(post) ? (
-            <div className="post-format-meta">
-              {post.evidence_format.name} · v{post.evidence_format_version.version_number}
-              {post.evidence_format.archived_at !== undefined ? " · Archived" : ""}
+          <div className={`post-evidence-layout ${hasCaption ? "has-caption" : ""}`}>
+            <div className="post-evidence-column">
+              {shouldShowPostFormat(post) ? (
+                <div className="post-format-meta">
+                  {post.evidence_format.name} · v{post.evidence_format_version.version_number}
+                  {post.evidence_format.archived_at !== undefined ? " · Archived" : ""}
+                </div>
+              ) : null}
+              <EvidenceCodeBlock value={post.evidence_text} />
             </div>
-          ) : null}
-          <EvidenceCodeBlock value={post.evidence_text} />
-          {post.caption !== undefined && post.caption !== "" ? (
-            <div className="post-caption">{post.caption}</div>
-          ) : null}
+            <div className="post-caption-column">
+              <div className="post-caption-heading">
+                {byline}
+                {postActions}
+              </div>
+              {hasCaption ? <div className="post-caption">{post.caption}</div> : null}
+            </div>
+          </div>
         </>
       )}
       {canJudge && !editing && judgedMetrics.length > 0 ? (

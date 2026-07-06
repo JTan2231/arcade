@@ -225,7 +225,64 @@
 }
 
 .post-evidence-code-wrap {
+  max-width: 100%;
+  min-width: 0;
   position: relative;
+  width: 100%;
+}
+
+.post-evidence-layout {
+  align-items: start;
+  display: flex;
+  gap: 10px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.post-evidence-column {
+  display: grid;
+  flex: 0 1 100ch;
+  font-family: var(--font-post-code);
+  font-size: 13px;
+  gap: 4px;
+  max-width: min(100%, 100ch);
+  min-width: 0;
+  width: min(100%, 100ch);
+}
+
+.post-evidence-column .post-format-meta {
+  font-family: var(--font-post-meta);
+}
+
+.post-caption-column {
+  align-content: start;
+  display: grid;
+  flex: 1 1 18ch;
+  gap: 12px;
+  min-width: 16ch;
+}
+
+.post-caption-heading {
+  align-items: flex-start;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  min-width: 0;
+  position: relative;
+}
+
+.post-caption-heading:has(.post-card-actions) {
+  padding-right: 150px;
+}
+
+.post-caption-heading .post-card-actions {
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.post-caption-heading .post-card-byline {
+  min-width: 0;
 }
 
 .post-evidence-code-button {
@@ -235,6 +292,7 @@
   cursor: pointer;
   display: block;
   min-height: 0;
+  max-width: 100%;
   padding: 0;
   text-align: left;
   width: 100%;
@@ -265,11 +323,13 @@
   font-weight: 400;
   line-height: 1.45;
   margin: 0;
+  max-width: 100%;
   overflow: auto;
   padding: 12px 14px;
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-code-accent) 22%, transparent);
   user-select: text;
-  white-space: pre-wrap;
+  white-space: pre;
+  width: 100%;
 }
 
 .post-evidence-code-content {
@@ -337,19 +397,6 @@
   font-weight: 700;
 }
 
-.post-evidence-code-wrap.preview::after {
-  background: linear-gradient(var(--color-code-fade-start), var(--color-code-surface) 78%);
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-  bottom: 1px;
-  content: "";
-  height: 46px;
-  left: 1px;
-  pointer-events: none;
-  position: absolute;
-  right: 1px;
-}
-
 .post-evidence-collapse-row {
   display: flex;
   justify-content: flex-end;
@@ -362,16 +409,13 @@
 }
 
 .post-caption {
+  align-self: start;
   color: color-mix(in srgb, var(--color-text) 84%, var(--color-text-muted) 16%);
   font-family: var(--font-post-meta);
   font-size: 17px;
   font-weight: 400;
   line-height: 1.35;
   overflow-wrap: anywhere;
-}
-
-.post-evidence-code-wrap + .post-caption {
-  margin-top: 4px;
 }
 
 .field-hint,
