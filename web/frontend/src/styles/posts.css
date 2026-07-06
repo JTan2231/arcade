@@ -200,6 +200,8 @@
 .post-card-byline *,
 .post-caption,
 .post-caption * {
+  -webkit-user-select: none;
+  pointer-events: none;
   user-select: none;
 }
 
