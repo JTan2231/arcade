@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Jost:wght@400;500;600;700&display=swap");
-
 @font-face {
   font-display: swap;
   font-family: "arcade workspace geometric";
@@ -111,6 +109,7 @@
   --color-inverse-text: #f0f0f0;
   --color-overlay: rgb(2 6 8 / 64%);
   --color-toast: #050708;
+  --color-output-item-title-dim: color-mix(in srgb, var(--color-text-muted) 85%, var(--color-accent) 15%);
   --color-code-surface: #07110f;
   --color-code-border: #1b3f38;
   --color-code-accent: #50d4b7;

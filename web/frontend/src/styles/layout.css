@@ -60,17 +60,17 @@
   grid-template-columns: var(--group-layout-side-column) minmax(0, 1fr) var(--group-layout-side-column);
 }
 
+.sidebar-stack {
+  gap: 16px;
+  align-content: start;
+  display: grid;
+}
+
 .group-layout .sidebar-stack {
   grid-column: 1;
   justify-self: start;
   max-width: 320px;
   width: 100%;
-}
-
-.sidebar-stack {
-  display: grid;
-  gap: 16px;
-  align-content: start;
 }
 
 .panel {
@@ -108,6 +108,15 @@
   justify-content: flex-end;
 }
 
+.title {
+  font-weight: 700;
+}
+
+.meta {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
 .row {
   background: var(--color-surface-subtle);
   border: 1px solid var(--color-border);
@@ -128,19 +137,19 @@
   width: 100%;
 }
 
-.selectable-row:hover:not(:disabled) {
+.selectable-row:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.selectable-row:hover:where(:not(:disabled)) {
   background: var(--color-surface-hover);
   border-color: var(--color-border-hover);
 }
 
-.selectable-row.selected-row:hover:not(:disabled) {
+.selectable-row.selected-row:hover:where(:not(:disabled)) {
   background: var(--color-accent-surface-hover);
   border-color: var(--color-accent-border-hover);
-}
-
-.selectable-row:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
 }
 
 .action-row {
@@ -152,7 +161,7 @@
   position: relative;
 }
 
-.selected-row button.row-select-button:hover:not(:disabled) {
+.selected-row .row-select-button:hover:where(:not(:disabled)) {
   background: var(--color-accent-surface-hover);
 }
 
@@ -164,16 +173,45 @@
   gap: 4px;
 }
 
-.nav-row.selected-row button.nav-select-button {
+.nav-select-button-selected {
   color: var(--color-accent-hover);
 }
 
-.nav-row.selected-row button.nav-select-button .title {
+.nav-select-button-selected .title {
   font-weight: 800;
 }
 
-.nav-row.selected-row button.nav-select-button:hover:not(:disabled) {
+.nav-select-button-selected:hover:where(:not(:disabled)) {
   color: var(--color-accent);
+}
+
+.nav-select-button-selected-parent {
+  color: var(--color-text-nav-active-parent);
+}
+
+.nav-select-button-selected-parent .title {
+  font-weight: 700;
+}
+
+.nav-select-button-selected-parent:hover:where(:not(:disabled)) {
+  color: var(--color-accent);
+}
+
+.nav-row .icon-button {
+  color: var(--color-icon-muted);
+}
+
+.nav-row .icon-button[aria-expanded="true"],
+.nav-row .icon-button:hover:where(:not(:disabled)) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-accent-hover);
+}
+
+.row-action-menu {
+  align-self: center;
+  padding-right: 6px;
+  position: relative;
 }
 
 .nav-row .row-action-menu {
@@ -185,26 +223,9 @@
   transition: opacity 120ms ease;
 }
 
-.action-row:hover .row-action-menu,
-.row-action-menu:focus-within {
+.row-action-menu:focus-within,
+.action-row:hover .row-action-menu {
   opacity: 1;
-}
-
-.nav-row button.icon-button {
-  color: var(--color-icon-muted);
-}
-
-.nav-row button.icon-button:hover:not(:disabled),
-.nav-row button.icon-button[aria-expanded="true"] {
-  background: transparent;
-  border-color: transparent;
-  color: var(--color-accent-hover);
-}
-
-.row-action-menu {
-  align-self: center;
-  padding-right: 6px;
-  position: relative;
 }
 
 .row-action-menu-dots {
@@ -238,7 +259,7 @@
   z-index: 10;
 }
 
-.row-action-menu-panel button.menu-action-button {
+.menu-action-button {
   background: var(--color-surface);
   border: 0;
   border-radius: 4px;
@@ -249,17 +270,17 @@
   width: 100%;
 }
 
-.row-action-menu-panel button.menu-action-button:hover:not(:disabled) {
+.menu-action-button:hover:where(:not(:disabled)) {
   background: var(--color-surface-muted);
 }
 
-.row-action-menu-panel button.menu-action-button.danger {
+.menu-action-button-danger {
   background: var(--color-surface);
   border: 0;
   color: var(--color-danger);
 }
 
-.row-action-menu-panel button.menu-action-button.danger:hover:not(:disabled) {
+.menu-action-button-danger:hover:where(:not(:disabled)) {
   background: var(--color-danger-surface);
 }
 
@@ -268,15 +289,6 @@
   display: flex;
   gap: 10px;
   justify-content: space-between;
-}
-
-.title {
-  font-weight: 700;
-}
-
-.meta {
-  color: var(--color-text-muted);
-  font-size: 13px;
 }
 
 .feed-select-control {

@@ -48,23 +48,11 @@
   min-width: 0;
 }
 
-.group-row.selected-parent-row button.nav-select-button {
-  color: var(--color-text-nav-active-parent);
-}
-
-.group-row.selected-parent-row button.nav-select-button .title {
-  font-weight: 700;
-}
-
-.group-row.selected-parent-row button.nav-select-button:hover:not(:disabled) {
-  color: var(--color-accent);
-}
-
-.group-row.selected-row button.group-select-button {
+.group-select-button.nav-select-button-selected {
   font-size: 20px;
 }
 
-.feed-row.selected-row button.feed-select-button {
+.feed-select-button.nav-select-button-selected {
   font-size: var(--feed-nav-add-font-size);
 }
 
@@ -114,7 +102,7 @@
   width: 100%;
 }
 
-button.nav-add-feed-button {
+.nav-add-feed-button {
   background: transparent;
   border: 0;
   color: var(--color-text-nav-muted);
@@ -125,13 +113,13 @@ button.nav-add-feed-button {
   text-align: left;
 }
 
-button.nav-add-feed-button:hover:not(:disabled) {
+.nav-add-feed-button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.nav-add-feed-button:hover:where(:not(:disabled)) {
   background: transparent;
   border-color: transparent;
   color: var(--color-accent-hover);
-}
-
-button.nav-add-feed-button:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
 }

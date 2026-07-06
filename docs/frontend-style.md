@@ -1,7 +1,7 @@
 # Frontend Style
 
 Arcade uses a single dark UI theme. The executable source of truth for colors
-is the `:root` token block in `web/frontend/src/styles.css`.
+is the `:root` token block in `web/frontend/src/styles/tokens.css`.
 
 ## Color Direction
 
@@ -50,11 +50,16 @@ keyword such as `transparent`, `currentcolor`, or `inherit`.
 | `--color-danger-surface`       | `#241515`           | Destructive hover surfaces.                            |
 | `--color-danger-border`        | `#5a2a2a`           | Destructive control borders.                           |
 | `--color-danger-border-hover`  | `#8a3a38`           | Destructive hover borders.                             |
+| `--color-post-tag`             | `#b87333`           | Post tag labels.                                       |
+| `--color-leaderboard-gold`     | `#e7d17a`           | First-place leaderboard content.                       |
+| `--color-leaderboard-silver`   | `#d6d6d6`           | Second-place leaderboard content.                      |
+| `--color-leaderboard-bronze`   | `#d6985e`           | Third-place leaderboard content.                       |
 | `--color-header`               | `#080808`           | App header background.                                 |
 | `--color-header-muted`         | `#a1a1a1`           | Secondary header text.                                 |
 | `--color-inverse-text`         | `#f0f0f0`           | Text on near-black surfaces.                           |
 | `--color-overlay`              | `rgb(2 6 8 / 64%)`  | Modal backdrop.                                        |
 | `--color-toast`                | `#050708`           | Toast background.                                      |
+| `--color-output-item-title-dim` | `color-mix(...)`    | Resting generated-output link text.                    |
 | `--color-code-surface`         | `#07110f`           | Code-like surfaces.                                    |
 | `--color-code-border`          | `#1b3f38`           | Code-like surface borders.                             |
 | `--color-code-accent`          | `#50d4b7`           | Code-like surface accent strokes.                      |
@@ -76,6 +81,25 @@ part of the visual palette:
 | `--shadow-popover` | `0 12px 28px rgb(0 0 0 / 45%)` | Menus and popovers.       |
 | `--shadow-modal`   | `0 24px 80px rgb(0 0 0 / 58%)` | Dialogs.                  |
 | `--shadow-toast`   | `0 8px 24px rgb(0 0 0 / 48%)`  | Toasts.                   |
+| `--filter-leaderboard-gold-glow` | `drop-shadow(...)` | First-place leaderboard glow. |
+| `--shadow-leaderboard-gold-text` | `0 0 5px ...` | First-place leaderboard text glow. |
+
+## CSS Lint Rules
+
+Stylelint is intentionally strict. New CSS should keep selectors shallow,
+tokenized, and explicit:
+
+- no raw hex, named colors, `rgb()`, `rgba()`, `hsl()`, or `hsla()` outside
+  `tokens.css`;
+- no unknown custom properties; cross-file shared values belong in `tokens.css`;
+- no CSS `@import` rules or `http`/`https` URL schemes in CSS assets;
+- no ID selectors, `!important`, type-qualified class selectors such as
+  `button.secondary`, or selector specificity above `0,3,1`;
+- no selector chains with more than three classes or more than two combinators;
+- class names and custom properties must use lowercase kebab-case;
+- no unscoped, descriptionless, invalid, or needless Stylelint disables;
+- no vendor-prefixed properties except the configured `-webkit-user-select`
+  compatibility exception.
 
 ## Working Rules
 
@@ -87,7 +111,7 @@ part of the visual palette:
   `--color-teal-50`.
 - Keep the core UI monochrome. Apart from destructive/error states, new
   saturated hues should be treated as product content rather than chrome.
-- Keep legacy aliases in `styles.css` only as migration aids. New code should
+- Keep legacy aliases in `tokens.css` only as migration aids. New code should
   use the semantic tokens above.
 - Validate code changes with `./ci.sh`.
 - For frontend visual checks, use `./locator.ts` to inspect affected rendered

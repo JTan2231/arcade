@@ -62,7 +62,7 @@ export function RowActionMenu({ label, actions }: RowActionMenuProps) {
         <div className="row-action-menu-panel">
           {actions.map((action) => (
             <button
-              className={`menu-action-button ${action.danger === true ? "danger" : ""}`}
+              className={`menu-action-button ${action.danger === true ? "menu-action-button-danger" : ""}`}
               disabled={action.disabled}
               key={action.label}
               type="button"

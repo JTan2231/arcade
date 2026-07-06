@@ -137,6 +137,15 @@ export function GroupsPanel({
             const selectedParent =
               selected && selectedFeedId !== null && feeds.some((feed) => feed.id === selectedFeedId);
             const actions = groupActions(group, deletingGroupId, onOpenGroupSettings, onDeleteGroup);
+            const groupSelectClassName = [
+              "row-select-button",
+              "nav-select-button",
+              "group-select-button",
+              selected ? "nav-select-button-selected" : "",
+              selectedParent ? "nav-select-button-selected-parent" : "",
+            ]
+              .filter(Boolean)
+              .join(" ");
 
             return (
               <div className="group-tree-node" key={group.id}>
@@ -147,7 +156,7 @@ export function GroupsPanel({
                 >
                   <button
                     aria-pressed={selected}
-                    className="row-select-button nav-select-button group-select-button"
+                    className={groupSelectClassName}
                     type="button"
                     aria-label={group.name}
                     onClick={() => onSelectGroup(group.id)}

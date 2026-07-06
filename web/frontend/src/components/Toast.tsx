@@ -6,7 +6,7 @@ export function Toast({ message }: ToastProps) {
   const visible = message !== null && message !== "";
 
   return (
-    <div id="toast" className={visible ? "show" : ""} role="status">
+    <div className={`toast ${visible ? "toast-visible" : ""}`} role="status">
       {message}
     </div>
   );

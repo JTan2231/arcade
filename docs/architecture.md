@@ -203,7 +203,8 @@ The browser app source lives in `web/frontend`:
 - The selected feed dashboard includes a metric and leaderboard section. Judged
   metrics show prompt-driven score controls on post cards for group owners and
   admins.
-- `src/styles.css` defines the responsive grid and component styles.
+- `src/main.tsx` imports the ordered CSS modules under `src/styles/`, which
+  define the responsive grid and component styles.
 
 Vite builds generated HTML, CSS, and JavaScript into `web/static`, which remains
 the Go embed target. Do not hand-edit generated files in `web/static`; change

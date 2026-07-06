@@ -142,21 +142,18 @@
   position: relative;
 }
 
-.post-card-actions button {
-  font-size: 13px;
-  min-height: 32px;
-}
-
-.post-card-actions button.post-action-button {
+.post-card-actions .post-action-button {
   background: transparent;
   border-color: transparent;
   color: var(--color-icon-muted);
+  font-size: 13px;
+  min-height: 32px;
   min-width: 32px;
   padding: 0;
 }
 
-.post-card-actions button.post-action-button:hover:not(:disabled),
-.post-card-actions button.post-action-button[aria-expanded="true"] {
+.post-card-actions .post-action-button[aria-expanded="true"],
+.post-card-actions .post-action-button:hover:where(:not(:disabled)) {
   background: transparent;
   border-color: transparent;
   color: var(--color-accent-hover);
@@ -201,11 +198,11 @@
   width: 16px;
 }
 
-.post-card-actions button.post-action-button.post-action-button-danger {
+.post-card-actions .post-action-button-danger {
   color: color-mix(in srgb, var(--color-danger) 58%, var(--color-icon-muted));
 }
 
-.post-card-actions button.post-action-button.post-action-button-danger:hover:not(:disabled) {
+.post-card-actions .post-action-button-danger:hover:where(:not(:disabled)) {
   background: transparent;
   border-color: transparent;
   color: var(--color-danger);
@@ -224,7 +221,6 @@
 .post-caption,
 .post-caption * {
   pointer-events: none;
-  /* stylelint-disable-next-line property-no-vendor-prefix -- Safari still needs the prefixed form for reliable post text suppression. */
   -webkit-user-select: none;
   user-select: none;
 }
@@ -276,10 +272,6 @@
   width: min(100%, 100ch);
 }
 
-.post-evidence-column .post-format-meta {
-  font-family: var(--font-post-meta);
-}
-
 .post-caption-column {
   align-content: start;
   display: grid;
@@ -324,14 +316,14 @@
   width: 100%;
 }
 
-.post-evidence-code-button:hover:not(:disabled) {
-  background: transparent;
-  border-color: transparent;
-}
-
 .post-evidence-code-button:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+}
+
+.post-evidence-code-button:hover:where(:not(:disabled)) {
+  background: transparent;
+  border-color: transparent;
 }
 
 .post-evidence-code {
@@ -454,5 +446,6 @@
 }
 
 .post-format-meta {
+  font-family: var(--font-post-meta);
   margin: 0;
 }

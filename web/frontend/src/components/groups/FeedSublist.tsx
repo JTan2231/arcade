@@ -84,6 +84,14 @@ export function FeedSublist({
       ) : null}
       {feeds.map((feed) => {
         const selected = feed.id === selectedFeedId;
+        const feedSelectClassName = [
+          "row-select-button",
+          "nav-select-button",
+          "feed-select-button",
+          selected ? "nav-select-button-selected" : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
         const mutating =
           pendingToggleFeedId === feed.id ||
           pendingFeedFormatFeedId === feed.id ||
@@ -116,7 +124,7 @@ export function FeedSublist({
             <div className={`row action-row nav-row feed-row ${selected ? "selected-row" : ""}`}>
               <button
                 aria-pressed={selected}
-                className="row-select-button nav-select-button feed-select-button"
+                className={feedSelectClassName}
                 type="button"
                 aria-label={feed.name}
                 onClick={() => onSelectFeed(feed.id)}

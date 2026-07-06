@@ -1,9 +1,9 @@
-.group-layout .group-dashboard-panel {
-  grid-column: 2;
-}
-
 .group-dashboard-panel {
   min-height: 420px;
+}
+
+.group-layout .group-dashboard-panel {
+  grid-column: 2;
 }
 
 .group-dashboard-feed-panel {
