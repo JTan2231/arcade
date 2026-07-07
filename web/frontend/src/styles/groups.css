@@ -48,6 +48,16 @@
   min-width: 0;
 }
 
+.group-nav-footer {
+  display: flex;
+  margin-top: 14px;
+}
+
+.group-logout-button {
+  justify-content: center;
+  width: 100%;
+}
+
 .group-select-button.nav-select-button-selected {
   font-size: 20px;
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMachine } from "@xstate/react";
 
 import { AuthView } from "./components/AuthView";
@@ -68,22 +68,6 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [context.toastMessage, send]);
 
-  function handleInternalLinkClick(event: MouseEvent<HTMLAnchorElement>, path: string) {
-    if (
-      event.defaultPrevented ||
-      event.button !== 0 ||
-      event.metaKey ||
-      event.altKey ||
-      event.ctrlKey ||
-      event.shiftKey
-    ) {
-      return;
-    }
-
-    event.preventDefault();
-    setAppPath(path);
-  }
-
   if (publicRoute !== null && !signedIn) {
     return (
       <>
@@ -144,32 +128,16 @@ export default function App() {
     );
   }
 
-  const header = (
-    <header className="app-header">
-      <div>
-        <h1>
-          <a className="app-title-link" href="/" onClick={(event) => handleInternalLinkClick(event, "/")}>
-            Arcade
-          </a>
-        </h1>
-        {context.user !== null ? <div className="header-user">{context.user.display_name}</div> : null}
-      </div>
-      <button className="secondary" type="button" onClick={() => send({ type: "LOGOUT_REQUESTED" })}>
-        Logout
-      </button>
-    </header>
-  );
-
   return (
     <>
       <WorkspaceShell
         dashboardRef={dashboardRef}
         currentUser={context.user}
-        header={header}
         navigationPathRef={appNavigationPathRef}
         route={route}
         signedIn={signedIn}
         onNavigate={setAppPath}
+        onLogout={() => send({ type: "LOGOUT_REQUESTED" })}
         onToast={requestToast}
         onUnauthorized={handleUnauthorized}
       />

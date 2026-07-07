@@ -20,6 +20,7 @@ export type GroupsPanelProps = {
   pendingFeedScheduleFeedId: string | null;
   pendingRefreshFeedId: string | null;
   pendingDeleteFeedId: string | null;
+  onLogout: () => void;
   onCreateGroup: (name: string) => void;
   onSelectGroup: (id: string) => void;
   onOpenGroupSettings: (id: string) => void;
@@ -50,6 +51,7 @@ export function GroupsPanel({
   pendingFeedScheduleFeedId,
   pendingRefreshFeedId,
   pendingDeleteFeedId,
+  onLogout,
   onCreateGroup,
   onSelectGroup,
   onOpenGroupSettings,
@@ -197,6 +199,12 @@ export function GroupsPanel({
         ) : (
           <div className="meta">No groups yet</div>
         )}
+      </div>
+
+      <div className="group-nav-footer">
+        <button className="secondary group-logout-button" type="button" onClick={onLogout}>
+          Logout
+        </button>
       </div>
     </section>
   );

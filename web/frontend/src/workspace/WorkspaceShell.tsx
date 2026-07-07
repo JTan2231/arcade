@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { useSelector } from "@xstate/react";
 
 import { isUnauthorized } from "../api";
@@ -28,9 +28,9 @@ export function WorkspaceShell({
   currentUser,
   route,
   signedIn,
-  header,
   navigationPathRef,
   onNavigate,
+  onLogout,
   onToast,
   onUnauthorized,
 }: {
@@ -38,9 +38,9 @@ export function WorkspaceShell({
   currentUser: User | null;
   route: AppRoute;
   signedIn: boolean;
-  header: ReactNode;
   navigationPathRef: MutableRefObject<string | null>;
   onNavigate: Navigate;
+  onLogout: () => void;
   onToast: ToastCallback;
   onUnauthorized: () => void;
 }) {
@@ -295,50 +295,48 @@ export function WorkspaceShell({
   }
 
   return (
-    <>
-      {header}
-      <main className="layout group-layout" aria-label="Arcade workspace">
-        <div className="sidebar-stack">
-          <GroupsNavAdapter
-            dashboardRef={dashboardRef}
-            dashboardContext={dashboardContext}
-            dashboardStateValue={dashboardStateValue}
-            groups={groups}
-            feeds={feeds}
-            selectedGroupId={selectedGroupId}
-            selectedFeedId={selectedFeedId}
-            selectedFeedDate={selectedFeedDate}
-            onNavigate={onNavigate}
-            onToast={onToast}
-          />
-        </div>
-        <GroupDashboardAdapter
+    <main className="layout group-layout" aria-label="Arcade workspace">
+      <div className="sidebar-stack">
+        <GroupsNavAdapter
           dashboardRef={dashboardRef}
-          addFeedRef={addFeedRef}
           dashboardContext={dashboardContext}
-          addFeedContext={addFeedContext}
           dashboardStateValue={dashboardStateValue}
-          addFeedStateValue={addFeedStateValue}
-          selectedGroup={selectedGroup}
-          selectedGroupId={selectedGroupId}
+          groups={groups}
           feeds={feeds}
+          selectedGroupId={selectedGroupId}
           selectedFeedId={selectedFeedId}
           selectedFeedDate={selectedFeedDate}
-          currentUserId={currentUser?.id ?? null}
           onNavigate={onNavigate}
+          onLogout={onLogout}
+          onToast={onToast}
         />
-        <GroupSettingsAdapter
-          dashboardRef={dashboardRef}
-          dashboardContext={dashboardContext}
-          dashboardStateValue={dashboardStateValue}
-          selectedGroup={selectedGroup}
-          feeds={feeds}
-          selectedFeedId={selectedFeedId}
-          currentUserId={currentUser?.id ?? null}
-          inviteLinkProps={inviteLinks}
-          onNavigate={onNavigate}
-        />
-      </main>
-    </>
+      </div>
+      <GroupDashboardAdapter
+        dashboardRef={dashboardRef}
+        addFeedRef={addFeedRef}
+        dashboardContext={dashboardContext}
+        addFeedContext={addFeedContext}
+        dashboardStateValue={dashboardStateValue}
+        addFeedStateValue={addFeedStateValue}
+        selectedGroup={selectedGroup}
+        selectedGroupId={selectedGroupId}
+        feeds={feeds}
+        selectedFeedId={selectedFeedId}
+        selectedFeedDate={selectedFeedDate}
+        currentUserId={currentUser?.id ?? null}
+        onNavigate={onNavigate}
+      />
+      <GroupSettingsAdapter
+        dashboardRef={dashboardRef}
+        dashboardContext={dashboardContext}
+        dashboardStateValue={dashboardStateValue}
+        selectedGroup={selectedGroup}
+        feeds={feeds}
+        selectedFeedId={selectedFeedId}
+        currentUserId={currentUser?.id ?? null}
+        inviteLinkProps={inviteLinks}
+        onNavigate={onNavigate}
+      />
+    </main>
   );
 }

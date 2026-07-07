@@ -17,6 +17,7 @@ export function GroupsNavAdapter({
   selectedFeedId,
   selectedFeedDate,
   onNavigate,
+  onLogout,
   onToast,
 }: {
   dashboardRef: DashboardActorRef | undefined;
@@ -28,6 +29,7 @@ export function GroupsNavAdapter({
   selectedFeedId: string | null;
   selectedFeedDate: string;
   onNavigate: Navigate;
+  onLogout: () => void;
   onToast: ToastCallback;
 }) {
   const loadingGroups = matchesTopState(dashboardStateValue, "loadingGroups");
@@ -58,6 +60,7 @@ export function GroupsNavAdapter({
       pendingFeedScheduleFeedId={pendingFeedScheduleFeedId}
       pendingRefreshFeedId={refreshingFeedGeneration ? (dashboardContext?.pendingRefreshFeedId ?? null) : null}
       pendingDeleteFeedId={dashboardContext?.pendingDeleteFeedId ?? null}
+      onLogout={onLogout}
       onCreateGroup={(name) => dashboardRef?.send({ type: "GROUP_CREATE_SUBMITTED", name })}
       onSelectGroup={(groupId) => {
         const group = groups.find((candidate) => candidate.id === groupId);
