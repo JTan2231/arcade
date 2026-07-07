@@ -173,6 +173,11 @@
   gap: 4px;
 }
 
+.nav-row .row-select-button:hover:where(:not(:disabled)) {
+  background: transparent;
+  border-color: transparent;
+}
+
 .nav-select-button-selected {
   color: var(--color-accent-hover);
 }
