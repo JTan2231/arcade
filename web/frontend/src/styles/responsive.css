@@ -124,8 +124,9 @@
 
   .post-evidence-column,
   .post-caption-column,
+  .post-content-preview,
+  .post-content-expand-button,
   .post-evidence-code-wrap,
-  .post-evidence-code-button,
   .post-evidence-code {
     max-width: 100%;
     width: 100%;

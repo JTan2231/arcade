@@ -16,6 +16,9 @@ import {
 } from "./evidenceText";
 import { formatDateTime, sameStringSet, selectedActivePostTagIDs } from "./format";
 
+const EVIDENCE_PREVIEW_LINE_LIMIT = 3;
+const EVIDENCE_PREVIEW_RENDER_LINE_LIMIT = EVIDENCE_PREVIEW_LINE_LIMIT * 2;
+
 export type CreateFeedPostPayload = {
   evidenceText: string;
   caption: string;
@@ -231,6 +234,7 @@ function FeedPostCard({
   ) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [evidenceExpanded, setEvidenceExpanded] = useState(false);
   const [tagMenuOpen, setTagMenuOpen] = useState(false);
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
   const [evidenceText, setEvidenceText] = useState(post.evidence_text);
@@ -246,6 +250,8 @@ function FeedPostCard({
     caption: string;
     seenSaving: boolean;
   } | null>(null);
+  const evidencePreview = prepareEvidencePreview(post.evidence_text);
+  const evidenceCollapsed = evidencePreview.hasPreview && !evidenceExpanded;
 
   useEffect(() => {
     if (submittedUpdate === null) {
@@ -265,6 +271,10 @@ function FeedPostCard({
     }
     setSubmittedUpdate(null);
   }, [post.caption, post.evidence_text, saving, submittedUpdate]);
+
+  useEffect(() => {
+    setEvidenceExpanded(false);
+  }, [post.id, post.evidence_text]);
 
   useEffect(() => {
     if (!actionMenuOpen) {
@@ -493,23 +503,42 @@ function FeedPostCard({
         </form>
       ) : (
         <>
-          <div className={`post-evidence-layout ${hasCaption ? "has-caption" : ""}`}>
-            <div className="post-evidence-column">
-              {shouldShowPostFormat(post) ? (
-                <div className="post-format-meta">
-                  {post.evidence_format.name} · v{post.evidence_format_version.version_number}
-                  {post.evidence_format.archived_at !== undefined ? " · Archived" : ""}
-                </div>
-              ) : null}
-              <EvidenceCodeBlock value={post.evidence_text} />
-            </div>
-            <div className="post-caption-column">
-              <div className="post-caption-heading">
-                {byline}
-                {postActions}
+          <div className={`post-content-preview ${evidenceCollapsed ? "preview" : ""}`}>
+            <div className={`post-evidence-layout ${hasCaption ? "has-caption" : ""}`}>
+              <div className="post-evidence-column">
+                {shouldShowPostFormat(post) ? (
+                  <div className="post-format-meta">
+                    {post.evidence_format.name} · v{post.evidence_format_version.version_number}
+                    {post.evidence_format.archived_at !== undefined ? " · Archived" : ""}
+                  </div>
+                ) : null}
+                <EvidenceCodeBlock
+                  collapsed={evidenceCollapsed}
+                  expanded={evidenceExpanded}
+                  preview={evidencePreview}
+                  onCollapse={() => {
+                    setActionMenuOpen(false);
+                    setEvidenceExpanded(false);
+                  }}
+                />
               </div>
-              {hasCaption ? <div className="post-caption">{post.caption}</div> : null}
+              <div className="post-caption-column">
+                <div className="post-caption-heading">
+                  {byline}
+                  {evidenceCollapsed ? null : postActions}
+                </div>
+                {hasCaption ? <div className="post-caption">{post.caption}</div> : null}
+              </div>
             </div>
+            {evidenceCollapsed ? (
+              <button
+                aria-expanded={false}
+                aria-label="Expand evidence"
+                className="post-content-expand-button"
+                type="button"
+                onClick={() => setEvidenceExpanded(true)}
+              />
+            ) : null}
           </div>
         </>
       )}
@@ -693,14 +722,29 @@ function MetricJudgmentForm({
   );
 }
 
-function EvidenceCodeBlock({ value }: { value: string }) {
-  const [expanded, setExpanded] = useState(false);
+function prepareEvidencePreview(value: string) {
   const preparedCode = prepareCodeBlock(value);
   const lines = preparedCode.code.split(/\r?\n/);
-  const hasPreview = lines.length > 3;
-  const previewText = lines.slice(0, 3).join("\n");
-  const displayText = hasPreview && !expanded ? previewText : preparedCode.code;
-  const highlightedCode = highlightCodeBlock(displayText, preparedCode.code, preparedCode.languageHint);
+  return {
+    preparedCode,
+    collapsedCode: lines.slice(0, EVIDENCE_PREVIEW_RENDER_LINE_LIMIT).join("\n"),
+    hasPreview: lines.length > EVIDENCE_PREVIEW_LINE_LIMIT,
+  };
+}
+
+function EvidenceCodeBlock({
+  collapsed,
+  expanded,
+  preview,
+  onCollapse,
+}: {
+  collapsed: boolean;
+  expanded: boolean;
+  preview: ReturnType<typeof prepareEvidencePreview>;
+  onCollapse: () => void;
+}) {
+  const displayText = collapsed ? preview.collapsedCode : preview.preparedCode.code;
+  const highlightedCode = highlightCodeBlock(displayText, preview.preparedCode.code, preview.preparedCode.languageHint);
   const codeClassName =
     highlightedCode === null ? undefined : `post-evidence-code-content language-${highlightedCode.language}`;
   const codeNode =
@@ -711,23 +755,11 @@ function EvidenceCodeBlock({ value }: { value: string }) {
     );
 
   return (
-    <div className={`post-evidence-code-wrap ${hasPreview && !expanded ? "preview" : ""}`}>
-      {hasPreview && !expanded ? (
-        <button
-          aria-expanded={expanded}
-          aria-label="Expand evidence"
-          className="post-evidence-code-button"
-          type="button"
-          onClick={() => setExpanded(true)}
-        >
-          <pre className="post-evidence-code">{codeNode}</pre>
-        </button>
-      ) : (
-        <pre className="post-evidence-code">{codeNode}</pre>
-      )}
-      {hasPreview && expanded ? (
+    <div className="post-evidence-code-wrap">
+      <pre className="post-evidence-code">{codeNode}</pre>
+      {preview.hasPreview && expanded ? (
         <div className="post-evidence-collapse-row">
-          <button className="secondary" type="button" aria-label="Collapse evidence" onClick={() => setExpanded(false)}>
+          <button className="secondary" type="button" aria-label="Collapse evidence" onClick={onCollapse}>
             Collapse
           </button>
         </div>
