@@ -60,10 +60,10 @@ keyword such as `transparent`, `currentcolor`, or `inherit`.
 | `--color-overlay`              | `rgb(2 6 8 / 64%)`  | Modal backdrop.                                        |
 | `--color-toast`                | `#050708`           | Toast background.                                      |
 | `--color-output-item-title-dim` | `color-mix(...)`    | Resting generated-output link text.                    |
-| `--color-code-surface`         | `#07110f`           | Code-like surfaces.                                    |
-| `--color-code-border`          | `#1b3f38`           | Code-like surface borders.                             |
+| `--color-code-surface`         | `#2c4a3e`           | Code-like surfaces.                                    |
+| `--color-code-border`          | `#4d725f`           | Code-like surface borders.                             |
 | `--color-code-accent`          | `#50d4b7`           | Code-like surface accent strokes.                      |
-| `--color-code-fade-start`      | `rgb(7 17 15 / 0%)` | Transparent edge of code preview fades.                |
+| `--color-code-fade-start`      | `rgb(44 74 62 / 0%)` | Transparent edge of code preview fades.              |
 | `--color-code-attribute`       | `#80cbc4`           | Syntax-highlighted attributes and types.               |
 | `--color-code-comment`         | `#8ea39b`           | Syntax-highlighted comments.                           |
 | `--color-code-keyword`         | `#8edcff`           | Syntax-highlighted keywords.                           |

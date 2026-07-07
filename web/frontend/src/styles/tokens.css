@@ -110,10 +110,10 @@
   --color-overlay: rgb(2 6 8 / 64%);
   --color-toast: #050708;
   --color-output-item-title-dim: color-mix(in srgb, var(--color-text-muted) 85%, var(--color-accent) 15%);
-  --color-code-surface: #07110f;
-  --color-code-border: #1b3f38;
+  --color-code-surface: #2c4a3e;
+  --color-code-border: #4d725f;
   --color-code-accent: #50d4b7;
-  --color-code-fade-start: rgb(7 17 15 / 0%);
+  --color-code-fade-start: rgb(44 74 62 / 0%);
   --color-code-attribute: #80cbc4;
   --color-code-comment: #8ea39b;
   --color-code-keyword: #8edcff;

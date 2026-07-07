@@ -16,8 +16,7 @@ import {
 } from "./evidenceText";
 import { formatDateTime, sameStringSet, selectedActivePostTagIDs } from "./format";
 
-const EVIDENCE_PREVIEW_LINE_LIMIT = 3;
-const EVIDENCE_PREVIEW_RENDER_LINE_LIMIT = EVIDENCE_PREVIEW_LINE_LIMIT * 2;
+const EVIDENCE_PREVIEW_LINE_LIMIT = 6;
 
 export type CreateFeedPostPayload = {
   evidenceText: string;
@@ -727,7 +726,7 @@ function prepareEvidencePreview(value: string) {
   const lines = preparedCode.code.split(/\r?\n/);
   return {
     preparedCode,
-    collapsedCode: lines.slice(0, EVIDENCE_PREVIEW_RENDER_LINE_LIMIT).join("\n"),
+    collapsedCode: lines.slice(0, EVIDENCE_PREVIEW_LINE_LIMIT).join("\n"),
     hasPreview: lines.length > EVIDENCE_PREVIEW_LINE_LIMIT,
   };
 }
