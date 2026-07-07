@@ -18,6 +18,8 @@
 }
 
 .feed-output-section {
+  --feed-output-spotlight-top-bleed: 16px;
+
   align-items: start;
   display: grid;
   gap: 12px 16px;
@@ -30,7 +32,7 @@
 .feed-output-section::before {
   background:
     radial-gradient(
-      ellipse 62% 50% at 50% 18%,
+      ellipse 62% 50% at 50% 10%,
       var(--color-feed-spotlight-core) 0%,
       var(--color-feed-spotlight-mid) 30%,
       var(--color-feed-spotlight-tail) 52%,
@@ -39,7 +41,7 @@
     ),
     radial-gradient(ellipse 16% 62% at 50% 0%, var(--color-feed-spotlight-beam) 0%, transparent 74%);
   content: "";
-  inset: 0;
+  inset: calc(-1 * var(--feed-output-spotlight-top-bleed)) 0 0;
   mix-blend-mode: screen;
   pointer-events: none;
   position: absolute;
