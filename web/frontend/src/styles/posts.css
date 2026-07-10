@@ -287,21 +287,15 @@
   position: relative;
 }
 
-.post-content-preview.preview {
-  max-height: 93px;
-  overflow: hidden;
+.post-content-preview-body {
+  max-width: 100%;
+  min-width: 0;
 }
 
-.post-content-preview.preview::after {
-  background: linear-gradient(180deg, transparent, var(--color-page));
-  bottom: 0;
-  content: "";
-  height: 42px;
-  left: 0;
-  pointer-events: none;
-  position: absolute;
-  right: 0;
-  z-index: 1;
+.post-content-preview.preview .post-content-preview-body {
+  mask-image: linear-gradient(180deg, currentcolor 0, currentcolor 51px, transparent 93px);
+  max-height: 93px;
+  overflow: hidden;
 }
 
 .post-content-expand-button {

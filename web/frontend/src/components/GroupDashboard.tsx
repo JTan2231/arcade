@@ -133,7 +133,15 @@ export function GroupDashboard({
   const canPost = !readOnly && activeMember;
   const canManageMetrics = !readOnly && activeMember && (group.my_role === "owner" || group.my_role === "admin");
   const canManagePostTags = !readOnly && activeMember && (group.my_role === "owner" || group.my_role === "admin");
-  const judgedMetrics = metrics.filter((metric) => metric.system_key === "judged");
+  // Judged metrics can exist in stored feed configuration, but Arcade does not
+  // currently support actually judging them in the UI. Keep them fully hidden.
+  const visibleMetrics = metrics.filter((metric) => metric.system_key !== "judged");
+  const visibleMetricIds = new Set(visibleMetrics.map((metric) => metric.id));
+  const visibleMetricLeaderboard =
+    metricLeaderboard !== null && visibleMetricIds.has(metricLeaderboard.metric.id) ? metricLeaderboard : null;
+  // Do not pass judged metrics into post cards until they are supported for
+  // actually being judged; this keeps per-post scoring controls hidden.
+  const judgedMetrics: FeedMetric[] = [];
 
   return (
     <>
@@ -211,9 +219,9 @@ export function GroupDashboard({
       {!readOnly ? (
         <MetricsSection
           feed={feed}
-          metrics={metrics}
-          selectedMetricId={selectedMetricId}
-          leaderboard={metricLeaderboard}
+          metrics={visibleMetrics}
+          selectedMetricId={visibleMetricIds.has(selectedMetricId ?? "") ? selectedMetricId : null}
+          leaderboard={visibleMetricLeaderboard}
           metricsLoading={metricsLoading}
           leaderboardLoading={leaderboardLoading}
           error={metricsError}

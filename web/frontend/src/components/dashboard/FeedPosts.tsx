@@ -503,30 +503,32 @@ function FeedPostCard({
       ) : (
         <>
           <div className={`post-content-preview ${evidenceCollapsed ? "preview" : ""}`}>
-            <div className={`post-evidence-layout ${hasCaption ? "has-caption" : ""}`}>
-              <div className="post-evidence-column">
-                {shouldShowPostFormat(post) ? (
-                  <div className="post-format-meta">
-                    {post.evidence_format.name} · v{post.evidence_format_version.version_number}
-                    {post.evidence_format.archived_at !== undefined ? " · Archived" : ""}
-                  </div>
-                ) : null}
-                <EvidenceCodeBlock
-                  collapsed={evidenceCollapsed}
-                  expanded={evidenceExpanded}
-                  preview={evidencePreview}
-                  onCollapse={() => {
-                    setActionMenuOpen(false);
-                    setEvidenceExpanded(false);
-                  }}
-                />
-              </div>
-              <div className="post-caption-column">
-                <div className="post-caption-heading">
-                  {byline}
-                  {evidenceCollapsed ? null : postActions}
+            <div className="post-content-preview-body">
+              <div className={`post-evidence-layout ${hasCaption ? "has-caption" : ""}`}>
+                <div className="post-evidence-column">
+                  {shouldShowPostFormat(post) ? (
+                    <div className="post-format-meta">
+                      {post.evidence_format.name} · v{post.evidence_format_version.version_number}
+                      {post.evidence_format.archived_at !== undefined ? " · Archived" : ""}
+                    </div>
+                  ) : null}
+                  <EvidenceCodeBlock
+                    collapsed={evidenceCollapsed}
+                    expanded={evidenceExpanded}
+                    preview={evidencePreview}
+                    onCollapse={() => {
+                      setActionMenuOpen(false);
+                      setEvidenceExpanded(false);
+                    }}
+                  />
                 </div>
-                {hasCaption ? <div className="post-caption">{post.caption}</div> : null}
+                <div className="post-caption-column">
+                  <div className="post-caption-heading">
+                    {byline}
+                    {evidenceCollapsed ? null : postActions}
+                  </div>
+                  {hasCaption ? <div className="post-caption">{post.caption}</div> : null}
+                </div>
               </div>
             </div>
             {evidenceCollapsed ? (
