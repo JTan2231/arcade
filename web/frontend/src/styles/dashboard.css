@@ -19,6 +19,7 @@
 
 .feed-output-section {
   align-items: start;
+  align-content: start;
   display: grid;
   gap: 12px 16px;
   grid-template-columns: minmax(0, 1fr);

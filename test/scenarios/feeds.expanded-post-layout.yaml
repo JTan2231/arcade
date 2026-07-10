@@ -1,0 +1,157 @@
+name: expanded post keeps the thread anchored
+
+vars:
+  email: expanded-post-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      client: browser
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Expanded Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Expanded Layout Dojo
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: create_source
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/catalog-sources
+      json:
+        name: Expanded Layout Source
+        template: https://example.test/{slug}
+        items:
+          - title: Goshtasp, Vishtasp and Eidi
+            data:
+              slug: goshtasp-vishtasp-eidi
+              rating: 1800
+      expectStatus: 201
+      capture:
+        source_id: $.id
+
+  - request:
+      id: create_feed
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds
+      json:
+        name: Expanded Practice
+        kind: catalog_daily
+        enabled: true
+        source_id: "{{source_id}}"
+        item_count: 1
+        schedule:
+          starts_at: "{{today}}T00:00:00Z"
+          timezone: UTC
+          interval_seconds: 86400
+      expectStatus: 201
+      capture:
+        feed_id: $.id
+
+  - request:
+      id: create_second_member
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/members
+      json:
+        username: expanded-second
+        display_name: Expanded Second
+        role: member
+        status: active
+      expectStatus: 201
+      capture:
+        second_user_id: $[1].user_id
+
+  - request:
+      id: owner_post
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{today}}/posts
+      json:
+        evidence_text: |-
+          alpha line 01
+          alpha line 02
+          alpha line 03
+          alpha line 04
+          alpha line 05
+          alpha line 06
+          alpha line 07
+          alpha line 08
+          alpha line 09
+          alpha line 10
+          alpha line 11
+          alpha line 12
+        caption: Expanded first post caption.
+      expectStatus: 201
+      capture:
+        feed_instance_id: $.feed_instance_id
+
+  - sql:
+      statement: |-
+        insert into group_feed_posts (
+          group_id,
+          feed_instance_id,
+          author_user_id,
+          evidence_text,
+          evidence_format_version_id,
+          caption,
+          created_at,
+          updated_at
+        )
+        select
+          '{{group_id}}'::uuid,
+          '{{feed_instance_id}}'::uuid,
+          '{{second_user_id}}'::uuid,
+          'beta line 01
+        beta line 02
+        beta line 03
+        beta line 04
+        beta line 05',
+          v.id,
+          'Expanded second post caption.',
+          now() - interval '1 minute',
+          now() - interval '1 minute'
+        from group_daily_feeds f
+        join lateral (
+          select id
+          from group_evidence_format_versions
+          where group_id = f.group_id
+            and format_id = f.evidence_format_id
+          order by version_number desc
+          limit 1
+        ) v on true
+        where f.id = '{{feed_id}}'::uuid;
+
+steps:
+  - visit: /
+
+  - within: Feeds
+    click:
+      role: button
+      name: Expanded Practice
+
+  - within: Posts
+    click:
+      role: button
+      name: Expand evidence
+
+  - within: Posts
+    expectVisible:
+      role: button
+      name: Collapse evidence
