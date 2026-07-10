@@ -64,7 +64,7 @@ keyword such as `transparent`, `currentcolor`, or `inherit`.
 | `--color-feed-spotlight-mid`     | `rgb(250 229 209 / 2.5%)` | Feed output spotlight mid falloff.                     |
 | `--color-feed-spotlight-tail`    | `rgb(190 168 146 / 1%)`   | Feed output spotlight outer falloff.                   |
 | `--color-feed-spotlight-edge`    | `rgb(118 102 84 / 0.5%)`  | Feed output spotlight edge.                            |
-| `--color-feed-spotlight-beam`    | `rgb(250 229 209 / 0.6%)` | Feed output spotlight overhead beam.                   |
+| `--color-feed-spotlight-fade`    | `rgb(118 102 84 / 0%)`    | Transparent feed output spotlight edge.                |
 | `--color-code-surface`           | `#2c4a3e`                 | Code-like surfaces.                                    |
 | `--color-code-border`            | `#4d725f`                 | Code-like surface borders.                             |
 | `--color-code-accent`            | `#50d4b7`                 | Code-like surface accent strokes.                      |

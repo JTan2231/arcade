@@ -114,7 +114,7 @@
   --color-feed-spotlight-mid: rgb(250 229 209 / 2.5%);
   --color-feed-spotlight-tail: rgb(190 168 146 / 1%);
   --color-feed-spotlight-edge: rgb(118 102 84 / 0.5%);
-  --color-feed-spotlight-beam: rgb(250 229 209 / 0.6%);
+  --color-feed-spotlight-fade: rgb(118 102 84 / 0%);
   --color-code-surface: #2c4a3e;
   --color-code-border: #4d725f;
   --color-code-accent: #50d4b7;

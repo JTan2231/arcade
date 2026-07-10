@@ -50,8 +50,6 @@
   }
 
   .feed-output-section {
-    --feed-output-spotlight-top-bleed: 10px;
-
     grid-template-columns: minmax(0, 1fr);
   }
 
