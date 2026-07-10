@@ -1,8 +1,10 @@
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
-import ts from "typescript";
 
 const frontendRoot = process.cwd();
+const require = createRequire(path.join(frontendRoot, "package.json"));
+const ts = require("typescript");
 const repoRoot = path.resolve(frontendRoot, "../..");
 const sourceRoot = path.join(frontendRoot, "src");
 const outputPath = path.join(repoRoot, "docs/generated/frontend-event-handlers.md");

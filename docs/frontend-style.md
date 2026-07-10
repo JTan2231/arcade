@@ -22,7 +22,7 @@ keyword such as `transparent`, `currentcolor`, or `inherit`.
 
 | Token                            | Value                     | Use                                                    |
 | -------------------------------- | ------------------------- | ------------------------------------------------------ |
-| `--color-page`                   | `#0d0e0f`                 | App background.                                        |
+| `--color-page`                   | `#060a10`                 | App background.                                        |
 | `--color-surface`                | `#111`                    | Panels, inputs, menus, and raised surfaces.            |
 | `--color-surface-subtle`         | `#171717`                 | Rows, forms, previews, and empty states inside panels. |
 | `--color-surface-hover`          | `#202020`                 | Neutral row and control hover states.                  |
@@ -60,10 +60,10 @@ keyword such as `transparent`, `currentcolor`, or `inherit`.
 | `--color-overlay`                | `rgb(2 6 8 / 64%)`        | Modal backdrop.                                        |
 | `--color-toast`                  | `#050708`                 | Toast background.                                      |
 | `--color-output-item-title-dim`  | `color-mix(...)`          | Resting generated-output link text.                    |
-| `--color-feed-spotlight-core`    | `rgb(250 247 242 / 5%)`   | Feed output spotlight center.                          |
-| `--color-feed-spotlight-mid`     | `rgb(250 229 209 / 2.5%)` | Feed output spotlight mid falloff.                     |
-| `--color-feed-spotlight-tail`    | `rgb(190 168 146 / 1%)`   | Feed output spotlight outer falloff.                   |
-| `--color-feed-spotlight-edge`    | `rgb(118 102 84 / 0.5%)`  | Feed output spotlight edge.                            |
+| `--color-feed-spotlight-core`    | `rgb(250 247 242 / 3%)`   | Feed output spotlight center.                          |
+| `--color-feed-spotlight-mid`     | `rgb(250 229 209 / 1.4%)` | Feed output spotlight mid falloff.                     |
+| `--color-feed-spotlight-tail`    | `rgb(190 168 146 / 0.6%)` | Feed output spotlight outer falloff.                   |
+| `--color-feed-spotlight-edge`    | `rgb(118 102 84 / 0.25%)` | Feed output spotlight edge.                            |
 | `--color-feed-spotlight-fade`    | `rgb(118 102 84 / 0%)`    | Transparent feed output spotlight edge.                |
 | `--color-code-surface`           | `#2c4a3e`                 | Code-like surfaces.                                    |
 | `--color-code-border`            | `#4d725f`                 | Code-like surface borders.                             |
