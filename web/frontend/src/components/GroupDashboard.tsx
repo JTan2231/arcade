@@ -16,6 +16,7 @@ import type {
 import { AddFeedDialog } from "./dashboard/AddFeedDialog";
 import { FeedOutput, type LoadFeedOutputSummaries } from "./dashboard/FeedOutput";
 import type { CreateFeedPostPayload, UpdateFeedPostPayload } from "./dashboard/FeedPosts";
+import { FeedSpotlight } from "./dashboard/FeedSpotlight";
 import { MetricsSection } from "./dashboard/MetricsSection";
 
 export type GroupDashboardProps = {
@@ -147,6 +148,7 @@ export function GroupDashboard({
     <>
       <section className="panel group-dashboard-panel group-dashboard-feed-panel">
         <section className="dashboard-section feed-output-section" aria-label="Selected feed output">
+          <FeedSpotlight />
           {standalone ? (
             <div className="feed-route-header">
               <div>

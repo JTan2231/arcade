@@ -7,9 +7,10 @@ is the `:root` token block in `web/frontend/src/styles/tokens.css`.
 
 The current interface is a quiet, work-focused application UI:
 
-- near-black, black, white, and neutral gray for almost every UI role;
-- white and light gray for focus rings, active selections, links, and primary
-  actions;
+- blue-black, cool dark surfaces, white, and low-saturation cool gray for most
+  UI roles;
+- cool white and light blue-gray for focus rings, active selections, links, and
+  primary actions;
 - muted red only for destructive or error states;
 - restrained multi-hue syntax highlighting for code-like evidence, treated as
   content rather than general UI chrome.
@@ -23,28 +24,28 @@ keyword such as `transparent`, `currentcolor`, or `inherit`.
 | Token                            | Value                     | Use                                                    |
 | -------------------------------- | ------------------------- | ------------------------------------------------------ |
 | `--color-page`                   | `#060a10`                 | App background.                                        |
-| `--color-surface`                | `#111`                    | Panels, inputs, menus, and raised surfaces.            |
-| `--color-surface-subtle`         | `#171717`                 | Rows, forms, previews, and empty states inside panels. |
-| `--color-surface-hover`          | `#202020`                 | Neutral row and control hover states.                  |
-| `--color-surface-muted`          | `#262626`                 | Secondary button, icon, pill, and menu hover states.   |
-| `--color-text`                   | `#f0f0f0`                 | Primary text.                                          |
-| `--color-text-muted`             | `#a1a1a1`                 | Metadata, labels, and supporting text.                 |
-| `--color-text-nav-muted`         | `#8a8a8a`                 | Unselected sidebar navigation text.                    |
-| `--color-text-nav-active-parent` | `#c8c8c8`                 | Selected sidebar parent when a child item is selected. |
-| `--color-icon-muted`             | `#707070`                 | Muted sidebar icon controls.                           |
-| `--color-border`                 | `#303030`                 | Default borders and dividers.                          |
-| `--color-border-subtle`          | `#242424`                 | Tree connector lines.                                  |
-| `--color-border-hover`           | `#4a4a4a`                 | Neutral hover borders.                                 |
-| `--color-accent`                 | `#f0f0f0`                 | Focus rings, active links, and active navigation text. |
+| `--color-surface`                | `#11151b`                 | Panels, inputs, menus, and raised surfaces.            |
+| `--color-surface-subtle`         | `#171c24`                 | Rows, forms, previews, and empty states inside panels. |
+| `--color-surface-hover`          | `#202733`                 | Neutral row and control hover states.                  |
+| `--color-surface-muted`          | `#26303d`                 | Secondary button, icon, pill, and menu hover states.   |
+| `--color-text`                   | `#f0f4f8`                 | Primary text.                                          |
+| `--color-text-muted`             | `#a3adba`                 | Metadata, labels, and supporting text.                 |
+| `--color-text-nav-muted`         | `#8994a3`                 | Unselected sidebar navigation text.                    |
+| `--color-text-nav-active-parent` | `#c6d0dc`                 | Selected sidebar parent when a child item is selected. |
+| `--color-icon-muted`             | `#707b8a`                 | Muted sidebar icon controls.                           |
+| `--color-border`                 | `#303947`                 | Default borders and dividers.                          |
+| `--color-border-subtle`          | `#242b35`                 | Tree connector lines.                                  |
+| `--color-border-hover`           | `#4a586b`                 | Neutral hover borders.                                 |
+| `--color-accent`                 | `#f0f6ff`                 | Focus rings, active links, and active navigation text. |
 | `--color-accent-hover`           | `#fff`                    | Hovered links and strong accent text.                  |
-| `--color-accent-surface`         | `#202020`                 | Selected rows and selected controls.                   |
-| `--color-accent-surface-hover`   | `#292929`                 | Hovered selected rows and controls.                    |
-| `--color-accent-badge-surface`   | `#202020`                 | Small accent badges.                                   |
-| `--color-accent-border`          | `#5a5a5a`                 | Selected borders.                                      |
-| `--color-accent-border-hover`    | `#707070`                 | Hovered selected borders.                              |
-| `--color-accent-badge-border`    | `#454545`                 | Small accent badge borders.                            |
-| `--color-accent-action`          | `#262626`                 | Filled primary action backgrounds.                     |
-| `--color-accent-action-hover`    | `#303030`                 | Hovered filled primary action backgrounds.             |
+| `--color-accent-surface`         | `#202936`                 | Selected rows and selected controls.                   |
+| `--color-accent-surface-hover`   | `#293443`                 | Hovered selected rows and controls.                    |
+| `--color-accent-badge-surface`   | `#202936`                 | Small accent badges.                                   |
+| `--color-accent-border`          | `#5a6a80`                 | Selected borders.                                      |
+| `--color-accent-border-hover`    | `#708298`                 | Hovered selected borders.                              |
+| `--color-accent-badge-border`    | `#465466`                 | Small accent badge borders.                            |
+| `--color-accent-action`          | `#26303d`                 | Filled primary action backgrounds.                     |
+| `--color-accent-action-hover`    | `#303b4a`                 | Hovered filled primary action backgrounds.             |
 | `--color-accent-action-text`     | `#fff`                    | Text on filled primary action backgrounds.             |
 | `--color-danger`                 | `#ff9592`                 | Destructive actions and error text.                    |
 | `--color-danger-surface`         | `#241515`                 | Destructive hover surfaces.                            |
@@ -54,17 +55,14 @@ keyword such as `transparent`, `currentcolor`, or `inherit`.
 | `--color-leaderboard-gold`       | `#e7d17a`                 | First-place leaderboard content.                       |
 | `--color-leaderboard-silver`     | `#d6d6d6`                 | Second-place leaderboard content.                      |
 | `--color-leaderboard-bronze`     | `#d6985e`                 | Third-place leaderboard content.                       |
-| `--color-header`                 | `#080808`                 | App header background.                                 |
-| `--color-header-muted`           | `#a1a1a1`                 | Secondary header text.                                 |
-| `--color-inverse-text`           | `#f0f0f0`                 | Text on near-black surfaces.                           |
+| `--color-header`                 | `#080c12`                 | App header background.                                 |
+| `--color-header-muted`           | `#a3adba`                 | Secondary header text.                                 |
+| `--color-inverse-text`           | `#f0f4f8`                 | Text on near-black surfaces.                           |
 | `--color-overlay`                | `rgb(2 6 8 / 64%)`        | Modal backdrop.                                        |
-| `--color-toast`                  | `#050708`                 | Toast background.                                      |
+| `--color-toast`                  | `#05080d`                 | Toast background.                                      |
 | `--color-output-item-title-dim`  | `color-mix(...)`          | Resting generated-output link text.                    |
-| `--color-feed-spotlight-core`    | `rgb(250 247 242 / 3%)`   | Feed output spotlight center.                          |
-| `--color-feed-spotlight-mid`     | `rgb(250 229 209 / 1.4%)` | Feed output spotlight mid falloff.                     |
-| `--color-feed-spotlight-tail`    | `rgb(190 168 146 / 0.6%)` | Feed output spotlight outer falloff.                   |
-| `--color-feed-spotlight-edge`    | `rgb(118 102 84 / 0.25%)` | Feed output spotlight edge.                            |
-| `--color-feed-spotlight-fade`    | `rgb(118 102 84 / 0%)`    | Transparent feed output spotlight edge.                |
+| `--color-feed-spotlight`         | `rgb(232 242 255 / 3%)`   | Canvas-drawn feed output spotlight origin.             |
+| `--color-feed-spotlight-transparent` | `rgb(232 242 255 / 0%)`   | Canvas-drawn transparent spotlight endpoint.           |
 | `--color-code-surface`           | `#2c4a3e`                 | Code-like surfaces.                                    |
 | `--color-code-border`            | `#4d725f`                 | Code-like surface borders.                             |
 | `--color-code-accent`            | `#50d4b7`                 | Code-like surface accent strokes.                      |
@@ -82,10 +80,10 @@ part of the visual palette:
 
 | Token                            | Value                          | Use                                |
 | -------------------------------- | ------------------------------ | ---------------------------------- |
-| `--shadow-panel`                 | `0 1px 2px rgb(0 0 0 / 30%)`   | Standard panel elevation.          |
-| `--shadow-popover`               | `0 12px 28px rgb(0 0 0 / 45%)` | Menus and popovers.                |
-| `--shadow-modal`                 | `0 24px 80px rgb(0 0 0 / 58%)` | Dialogs.                           |
-| `--shadow-toast`                 | `0 8px 24px rgb(0 0 0 / 48%)`  | Toasts.                            |
+| `--shadow-panel`                 | `0 1px 2px rgb(0 4 12 / 30%)`   | Standard panel elevation.          |
+| `--shadow-popover`               | `0 12px 28px rgb(0 4 12 / 45%)` | Menus and popovers.                |
+| `--shadow-modal`                 | `0 24px 80px rgb(0 4 12 / 58%)` | Dialogs.                           |
+| `--shadow-toast`                 | `0 8px 24px rgb(0 4 12 / 48%)`  | Toasts.                            |
 | `--filter-leaderboard-gold-glow` | `drop-shadow(...)`             | First-place leaderboard glow.      |
 | `--shadow-leaderboard-gold-text` | `0 0 5px ...`                  | First-place leaderboard text glow. |
 
@@ -114,8 +112,9 @@ tokenized, and explicit:
   covered by the existing set.
 - Name tokens by usage rather than by hue. Use `--color-accent-surface`, not
   `--color-teal-50`.
-- Keep the core UI monochrome. Apart from destructive/error states, new
-  saturated hues should be treated as product content rather than chrome.
+- Keep the core UI cool, dark, and low-saturation. Apart from
+  destructive/error states, new saturated hues should be treated as product
+  content rather than chrome.
 - Keep legacy aliases in `tokens.css` only as migration aids. New code should
   use the semantic tokens above.
 - Validate code changes with `./ci.sh`.
