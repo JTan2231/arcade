@@ -196,6 +196,10 @@ The browser app source lives in `web/frontend`:
 - `src/cache` defines the in-memory frontend query cache, cached API query
   definitions, and invalidation helpers. See `docs/frontend-cache.md` for the
   cache contract.
+- `src/palette` renders the semantic CSS token map from a numeric scene,
+  material definitions, and token recipes. It also owns palette snapshots,
+  contrast and hierarchy validation, gamut-safe serialization, and the CSS
+  custom-property bridge.
 - `src/components` contains the auth, group list, dashboard, and toast views.
 - Group settings include invite-link management. Owners and admins create,
   inspect, and revoke expiring links; the `/join/{token}` route previews a link
@@ -203,8 +207,9 @@ The browser app source lives in `web/frontend`:
 - The selected feed dashboard includes a metric and leaderboard section. Judged
   metrics show prompt-driven score controls on post cards for group owners and
   admins.
-- `src/main.tsx` imports the ordered CSS modules under `src/styles/`, which
-  define the responsive grid and component styles.
+- `src/main.tsx` imports the ordered CSS modules under `src/styles/`, creates
+  and validates the runtime palette, installs its complete token map, and then
+  mounts React.
 
 Vite builds generated HTML, CSS, and JavaScript into `web/static`, which remains
 the Go embed target. Do not hand-edit generated files in `web/static`; change

@@ -24,7 +24,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["*.config.{js,ts}", "eslint.config.js"],
+    files: ["*.config.{js,ts}", "eslint.config.js", "scripts/**/*.{js,mjs,cjs,ts}"],
     languageOptions: {
       globals: globals.node,
     },
@@ -32,7 +32,7 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {
-    files: ["*.config.{js,ts}", "eslint.config.js"],
+    files: ["*.config.{js,ts}", "eslint.config.js", "scripts/**/*.{js,mjs,cjs,ts}"],
     extends: [tseslint.configs.disableTypeChecked],
   },
   {

@@ -135,6 +135,9 @@ run_frontend() {
 	section "Frontend: type checking"
 	(cd web/frontend && bun run check) || return 1
 
+	section "Frontend: validating generated palette"
+	(cd web/frontend && bun run check:palette) || return 1
+
 	section "Frontend: building"
 	(cd web/frontend && bun run build) || return 1
 }

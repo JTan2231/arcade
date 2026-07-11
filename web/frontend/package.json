@@ -12,6 +12,7 @@
     "lint:fix": "eslint . --fix",
     "lint:css": "stylelint \"src/**/*.css\"",
     "check:dead": "knip",
+    "check:palette": "bun run scripts/check-palette.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "check": "tsc --noEmit"

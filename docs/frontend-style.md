@@ -1,7 +1,13 @@
 # Frontend Style
 
-Arcade uses a single dark UI theme. The executable source of truth for colors
-is the `:root` token block in `web/frontend/src/styles/tokens.css`.
+Arcade uses a single dark UI theme. The active executable source of truth is the
+generated palette under `web/frontend/src/palette`. The `:root` block in
+`web/frontend/src/styles/tokens.css` remains the complete first-paint and
+runtime-failure fallback.
+
+`src/main.tsx` creates and validates the default palette, then installs all 57
+semantic color, shadow, and glow variables before React mounts. Component CSS
+continues to consume only those semantic variables.
 
 ## Color Direction
 
@@ -19,7 +25,9 @@ The current interface is a quiet, work-focused application UI:
 
 Use semantic color tokens in component rules. Do not add raw hex or `rgb()`
 values outside the `:root` token block unless the value is an intrinsic CSS
-keyword such as `transparent`, `currentcolor`, or `inherit`.
+keyword such as `transparent`, `currentcolor`, or `inherit`. The values below
+are the fallback and calibration targets; the active generated values are
+perceptually fitted to them and locked by `src/palette/snapshot.ts`.
 
 | Token                            | Value                     | Use                                                    |
 | -------------------------------- | ------------------------- | ------------------------------------------------------ |
@@ -110,6 +118,9 @@ tokenized, and explicit:
   rules.
 - Add a new token only when the UI has a distinct semantic role that is not
   covered by the existing set.
+- Define active palette changes through the scene, material, and recipe data in
+  `src/palette/defaults.ts`; keep the fallback declaration, required token list,
+  target, and generated snapshot in sync.
 - Name tokens by usage rather than by hue. Use `--color-accent-surface`, not
   `--color-teal-50`.
 - Keep the core UI cool, dark, and low-saturation. Apart from
@@ -118,5 +129,7 @@ tokenized, and explicit:
 - Keep legacy aliases in `tokens.css` only as migration aids. New code should
   use the semantic tokens above.
 - Validate code changes with `./ci.sh`.
+- Run `bun run check:palette` from `web/frontend` for a focused completeness,
+  snapshot, calibration-distance, contrast, and state-separation check.
 - For frontend visual checks, use `./locator.ts` to inspect affected rendered
   regions and generated screenshots.
