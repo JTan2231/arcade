@@ -10,6 +10,7 @@
 @media (width <= 980px) {
   .group-layout {
     grid-template-columns: minmax(0, 1fr);
+    padding-top: 56px;
   }
 
   .group-layout .sidebar-stack,
@@ -35,6 +36,10 @@
     gap: 10px;
     grid-template-columns: minmax(0, 1fr);
     padding: 10px;
+  }
+
+  .group-layout {
+    padding-top: 56px;
   }
 
   .public-layout {

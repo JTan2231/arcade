@@ -1,3 +1,8 @@
+import { useEffect, useMemo, useState } from "react";
+
+import { isUnauthorized } from "../api";
+import { queries } from "../cache/queries";
+import { queryCache } from "../cache/queryCache";
 import { GroupsPanel } from "../components/groups/GroupsPanel";
 import { matchesChildState, matchesTopState } from "../machines/stateMatches";
 import type { DashboardContext } from "../machines/dashboardMachine";
@@ -17,7 +22,6 @@ export function GroupsNavAdapter({
   selectedFeedId,
   selectedFeedDate,
   onNavigate,
-  onLogout,
   onToast,
 }: {
   dashboardRef: DashboardActorRef | undefined;
@@ -29,9 +33,10 @@ export function GroupsNavAdapter({
   selectedFeedId: string | null;
   selectedFeedDate: string;
   onNavigate: Navigate;
-  onLogout: () => void;
   onToast: ToastCallback;
 }) {
+  const currentUserId = dashboardContext?.currentUserId ?? "";
+  const [memberFeeds, setMemberFeeds] = useState<DailyFeed[]>([]);
   const loadingGroups = matchesTopState(dashboardStateValue, "loadingGroups");
   const creatingGroup = matchesTopState(dashboardStateValue, "creatingGroup");
   const loadingFeeds = matchesChildState(dashboardStateValue, "groupSelected", "loadingFeeds");
@@ -42,11 +47,43 @@ export function GroupsNavAdapter({
   const pendingFeedScheduleFeedId = changingFeedSchedule
     ? (dashboardContext?.feedScheduleMutation?.feedId ?? null)
     : null;
+  const navFeeds = useMemo(() => {
+    if (selectedGroupId === null) {
+      return memberFeeds;
+    }
+
+    return [...memberFeeds.filter((feed) => feed.group_id !== selectedGroupId), ...feeds];
+  }, [feeds, memberFeeds, selectedGroupId]);
+
+  useEffect(() => {
+    if (currentUserId === "") {
+      setMemberFeeds([]);
+      return undefined;
+    }
+
+    let active = true;
+    queryCache
+      .read(queries.meDailyFeeds, currentUserId)
+      .then((nextFeeds) => {
+        if (active) {
+          setMemberFeeds(nextFeeds);
+        }
+      })
+      .catch((error: unknown) => {
+        if (active && !isUnauthorized(error)) {
+          setMemberFeeds([]);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [currentUserId]);
 
   return (
     <GroupsPanel
       groups={groups}
-      feeds={feeds}
+      feeds={navFeeds}
       evidenceFormats={dashboardContext?.evidenceFormats ?? EMPTY_EVIDENCE_FORMATS}
       selectedGroupId={selectedGroupId}
       selectedFeedId={selectedFeedId}
@@ -60,7 +97,6 @@ export function GroupsNavAdapter({
       pendingFeedScheduleFeedId={pendingFeedScheduleFeedId}
       pendingRefreshFeedId={refreshingFeedGeneration ? (dashboardContext?.pendingRefreshFeedId ?? null) : null}
       pendingDeleteFeedId={dashboardContext?.pendingDeleteFeedId ?? null}
-      onLogout={onLogout}
       onCreateGroup={(name) => dashboardRef?.send({ type: "GROUP_CREATE_SUBMITTED", name })}
       onSelectGroup={(groupId) => {
         const group = groups.find((candidate) => candidate.id === groupId);
@@ -72,8 +108,11 @@ export function GroupsNavAdapter({
       onOpenGroupSettings={(groupId) => dashboardRef?.send({ type: "GROUP_SETTINGS_OPENED", groupId })}
       onDeleteGroup={(groupId) => dashboardRef?.send({ type: "GROUP_DELETE_SUBMITTED", groupId })}
       onSelectFeed={(feedId) => {
+        const feed = navFeeds.find((candidate) => candidate.id === feedId);
         onNavigate(feedPath(feedId));
-        dashboardRef?.send({ type: "FEED_SELECTED", feedId });
+        if (feed === undefined || feed.group_id === selectedGroupId) {
+          dashboardRef?.send({ type: "FEED_SELECTED", feedId });
+        }
       }}
       onToggleFeedEnabled={(feedId) => dashboardRef?.send({ type: "FEED_ENABLED_TOGGLED", feedId })}
       onChangeFeedFormat={(feedId, evidenceFormatId) =>

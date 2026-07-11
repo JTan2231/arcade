@@ -16,6 +16,11 @@ import { feedOutputSummary, firstNonEmpty, outputItemDisplayTitle, primitiveDisp
 
 export type LoadFeedOutputSummaries = (selectedDate: string, signal: AbortSignal) => Promise<DailyFeedOutputSummary[]>;
 
+// Title metadata subtitles are intentionally hidden for the time being. The
+// summary data and aria labels still carry the date so menu options remain
+// distinguishable for assistive technology and tests.
+const SHOW_TITLE_METADATA_SUBTITLES: boolean = false;
+
 export function FeedOutput({
   feed,
   selectedFeedDate,
@@ -457,7 +462,9 @@ function FeedOutputTitleMenu({
                 }}
               >
                 <span className="title">{optionTitle}</span>
-                {optionSubtitle !== undefined ? <span className="meta">{optionSubtitle}</span> : null}
+                {SHOW_TITLE_METADATA_SUBTITLES && optionSubtitle !== undefined ? (
+                  <span className="meta">{optionSubtitle}</span>
+                ) : null}
               </button>
             );
           })}

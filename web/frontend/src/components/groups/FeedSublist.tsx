@@ -17,6 +17,7 @@ export function FeedSublist({
   pendingRefreshFeedId,
   pendingDeleteFeedId,
   publicLinksAvailable,
+  selectedGroup = false,
   onSelectFeed,
   onToggleFeedEnabled,
   onChangeFeedFormat,
@@ -38,6 +39,7 @@ export function FeedSublist({
   pendingRefreshFeedId: string | null;
   pendingDeleteFeedId: string | null;
   publicLinksAvailable: boolean;
+  selectedGroup?: boolean;
   onSelectFeed: (id: string) => void;
   onToggleFeedEnabled: (id: string) => void;
   onChangeFeedFormat: (feedId: string, evidenceFormatId: string) => void;
@@ -48,6 +50,7 @@ export function FeedSublist({
   onAddFeed: () => void;
 }) {
   const [settingsFeedId, setSettingsFeedId] = useState<string | null>(null);
+  const sublistClassName = `feed-sublist${selectedGroup ? " feed-sublist-selected" : ""}`;
 
   useEffect(() => {
     if (settingsFeedId !== null && !feeds.some((feed) => feed.id === settingsFeedId)) {
@@ -57,7 +60,7 @@ export function FeedSublist({
 
   if (loading) {
     return (
-      <section className="feed-sublist" aria-label="Feeds">
+      <section className={sublistClassName} aria-label="Feeds">
         <div className="feed-branch feed-sublist-status">
           <div className="meta">Loading feeds...</div>
         </div>
@@ -66,7 +69,7 @@ export function FeedSublist({
   }
   if (error) {
     return (
-      <section className="feed-sublist" aria-label="Feeds">
+      <section className={sublistClassName} aria-label="Feeds">
         <div className="feed-branch feed-sublist-status">
           <div className="form-error" role="alert">
             {error}
@@ -76,7 +79,7 @@ export function FeedSublist({
     );
   }
   return (
-    <section className="feed-sublist" aria-label="Feeds">
+    <section className={sublistClassName} aria-label="Feeds">
       {!feeds.length ? (
         <div className="feed-branch feed-sublist-status">
           <div className="meta">{manage ? "No feeds yet." : "No feeds are available for this group."}</div>

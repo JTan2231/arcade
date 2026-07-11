@@ -20,7 +20,6 @@ export type GroupsPanelProps = {
   pendingFeedScheduleFeedId: string | null;
   pendingRefreshFeedId: string | null;
   pendingDeleteFeedId: string | null;
-  onLogout: () => void;
   onCreateGroup: (name: string) => void;
   onSelectGroup: (id: string) => void;
   onOpenGroupSettings: (id: string) => void;
@@ -51,7 +50,6 @@ export function GroupsPanel({
   pendingFeedScheduleFeedId,
   pendingRefreshFeedId,
   pendingDeleteFeedId,
-  onLogout,
   onCreateGroup,
   onSelectGroup,
   onOpenGroupSettings,
@@ -136,8 +134,9 @@ export function GroupsPanel({
         ) : groups.length ? (
           groups.map((group) => {
             const selected = group.id === selectedGroupId;
+            const groupFeeds = feeds.filter((feed) => feed.group_id === group.id);
             const selectedParent =
-              selected && selectedFeedId !== null && feeds.some((feed) => feed.id === selectedFeedId);
+              selected && selectedFeedId !== null && groupFeeds.some((feed) => feed.id === selectedFeedId);
             const actions = groupActions(group, deletingGroupId, onOpenGroupSettings, onDeleteGroup);
             const groupSelectClassName = [
               "row-select-button",
@@ -169,42 +168,35 @@ export function GroupsPanel({
                     <RowActionMenu label={`Group settings for ${group.name}`} actions={actions} />
                   ) : null}
                 </div>
-                {selected ? (
-                  <FeedSublist
-                    feeds={feeds}
-                    evidenceFormats={evidenceFormats}
-                    loading={feedsLoading}
-                    error={feedsError}
-                    manage={canManageGroup(group)}
-                    selectedFeedId={selectedFeedId}
-                    pendingToggleFeedId={pendingToggleFeedId}
-                    pendingFeedFormatFeedId={pendingFeedFormatFeedId}
-                    pendingFeedScheduleFeedId={pendingFeedScheduleFeedId}
-                    pendingRefreshFeedId={pendingRefreshFeedId}
-                    pendingDeleteFeedId={pendingDeleteFeedId}
-                    publicLinksAvailable={group.visibility === "public"}
-                    onSelectFeed={onSelectFeed}
-                    onToggleFeedEnabled={onToggleFeedEnabled}
-                    onChangeFeedFormat={onChangeFeedFormat}
-                    onChangeFeedSchedule={onChangeFeedSchedule}
-                    onRefreshFeedGeneration={onRefreshFeedGeneration}
-                    onCopyPublicFeedLink={onCopyPublicFeedLink}
-                    onDeleteFeed={onDeleteFeed}
-                    onAddFeed={onAddFeed}
-                  />
-                ) : null}
+                <FeedSublist
+                  feeds={groupFeeds}
+                  evidenceFormats={evidenceFormats}
+                  loading={selected ? feedsLoading : false}
+                  error={selected ? feedsError : ""}
+                  manage={selected && canManageGroup(group)}
+                  selectedGroup={selected}
+                  selectedFeedId={selected ? selectedFeedId : null}
+                  pendingToggleFeedId={selected ? pendingToggleFeedId : null}
+                  pendingFeedFormatFeedId={selected ? pendingFeedFormatFeedId : null}
+                  pendingFeedScheduleFeedId={selected ? pendingFeedScheduleFeedId : null}
+                  pendingRefreshFeedId={selected ? pendingRefreshFeedId : null}
+                  pendingDeleteFeedId={selected ? pendingDeleteFeedId : null}
+                  publicLinksAvailable={selected && group.visibility === "public"}
+                  onSelectFeed={onSelectFeed}
+                  onToggleFeedEnabled={onToggleFeedEnabled}
+                  onChangeFeedFormat={onChangeFeedFormat}
+                  onChangeFeedSchedule={onChangeFeedSchedule}
+                  onRefreshFeedGeneration={onRefreshFeedGeneration}
+                  onCopyPublicFeedLink={onCopyPublicFeedLink}
+                  onDeleteFeed={onDeleteFeed}
+                  onAddFeed={onAddFeed}
+                />
               </div>
             );
           })
         ) : (
           <div className="meta">No groups yet</div>
         )}
-      </div>
-
-      <div className="group-nav-footer">
-        <button className="secondary group-logout-button" type="button" onClick={onLogout}>
-          Logout
-        </button>
       </div>
     </section>
   );

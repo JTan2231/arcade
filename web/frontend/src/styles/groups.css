@@ -1,11 +1,14 @@
 .groups-panel {
+  display: grid;
   font-family: var(--font-group-nav);
+  gap: 8px;
   min-width: 0;
 }
 
 .groups-panel-header {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
+  margin-bottom: 0;
 }
 
 .groups-panel h2,
@@ -40,22 +43,31 @@
 .group-tree {
   display: grid;
   gap: 2px;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition:
+    max-height 140ms ease,
+    opacity 120ms ease,
+    visibility 0s linear 140ms;
+  visibility: hidden;
+}
+
+.groups-panel:hover .group-tree,
+.groups-panel:focus-within .group-tree {
+  max-height: 72vh;
+  opacity: 1;
+  overflow: hidden auto;
+  pointer-events: auto;
+  transition-delay: 0s;
+  visibility: visible;
 }
 
 .group-tree-node {
   display: grid;
   gap: 2px;
   min-width: 0;
-}
-
-.group-nav-footer {
-  display: flex;
-  margin-top: 14px;
-}
-
-.group-logout-button {
-  justify-content: center;
-  width: 100%;
 }
 
 .group-select-button.nav-select-button-selected {
@@ -71,9 +83,31 @@
 
   display: grid;
   gap: 1px;
-  margin: 2px 0 8px 10px;
+  margin: 0 0 0 10px;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
   padding-left: 18px;
+  pointer-events: none;
   position: relative;
+  transition:
+    max-height 140ms ease,
+    margin 140ms ease,
+    opacity 120ms ease,
+    visibility 0s linear 140ms;
+  visibility: hidden;
+}
+
+.feed-sublist-selected,
+.group-tree-node:hover .feed-sublist,
+.group-tree-node:focus-within .feed-sublist {
+  margin: 2px 0 8px 10px;
+  max-height: 540px;
+  opacity: 1;
+  overflow: hidden auto;
+  pointer-events: auto;
+  transition-delay: 0s;
+  visibility: visible;
 }
 
 .feed-sublist::before {

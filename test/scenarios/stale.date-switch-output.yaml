@@ -114,10 +114,10 @@ steps:
     expectVisible:
       text: Date Output Task
 
-  - within: Metrics
-    expectVisible:
-      text: Posts
-      exact: true
+  # The metrics/leaderboard rail is intentionally hidden for now.
+  - expectHidden:
+      role: region
+      name: Metrics
 
   - holdRequest:
       id: member-route-resolution
@@ -177,10 +177,9 @@ steps:
       role: button
       name: Feed output choices
 
-  - within: Metrics
-    expectVisible:
-      text: Posts
-      exact: true
+  - expectHidden:
+      role: region
+      name: Metrics
 
   - within: Selected feed output
     click:
@@ -205,10 +204,9 @@ steps:
       name: Date Output Practice
       pressed: true
 
-  - within: Metrics
-    expectVisible:
-      text: Posts
-      exact: true
+  - expectHidden:
+      role: region
+      name: Metrics
 
   - within: Selected feed output
     click:

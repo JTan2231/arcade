@@ -140,71 +140,11 @@ steps:
       role: button
       name: Close
 
-  - within: Metrics
-    expectVisible:
-      role: button
-      name: ZZ Missed days
-
-  - within: Metrics
-    click:
-      role: button
-      name: ZZ Missed days
-
-  - within: Metrics
-    expectVisible:
-      role: button
-      name: Thread posts
-
-  - within: Metrics
-    expectHidden:
-      role: button
-      name: Select ZZ Missed days
-
-  - within: Metrics
-    click:
-      role: button
-      name: Metric choices
-
-  - within: Metrics
-    expectPressed:
-      role: button
-      name: Select Thread posts
-      pressed: true
-
-  - within: Metrics
-    click:
-      role: button
-      name: Select ZZ Missed days
-
-  - within: Metrics
-    expectVisible:
-      role: button
-      name: ZZ Missed days
-
-  - within: Metrics
-    click:
-      role: button
-      name: ZZ Missed days
-
-  - within: Metrics
-    expectVisible:
-      role: button
-      name: Thread posts
-
-  - within: Metrics
-    expectVisible:
-      text: Posts
-      exact: true
-
-  - within: Metrics
-    expectHidden:
-      text: Samples
-      exact: true
-
-  - within: Metrics
-    expectHidden:
-      text: Value
-      exact: true
+  # The metrics/leaderboard rail is intentionally hidden for now; the API
+  # behavior below still verifies the computed leaderboard.
+  - expectHidden:
+      role: region
+      name: Metrics
 
   - request:
       id: list_metrics

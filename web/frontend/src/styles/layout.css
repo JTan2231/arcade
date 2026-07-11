@@ -60,6 +60,16 @@
   grid-template-columns: var(--group-layout-side-column) minmax(0, 1fr) var(--group-layout-side-column);
 }
 
+.workspace-logout-button {
+  font-size: 13px;
+  min-height: 30px;
+  padding: 0 10px;
+  position: fixed;
+  right: 16px;
+  top: 16px;
+  z-index: 10;
+}
+
 .sidebar-stack {
   gap: 16px;
   align-content: start;

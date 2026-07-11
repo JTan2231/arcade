@@ -19,6 +19,11 @@ import type { CreateFeedPostPayload, UpdateFeedPostPayload } from "./dashboard/F
 import { FeedSpotlight } from "./dashboard/FeedSpotlight";
 import { MetricsSection } from "./dashboard/MetricsSection";
 
+// The metrics/leaderboard side rail is intentionally hidden for the time being.
+// Keep the state props and component wiring in place so the full rail can be
+// restored without reshaping the dashboard contract.
+const SHOW_METRICS_LEADERBOARD_RAIL: boolean = false;
+
 export type GroupDashboardProps = {
   group: Group | null;
   feeds: DailyFeed[];
@@ -218,7 +223,7 @@ export function GroupDashboard({
           />
         ) : null}
       </section>
-      {!readOnly ? (
+      {SHOW_METRICS_LEADERBOARD_RAIL && !readOnly ? (
         <MetricsSection
           feed={feed}
           metrics={visibleMetrics}

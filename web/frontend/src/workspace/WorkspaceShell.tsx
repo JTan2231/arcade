@@ -296,6 +296,9 @@ export function WorkspaceShell({
 
   return (
     <main className="layout group-layout" aria-label="Arcade workspace">
+      <button className="secondary workspace-logout-button" type="button" onClick={onLogout}>
+        Logout
+      </button>
       <div className="sidebar-stack">
         <GroupsNavAdapter
           dashboardRef={dashboardRef}
@@ -307,7 +310,6 @@ export function WorkspaceShell({
           selectedFeedId={selectedFeedId}
           selectedFeedDate={selectedFeedDate}
           onNavigate={onNavigate}
-          onLogout={onLogout}
           onToast={onToast}
         />
       </div>
