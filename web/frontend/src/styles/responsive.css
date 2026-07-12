@@ -89,6 +89,24 @@
     max-height: calc(100vh - 20px);
   }
 
+  .metric-create-dialog {
+    height: calc(100vh - 20px);
+    max-height: calc(100vh - 20px);
+    width: calc(100vw - 20px);
+  }
+
+  .metric-create-header {
+    padding: 14px;
+  }
+
+  .metric-create-body {
+    padding: 0 14px;
+  }
+
+  .metric-create-footer {
+    padding: 12px 14px;
+  }
+
   .modal-header,
   .section-header-row {
     display: grid;

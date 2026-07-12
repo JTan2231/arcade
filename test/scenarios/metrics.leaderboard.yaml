@@ -58,6 +58,11 @@ steps:
   - within: Groups
     click:
       role: button
+      name: Add group
+
+  - within: Groups
+    click:
+      role: button
       name: Group settings for Metric Dojo
 
   - within: Groups
@@ -71,27 +76,49 @@ steps:
       name: Add metric
 
   - within: Add metric
+    click:
+      role: button
+      name: Calculated
+
+  - within: Add metric
+    click:
+      role: button
+      name: Next
+
+  - within: Add metric
     select:
-      label: Metric
-      exact: false
+      label: Calculation
       value: post_count
 
   - within: Add metric
+    click:
+      role: button
+      name: Next
+
+  - within: Add metric
+    click:
+      role: button
+      name: Next
+
+  - within: Add metric
     fill:
-      label: Name
-      exact: false
+      label: Metric name
       value: Thread posts
 
   - within: Add metric
+    click:
+      role: button
+      name: Next
+
+  - within: Add metric
     select:
-      label: Aggregation
-      exact: false
+      label: Combine values by
       value: count
 
   - within: Add metric
     click:
       role: button
-      name: Save
+      name: Add metric
 
   - expectStatus:
       text: Metric added
@@ -106,34 +133,41 @@ steps:
       name: Add metric
 
   - within: Add metric
-    select:
-      label: Metric
-      exact: false
-      value: missed_days
-
-  - within: Add metric
-    fill:
-      label: Name
-      exact: false
-      value: ZZ Missed days
-
-  - within: Add metric
-    select:
-      label: Aggregation
-      exact: false
-      value: count
+    click:
+      role: button
+      name: Calculated
 
   - within: Add metric
     click:
       role: button
-      name: Save
+      name: Next
+
+  - within: Add metric
+    select:
+      label: Calculation
+      value: typical_posting_window
+
+  - within: Add metric
+    click:
+      role: button
+      name: Next
+
+  - within: Add metric
+    fill:
+      label: Metric name
+      value: ZZ Typical posting window
+
+  - within: Add metric
+    click:
+      role: button
+      name: Add metric
 
   - expectStatus:
       text: Metric added
 
   - within: Metric settings
     expectVisible:
-      text: ZZ Missed days
+      text: ZZ Typical posting window
 
   - within: Settings
     click:

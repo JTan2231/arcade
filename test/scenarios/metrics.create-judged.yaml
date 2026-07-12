@@ -1,0 +1,101 @@
+name: judged metric creation follows the progressive prompt flow
+
+vars:
+  email: judged-metric-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      client: browser
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Judged Metric Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Judged Metric Group
+      expectStatus: 201
+
+steps:
+  - visit: /
+
+  - within: Groups
+    click:
+      role: button
+      name: Add group
+
+  - within: Groups
+    click:
+      role: button
+      name: Group settings for Judged Metric Group
+
+  - within: Groups
+    click:
+      role: button
+      name: Settings
+
+  - within: Metric settings
+    click:
+      role: button
+      name: Add metric
+
+  - within: Add metric
+    click:
+      role: button
+      name: Judged
+
+  - within: Add metric
+    click:
+      role: button
+      name: Next
+
+  - within: Add metric
+    fill:
+      label: Metric name
+      value: Helpfulness
+
+  - within: Add metric
+    click:
+      role: button
+      name: Next
+
+  - within: Add metric
+    fill:
+      label: Judging prompt
+      value: How useful is this post to other group members?
+
+  - within: Add metric
+    click:
+      role: button
+      name: Next
+
+  - within: Add metric
+    select:
+      label: Combine scores by
+      value: average
+
+  - within: Add metric
+    click:
+      role: button
+      name: Add metric
+
+  - expectStatus:
+      text: Metric added
+
+  - within: Metric settings
+    expectVisible:
+      text: Helpfulness
+
+  - within: Metric settings
+    expectVisible:
+      text: How useful is this post to other group members?

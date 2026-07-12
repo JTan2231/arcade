@@ -12,6 +12,18 @@ Found 1 occurrence.
 | --- | --- | --- | --- | --- | --- |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;InviteJoinView&gt; | [web/frontend/src/App.tsx:101](../../web/frontend/src/App.tsx#L101) |
 
+## onActivate
+
+Found 5 occurrences.
+
+| Region | Region relationship | Nearest label | Label relationship | Target | Source |
+| --- | --- | --- | --- | --- | --- |
+| unknown | no enclosing accessible region | Scoring method | component prop label (distance 0) | Component &lt;MetricStepSection&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:207](../../web/frontend/src/components/CreateMetricDialog.tsx#L207) |
+| unknown | no enclosing accessible region | Calculation | component prop label (distance 0) | Component &lt;MetricStepSection&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:245](../../web/frontend/src/components/CreateMetricDialog.tsx#L245) |
+| unknown | no enclosing accessible region | Metric name | component prop label (distance 0) | Component &lt;MetricStepSection&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:278](../../web/frontend/src/components/CreateMetricDialog.tsx#L278) |
+| unknown | no enclosing accessible region | Judging prompt | component prop label (distance 0) | Component &lt;MetricStepSection&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:304](../../web/frontend/src/components/CreateMetricDialog.tsx#L304) |
+| unknown | no enclosing accessible region | Combine scores / Combine values | component prop label (distance 0) | Component &lt;MetricStepSection&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:326](../../web/frontend/src/components/CreateMetricDialog.tsx#L326) |
+
 ## onAddFeed
 
 Found 2 occurrences.
@@ -29,9 +41,17 @@ Found 1 occurrence.
 | --- | --- | --- | --- | --- | --- |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupDashboard&gt; | [web/frontend/src/components/PublicPages.tsx:249](../../web/frontend/src/components/PublicPages.tsx#L249) |
 
+## onCancel
+
+Found 1 occurrence.
+
+| Region | Region relationship | Nearest label | Label relationship | Target | Source |
+| --- | --- | --- | --- | --- | --- |
+| unknown | no enclosing accessible region | {titleId} | self aria-labelledby (distance 0) | DOM &lt;dialog&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:170](../../web/frontend/src/components/CreateMetricDialog.tsx#L170) |
+
 ## onChange
 
-Found 59 occurrences.
+Found 61 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
@@ -48,11 +68,9 @@ Found 59 occurrences.
 | Cadence | ancestor section label (distance 3) | Start time | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:162](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L162) |
 | Cadence | ancestor section label (distance 3) | Timezone | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:173](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L173) |
 | Cadence | ancestor section label (distance 3) | Repeat | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:184](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L184) |
-| Edit metric / Add metric | ancestor role dialog (distance 3) | Type | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:293](../../web/frontend/src/components/MetricSettingsManager.tsx#L293) |
-| Edit metric / Add metric | ancestor role dialog (distance 3) | Metric | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:305](../../web/frontend/src/components/MetricSettingsManager.tsx#L305) |
-| Edit metric / Add metric | ancestor role dialog (distance 4) | Name | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:321](../../web/frontend/src/components/MetricSettingsManager.tsx#L321) |
-| Edit metric / Add metric | ancestor role dialog (distance 4) | Aggregation | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:329](../../web/frontend/src/components/MetricSettingsManager.tsx#L329) |
-| Edit metric / Add metric | ancestor role dialog (distance 3) | Prompt | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:344](../../web/frontend/src/components/MetricSettingsManager.tsx#L344) |
+| Edit metric | ancestor role dialog (distance 4) | Name | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:291](../../web/frontend/src/components/MetricSettingsManager.tsx#L291) |
+| Edit metric | ancestor role dialog (distance 4) | Aggregation | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:299](../../web/frontend/src/components/MetricSettingsManager.tsx#L299) |
+| Edit metric | ancestor role dialog (distance 3) | Prompt | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:314](../../web/frontend/src/components/MetricSettingsManager.tsx#L314) |
 | Evidence formats | ancestor section label (distance 4) | Slug | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:74](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L74) |
 | Evidence formats | ancestor section label (distance 4) | Name | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:78](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L78) |
 | Evidence formats | ancestor section label (distance 3) | Description | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:83](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L83) |
@@ -63,12 +81,16 @@ Found 59 occurrences.
 | Invite links | ancestor section label (distance 3) | Label | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/InviteLinksManager.tsx:65](../../web/frontend/src/components/settings/InviteLinksManager.tsx#L65) |
 | Invite links | ancestor section label (distance 3) | Expires | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/settings/InviteLinksManager.tsx:69](../../web/frontend/src/components/settings/InviteLinksManager.tsx#L69) |
 | Invite links | ancestor section label (distance 3) | Max uses | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/InviteLinksManager.tsx:83](../../web/frontend/src/components/settings/InviteLinksManager.tsx#L83) |
-| Metric settings | grandparent section label (distance 2) | Feed | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:96](../../web/frontend/src/components/MetricSettingsManager.tsx#L96) |
+| Metric settings | grandparent section label (distance 2) | Feed | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:123](../../web/frontend/src/components/MetricSettingsManager.tsx#L123) |
 | Post format | grandparent section label (distance 2) | Format | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:139](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L139) |
 | Post tags | ancestor section label (distance 3) | Tag name | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/PostTagManager.tsx:55](../../web/frontend/src/components/settings/PostTagManager.tsx#L55) |
 | Posts | grandparent section label (distance 2) | Posts | region fallback (grandparent section label (distance 2)) | DOM &lt;textarea&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:172](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L172) |
 | Posts | ancestor section label (distance 3) | Caption | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:182](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L182) |
 | Selected feed output | ancestor section label (distance 3) | Feed | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/GroupDashboard.tsx:171](../../web/frontend/src/components/GroupDashboard.tsx#L171) |
+| unknown | no enclosing accessible region | Calculation | self aria-label (distance 0) | DOM &lt;select&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:251](../../web/frontend/src/components/CreateMetricDialog.tsx#L251) |
+| unknown | no enclosing accessible region | Metric name | self aria-label (distance 0) | DOM &lt;input&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:284](../../web/frontend/src/components/CreateMetricDialog.tsx#L284) |
+| unknown | no enclosing accessible region | Judging prompt | self aria-label (distance 0) | DOM &lt;textarea&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:310](../../web/frontend/src/components/CreateMetricDialog.tsx#L310) |
+| unknown | no enclosing accessible region | Combine scores by / Combine values by | self aria-label (distance 0) | DOM &lt;select&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:332](../../web/frontend/src/components/CreateMetricDialog.tsx#L332) |
 | unknown | no enclosing accessible region | Field | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:453](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L453) |
 | unknown | no enclosing accessible region | Operator | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:463](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L463) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FilterValueInput&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:471](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L471) |
@@ -158,7 +180,7 @@ Found 2 occurrences.
 
 ## onClick
 
-Found 49 occurrences.
+Found 53 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
@@ -170,8 +192,8 @@ Found 49 occurrences.
 | Authentication | grandparent section label (distance 2) | Signup | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/AuthView.tsx:65](../../web/frontend/src/components/AuthView.tsx#L65) |
 | Current generation | parent section label (distance 1) | Refresh | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:124](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L124) |
 | Delete feed | parent section label (distance 1) | Delete | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:209](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L209) |
-| Edit metric / Add metric | ancestor role dialog (distance 3) | Close | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:285](../../web/frontend/src/components/MetricSettingsManager.tsx#L285) |
-| Edit metric / Add metric | ancestor role dialog (distance 3) | Cancel | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:359](../../web/frontend/src/components/MetricSettingsManager.tsx#L359) |
+| Edit metric | ancestor role dialog (distance 3) | Close | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:281](../../web/frontend/src/components/MetricSettingsManager.tsx#L281) |
+| Edit metric | ancestor role dialog (distance 3) | Cancel | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:329](../../web/frontend/src/components/MetricSettingsManager.tsx#L329) |
 | Feed settings | grandparent role dialog (distance 2) | Close | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:104](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L104) |
 | Feed status | parent section label (distance 1) | Disable / Enable | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:114](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L114) |
 | Feeds | ancestor section label (distance 3) | {feed.name} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSublist.tsx:133](../../web/frontend/src/components/groups/FeedSublist.tsx#L133) |
@@ -184,9 +206,9 @@ Found 49 occurrences.
 | Invite links | ancestor section label (distance 3) | Copy link | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/InviteLinksManager.tsx:98](../../web/frontend/src/components/settings/InviteLinksManager.tsx#L98) |
 | Invite links | ancestor section label (distance 3) | Clear | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/InviteLinksManager.tsx:104](../../web/frontend/src/components/settings/InviteLinksManager.tsx#L104) |
 | Invite links | ancestor section label (distance 3) | Revoke | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/InviteLinksManager.tsx:136](../../web/frontend/src/components/settings/InviteLinksManager.tsx#L136) |
-| Metric settings | grandparent section label (distance 2) | Add metric | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:86](../../web/frontend/src/components/MetricSettingsManager.tsx#L86) |
-| Metric settings | ancestor section label (distance 5) | {`Edit ${metric.display_name}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:147](../../web/frontend/src/components/MetricSettingsManager.tsx#L147) |
-| Metric settings | ancestor section label (distance 5) | {`Delete ${metric.display_name}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:156](../../web/frontend/src/components/MetricSettingsManager.tsx#L156) |
+| Metric settings | grandparent section label (distance 2) | Add metric | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:113](../../web/frontend/src/components/MetricSettingsManager.tsx#L113) |
+| Metric settings | ancestor section label (distance 5) | {`Edit ${metric.display_name}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:174](../../web/frontend/src/components/MetricSettingsManager.tsx#L174) |
+| Metric settings | ancestor section label (distance 5) | {`Delete ${metric.display_name}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:183](../../web/frontend/src/components/MetricSettingsManager.tsx#L183) |
 | Metrics | ancestor section label (distance 5) | {metricTitle} | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/MetricsSection.tsx:92](../../web/frontend/src/components/dashboard/MetricsSection.tsx#L92) |
 | Metrics | ancestor section label (distance 5) | Metric choices | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/MetricsSection.tsx:101](../../web/frontend/src/components/dashboard/MetricsSection.tsx#L101) |
 | Metrics | ancestor section label (distance 4) | {`Select ${metric.display_name}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/MetricsSection.tsx:122](../../web/frontend/src/components/dashboard/MetricsSection.tsx#L122) |
@@ -194,6 +216,10 @@ Found 49 occurrences.
 | Posts | grandparent section label (distance 2) | Post | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:154](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L154) |
 | Posts | ancestor section label (distance 3) | Cancel | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:186](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L186) |
 | Settings | grandparent role dialog (distance 2) | Close | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:144](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L144) |
+| unknown | no enclosing accessible region | Close | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:186](../../web/frontend/src/components/CreateMetricDialog.tsx#L186) |
+| unknown | no enclosing accessible region | Calculated | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:215](../../web/frontend/src/components/CreateMetricDialog.tsx#L215) |
+| unknown | no enclosing accessible region | Judged | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:224](../../web/frontend/src/components/CreateMetricDialog.tsx#L224) |
+| unknown | no enclosing accessible region | Back | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:365](../../web/frontend/src/components/CreateMetricDialog.tsx#L365) |
 | unknown | no enclosing accessible region | Remove | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:472](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L472) |
 | unknown | no enclosing accessible region | Feed output choices | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedOutput.tsx:432](../../web/frontend/src/components/dashboard/FeedOutput.tsx#L432) |
 | unknown | no enclosing accessible region | {`Select ${optionTitle} (${option.value})`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedOutput.tsx:457](../../web/frontend/src/components/dashboard/FeedOutput.tsx#L457) |
@@ -214,12 +240,13 @@ Found 49 occurrences.
 
 ## onClose
 
-Found 5 occurrences.
+Found 6 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
 | Feeds | grandparent section label (distance 2) | Feeds | region fallback (grandparent section label (distance 2)) | Component &lt;FeedSettingsDialog&gt; | [web/frontend/src/components/groups/FeedSublist.tsx:145](../../web/frontend/src/components/groups/FeedSublist.tsx#L145) |
-| Metric settings | parent section label (distance 1) | Metric settings | region fallback (parent section label (distance 1)) | Component &lt;MetricDialog&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:176](../../web/frontend/src/components/MetricSettingsManager.tsx#L176) |
+| Metric settings | parent section label (distance 1) | Metric settings | region fallback (parent section label (distance 1)) | Component &lt;CreateMetricDialog&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:203](../../web/frontend/src/components/MetricSettingsManager.tsx#L203) |
+| Metric settings | parent section label (distance 1) | Metric settings | region fallback (parent section label (distance 1)) | Component &lt;EditMetricDialog&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:216](../../web/frontend/src/components/MetricSettingsManager.tsx#L216) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;PostTagMenu&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:459](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L459) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;AddFeedDialog&gt; | [web/frontend/src/components/GroupDashboard.tsx:219](../../web/frontend/src/components/GroupDashboard.tsx#L219) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/workspace/GroupSettingsAdapter.tsx:90](../../web/frontend/src/workspace/GroupSettingsAdapter.tsx#L90) |
@@ -255,7 +282,7 @@ Found 1 occurrence.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Metric settings | parent section label (distance 1) | Metric settings | region fallback (parent section label (distance 1)) | Component &lt;MetricDialog&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:177](../../web/frontend/src/components/MetricSettingsManager.tsx#L177) |
+| Metric settings | parent section label (distance 1) | Metric settings | region fallback (parent section label (distance 1)) | Component &lt;CreateMetricDialog&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:204](../../web/frontend/src/components/MetricSettingsManager.tsx#L204) |
 
 ## onCreateFeed
 
@@ -409,6 +436,14 @@ Found 1 occurrence.
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;AddFeedDialog&gt; | [web/frontend/src/components/GroupDashboard.tsx:221](../../web/frontend/src/components/GroupDashboard.tsx#L221) |
+
+## onFocusCapture
+
+Found 1 occurrence.
+
+| Region | Region relationship | Nearest label | Label relationship | Target | Source |
+| --- | --- | --- | --- | --- | --- |
+| {labelId} | self section label (distance 0) | {labelId} | self aria-labelledby (distance 0) | DOM &lt;section&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:406](../../web/frontend/src/components/CreateMetricDialog.tsx#L406) |
 
 ## onKeyDown
 
@@ -565,7 +600,7 @@ Found 3 occurrences.
 
 ## onSubmit
 
-Found 15 occurrences.
+Found 16 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
@@ -573,12 +608,13 @@ Found 15 occurrences.
 | Authentication | parent section label (distance 1) | Authentication | region fallback (parent section label (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/AuthView.tsx:72](../../web/frontend/src/components/AuthView.tsx#L72) |
 | Authentication | parent section label (distance 1) | Authentication | region fallback (parent section label (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/AuthView.tsx:90](../../web/frontend/src/components/AuthView.tsx#L90) |
 | Cadence | parent section label (distance 1) | Cadence | region fallback (parent section label (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:155](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L155) |
-| Edit metric / Add metric | parent role dialog (distance 1) | Edit metric / Add metric | region fallback (parent role dialog (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:279](../../web/frontend/src/components/MetricSettingsManager.tsx#L279) |
+| Edit metric | parent role dialog (distance 1) | Edit metric | region fallback (parent role dialog (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:275](../../web/frontend/src/components/MetricSettingsManager.tsx#L275) |
 | Evidence formats | parent section label (distance 1) | Evidence formats | region fallback (parent section label (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:70](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L70) |
 | Groups | grandparent section label (distance 2) | Groups | region fallback (grandparent section label (distance 2)) | DOM &lt;form&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:93](../../web/frontend/src/components/groups/GroupsPanel.tsx#L93) |
 | Invite links | parent section label (distance 1) | Invite links | region fallback (parent section label (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/settings/InviteLinksManager.tsx:62](../../web/frontend/src/components/settings/InviteLinksManager.tsx#L62) |
 | Post tags | parent section label (distance 1) | Post tags | region fallback (parent section label (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/settings/PostTagManager.tsx:49](../../web/frontend/src/components/settings/PostTagManager.tsx#L49) |
 | Posts | parent section label (distance 1) | Posts | region fallback (parent section label (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:161](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L161) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | DOM &lt;form&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:177](../../web/frontend/src/components/CreateMetricDialog.tsx#L177) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | DOM &lt;form&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:465](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L465) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;MetricJudgmentForm&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:553](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L553) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | DOM &lt;form&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:682](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L682) |
@@ -620,7 +656,7 @@ Found 1 occurrence.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Metric settings | parent section label (distance 1) | Metric settings | region fallback (parent section label (distance 1)) | Component &lt;MetricDialog&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:181](../../web/frontend/src/components/MetricSettingsManager.tsx#L181) |
+| Metric settings | parent section label (distance 1) | Metric settings | region fallback (parent section label (distance 1)) | Component &lt;EditMetricDialog&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:217](../../web/frontend/src/components/MetricSettingsManager.tsx#L217) |
 
 ## onUpdateFeedPost
 

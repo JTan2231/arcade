@@ -395,6 +395,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
           kind: "create",
           payload: event.payload,
         },
+        metricsError: "",
       })),
     },
     METRIC_UPDATE_SUBMITTED: {
@@ -1971,9 +1972,10 @@ function clearGroupVisibilityMutationOnError() {
 }
 
 function clearMetricMutationOnError() {
-  return assign<DashboardContext, ErrorActorEvent, undefined, DashboardEvent, never>({
+  return assign<DashboardContext, ErrorActorEvent, undefined, DashboardEvent, never>(({ event }) => ({
     metricMutation: null,
-  });
+    metricsError: errorMessage(event.error),
+  }));
 }
 
 function clearJudgmentMutationOnError() {

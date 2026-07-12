@@ -287,6 +287,192 @@
   gap: 12px;
 }
 
+.metric-create-dialog {
+  color: var(--color-text);
+  height: min(620px, calc(100vh - 32px));
+  margin: auto;
+  max-height: calc(100vh - 32px);
+  overflow: hidden;
+  padding: 0;
+  width: min(620px, calc(100vw - 32px));
+}
+
+.metric-create-dialog::backdrop {
+  background: var(--color-overlay);
+}
+
+.metric-create-form {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100%;
+  min-height: 0;
+}
+
+.metric-create-header {
+  border-bottom: 1px solid var(--color-border);
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px 14px;
+}
+
+.metric-create-title-row,
+.metric-create-context {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.metric-create-title-row h2 {
+  font-size: 22px;
+  margin: 0;
+}
+
+.metric-dialog-close-button {
+  font-size: 24px;
+  line-height: 1;
+  min-height: 34px;
+  min-width: 34px;
+  padding: 0;
+}
+
+.metric-create-context {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.metric-create-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 0 18px;
+}
+
+.metric-create-step {
+  border-left: 2px solid var(--color-border);
+  display: grid;
+  gap: 10px;
+  padding: 14px 0 14px 14px;
+}
+
+.metric-create-step + .metric-create-step {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.metric-create-step-current {
+  border-left-color: var(--color-accent-border-hover);
+}
+
+.metric-create-step-heading {
+  align-items: baseline;
+  color: var(--color-text-muted);
+  display: grid;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 8px;
+  grid-template-columns: 20px minmax(0, 1fr);
+}
+
+.metric-create-step-current .metric-create-step-heading {
+  color: var(--color-text);
+}
+
+.metric-create-step-heading span:first-child {
+  color: var(--color-icon-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.metric-create-step-control {
+  display: grid;
+  gap: 6px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.metric-create-step-complete input,
+.metric-create-step-complete select,
+.metric-create-step-complete textarea {
+  border-color: var(--color-border-subtle);
+  color: var(--color-text-muted);
+}
+
+.metric-create-step-current input,
+.metric-create-step-current select,
+.metric-create-step-current textarea {
+  border-color: var(--color-accent-border);
+}
+
+.metric-kind-control {
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  display: grid;
+  gap: 3px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  padding: 3px;
+}
+
+.metric-kind-option {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-text-muted);
+  min-width: 0;
+}
+
+.metric-kind-option:hover:where(:not(:disabled)) {
+  background: var(--color-surface-hover);
+  border-color: transparent;
+}
+
+.metric-kind-option[aria-pressed="true"] {
+  background: var(--color-accent-surface);
+  border-color: var(--color-accent-border);
+  color: var(--color-text);
+}
+
+.metric-kind-option[aria-pressed="true"]:hover:where(:not(:disabled)) {
+  background: var(--color-accent-surface-hover);
+  border-color: var(--color-accent-border-hover);
+}
+
+.metric-create-step-complete .metric-kind-option[aria-pressed="true"] {
+  background: var(--color-surface-muted);
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.metric-create-fixed-value {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.metric-create-fixed-value strong {
+  color: var(--color-text);
+}
+
+.metric-create-step-error,
+.metric-create-submission-error {
+  margin-top: 0;
+}
+
+.metric-create-submission-error {
+  padding: 12px 0;
+}
+
+.metric-create-footer {
+  align-items: center;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 14px 18px;
+}
+
+.metric-create-footer-button {
+  min-width: 96px;
+}
+
 .metric-judgment-list {
   border-top: 1px solid var(--color-border);
   display: grid;

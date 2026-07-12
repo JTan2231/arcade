@@ -1,22 +1,19 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 
 import type {
   CreateFeedMetricRequest,
   DailyFeed,
   FeedMetric,
-  FeedMetricKey,
   MetricAggregation,
   PatchFeedMetricRequest,
-  SystemMetricKey,
 } from "../types";
 import {
   aggregationLabel,
   aggregationsForMetricKey,
   defaultAggregationForMetricKey,
-  defaultMetricDisplayName,
   metricKeyLabel,
-  systemMetricOptionEntries,
 } from "./metricLabels";
+import { CreateMetricDialog } from "./CreateMetricDialog";
 
 type MetricSettingsManagerProps = {
   feeds: DailyFeed[];
@@ -49,19 +46,49 @@ export function MetricSettingsManager({
 }: MetricSettingsManagerProps) {
   const [dialogMode, setDialogMode] = useState<"create" | "edit" | null>(null);
   const [editingMetricId, setEditingMetricId] = useState<string | null>(null);
+  const [createAwaitingResult, setCreateAwaitingResult] = useState(false);
+  const [createSawSubmitting, setCreateSawSubmitting] = useState(false);
+  const [createError, setCreateError] = useState("");
   const selectedFeed = feeds.find((feed) => feed.id === selectedFeedId) ?? null;
   const editingMetric =
     dialogMode === "edit" ? (metrics.find((metric) => metric.id === editingMetricId) ?? null) : null;
   const canAddMetric = selectedFeed !== null && !metricsLoading && !metricSubmitting;
 
-  useEffect(() => {
+  const closeDialog = useCallback(() => {
     setDialogMode(null);
     setEditingMetricId(null);
-  }, [selectedFeedId]);
+    setCreateAwaitingResult(false);
+    setCreateSawSubmitting(false);
+    setCreateError("");
+  }, []);
 
-  function closeDialog() {
-    setDialogMode(null);
-    setEditingMetricId(null);
+  useEffect(() => {
+    closeDialog();
+  }, [closeDialog, selectedFeedId]);
+
+  useEffect(() => {
+    if (dialogMode !== "create" || !createAwaitingResult) {
+      return;
+    }
+    if (metricSubmitting) {
+      setCreateSawSubmitting(true);
+      return;
+    }
+    if (!createSawSubmitting) {
+      return;
+    }
+    if (error === "") {
+      closeDialog();
+      return;
+    }
+    setCreateError(error);
+    setCreateAwaitingResult(false);
+    setCreateSawSubmitting(false);
+  }, [closeDialog, createAwaitingResult, createSawSubmitting, dialogMode, error, metricSubmitting]);
+
+  function openCreateDialog() {
+    setCreateError("");
+    setDialogMode("create");
   }
 
   function openEditDialog(metric: FeedMetric) {
@@ -83,7 +110,7 @@ export function MetricSettingsManager({
           <div className="section-title">Metric settings</div>
           <div className="meta">{selectedFeed?.name ?? "No feed selected"}</div>
         </div>
-        <button className="secondary" type="button" disabled={!canAddMetric} onClick={() => setDialogMode("create")}>
+        <button className="secondary" type="button" disabled={!canAddMetric} onClick={openCreateDialog}>
           Add metric
         </button>
       </div>
@@ -168,16 +195,25 @@ export function MetricSettingsManager({
         </div>
       ) : null}
 
-      {dialogMode === "create" || (dialogMode === "edit" && editingMetric !== null) ? (
-        <MetricDialog
-          mode={dialogMode}
-          metric={editingMetric}
-          saving={dialogMode === "create" ? metricSubmitting : updatingMetricId === editingMetric?.id}
+      {dialogMode === "create" && selectedFeed !== null ? (
+        <CreateMetricDialog
+          feedName={selectedFeed.name}
+          saving={metricSubmitting || createAwaitingResult}
+          submissionError={createError}
           onClose={closeDialog}
           onCreate={(payload) => {
+            setCreateError("");
+            setCreateAwaitingResult(true);
             onCreateMetric(payload);
-            closeDialog();
           }}
+        />
+      ) : null}
+
+      {dialogMode === "edit" && editingMetric !== null ? (
+        <EditMetricDialog
+          metric={editingMetric}
+          saving={updatingMetricId === editingMetric.id}
+          onClose={closeDialog}
           onUpdate={(metricId, payload) => {
             onUpdateMetric(metricId, payload);
             closeDialog();
@@ -188,35 +224,22 @@ export function MetricSettingsManager({
   );
 }
 
-function MetricDialog({
-  mode,
+function EditMetricDialog({
   metric,
   saving,
   onClose,
-  onCreate,
   onUpdate,
 }: {
-  mode: "create" | "edit";
-  metric: FeedMetric | null;
+  metric: FeedMetric;
   saving: boolean;
   onClose: () => void;
-  onCreate: (payload: CreateFeedMetricRequest) => void;
   onUpdate: (metricId: string, payload: PatchFeedMetricRequest) => void;
 }) {
-  const editing = mode === "edit" && metric !== null;
-  const initialKind = metric?.system_key === "judged" ? "judged" : "system";
-  const initialSystemKey =
-    metric?.system_key !== undefined && metric.system_key !== "judged" ? metric.system_key : "post_count";
-  const [kind, setKind] = useState<"system" | "judged">(initialKind);
-  const [systemKey, setSystemKey] = useState<SystemMetricKey>(initialSystemKey);
-  const [displayName, setDisplayName] = useState(metric?.display_name ?? defaultMetricDisplayName(initialSystemKey));
-  const [aggregation, setAggregation] = useState<MetricAggregation>(
-    metric?.aggregation ?? defaultAggregationForMetricKey(initialSystemKey),
-  );
-  const [judgmentPrompt, setJudgmentPrompt] = useState(metric?.judgment_prompt ?? "");
+  const [displayName, setDisplayName] = useState(metric.display_name);
+  const [aggregation, setAggregation] = useState<MetricAggregation>(metric.aggregation);
+  const [judgmentPrompt, setJudgmentPrompt] = useState(metric.judgment_prompt ?? "");
   const [validationError, setValidationError] = useState("");
-
-  const metricKey: FeedMetricKey = editing ? metric.system_key : kind === "judged" ? "judged" : systemKey;
+  const metricKey = metric.system_key;
   const allowedAggregations = aggregationsForMetricKey(metricKey);
 
   useEffect(() => {
@@ -224,23 +247,6 @@ function MetricDialog({
       setAggregation(defaultAggregationForMetricKey(metricKey));
     }
   }, [aggregation, allowedAggregations, metricKey]);
-
-  function handleSystemKeyChange(nextKey: SystemMetricKey) {
-    setSystemKey(nextKey);
-    setAggregation(defaultAggregationForMetricKey(nextKey));
-    if (mode === "create") {
-      setDisplayName(defaultMetricDisplayName(nextKey));
-    }
-  }
-
-  function handleKindChange(nextKind: "system" | "judged") {
-    setKind(nextKind);
-    const nextKey: FeedMetricKey = nextKind === "judged" ? "judged" : systemKey;
-    setAggregation(defaultAggregationForMetricKey(nextKey));
-    if (mode === "create") {
-      setDisplayName(nextKind === "judged" ? "" : defaultMetricDisplayName(systemKey));
-    }
-  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -256,17 +262,7 @@ function MetricDialog({
     }
     setValidationError("");
 
-    if (editing) {
-      onUpdate(metric.id, {
-        display_name: trimmedDisplayName,
-        aggregation,
-        ...(metricKey === "judged" ? { judgment_prompt: trimmedPrompt } : {}),
-      });
-      return;
-    }
-
-    onCreate({
-      system_key: metricKey,
+    onUpdate(metric.id, {
       display_name: trimmedDisplayName,
       aggregation,
       ...(metricKey === "judged" ? { judgment_prompt: trimmedPrompt } : {}),
@@ -279,39 +275,13 @@ function MetricDialog({
         <form className="metric-form" onSubmit={handleSubmit}>
           <div className="modal-header">
             <div>
-              <h2 id="metric-dialog-title">{editing ? "Edit metric" : "Add metric"}</h2>
+              <h2 id="metric-dialog-title">Edit metric</h2>
               <div className="meta">{metricKeyLabel(metricKey)}</div>
             </div>
             <button className="secondary" type="button" onClick={onClose}>
               Close
             </button>
           </div>
-
-          {!editing ? (
-            <label>
-              Type
-              <select value={kind} onChange={(event) => handleKindChange(event.target.value as "system" | "judged")}>
-                <option value="system">Calculated</option>
-                <option value="judged">Judged</option>
-              </select>
-            </label>
-          ) : null}
-
-          {kind === "system" && !editing ? (
-            <label>
-              Metric
-              <select
-                value={systemKey}
-                onChange={(event) => handleSystemKeyChange(event.target.value as SystemMetricKey)}
-              >
-                {systemMetricOptionEntries().map((option) => (
-                  <option key={option.key} value={option.key}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
 
           <div className="form-grid two-column">
             <label>
@@ -336,7 +306,7 @@ function MetricDialog({
             </label>
           </div>
 
-          {metricKey === "judged" ? (
+          {metric.system_key === "judged" ? (
             <label>
               Prompt
               <textarea

@@ -1,0 +1,111 @@
+name: metric creation retains its draft after an API error
+
+vars:
+  email: metric-error-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      client: browser
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Metric Error Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Metric Error Group
+      expectStatus: 201
+
+steps:
+  - visit: /
+
+  - within: Groups
+    click:
+      role: button
+      name: Add group
+
+  - within: Groups
+    click:
+      role: button
+      name: Group settings for Metric Error Group
+
+  - within: Groups
+    click:
+      role: button
+      name: Settings
+
+  - within: Metric settings
+    click:
+      role: button
+      name: Add metric
+
+  - within: Add metric
+    click:
+      role: button
+      name: Calculated
+
+  - within: Add metric
+    click:
+      role: button
+      name: Next
+
+  - within: Add metric
+    select:
+      label: Calculation
+      value: post_count
+
+  - within: Add metric
+    click:
+      role: button
+      name: Next
+
+  - within: Add metric
+    fill:
+      label: Metric name
+      value: Retry metric
+
+  - within: Add metric
+    click:
+      role: button
+      name: Next
+
+  - fulfillRequest:
+      method: POST
+      path: /api/groups/*/daily-feeds/*/metrics
+      status: 500
+      json:
+        error: Metric create failed
+
+  - within: Add metric
+    click:
+      role: button
+      name: Add metric
+
+  - within: Add metric
+    expectAlert:
+      text: Metric create failed
+
+  - within: Add metric
+    expectValue:
+      label: Metric name
+      value: Retry metric
+
+  - within: Add metric
+    expectEnabled:
+      role: button
+      name: Add metric
+
+  - within: Add metric
+    click:
+      role: button
+      name: Close
