@@ -4,7 +4,8 @@
   }
 
   .post-content-preview-body,
-  .post-evidence-code {
+  .post-evidence-code,
+  .post-caption {
     transition: none;
   }
 

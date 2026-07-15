@@ -534,6 +534,11 @@
   font-weight: 400;
   line-height: 1.35;
   overflow-wrap: anywhere;
+  transition: color 1.26s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.post-content-preview.preview .post-caption {
+  color: var(--color-text-muted);
 }
 
 .field-hint,
