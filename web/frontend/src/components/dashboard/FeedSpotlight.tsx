@@ -1,4 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+
+import { FeedSpotlightContext } from "./feedSpotlightContext";
 
 type Rgba = {
   red: number;
@@ -7,10 +9,23 @@ type Rgba = {
   alpha: number;
 };
 
-const spotlightRadiusX = 0.62;
-const spotlightRadiusY = 0.5;
+type SpotlightTarget = {
+  active: boolean;
+  element: HTMLElement;
+  id: string;
+  order: number;
+};
+
+const ambientSpotlightRadiusX = 0.62;
+const ambientSpotlightRadiusY = 0.5;
+const postSpotlightWidthRatio = 1.16;
+const postSpotlightHeightRatio = 0.82;
+const minimumPostSpotlightWidth = 440;
+const minimumPostSpotlightHeight = 420;
 const ditherStrength = 1.25;
-const maxDevicePixelRatio = 2;
+const maxAmbientDevicePixelRatio = 2;
+const maxPostDevicePixelRatio = 1.25;
+const spotlightExitDuration = 240;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -54,27 +69,48 @@ function parseColor(color: string): Rgba | null {
   };
 }
 
-function devicePixelRatio() {
+function devicePixelRatio(maximum: number) {
   const ratio = window.devicePixelRatio;
-  return Number.isFinite(ratio) && ratio > 0 ? Math.min(ratio, maxDevicePixelRatio) : 1;
+  return Number.isFinite(ratio) && ratio > 0 ? Math.min(ratio, maximum) : 1;
 }
 
-function drawSpotlight(canvas: HTMLCanvasElement) {
+function drawSpotlight({
+  canvas,
+  cssWidth,
+  cssHeight,
+  originToken,
+  endpointToken,
+  radiusX,
+  radiusY,
+  maximumDevicePixelRatio,
+}: {
+  canvas: HTMLCanvasElement;
+  cssWidth: number;
+  cssHeight: number;
+  originToken: string;
+  endpointToken: string;
+  radiusX: number;
+  radiusY: number;
+  maximumDevicePixelRatio: number;
+}) {
   const context = canvas.getContext("2d");
   if (context === null) {
     return;
   }
 
   const style = getComputedStyle(document.documentElement);
-  const origin = parseColor(style.getPropertyValue("--color-feed-spotlight").trim());
-  const endpoint = parseColor(style.getPropertyValue("--color-feed-spotlight-transparent").trim());
+  const origin = parseColor(style.getPropertyValue(originToken).trim());
+  const endpoint = parseColor(style.getPropertyValue(endpointToken).trim());
   if (origin === null || endpoint === null) {
     context.clearRect(0, 0, canvas.width, canvas.height);
     return;
   }
 
-  const width = Math.max(1, Math.ceil(window.innerWidth * devicePixelRatio()));
-  const height = Math.max(1, Math.ceil(window.innerHeight * devicePixelRatio()));
+  const ratio = devicePixelRatio(maximumDevicePixelRatio);
+  const width = Math.max(1, Math.ceil(cssWidth * ratio));
+  const height = Math.max(1, Math.ceil(cssHeight * ratio));
+  canvas.style.width = `${cssWidth}px`;
+  canvas.style.height = `${cssHeight}px`;
   if (canvas.width !== width) {
     canvas.width = width;
   }
@@ -86,16 +122,16 @@ function drawSpotlight(canvas: HTMLCanvasElement) {
   const pixels = image.data;
   const centerX = width * 0.5;
   const centerY = height * 0.5;
-  const radiusX = width * spotlightRadiusX;
-  const radiusY = height * spotlightRadiusY;
+  const pixelRadiusX = width * radiusX;
+  const pixelRadiusY = height * radiusY;
   const alphaStart = endpoint.alpha;
   const alphaRange = origin.alpha - endpoint.alpha;
 
   for (let y = 0; y < height; y += 1) {
-    const normalizedY = (y + 0.5 - centerY) / radiusY;
+    const normalizedY = (y + 0.5 - centerY) / pixelRadiusY;
 
     for (let x = 0; x < width; x += 1) {
-      const normalizedX = (x + 0.5 - centerX) / radiusX;
+      const normalizedX = (x + 0.5 - centerX) / pixelRadiusX;
       const distance = Math.sqrt(normalizedX * normalizedX + normalizedY * normalizedY);
       const field = clamp(1 - distance, 0, 1);
       const alpha = alphaStart + alphaRange * field;
@@ -111,7 +147,7 @@ function drawSpotlight(canvas: HTMLCanvasElement) {
   context.putImageData(image, 0, 0);
 }
 
-export function FeedSpotlight() {
+function AmbientSpotlight() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -129,7 +165,16 @@ export function FeedSpotlight() {
 
       animationFrame = window.requestAnimationFrame(() => {
         animationFrame = null;
-        drawSpotlight(canvas);
+        drawSpotlight({
+          canvas,
+          cssWidth: window.innerWidth,
+          cssHeight: window.innerHeight,
+          originToken: "--color-feed-spotlight",
+          endpointToken: "--color-feed-spotlight-transparent",
+          radiusX: ambientSpotlightRadiusX,
+          radiusY: ambientSpotlightRadiusY,
+          maximumDevicePixelRatio: maxAmbientDevicePixelRatio,
+        });
       });
     };
 
@@ -152,5 +197,209 @@ export function FeedSpotlight() {
     };
   }, []);
 
-  return <canvas aria-hidden="true" className="feed-spotlight-canvas" ref={canvasRef} />;
+  return <canvas aria-hidden="true" className="feed-spotlight-canvas feed-spotlight-ambient-canvas" ref={canvasRef} />;
+}
+
+function PostSpotlight({ target }: { target: SpotlightTarget | null }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const layerSizeRef = useRef({ height: 1, width: 1 });
+  const [positioned, setPositioned] = useState(false);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (canvas === null) {
+      return;
+    }
+
+    const draw = () => {
+      const width = Math.max(minimumPostSpotlightWidth, window.innerWidth * postSpotlightWidthRatio);
+      const height = Math.max(minimumPostSpotlightHeight, window.innerHeight * postSpotlightHeightRatio);
+      layerSizeRef.current = { height, width };
+      drawSpotlight({
+        canvas,
+        cssWidth: width,
+        cssHeight: height,
+        originToken: "--color-post-spotlight",
+        endpointToken: "--color-post-spotlight-transparent",
+        radiusX: 0.5,
+        radiusY: 0.5,
+        maximumDevicePixelRatio: maxPostDevicePixelRatio,
+      });
+    };
+
+    draw();
+    window.addEventListener("resize", draw);
+
+    const visualViewport = window.visualViewport;
+    if (visualViewport !== null && visualViewport !== undefined) {
+      visualViewport.addEventListener("resize", draw);
+    }
+
+    return () => {
+      window.removeEventListener("resize", draw);
+      if (visualViewport !== null && visualViewport !== undefined) {
+        visualViewport.removeEventListener("resize", draw);
+      }
+    };
+  }, []);
+
+  const targetElement = target?.element ?? null;
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (canvas === null || targetElement === null) {
+      setPositioned(false);
+      return;
+    }
+
+    let animationFrame: number | null = null;
+
+    const updatePosition = () => {
+      animationFrame = null;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const bounds = targetElement.getBoundingClientRect();
+      const visibleLeft = Math.max(0, bounds.left);
+      const visibleRight = Math.min(viewportWidth, bounds.right);
+      const visibleTop = Math.max(0, bounds.top);
+      const visibleBottom = Math.min(viewportHeight, bounds.bottom);
+      const visible =
+        targetElement.isConnected && visibleRight > visibleLeft && visibleBottom > visibleTop && bounds.width > 0;
+
+      if (!visible) {
+        setPositioned(false);
+        return;
+      }
+
+      const centerX = (visibleLeft + visibleRight) * 0.5;
+      const centerY = (visibleTop + visibleBottom) * 0.5;
+      const { height, width } = layerSizeRef.current;
+      canvas.style.transform = `translate3d(${centerX - width * 0.5}px, ${centerY - height * 0.5}px, 0)`;
+      setPositioned(true);
+    };
+
+    const schedulePosition = () => {
+      if (animationFrame !== null) {
+        return;
+      }
+      animationFrame = window.requestAnimationFrame(updatePosition);
+    };
+
+    const layoutObserver = new ResizeObserver(schedulePosition);
+    for (let element: HTMLElement | null = targetElement; element !== null; element = element.parentElement) {
+      layoutObserver.observe(element);
+    }
+    schedulePosition();
+    window.addEventListener("scroll", schedulePosition, { passive: true });
+    window.addEventListener("resize", schedulePosition);
+
+    const visualViewport = window.visualViewport;
+    if (visualViewport !== null && visualViewport !== undefined) {
+      visualViewport.addEventListener("scroll", schedulePosition);
+      visualViewport.addEventListener("resize", schedulePosition);
+    }
+
+    return () => {
+      layoutObserver.disconnect();
+      window.removeEventListener("scroll", schedulePosition);
+      window.removeEventListener("resize", schedulePosition);
+      if (visualViewport !== null && visualViewport !== undefined) {
+        visualViewport.removeEventListener("scroll", schedulePosition);
+        visualViewport.removeEventListener("resize", schedulePosition);
+      }
+      if (animationFrame !== null) {
+        window.cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [targetElement]);
+
+  const visible = target?.active === true && positioned;
+  const className = [
+    "feed-spotlight-canvas",
+    "feed-spotlight-post-canvas",
+    visible ? "feed-spotlight-post-canvas-visible" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return <canvas aria-hidden="true" className={className} ref={canvasRef} />;
+}
+
+export function FeedSpotlight({ children }: { children: ReactNode }) {
+  const [targets, setTargets] = useState<ReadonlyMap<string, SpotlightTarget>>(() => new Map());
+  const [postSpotlightStarted, setPostSpotlightStarted] = useState(false);
+  const removalTimers = useRef(new Map<string, number>());
+  const nextTargetOrder = useRef(0);
+
+  const registerTarget = useCallback((id: string, element: HTMLElement) => {
+    setPostSpotlightStarted(true);
+    const timer = removalTimers.current.get(id);
+    if (timer !== undefined) {
+      window.clearTimeout(timer);
+      removalTimers.current.delete(id);
+    }
+
+    setTargets((current) => {
+      const existing = current.get(id);
+      if (existing?.active === true && existing.element === element) {
+        return current;
+      }
+      nextTargetOrder.current += 1;
+      const next = new Map(current);
+      next.set(id, { active: true, element, id, order: nextTargetOrder.current });
+      return next;
+    });
+  }, []);
+
+  const releaseTarget = useCallback((id: string, element: HTMLElement) => {
+    setTargets((current) => {
+      const existing = current.get(id);
+      if (existing === undefined || existing.element !== element || !existing.active) {
+        return current;
+      }
+      const next = new Map(current);
+      next.set(id, { ...existing, active: false });
+      return next;
+    });
+
+    const existingTimer = removalTimers.current.get(id);
+    if (existingTimer !== undefined) {
+      window.clearTimeout(existingTimer);
+    }
+    const timer = window.setTimeout(() => {
+      removalTimers.current.delete(id);
+      setTargets((current) => {
+        const existing = current.get(id);
+        if (existing === undefined || existing.element !== element || existing.active) {
+          return current;
+        }
+        const next = new Map(current);
+        next.delete(id);
+        return next;
+      });
+    }, spotlightExitDuration);
+    removalTimers.current.set(id, timer);
+  }, []);
+
+  useEffect(
+    () => () => {
+      for (const timer of removalTimers.current.values()) {
+        window.clearTimeout(timer);
+      }
+      removalTimers.current.clear();
+    },
+    [],
+  );
+
+  const context = useMemo(() => ({ registerTarget, releaseTarget }), [registerTarget, releaseTarget]);
+  const orderedTargets = [...targets.values()].sort((left, right) => right.order - left.order);
+  const presentedTarget = orderedTargets.find((target) => target.active) ?? orderedTargets[0] ?? null;
+
+  return (
+    <FeedSpotlightContext.Provider value={context}>
+      <AmbientSpotlight />
+      {postSpotlightStarted ? <PostSpotlight target={presentedTarget} /> : null}
+      {children}
+    </FeedSpotlightContext.Provider>
+  );
 }

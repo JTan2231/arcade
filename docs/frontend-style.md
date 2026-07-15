@@ -5,7 +5,7 @@ generated palette under `web/frontend/src/palette`. The `:root` block in
 `web/frontend/src/styles/tokens.css` remains the complete first-paint and
 runtime-failure fallback.
 
-`src/main.tsx` creates and validates the default palette, then installs all 57
+`src/main.tsx` creates and validates the default palette, then installs all 59
 semantic color, shadow, and glow variables before React mounts. Component CSS
 continues to consume only those semantic variables.
 
@@ -69,8 +69,10 @@ perceptually fitted to them and locked by `src/palette/snapshot.ts`.
 | `--color-overlay`                | `rgb(2 6 8 / 64%)`        | Modal backdrop.                                        |
 | `--color-toast`                  | `#05080d`                 | Toast background.                                      |
 | `--color-output-item-title-dim`  | `color-mix(...)`          | Resting generated-output link text.                    |
-| `--color-feed-spotlight`         | `rgb(232 242 255 / 8%)`   | Canvas-drawn feed output spotlight origin.             |
+| `--color-feed-spotlight`         | `rgb(232 242 255 / 6%)`   | Canvas-drawn feed output spotlight origin.             |
 | `--color-feed-spotlight-transparent` | `rgb(232 242 255 / 0%)`   | Canvas-drawn transparent spotlight endpoint.           |
+| `--color-post-spotlight`         | `rgb(137 225 190 / 9%)`   | Expanded-post spotlight origin.                        |
+| `--color-post-spotlight-transparent` | `rgb(137 225 190 / 0%)`   | Expanded-post transparent spotlight endpoint.          |
 | `--color-code-surface`           | `#2c4a3e`                 | Code-like surfaces.                                    |
 | `--color-code-border`            | `#4d725f`                 | Code-like surface borders.                             |
 | `--color-code-accent`            | `#50d4b7`                 | Code-like surface accent strokes.                      |

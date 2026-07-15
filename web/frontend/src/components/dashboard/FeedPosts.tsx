@@ -14,6 +14,7 @@ import {
   shouldShowPostFormat,
   validateEvidenceText,
 } from "./evidenceText";
+import { useFeedSpotlightTarget } from "./feedSpotlightContext";
 import { formatDateTime, sameStringSet, selectedActivePostTagIDs } from "./format";
 
 const EVIDENCE_PREVIEW_LINE_LIMIT = 6;
@@ -240,6 +241,7 @@ function FeedPostCard({
   const evidenceInputId = useId();
   const evidenceHintId = `${evidenceInputId}-hint`;
   const actionMenuRef = useRef<HTMLDivElement>(null);
+  const spotlightTargetRef = useRef<HTMLDivElement>(null);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(() => selectedActivePostTagIDs(post, activePostTags));
   const [initialTagIds, setInitialTagIds] = useState<string[]>(() => selectedActivePostTagIDs(post, activePostTags));
   const [submittedUpdate, setSubmittedUpdate] = useState<{
@@ -249,6 +251,8 @@ function FeedPostCard({
   } | null>(null);
   const evidencePreview = prepareEvidencePreview(post.evidence_text);
   const evidenceCollapsed = evidencePreview.hasPreview && !evidenceExpanded;
+
+  useFeedSpotlightTarget(post.id, spotlightTargetRef, evidenceExpanded && !editing);
 
   useEffect(() => {
     if (submittedUpdate === null) {
@@ -500,7 +504,7 @@ function FeedPostCard({
         </form>
       ) : (
         <>
-          <div className={`post-content-preview ${evidenceCollapsed ? "preview" : ""}`}>
+          <div className={`post-content-preview ${evidenceCollapsed ? "preview" : ""}`} ref={spotlightTargetRef}>
             <div className="post-content-preview-body">
               <div className={`post-evidence-layout ${hasCaption ? "has-caption" : ""}`}>
                 <div className="post-evidence-column">

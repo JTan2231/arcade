@@ -153,58 +153,59 @@ export function GroupDashboard({
     <>
       <section className="panel group-dashboard-panel group-dashboard-feed-panel">
         <section className="dashboard-section feed-output-section" aria-label="Selected feed output">
-          <FeedSpotlight />
-          {standalone ? (
-            <div className="feed-route-header">
-              <div>
-                <div className="section-title">{group.name}</div>
-                <h2>{feed?.name ?? "No feed selected"}</h2>
-                {feed?.description !== undefined && feed.description !== "" ? (
-                  <p>{feed.description}</p>
-                ) : group.description !== undefined && group.description !== "" ? (
-                  <p>{group.description}</p>
+          <FeedSpotlight>
+            {standalone ? (
+              <div className="feed-route-header">
+                <div>
+                  <div className="section-title">{group.name}</div>
+                  <h2>{feed?.name ?? "No feed selected"}</h2>
+                  {feed?.description !== undefined && feed.description !== "" ? (
+                    <p>{feed.description}</p>
+                  ) : group.description !== undefined && group.description !== "" ? (
+                    <p>{group.description}</p>
+                  ) : null}
+                </div>
+                {feeds.length > 1 && onSelectFeed !== undefined ? (
+                  <label className="date-control feed-select-control">
+                    Feed
+                    <select value={selectedFeedId ?? ""} onChange={(event) => onSelectFeed(event.target.value)}>
+                      {feeds.map((candidate) => (
+                        <option value={candidate.id} key={candidate.id}>
+                          {candidate.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 ) : null}
               </div>
-              {feeds.length > 1 && onSelectFeed !== undefined ? (
-                <label className="date-control feed-select-control">
-                  Feed
-                  <select value={selectedFeedId ?? ""} onChange={(event) => onSelectFeed(event.target.value)}>
-                    {feeds.map((candidate) => (
-                      <option value={candidate.id} key={candidate.id}>
-                        {candidate.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
-            </div>
-          ) : null}
-          <FeedOutput
-            feed={feed}
-            selectedFeedDate={selectedFeedDate}
-            output={output}
-            loading={outputLoading}
-            error={outputError}
-            posts={posts}
-            postTags={postTags}
-            postsLoading={postsLoading}
-            postsError={postsError}
-            postSubmitting={postSubmitting}
-            updatingPostId={updatingPostId}
-            deletingPostId={deletingPostId}
-            currentUserId={currentUserId}
-            judgedMetrics={judgedMetrics}
-            canPost={canPost}
-            canJudge={canManageMetrics}
-            canManagePostTags={canManagePostTags}
-            judgingPostId={judgingPostId}
-            loadFeedOutputSummaries={loadFeedOutputSummaries}
-            onChangeFeedDate={onChangeFeedDate}
-            onCreateFeedPost={onCreateFeedPost}
-            onUpdateFeedPost={onUpdateFeedPost}
-            onDeleteFeedPost={onDeleteFeedPost}
-            onCreateMetricJudgment={onCreateMetricJudgment}
-          />
+            ) : null}
+            <FeedOutput
+              feed={feed}
+              selectedFeedDate={selectedFeedDate}
+              output={output}
+              loading={outputLoading}
+              error={outputError}
+              posts={posts}
+              postTags={postTags}
+              postsLoading={postsLoading}
+              postsError={postsError}
+              postSubmitting={postSubmitting}
+              updatingPostId={updatingPostId}
+              deletingPostId={deletingPostId}
+              currentUserId={currentUserId}
+              judgedMetrics={judgedMetrics}
+              canPost={canPost}
+              canJudge={canManageMetrics}
+              canManagePostTags={canManagePostTags}
+              judgingPostId={judgingPostId}
+              loadFeedOutputSummaries={loadFeedOutputSummaries}
+              onChangeFeedDate={onChangeFeedDate}
+              onCreateFeedPost={onCreateFeedPost}
+              onUpdateFeedPost={onUpdateFeedPost}
+              onDeleteFeedPost={onDeleteFeedPost}
+              onCreateMetricJudgment={onCreateMetricJudgment}
+            />
+          </FeedSpotlight>
         </section>
         {addFeedOpen ? (
           <AddFeedDialog

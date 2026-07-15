@@ -30,12 +30,33 @@
 
 .feed-spotlight-canvas {
   display: block;
-  height: 100vh;
-  inset: 0;
   pointer-events: none;
   position: fixed;
-  width: 100vw;
   z-index: -1;
+}
+
+.feed-spotlight-ambient-canvas {
+  height: 100vh;
+  inset: 0;
+  opacity: 1;
+  transition: opacity 220ms ease;
+  width: 100vw;
+}
+
+.feed-spotlight-ambient-canvas:has(~ .feed-spotlight-post-canvas-visible) {
+  opacity: 0.4;
+}
+
+.feed-spotlight-post-canvas {
+  left: 0;
+  opacity: 0;
+  top: 0;
+  transition: opacity 220ms ease;
+  will-change: opacity, transform;
+}
+
+.feed-spotlight-post-canvas-visible {
+  opacity: 1;
 }
 
 .feed-route-header {

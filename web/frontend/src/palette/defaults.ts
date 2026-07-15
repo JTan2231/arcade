@@ -44,6 +44,8 @@ function translucentMaterial(color: string): Material {
   });
 }
 
+const postFocusLightColor = "#83e7ca";
+
 function recipe(material: string, elevation: number, occlusion: number, rim: number, alpha?: number): TokenRecipe {
   return alpha === undefined
     ? Object.freeze({ material, elevation, occlusion, rim })
@@ -110,6 +112,7 @@ export const defaultMaterials = Object.freeze({
   overlay: translucentMaterial("#04080c"),
   "output-title-dim": emissiveMaterial("#a2baed"),
   spotlight: translucentMaterial("#e8f2ff"),
+  "post-spotlight": translucentMaterial(postFocusLightColor),
   "code-surface": surfaceMaterial("#30bc90", 0.82, 0.08),
   "code-border": emissiveMaterial("#2e7761"),
   "code-accent": emissiveMaterial("#3adac2"),
@@ -161,8 +164,10 @@ export const arcadeTokenRecipes = Object.freeze({
   "--color-overlay": recipe("overlay", 0, 0, 0, 0.64),
   "--color-toast": recipe("neutral", -2.02, 0.88, 0),
   "--color-output-item-title-dim": recipe("output-title-dim", 0, 0, 0),
-  "--color-feed-spotlight": recipe("spotlight", 0, 0, 0, 0.08),
+  "--color-feed-spotlight": recipe("spotlight", 0, 0, 0, 0.06),
   "--color-feed-spotlight-transparent": recipe("spotlight", 0, 0, 0, 0),
+  "--color-post-spotlight": recipe("post-spotlight", 0, 0, 0, 0.09),
+  "--color-post-spotlight-transparent": recipe("post-spotlight", 0, 0, 0, 0),
   "--color-code-surface": recipe("code-surface", -0.45, 0.62, 0.02),
   "--color-code-border": recipe("code-border", 0, 0, 0),
   "--color-code-accent": recipe("code-accent", 0, 0, 0),
@@ -241,8 +246,10 @@ export const arcadeColorTargets = Object.freeze({
   "--color-overlay": "rgb(2 6 8 / 64%)",
   "--color-toast": "#05080d",
   "--color-output-item-title-dim": "#afb8c4",
-  "--color-feed-spotlight": "rgb(232 242 255 / 8%)",
+  "--color-feed-spotlight": "rgb(232 242 255 / 6%)",
   "--color-feed-spotlight-transparent": "rgb(232 242 255 / 0%)",
+  "--color-post-spotlight": "rgb(137 225 190 / 9%)",
+  "--color-post-spotlight-transparent": "rgb(137 225 190 / 0%)",
   "--color-code-surface": "#2c4a3e",
   "--color-code-border": "#4d725f",
   "--color-code-accent": "#50d4b7",
@@ -297,6 +304,8 @@ export const arcadeRequiredTokens = Object.freeze([
   "--color-output-item-title-dim",
   "--color-feed-spotlight",
   "--color-feed-spotlight-transparent",
+  "--color-post-spotlight",
+  "--color-post-spotlight-transparent",
   "--color-code-surface",
   "--color-code-border",
   "--color-code-accent",
