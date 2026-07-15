@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { FeedSpotlightContext } from "./feedSpotlightContext";
 
@@ -25,7 +25,7 @@ const minimumPostSpotlightHeight = 420;
 const ditherStrength = 1.25;
 const maxAmbientDevicePixelRatio = 2;
 const maxPostDevicePixelRatio = 1.25;
-const spotlightExitDuration = 240;
+const spotlightExitRetention = 1_300;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -244,11 +244,17 @@ function PostSpotlight({ target }: { target: SpotlightTarget | null }) {
   }, []);
 
   const targetElement = target?.element ?? null;
+  const targetActive = target?.active === true;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (canvas === null || targetElement === null) {
       setPositioned(false);
+      return;
+    }
+    if (!targetActive) {
+      // Leave the canvas at its last active position while it fades instead of
+      // following a target whose bounds are collapsing underneath it.
       return;
     }
 
@@ -289,7 +295,7 @@ function PostSpotlight({ target }: { target: SpotlightTarget | null }) {
     for (let element: HTMLElement | null = targetElement; element !== null; element = element.parentElement) {
       layoutObserver.observe(element);
     }
-    schedulePosition();
+    updatePosition();
     window.addEventListener("scroll", schedulePosition, { passive: true });
     window.addEventListener("resize", schedulePosition);
 
@@ -311,9 +317,9 @@ function PostSpotlight({ target }: { target: SpotlightTarget | null }) {
         window.cancelAnimationFrame(animationFrame);
       }
     };
-  }, [targetElement]);
+  }, [targetActive, targetElement]);
 
-  const visible = target?.active === true && positioned;
+  const visible = targetActive && positioned;
   const className = [
     "feed-spotlight-canvas",
     "feed-spotlight-post-canvas",
@@ -327,12 +333,10 @@ function PostSpotlight({ target }: { target: SpotlightTarget | null }) {
 
 export function FeedSpotlight({ children }: { children: ReactNode }) {
   const [targets, setTargets] = useState<ReadonlyMap<string, SpotlightTarget>>(() => new Map());
-  const [postSpotlightStarted, setPostSpotlightStarted] = useState(false);
   const removalTimers = useRef(new Map<string, number>());
   const nextTargetOrder = useRef(0);
 
   const registerTarget = useCallback((id: string, element: HTMLElement) => {
-    setPostSpotlightStarted(true);
     const timer = removalTimers.current.get(id);
     if (timer !== undefined) {
       window.clearTimeout(timer);
@@ -377,7 +381,7 @@ export function FeedSpotlight({ children }: { children: ReactNode }) {
         next.delete(id);
         return next;
       });
-    }, spotlightExitDuration);
+    }, spotlightExitRetention);
     removalTimers.current.set(id, timer);
   }, []);
 
@@ -398,7 +402,7 @@ export function FeedSpotlight({ children }: { children: ReactNode }) {
   return (
     <FeedSpotlightContext.Provider value={context}>
       <AmbientSpotlight />
-      {postSpotlightStarted ? <PostSpotlight target={presentedTarget} /> : null}
+      <PostSpotlight target={presentedTarget} />
       {children}
     </FeedSpotlightContext.Provider>
   );

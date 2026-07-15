@@ -3,6 +3,11 @@
     transition: none;
   }
 
+  .post-content-preview-body,
+  .post-evidence-code {
+    transition: none;
+  }
+
   .output-item-title-link {
     animation: none;
     background-image: none;

@@ -39,7 +39,7 @@
   height: 100vh;
   inset: 0;
   opacity: 1;
-  transition: opacity 220ms ease;
+  transition: opacity 1.26s cubic-bezier(0.2, 0, 0, 1);
   width: 100vw;
 }
 
@@ -51,7 +51,7 @@
   left: 0;
   opacity: 0;
   top: 0;
-  transition: opacity 220ms ease;
+  transition: opacity 1.26s cubic-bezier(0.2, 0, 0, 1);
   will-change: opacity, transform;
 }
 

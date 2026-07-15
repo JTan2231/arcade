@@ -294,8 +294,8 @@
   min-width: 0;
   overflow: hidden;
   transition:
-    height 220ms cubic-bezier(0.2, 0, 0, 1),
-    opacity 180ms ease;
+    height 1.26s cubic-bezier(0.2, 0, 0, 1),
+    opacity 1.26s cubic-bezier(0.2, 0, 0, 1);
 }
 
 .post-content-preview:where(:has(.post-action-menu-button[aria-expanded="true"])) .post-content-preview-body {
@@ -402,6 +402,10 @@
   max-width: 100%;
   overflow: auto;
   padding: 12px 14px;
+  transition:
+    background-color 1.26s cubic-bezier(0.2, 0, 0, 1),
+    border-color 1.26s cubic-bezier(0.2, 0, 0, 1),
+    color 1.26s cubic-bezier(0.2, 0, 0, 1);
   user-select: text;
   white-space: pre;
   width: 100%;
