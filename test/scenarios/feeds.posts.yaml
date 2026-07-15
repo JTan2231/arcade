@@ -56,7 +56,14 @@ steps:
   - within: Posts
     fill:
       label: Evidence
-      value: Solved the warmup set.
+      value: |-
+        Solved the warmup set.
+        Reviewed the first approach.
+        Checked the edge cases.
+        Simplified the recurrence.
+        Verified the sample output.
+        Re-ran the final version.
+        Wrote down the key insight.
 
   - within: Posts
     fill:
@@ -74,6 +81,36 @@ steps:
   - within: Posts
     expectVisible:
       text: Solved the warmup set.
+
+  - within: Posts
+    expectHidden:
+      role: button
+      name: Post
+
+  - within: Posts
+    expectHidden:
+      role: button
+      name: Copy evidence
+
+  - within: Posts
+    click:
+      role: button
+      name: Expand evidence
+
+  - within: Posts
+    expectVisible:
+      role: button
+      name: Copy evidence
+
+  - within: Posts
+    click:
+      role: button
+      name: Copy evidence
+
+  - within: Posts
+    expectVisible:
+      role: button
+      name: Evidence copied
 
   - within: Posts
     expectHidden:
@@ -137,6 +174,11 @@ steps:
   - within: Posts
     expectHidden:
       text: Updated the warmup solution.
+
+  - within: Posts
+    expectVisible:
+      role: button
+      name: Post
 
   - within: Posts
     expectVisible:

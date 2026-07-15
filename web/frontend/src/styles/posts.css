@@ -407,6 +407,10 @@
   width: 100%;
 }
 
+.post-evidence-code.has-controls {
+  padding-right: 80px;
+}
+
 .post-content-preview.preview .post-evidence-code {
   background: color-mix(in srgb, var(--color-code-surface) 58%, var(--color-accent-surface) 42%);
   border-color: color-mix(in srgb, var(--color-code-border) 58%, var(--color-accent-border) 42%);
@@ -477,15 +481,45 @@
   font-weight: 700;
 }
 
-.post-evidence-collapse-row {
+.post-evidence-controls {
+  align-items: center;
+  background: color-mix(in srgb, var(--color-code-surface) 82%, var(--color-code-border) 18%);
+  border: 1px solid color-mix(in srgb, var(--color-code-border) 72%, var(--color-text) 28%);
+  border-radius: 4px;
   display: flex;
-  justify-content: flex-end;
-  margin-top: 8px;
+  gap: 0;
+  overflow: hidden;
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  z-index: 4;
 }
 
-.post-evidence-collapse-row button {
-  font-size: 13px;
-  min-height: 32px;
+.post-evidence-control {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--color-text);
+  min-height: 28px;
+  min-width: 28px;
+  padding: 0;
+}
+
+.post-evidence-control:hover:where(:not(:disabled)) {
+  background: color-mix(in srgb, var(--color-code-surface) 82%, var(--color-text) 18%);
+  border-color: transparent;
+  color: var(--color-accent-hover);
+}
+
+.post-evidence-control + .post-evidence-control {
+  border-left: 1px solid color-mix(in srgb, var(--color-code-border) 72%, var(--color-text) 28%);
+}
+
+.post-evidence-control:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: -3px;
+  position: relative;
+  z-index: 1;
 }
 
 .post-caption {

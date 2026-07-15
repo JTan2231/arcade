@@ -83,11 +83,7 @@ export function FeedPostSection({
   const activePostTags = postTags.filter((tag) => tag.archived_at === undefined);
   const ownPost = currentUserId !== null ? (posts.find((post) => post.author_user_id === currentUserId) ?? null) : null;
   const postUnavailable = !canPost || disabled || loading || Boolean(ownPost);
-  const postButtonTitle = !canPost
-    ? "Active group membership required to post."
-    : ownPost
-      ? "You already posted in this thread."
-      : undefined;
+  const postButtonTitle = !canPost ? "Active group membership required to post." : undefined;
 
   useEffect(() => {
     if (ownPost === null || !formOpen || submitting) {
@@ -145,17 +141,19 @@ export function FeedPostSection({
         <div className="feed-posts-empty">There&apos;s nothing here...</div>
       ) : null}
 
-      <div className="feed-posts-header">
-        <button
-          className="secondary feed-post-button"
-          type="button"
-          disabled={postUnavailable}
-          title={postButtonTitle}
-          onClick={() => setFormOpen((open) => !open)}
-        >
-          Post
-        </button>
-      </div>
+      {ownPost === null ? (
+        <div className="feed-posts-header">
+          <button
+            className="secondary feed-post-button"
+            type="button"
+            disabled={postUnavailable}
+            title={postButtonTitle}
+            onClick={() => setFormOpen((open) => !open)}
+          >
+            Post
+          </button>
+        </div>
+      ) : null}
 
       {formOpen ? (
         <form className="feed-post-form" onSubmit={handleSubmit}>
@@ -744,6 +742,8 @@ function EvidenceCodeBlock({
   preview: ReturnType<typeof prepareEvidencePreview>;
   onCollapse: () => void;
 }) {
+  const [copied, setCopied] = useState(false);
+  const controlsVisible = !collapsed;
   const displayText = collapsed ? preview.collapsedCode : preview.preparedCode.code;
   const highlightedCode = highlightCodeBlock(displayText, preview.preparedCode.code, preview.preparedCode.languageHint);
   const codeClassName =
@@ -755,16 +755,91 @@ function EvidenceCodeBlock({
       <code className={codeClassName} dangerouslySetInnerHTML={{ __html: highlightedCode.html }} />
     );
 
+  useEffect(() => {
+    if (!copied) {
+      return undefined;
+    }
+
+    const timeout = window.setTimeout(() => setCopied(false), 2_000);
+    return () => window.clearTimeout(timeout);
+  }, [copied]);
+
+  async function copyEvidence() {
+    if (navigator.clipboard !== undefined) {
+      try {
+        await navigator.clipboard.writeText(preview.preparedCode.code);
+        setCopied(true);
+        return;
+      } catch {
+        // Fall through for browsers or contexts that deny Clipboard API access.
+      }
+    }
+
+    setCopied(copyTextWithSelection(preview.preparedCode.code));
+  }
+
   return (
     <div className="post-evidence-code-wrap">
-      <pre className="post-evidence-code">{codeNode}</pre>
-      {preview.hasPreview && expanded ? (
-        <div className="post-evidence-collapse-row">
-          <button className="secondary" type="button" aria-label="Collapse evidence" onClick={onCollapse}>
-            Collapse
+      <pre className={controlsVisible ? "post-evidence-code has-controls" : "post-evidence-code"}>{codeNode}</pre>
+      {controlsVisible ? (
+        <div className="post-evidence-controls">
+          {preview.hasPreview && expanded ? (
+            <button
+              aria-label="Collapse evidence"
+              className="icon-button post-evidence-control"
+              title="Collapse evidence"
+              type="button"
+              onClick={onCollapse}
+            >
+              <PostActionIcon>
+                <path d="m18 15-6-6-6 6" />
+              </PostActionIcon>
+            </button>
+          ) : null}
+          <button
+            aria-label={copied ? "Evidence copied" : "Copy evidence"}
+            className="icon-button post-evidence-control"
+            title={copied ? "Evidence copied" : "Copy evidence"}
+            type="button"
+            onClick={() => {
+              void copyEvidence();
+            }}
+          >
+            <PostActionIcon>
+              {copied ? (
+                <path d="m5 12 4 4L19 6" />
+              ) : (
+                <>
+                  <rect height="13" rx="2" width="13" x="9" y="9" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </>
+              )}
+            </PostActionIcon>
           </button>
         </div>
       ) : null}
     </div>
   );
+}
+
+function copyTextWithSelection(value: string): boolean {
+  const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.left = "0";
+  textarea.style.opacity = "0";
+  textarea.style.pointerEvents = "none";
+  textarea.style.position = "fixed";
+  textarea.style.top = "0";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+
+  try {
+    return document.execCommand("copy");
+  } finally {
+    textarea.remove();
+    previouslyFocused?.focus();
+  }
 }

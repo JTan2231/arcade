@@ -139,12 +139,7 @@ before:
         where f.id = '{{feed_id}}'::uuid;
 
 steps:
-  - visit: /
-
-  - within: Feeds
-    click:
-      role: button
-      name: Expanded Practice
+  - visit: /f/{{feed_id}}/{{today}}
 
   - within: Posts
     click:
@@ -155,3 +150,13 @@ steps:
     expectVisible:
       role: button
       name: Collapse evidence
+
+  - within: Posts
+    click:
+      role: button
+      name: Collapse evidence
+
+  - within: Posts
+    expectVisible:
+      role: button
+      name: Expand evidence
