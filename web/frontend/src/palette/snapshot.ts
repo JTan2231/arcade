@@ -39,7 +39,7 @@ export const arcadeTokenSnapshot = Object.freeze({
   "--color-overlay": "rgb(1 6 8 / 64%)",
   "--color-toast": "#03090d",
   "--color-output-item-title-dim": "#b0b7c4",
-  "--color-feed-spotlight": "rgb(233 235 236 / 3%)",
+  "--color-feed-spotlight": "rgb(233 235 236 / 8%)",
   "--color-feed-spotlight-transparent": "rgb(233 235 236 / 0%)",
   "--color-code-surface": "#2c4a3e",
   "--color-code-border": "#44745f",

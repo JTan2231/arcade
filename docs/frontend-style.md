@@ -69,7 +69,7 @@ perceptually fitted to them and locked by `src/palette/snapshot.ts`.
 | `--color-overlay`                | `rgb(2 6 8 / 64%)`        | Modal backdrop.                                        |
 | `--color-toast`                  | `#05080d`                 | Toast background.                                      |
 | `--color-output-item-title-dim`  | `color-mix(...)`          | Resting generated-output link text.                    |
-| `--color-feed-spotlight`         | `rgb(232 242 255 / 3%)`   | Canvas-drawn feed output spotlight origin.             |
+| `--color-feed-spotlight`         | `rgb(232 242 255 / 8%)`   | Canvas-drawn feed output spotlight origin.             |
 | `--color-feed-spotlight-transparent` | `rgb(232 242 255 / 0%)`   | Canvas-drawn transparent spotlight endpoint.           |
 | `--color-code-surface`           | `#2c4a3e`                 | Code-like surfaces.                                    |
 | `--color-code-border`            | `#4d725f`                 | Code-like surface borders.                             |

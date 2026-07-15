@@ -110,7 +110,7 @@
   --color-overlay: rgb(2 6 8 / 64%);
   --color-toast: #05080d;
   --color-output-item-title-dim: color-mix(in srgb, var(--color-text-muted) 85%, var(--color-accent) 15%);
-  --color-feed-spotlight: rgb(232 242 255 / 3%);
+  --color-feed-spotlight: rgb(232 242 255 / 8%);
   --color-feed-spotlight-transparent: rgb(232 242 255 / 0%);
   --color-code-surface: #2c4a3e;
   --color-code-border: #4d725f;
