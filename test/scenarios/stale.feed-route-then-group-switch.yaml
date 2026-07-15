@@ -165,6 +165,6 @@ steps:
       pressed: false
 
   - within: Feeds
-    expectHidden:
+    expectVisible:
       role: button
       name: CF Daily

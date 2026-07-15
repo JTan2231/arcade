@@ -99,8 +99,8 @@
 }
 
 .feed-sublist-selected,
-.group-tree-node:hover .feed-sublist,
-.group-tree-node:focus-within .feed-sublist {
+.groups-panel:hover .feed-sublist,
+.groups-panel:focus-within .feed-sublist {
   margin: 2px 0 8px 10px;
   max-height: 540px;
   opacity: 1;

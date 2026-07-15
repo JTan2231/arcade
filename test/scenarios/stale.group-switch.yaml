@@ -170,6 +170,6 @@ steps:
       name: Group B Practice
 
   - within: Feeds
-    expectHidden:
+    expectVisible:
       role: button
       name: Group A Practice
