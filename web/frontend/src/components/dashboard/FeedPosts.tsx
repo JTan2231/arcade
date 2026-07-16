@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { FormEvent, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 
 import { highlightCodeBlock, prepareCodeBlock } from "../../syntaxHighlight";
 import type {
@@ -18,6 +18,7 @@ import { useFeedSpotlightTarget } from "./feedSpotlightContext";
 import { formatDateTime, sameStringSet, selectedActivePostTagIDs } from "./format";
 
 const EVIDENCE_PREVIEW_LINE_LIMIT = 6;
+const EVIDENCE_PREVIEW_HEIGHT = 93;
 
 export type CreateFeedPostPayload = {
   evidenceText: string;
@@ -238,9 +239,15 @@ function FeedPostCard({
   const [evidenceText, setEvidenceText] = useState(post.evidence_text);
   const [caption, setCaption] = useState(post.caption ?? "");
   const [formError, setFormError] = useState("");
+  const [evidenceContentHeight, setEvidenceContentHeight] = useState<number | null>(null);
   const evidenceInputId = useId();
   const evidenceHintId = `${evidenceInputId}-hint`;
+  const evidenceContentId = useId();
   const actionMenuRef = useRef<HTMLDivElement>(null);
+  const collapseEvidenceButtonRef = useRef<HTMLButtonElement>(null);
+  const evidenceLayoutRef = useRef<HTMLDivElement>(null);
+  const expandEvidenceButtonRef = useRef<HTMLButtonElement>(null);
+  const pendingEvidenceFocusRef = useRef<"collapse" | "expand" | null>(null);
   const spotlightTargetRef = useRef<HTMLDivElement>(null);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(() => selectedActivePostTagIDs(post, activePostTags));
   const [initialTagIds, setInitialTagIds] = useState<string[]>(() => selectedActivePostTagIDs(post, activePostTags));
@@ -251,8 +258,49 @@ function FeedPostCard({
   } | null>(null);
   const evidencePreview = prepareEvidencePreview(post.evidence_text);
   const evidenceCollapsed = evidencePreview.hasPreview && !evidenceExpanded;
+  const evidenceRevealHeight = evidencePreview.hasPreview
+    ? evidenceCollapsed
+      ? EVIDENCE_PREVIEW_HEIGHT
+      : (evidenceContentHeight ?? "auto")
+    : "auto";
 
   useFeedSpotlightTarget(post.id, spotlightTargetRef, evidenceExpanded && !editing);
+
+  useLayoutEffect(() => {
+    if (!evidencePreview.hasPreview) {
+      return undefined;
+    }
+
+    const content = evidenceLayoutRef.current;
+    if (content === null) {
+      return undefined;
+    }
+
+    // Pixel endpoints keep the height transition working in engines that
+    // cannot interpolate between a fixed length and `auto`.
+    const measure = () => {
+      const nextHeight = content.getBoundingClientRect().height;
+      setEvidenceContentHeight((currentHeight) =>
+        currentHeight !== null && Math.abs(currentHeight - nextHeight) < 0.5 ? currentHeight : nextHeight,
+      );
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [editing, evidenceExpanded, evidencePreview.hasPreview, post.caption, post.evidence_text]);
+
+  useLayoutEffect(() => {
+    const pendingFocus = pendingEvidenceFocusRef.current;
+    if (pendingFocus === null) {
+      return;
+    }
+
+    const target = pendingFocus === "collapse" ? collapseEvidenceButtonRef.current : expandEvidenceButtonRef.current;
+    target?.focus({ preventScroll: true });
+    pendingEvidenceFocusRef.current = null;
+  }, [evidenceExpanded]);
 
   useEffect(() => {
     if (submittedUpdate === null) {
@@ -363,6 +411,17 @@ function FeedPostCard({
 
     setActionMenuOpen(false);
     onDeleteFeedPost(post.id);
+  }
+
+  function expandEvidence() {
+    pendingEvidenceFocusRef.current = "collapse";
+    setEvidenceExpanded(true);
+  }
+
+  function collapseEvidence() {
+    setActionMenuOpen(false);
+    pendingEvidenceFocusRef.current = "expand";
+    setEvidenceExpanded(false);
   }
 
   const taggable = canTag && activePostTags.length > 0;
@@ -505,8 +564,8 @@ function FeedPostCard({
       ) : (
         <>
           <div className={`post-content-preview ${evidenceCollapsed ? "preview" : ""}`} ref={spotlightTargetRef}>
-            <div className="post-content-preview-body">
-              <div className={`post-evidence-layout ${hasCaption ? "has-caption" : ""}`}>
+            <div className="post-content-preview-body" id={evidenceContentId} style={{ height: evidenceRevealHeight }}>
+              <div className={`post-evidence-layout ${hasCaption ? "has-caption" : ""}`} ref={evidenceLayoutRef}>
                 <div className="post-evidence-column">
                   {shouldShowPostFormat(post) ? (
                     <div className="post-format-meta">
@@ -516,12 +575,11 @@ function FeedPostCard({
                   ) : null}
                   <EvidenceCodeBlock
                     collapsed={evidenceCollapsed}
+                    collapseButtonRef={collapseEvidenceButtonRef}
+                    contentId={evidenceContentId}
                     expanded={evidenceExpanded}
                     preview={evidencePreview}
-                    onCollapse={() => {
-                      setActionMenuOpen(false);
-                      setEvidenceExpanded(false);
-                    }}
+                    onCollapse={collapseEvidence}
                   />
                 </div>
                 <div className="post-caption-column">
@@ -536,10 +594,12 @@ function FeedPostCard({
             {evidenceCollapsed ? (
               <button
                 aria-expanded={false}
+                aria-controls={evidenceContentId}
                 aria-label="Expand evidence"
                 className="post-content-expand-button"
+                ref={expandEvidenceButtonRef}
                 type="button"
-                onClick={() => setEvidenceExpanded(true)}
+                onClick={expandEvidence}
               />
             ) : null}
           </div>
@@ -737,18 +797,22 @@ function prepareEvidencePreview(value: string) {
 
 function EvidenceCodeBlock({
   collapsed,
+  collapseButtonRef,
+  contentId,
   expanded,
   preview,
   onCollapse,
 }: {
   collapsed: boolean;
+  collapseButtonRef: RefObject<HTMLButtonElement | null>;
+  contentId: string;
   expanded: boolean;
   preview: ReturnType<typeof prepareEvidencePreview>;
   onCollapse: () => void;
 }) {
   const [copied, setCopied] = useState(false);
   const controlsVisible = !collapsed;
-  const displayText = collapsed ? preview.collapsedCode : preview.preparedCode.code;
+  const displayText = preview.preparedCode.code;
   const highlightedCode = highlightCodeBlock(displayText, preview.preparedCode.code, preview.preparedCode.languageHint);
   const codeClassName =
     highlightedCode === null ? undefined : `post-evidence-code-content language-${highlightedCode.language}`;
@@ -784,13 +848,23 @@ function EvidenceCodeBlock({
 
   return (
     <div className="post-evidence-code-wrap">
-      <pre className={controlsVisible ? "post-evidence-code has-controls" : "post-evidence-code"}>{codeNode}</pre>
+      <pre className={controlsVisible ? "post-evidence-code has-controls" : "post-evidence-code"}>
+        <span aria-hidden={collapsed ? true : undefined}>{codeNode}</span>
+        {collapsed ? <code className="visually-hidden">{preview.collapsedCode}</code> : null}
+      </pre>
       {controlsVisible ? (
-        <div className="post-evidence-controls">
+        <div
+          className={`post-evidence-controls ${
+            preview.hasPreview && expanded ? "post-evidence-controls-revealed" : ""
+          }`}
+        >
           {preview.hasPreview && expanded ? (
             <button
+              aria-controls={contentId}
+              aria-expanded={true}
               aria-label="Collapse evidence"
               className="icon-button post-evidence-control"
+              ref={collapseButtonRef}
               title="Collapse evidence"
               type="button"
               onClick={onCollapse}

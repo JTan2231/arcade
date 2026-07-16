@@ -289,22 +289,30 @@
 
 .post-content-preview-body {
   height: auto;
-  interpolate-size: allow-keywords;
+
+  /* Keep the transparent fade just below the expanded box, then slide it up
+     into the collapsed aperture so mask-position can animate between states. */
+  mask-image: linear-gradient(180deg, currentcolor 0, currentcolor calc(100% - 42px), transparent 100%);
+  mask-position: 0 0;
+  mask-repeat: no-repeat;
+  mask-size: 100% calc(100% + 42px);
   max-width: 100%;
   min-width: 0;
   overflow: hidden;
+  position: relative;
   transition:
     height 1.26s cubic-bezier(0.2, 0, 0, 1),
+    mask-position 1.26s cubic-bezier(0.2, 0, 0, 1),
     opacity 1.26s cubic-bezier(0.2, 0, 0, 1);
 }
 
 .post-content-preview:where(:has(.post-action-menu-button[aria-expanded="true"])) .post-content-preview-body {
+  mask-image: none;
   overflow: visible;
 }
 
 .post-content-preview.preview .post-content-preview-body {
-  height: 93px;
-  mask-image: linear-gradient(180deg, currentcolor 0, currentcolor 51px, transparent 93px);
+  mask-position: 0 -42px;
   opacity: 0.82;
 }
 
@@ -339,6 +347,12 @@
   gap: 10px;
   max-width: 100%;
   min-width: 0;
+  transform: translateY(0);
+  transition: transform 1.26s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.post-content-preview.preview .post-evidence-layout {
+  transform: translateY(10px);
 }
 
 .post-evidence-column {
@@ -499,6 +513,16 @@
   z-index: 4;
 }
 
+.post-evidence-controls-revealed {
+  animation: post-evidence-controls-reveal 360ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.post-evidence-control[aria-expanded="true"] {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-text);
+}
+
 .post-evidence-control {
   background: transparent;
   border: 0;
@@ -524,6 +548,18 @@
   outline-offset: -3px;
   position: relative;
   z-index: 1;
+}
+
+@keyframes post-evidence-controls-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .post-caption {

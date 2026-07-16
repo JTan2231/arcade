@@ -4,9 +4,14 @@
   }
 
   .post-content-preview-body,
+  .post-evidence-layout,
   .post-evidence-code,
   .post-caption {
     transition: none;
+  }
+
+  .post-evidence-controls-revealed {
+    animation: none;
   }
 
   .output-item-title-link {

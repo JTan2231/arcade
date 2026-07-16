@@ -278,7 +278,7 @@ function PostSpotlight({ target }: { target: SpotlightTarget | null }) {
       }
 
       const centerX = (visibleLeft + visibleRight) * 0.5;
-      const centerY = (visibleTop + visibleBottom) * 0.5;
+      const centerY = visibleTop + (visibleBottom - visibleTop) * 0.38;
       const { height, width } = layerSizeRef.current;
       canvas.style.transform = `translate3d(${centerX - width * 0.5}px, ${centerY - height * 0.5}px, 0)`;
       setPositioned(true);
