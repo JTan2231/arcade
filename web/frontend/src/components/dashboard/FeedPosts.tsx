@@ -33,6 +33,7 @@ export type UpdateFeedPostPayload = {
 
 export function FeedPostSection({
   disabled,
+  captionsEnabled,
   evidenceFormat,
   posts,
   postTags,
@@ -53,6 +54,7 @@ export function FeedPostSection({
   onCreateMetricJudgment,
 }: {
   disabled: boolean;
+  captionsEnabled: boolean;
   evidenceFormat: EvidenceFormat;
   posts: GroupFeedPost[];
   postTags: GroupPostTag[];
@@ -80,12 +82,32 @@ export function FeedPostSection({
   const [evidenceText, setEvidenceText] = useState("");
   const [caption, setCaption] = useState("");
   const [formError, setFormError] = useState("");
+  const [contentFocused, setContentFocused] = useState(false);
+  const [captionFocused, setCaptionFocused] = useState(false);
+  const postFormId = useId();
   const evidenceInputId = useId();
   const evidenceHintId = `${evidenceInputId}-hint`;
+  const captionSpotlightTargetRef = useRef<HTMLTextAreaElement>(null);
+  const postFormSpotlightTargetRef = useRef<HTMLFormElement>(null);
   const activePostTags = postTags.filter((tag) => tag.archived_at === undefined);
   const ownPost = currentUserId !== null ? (posts.find((post) => post.author_user_id === currentUserId) ?? null) : null;
   const postUnavailable = !canPost || disabled || loading || Boolean(ownPost);
   const postButtonTitle = !canPost ? "Active group membership required to post." : undefined;
+  const contentHint = evidenceFormatConstraintSummary(evidenceFormat.active_version);
+
+  useFeedSpotlightTarget(`post-form-${postFormId}`, postFormSpotlightTargetRef, formOpen && contentFocused);
+  useFeedSpotlightTarget(
+    `post-caption-${postFormId}`,
+    captionSpotlightTargetRef,
+    formOpen && captionsEnabled && captionFocused,
+    "feed",
+  );
+
+  useEffect(() => {
+    if (!captionsEnabled) {
+      setCaptionFocused(false);
+    }
+  }, [captionsEnabled]);
 
   useEffect(() => {
     if (ownPost === null || !formOpen || submitting) {
@@ -94,6 +116,8 @@ export function FeedPostSection({
 
     setEvidenceText("");
     setCaption("");
+    setContentFocused(false);
+    setCaptionFocused(false);
     setFormOpen(false);
   }, [formOpen, ownPost, submitting]);
 
@@ -107,7 +131,7 @@ export function FeedPostSection({
     }
 
     setFormError("");
-    onCreateFeedPost({ evidenceText: normalizedEvidence, caption });
+    onCreateFeedPost({ evidenceText: normalizedEvidence, caption: captionsEnabled ? caption : "" });
   }
 
   return (
@@ -123,6 +147,7 @@ export function FeedPostSection({
           {posts.map((post) => (
             <FeedPostCard
               key={post.id}
+              captionsEnabled={captionsEnabled}
               canTag={currentUserId === post.author_user_id || canManagePostTags}
               mine={currentUserId === post.author_user_id}
               post={post}
@@ -146,11 +171,17 @@ export function FeedPostSection({
       {ownPost === null ? (
         <div className="feed-posts-header">
           <button
+            aria-controls={postFormId}
+            aria-expanded={formOpen}
             className="secondary feed-post-button"
             type="button"
             disabled={postUnavailable}
             title={postButtonTitle}
-            onClick={() => setFormOpen((open) => !open)}
+            onClick={() => {
+              setContentFocused(false);
+              setCaptionFocused(false);
+              setFormOpen((open) => !open);
+            }}
           >
             Post
           </button>
@@ -158,32 +189,55 @@ export function FeedPostSection({
       ) : null}
 
       {formOpen ? (
-        <form className="feed-post-form" onSubmit={handleSubmit}>
-          <label htmlFor={evidenceInputId}>Evidence</label>
-          <span id={evidenceHintId} className="field-hint">
-            {evidenceFormatConstraintSummary(evidenceFormat.active_version)}
-          </span>
+        <form className="feed-post-form" id={postFormId} ref={postFormSpotlightTargetRef} onSubmit={handleSubmit}>
+          <label htmlFor={evidenceInputId}>Content</label>
+          {contentHint === "" ? null : (
+            <span id={evidenceHintId} className="field-hint">
+              {contentHint}
+            </span>
+          )}
           <textarea
             id={evidenceInputId}
             className="evidence-textarea"
             required
-            aria-describedby={evidenceHintId}
+            aria-describedby={contentHint === "" ? undefined : evidenceHintId}
             value={evidenceText}
             onChange={(event) => {
               setEvidenceText(event.target.value);
               setFormError("");
             }}
+            onBlur={() => setContentFocused(false)}
+            onFocus={() => {
+              setCaptionFocused(false);
+              setContentFocused(true);
+            }}
           />
-          <label>
-            Caption
-            <textarea
-              className="caption-textarea"
-              value={caption}
-              onChange={(event) => setCaption(event.target.value)}
-            />
-          </label>
+          {captionsEnabled ? (
+            <label>
+              Caption
+              <textarea
+                className="caption-textarea"
+                ref={captionSpotlightTargetRef}
+                value={caption}
+                onChange={(event) => setCaption(event.target.value)}
+                onBlur={() => setCaptionFocused(false)}
+                onFocus={() => {
+                  setContentFocused(false);
+                  setCaptionFocused(true);
+                }}
+              />
+            </label>
+          ) : null}
           <div className="output-actions">
-            <button className="secondary" type="button" onClick={() => setFormOpen(false)}>
+            <button
+              className="secondary"
+              type="button"
+              onClick={() => {
+                setContentFocused(false);
+                setCaptionFocused(false);
+                setFormOpen(false);
+              }}
+            >
               Cancel
             </button>
             <button type="submit" disabled={submitting || !evidenceText.trim()}>
@@ -203,6 +257,7 @@ export function FeedPostSection({
 
 function FeedPostCard({
   post,
+  captionsEnabled,
   activePostTags,
   canTag,
   mine,
@@ -216,6 +271,7 @@ function FeedPostCard({
   onCreateMetricJudgment,
 }: {
   post: GroupFeedPost;
+  captionsEnabled: boolean;
   activePostTags: GroupPostTag[];
   canTag: boolean;
   mine: boolean;
@@ -239,12 +295,16 @@ function FeedPostCard({
   const [evidenceText, setEvidenceText] = useState(post.evidence_text);
   const [caption, setCaption] = useState(post.caption ?? "");
   const [formError, setFormError] = useState("");
+  const [contentFocused, setContentFocused] = useState(false);
+  const [captionFocused, setCaptionFocused] = useState(false);
   const [evidenceContentHeight, setEvidenceContentHeight] = useState<number | null>(null);
   const evidenceInputId = useId();
   const evidenceHintId = `${evidenceInputId}-hint`;
   const evidenceContentId = useId();
   const actionMenuRef = useRef<HTMLDivElement>(null);
+  const captionSpotlightTargetRef = useRef<HTMLTextAreaElement>(null);
   const collapseEvidenceButtonRef = useRef<HTMLButtonElement>(null);
+  const editSpotlightTargetRef = useRef<HTMLFormElement>(null);
   const evidenceLayoutRef = useRef<HTMLDivElement>(null);
   const expandEvidenceButtonRef = useRef<HTMLButtonElement>(null);
   const pendingEvidenceFocusRef = useRef<"collapse" | "expand" | null>(null);
@@ -258,6 +318,7 @@ function FeedPostCard({
   } | null>(null);
   const evidencePreview = prepareEvidencePreview(post.evidence_text);
   const evidenceCollapsed = evidencePreview.hasPreview && !evidenceExpanded;
+  const contentHint = evidenceFormatConstraintSummary(post.evidence_format_version);
   const evidenceRevealHeight = evidencePreview.hasPreview
     ? evidenceCollapsed
       ? EVIDENCE_PREVIEW_HEIGHT
@@ -265,6 +326,19 @@ function FeedPostCard({
     : "auto";
 
   useFeedSpotlightTarget(post.id, spotlightTargetRef, evidenceExpanded && !editing);
+  useFeedSpotlightTarget(`${post.id}-edit`, editSpotlightTargetRef, editing && contentFocused);
+  useFeedSpotlightTarget(
+    `${post.id}-caption-edit`,
+    captionSpotlightTargetRef,
+    editing && captionsEnabled && captionFocused,
+    "feed",
+  );
+
+  useEffect(() => {
+    if (!captionsEnabled) {
+      setCaptionFocused(false);
+    }
+  }, [captionsEnabled]);
 
   useLayoutEffect(() => {
     if (!evidencePreview.hasPreview) {
@@ -316,6 +390,8 @@ function FeedPostCard({
       return;
     }
     if (post.evidence_text === submittedUpdate.evidenceText && (post.caption ?? "") === submittedUpdate.caption) {
+      setContentFocused(false);
+      setCaptionFocused(false);
       setEditing(false);
     }
     setSubmittedUpdate(null);
@@ -357,6 +433,8 @@ function FeedPostCard({
     setFormError("");
     setTagMenuOpen(false);
     setActionMenuOpen(false);
+    setContentFocused(false);
+    setCaptionFocused(false);
     setEditing(true);
   }
 
@@ -395,12 +473,12 @@ function FeedPostCard({
       return;
     }
 
-    const trimmedCaption = caption.trim();
+    const trimmedCaption = captionsEnabled ? caption.trim() : (post.caption ?? "");
     setFormError("");
     setSubmittedUpdate({ evidenceText: normalizedEvidence, caption: trimmedCaption, seenSaving: false });
     onUpdateFeedPost(post.id, {
       evidenceText: normalizedEvidence,
-      caption: trimmedCaption,
+      ...(captionsEnabled ? { caption: trimmedCaption } : {}),
     });
   }
 
@@ -523,32 +601,56 @@ function FeedPostCard({
       ) : null}
 
       {editing ? (
-        <form className="feed-post-form edit-post-form" onSubmit={handleUpdate}>
-          <label htmlFor={evidenceInputId}>Evidence</label>
-          <span id={evidenceHintId} className="field-hint">
-            {evidenceFormatConstraintSummary(post.evidence_format_version)}
-          </span>
+        <form className="feed-post-form edit-post-form" ref={editSpotlightTargetRef} onSubmit={handleUpdate}>
+          <label htmlFor={evidenceInputId}>Content</label>
+          {contentHint === "" ? null : (
+            <span id={evidenceHintId} className="field-hint">
+              {contentHint}
+            </span>
+          )}
           <textarea
             id={evidenceInputId}
             className="evidence-textarea"
             required
-            aria-describedby={evidenceHintId}
+            aria-describedby={contentHint === "" ? undefined : evidenceHintId}
             value={evidenceText}
             onChange={(event) => {
               setEvidenceText(event.target.value);
               setFormError("");
             }}
+            onBlur={() => setContentFocused(false)}
+            onFocus={() => {
+              setCaptionFocused(false);
+              setContentFocused(true);
+            }}
           />
-          <label>
-            Caption
-            <textarea
-              className="caption-textarea"
-              value={caption}
-              onChange={(event) => setCaption(event.target.value)}
-            />
-          </label>
+          {captionsEnabled ? (
+            <label>
+              Caption
+              <textarea
+                className="caption-textarea"
+                ref={captionSpotlightTargetRef}
+                value={caption}
+                onChange={(event) => setCaption(event.target.value)}
+                onBlur={() => setCaptionFocused(false)}
+                onFocus={() => {
+                  setContentFocused(false);
+                  setCaptionFocused(true);
+                }}
+              />
+            </label>
+          ) : null}
           <div className="output-actions">
-            <button className="secondary" type="button" disabled={saving} onClick={() => setEditing(false)}>
+            <button
+              className="secondary"
+              type="button"
+              disabled={saving}
+              onClick={() => {
+                setContentFocused(false);
+                setCaptionFocused(false);
+                setEditing(false);
+              }}
+            >
               Cancel
             </button>
             <button type="submit" disabled={saving || deleting || !evidenceText.trim()}>
@@ -595,7 +697,7 @@ function FeedPostCard({
               <button
                 aria-expanded={false}
                 aria-controls={evidenceContentId}
-                aria-label="Expand evidence"
+                aria-label="Expand content"
                 className="post-content-expand-button"
                 ref={expandEvidenceButtonRef}
                 type="button"
@@ -862,10 +964,10 @@ function EvidenceCodeBlock({
             <button
               aria-controls={contentId}
               aria-expanded={true}
-              aria-label="Collapse evidence"
+              aria-label="Collapse content"
               className="icon-button post-evidence-control"
               ref={collapseButtonRef}
-              title="Collapse evidence"
+              title="Collapse content"
               type="button"
               onClick={onCollapse}
             >
@@ -875,9 +977,9 @@ function EvidenceCodeBlock({
             </button>
           ) : null}
           <button
-            aria-label={copied ? "Evidence copied" : "Copy evidence"}
+            aria-label={copied ? "Content copied" : "Copy content"}
             className="icon-button post-evidence-control"
-            title={copied ? "Evidence copied" : "Copy evidence"}
+            title={copied ? "Content copied" : "Copy content"}
             type="button"
             onClick={() => {
               void copyEvidence();

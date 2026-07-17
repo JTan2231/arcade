@@ -36,6 +36,7 @@ type createDailyFeedRequest struct {
 	Kind             string                `json:"kind"`
 	Description      *string               `json:"description"`
 	Enabled          *bool                 `json:"enabled"`
+	CaptionsEnabled  *bool                 `json:"captions_enabled"`
 	SourceID         string                `json:"source_id"`
 	ItemCount        int                   `json:"item_count"`
 	EvidenceFormatID string                `json:"evidence_format_id"`
@@ -48,6 +49,7 @@ type patchDailyFeedRequest struct {
 	Slug             optionalStringField           `json:"slug"`
 	Description      optionalNullableStringField   `json:"description"`
 	Enabled          *bool                         `json:"enabled"`
+	CaptionsEnabled  *bool                         `json:"captions_enabled"`
 	SourceID         optionalStringField           `json:"source_id"`
 	ItemCount        optionalIntField              `json:"item_count"`
 	EvidenceFormatID optionalStringField           `json:"evidence_format_id"`
@@ -88,6 +90,7 @@ type normalizedDailyFeedInput struct {
 	Kind             string
 	Description      *string
 	Enabled          bool
+	CaptionsEnabled  bool
 	SourceID         *string
 	ItemCount        *int
 	EvidenceFormatID string
@@ -207,6 +210,7 @@ func (s *Server) handleCreateGroupDailyFeed(w http.ResponseWriter, r *http.Reque
 			kind,
 			description,
 			enabled,
+			captions_enabled,
 			source_id,
 			item_count,
 			evidence_format_id,
@@ -215,9 +219,9 @@ func (s *Server) handleCreateGroupDailyFeed(w http.ResponseWriter, r *http.Reque
 			schedule_interval_seconds,
 			created_by_user_id
 		)
-		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 		returning id::text
-	`, groupID, input.Name, input.Slug, input.Kind, input.Description, input.Enabled, input.SourceID, input.ItemCount, input.EvidenceFormatID, input.Schedule.StartsAt, input.Schedule.Timezone, input.Schedule.IntervalSeconds, current.ID).Scan(&feedID)
+	`, groupID, input.Name, input.Slug, input.Kind, input.Description, input.Enabled, input.CaptionsEnabled, input.SourceID, input.ItemCount, input.EvidenceFormatID, input.Schedule.StartsAt, input.Schedule.Timezone, input.Schedule.IntervalSeconds, current.ID).Scan(&feedID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -278,14 +282,15 @@ func (s *Server) handlePreviewGroupDailyFeed(w http.ResponseWriter, r *http.Requ
 	}
 
 	feed := DailyFeed{
-		ID:        "preview",
-		GroupID:   groupID,
-		Name:      input.Name,
-		Slug:      input.Slug,
-		Kind:      input.Kind,
-		Enabled:   true,
-		SourceID:  input.SourceID,
-		ItemCount: input.ItemCount,
+		ID:              "preview",
+		GroupID:         groupID,
+		Name:            input.Name,
+		Slug:            input.Slug,
+		Kind:            input.Kind,
+		Enabled:         true,
+		CaptionsEnabled: input.CaptionsEnabled,
+		SourceID:        input.SourceID,
+		ItemCount:       input.ItemCount,
 		EvidenceFormat: EvidenceFormat{
 			ID: input.EvidenceFormatID,
 		},
@@ -382,6 +387,11 @@ func (s *Server) handlePatchGroupDailyFeed(w http.ResponseWriter, r *http.Reques
 	enabled := currentFeed.Enabled
 	if req.Enabled != nil {
 		enabled = *req.Enabled
+	}
+
+	captionsEnabled := currentFeed.CaptionsEnabled
+	if req.CaptionsEnabled != nil {
+		captionsEnabled = *req.CaptionsEnabled
 	}
 
 	evidenceFormatID := currentFeed.EvidenceFormat.ID
@@ -482,14 +492,15 @@ func (s *Server) handlePatchGroupDailyFeed(w http.ResponseWriter, r *http.Reques
 		    slug = $4,
 		    description = case when $5 then $6 else description end,
 		    enabled = $7,
-		    source_id = $8,
-		    item_count = $9,
-		    evidence_format_id = $10,
-		    schedule_starts_at = $11,
-		    schedule_timezone = $12,
-		    schedule_interval_seconds = $13
+		    captions_enabled = $8,
+		    source_id = $9,
+		    item_count = $10,
+		    evidence_format_id = $11,
+		    schedule_starts_at = $12,
+		    schedule_timezone = $13,
+		    schedule_interval_seconds = $14
 		where group_id = $1 and id = $2
-	`, groupID, currentFeed.ID, name, slug, descriptionSet, description, enabled, sourceID, itemCount, evidenceFormatID, schedule.StartsAt, schedule.Timezone, schedule.IntervalSeconds)
+	`, groupID, currentFeed.ID, name, slug, descriptionSet, description, enabled, captionsEnabled, sourceID, itemCount, evidenceFormatID, schedule.StartsAt, schedule.Timezone, schedule.IntervalSeconds)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -761,6 +772,7 @@ func dailyFeedSelectSQL() string {
 			f.kind,
 			f.description,
 			f.enabled,
+			f.captions_enabled,
 			f.source_id::text,
 			cs.name,
 			f.item_count,
@@ -820,6 +832,7 @@ func scanDailyFeed(row pgx.Row) (DailyFeed, error) {
 		&feed.Kind,
 		&description,
 		&feed.Enabled,
+		&feed.CaptionsEnabled,
 		&sourceID,
 		&sourceName,
 		&itemCount,
@@ -1891,14 +1904,19 @@ func (s *Server) normalizeCreateDailyFeed(ctx context.Context, groupID string, r
 	if req.Enabled != nil {
 		enabled = *req.Enabled
 	}
+	captionsEnabled := true
+	if req.CaptionsEnabled != nil {
+		captionsEnabled = *req.CaptionsEnabled
+	}
 
 	input := normalizedDailyFeedInput{
-		Name:        name,
-		Slug:        slug,
-		Kind:        kind,
-		Description: trimOptionalString(req.Description),
-		Enabled:     enabled,
-		Schedule:    schedule,
+		Name:            name,
+		Slug:            slug,
+		Kind:            kind,
+		Description:     trimOptionalString(req.Description),
+		Enabled:         enabled,
+		CaptionsEnabled: captionsEnabled,
+		Schedule:        schedule,
 	}
 
 	evidenceFormatID, err := s.resolveActiveEvidenceFormatID(ctx, groupID, req.EvidenceFormatID, true)

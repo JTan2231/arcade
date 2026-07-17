@@ -91,6 +91,11 @@ export type FeedFormatMutation = {
   evidenceFormatId: string;
 };
 
+export type FeedCaptionsMutation = {
+  feedId: string;
+  captionsEnabled: boolean;
+};
+
 export type FeedScheduleMutation = {
   feedId: string;
   schedule: DailyFeedSchedule;
@@ -166,6 +171,7 @@ export type DashboardContext = {
   postMutation: PostMutation | null;
   postTagMutation: PostTagMutation | null;
   evidenceFormatMutation: EvidenceFormatMutation | null;
+  feedCaptionsMutation: FeedCaptionsMutation | null;
   feedFormatMutation: FeedFormatMutation | null;
   feedScheduleMutation: FeedScheduleMutation | null;
   groupMemberMutation: GroupMemberMutation | null;
@@ -188,6 +194,7 @@ type DashboardUserEvent =
   | { type: "FEED_SELECTED"; feedId: string }
   | { type: "FEED_DATE_CHANGED"; date: string }
   | { type: "FEED_ENABLED_TOGGLED"; feedId: string }
+  | { type: "FEED_CAPTIONS_TOGGLED"; feedId: string }
   | { type: "FEED_FORMAT_CHANGED"; feedId: string; evidenceFormatId: string }
   | { type: "FEED_SCHEDULE_CHANGED"; feedId: string; schedule: DailyFeedSchedule }
   | { type: "FEED_GENERATION_REFRESHED"; feedId: string }
@@ -257,6 +264,10 @@ export type ToggleFeedInput = UserScopedInput & {
 
 export type ChangeFeedFormatInput = FeedInput & {
   evidenceFormatId: string;
+};
+
+export type ChangeFeedCaptionsInput = FeedInput & {
+  captionsEnabled: boolean;
 };
 
 export type ChangeFeedScheduleInput = FeedInput & {

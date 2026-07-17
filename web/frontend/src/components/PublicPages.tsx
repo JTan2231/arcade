@@ -405,6 +405,7 @@ function publicGroupFeedToDailyFeed(group: PublicGroup, feed: PublicGroupFeed): 
     slug: feed.slug,
     kind: feed.kind,
     enabled: feed.enabled,
+    captions_enabled: feed.captions_enabled,
     evidence_format: feed.evidence_format,
     schedule: feed.schedule,
     filters: [],
@@ -426,6 +427,7 @@ function publicFeedToDailyFeed(feed: PublicFeed): DailyFeed {
     slug: feed.slug,
     kind: feed.kind,
     enabled: feed.enabled,
+    captions_enabled: feed.captions_enabled,
     evidence_format: feed.evidence_format,
     schedule: feed.schedule,
     filters: [],
@@ -447,6 +449,7 @@ function publicPostFeedToDailyFeed(post: PublicPost): DailyFeed {
     slug: post.feed.id,
     kind: "daily_thread",
     enabled: false,
+    captions_enabled: false,
     evidence_format: post.evidence_format,
     schedule: {
       starts_at: `${post.feed_date}T00:00:00Z`,

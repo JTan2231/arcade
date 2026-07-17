@@ -176,6 +176,31 @@ func TestDailyFeedKindDefaultsToCatalogDaily(t *testing.T) {
 	}
 }
 
+func TestDailyFeedCaptionsDefaultEnabledAndCanBeDisabled(t *testing.T) {
+	server := &Server{}
+	input, err := server.normalizeCreateDailyFeed(context.Background(), "group", createDailyFeedRequest{
+		Kind: dailyFeedKindDailyThread,
+	})
+	if err != nil {
+		t.Fatalf("normalizeCreateDailyFeed returned error: %v", err)
+	}
+	if !input.CaptionsEnabled {
+		t.Fatal("captions should default to enabled")
+	}
+
+	disabled := false
+	input, err = server.normalizeCreateDailyFeed(context.Background(), "group", createDailyFeedRequest{
+		Kind:            dailyFeedKindDailyThread,
+		CaptionsEnabled: &disabled,
+	})
+	if err != nil {
+		t.Fatalf("normalizeCreateDailyFeed returned error: %v", err)
+	}
+	if input.CaptionsEnabled {
+		t.Fatal("explicitly disabled captions were enabled")
+	}
+}
+
 func TestDailyThreadRejectsPracticeFields(t *testing.T) {
 	server := &Server{}
 	input, err := server.normalizeCreateDailyFeed(context.Background(), "group", createDailyFeedRequest{

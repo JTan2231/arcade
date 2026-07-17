@@ -149,3 +149,52 @@ func TestNormalizePatchGroupFeedPostRequestRequiresAField(t *testing.T) {
 		t.Fatal("expected empty patch to be rejected")
 	}
 }
+
+func TestValidateGroupFeedPostCaptionWrite(t *testing.T) {
+	caption := "A caption"
+	tests := []struct {
+		name            string
+		captionsEnabled bool
+		captionSet      bool
+		caption         *string
+		wantError       bool
+	}{
+		{
+			name:            "enabled caption",
+			captionsEnabled: true,
+			captionSet:      true,
+			caption:         &caption,
+		},
+		{
+			name:            "disabled non-null caption",
+			captionsEnabled: false,
+			captionSet:      true,
+			caption:         &caption,
+			wantError:       true,
+		},
+		{
+			name:            "disabled omitted caption",
+			captionsEnabled: false,
+			captionSet:      false,
+			caption:         nil,
+		},
+		{
+			name:            "disabled caption clear",
+			captionsEnabled: false,
+			captionSet:      true,
+			caption:         nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := validateGroupFeedPostCaptionWrite(test.captionsEnabled, test.captionSet, test.caption)
+			if test.wantError && err == nil {
+				t.Fatal("expected caption write to be rejected")
+			}
+			if !test.wantError && err != nil {
+				t.Fatalf("caption write returned error: %v", err)
+			}
+		})
+	}
+}

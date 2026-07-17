@@ -1,0 +1,217 @@
+name: feed caption settings control post caption availability
+
+vars:
+  email: captions-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Captions Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: login_owner
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Captions Dojo
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: list_feeds
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds
+      expectStatus: 200
+      expectJson:
+        - captions_enabled: true
+      capture:
+        feed_id: $[0].id
+
+steps:
+  - visit: /
+
+  - within: Feeds
+    click:
+      role: button
+      name: Feed settings for Daily Thread
+
+  - within: Feeds
+    click:
+      role: button
+      name: Settings
+
+  - within: Captions
+    click:
+      role: button
+      name: Disable captions
+
+  - within: Captions
+    expectVisible:
+      role: button
+      name: Enable captions
+
+  - request:
+      id: disabled_feed
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}
+      expectStatus: 200
+      expectJson:
+        captions_enabled: false
+
+  - within: Feed settings
+    click:
+      role: button
+      name: Close
+
+  - request:
+      id: reject_captioned_create
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{today}}/posts
+      json:
+        evidence_text: API captioned proof must be rejected.
+        caption: This caption is disabled.
+      expectStatus: 400
+      expectJson:
+        error: captions are disabled for this feed
+
+  - within: Posts
+    click:
+      role: button
+      name: Post
+
+  - within: Posts
+    expectHidden:
+      role: textbox
+      name: Caption
+
+  - within: Posts
+    fill:
+      label: Content
+      value: Captionless proof is still allowed.
+
+  - within: Posts
+    click:
+      role: button
+      name: Submit
+
+  - expectStatus:
+      text: Post submitted
+
+  - within: Posts
+    expectVisible:
+      text: Captionless proof is still allowed.
+
+  - request:
+      id: list_posts
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{today}}/posts
+      expectStatus: 200
+      expectJson:
+        - evidence_text: Captionless proof is still allowed.
+      capture:
+        post_id: $[0].id
+
+  - within: Posts
+    click:
+      role: button
+      name: Post actions
+
+  - within: Posts
+    click:
+      role: button
+      name: Edit
+
+  - within: Posts
+    expectHidden:
+      role: textbox
+      name: Caption
+
+  - within: Posts
+    click:
+      role: button
+      name: Cancel
+
+  - request:
+      id: reject_captioned_update
+      client: browser
+      method: PATCH
+      path: /api/groups/{{group_id}}/feed-posts/{{post_id}}
+      json:
+        caption: This update caption is disabled.
+      expectStatus: 400
+      expectJson:
+        error: captions are disabled for this feed
+
+  - within: Feeds
+    click:
+      role: button
+      name: Feed settings for Daily Thread
+
+  - within: Feeds
+    click:
+      role: button
+      name: Settings
+
+  - within: Captions
+    click:
+      role: button
+      name: Enable captions
+
+  - within: Captions
+    expectVisible:
+      role: button
+      name: Disable captions
+
+  - request:
+      id: enabled_feed
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}
+      expectStatus: 200
+      expectJson:
+        captions_enabled: true
+
+  - within: Feed settings
+    click:
+      role: button
+      name: Close
+
+  - within: Posts
+    click:
+      role: button
+      name: Post actions
+
+  - within: Posts
+    click:
+      role: button
+      name: Edit
+
+  - within: Posts
+    expectVisible:
+      role: textbox
+      name: Caption

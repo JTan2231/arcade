@@ -46,20 +46,37 @@
 }
 
 .feed-post-form {
-  background: var(--color-surface-subtle);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
+  background: transparent;
+  border: 0;
   display: grid;
   gap: 10px;
-  padding: 10px;
+  padding: 0;
 }
 
 .evidence-textarea {
+  background: color-mix(in srgb, var(--color-code-surface) 22%, transparent);
+  border: 0;
+  color: var(--color-text);
   min-height: 180px;
+  transition: background-color 160ms ease;
+}
+
+.evidence-textarea:focus {
+  background: color-mix(in srgb, var(--color-code-surface) 30%, transparent);
+  outline: 0;
 }
 
 .caption-textarea {
+  background: color-mix(in srgb, var(--color-page) 64%, transparent);
+  border: 0;
+  color: var(--color-text);
   min-height: 72px;
+  transition: background-color 160ms ease;
+}
+
+.caption-textarea:focus {
+  background: color-mix(in srgb, var(--color-page) 74%, transparent);
+  outline: 0;
 }
 
 .post-tag-menu {

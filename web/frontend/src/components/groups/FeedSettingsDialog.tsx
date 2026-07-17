@@ -9,6 +9,7 @@ export function FeedSettingsDialog({
   mutating,
   onClose,
   onToggleFeedEnabled,
+  onToggleFeedCaptions,
   onChangeFeedFormat,
   onChangeFeedSchedule,
   onRefreshGeneration,
@@ -19,6 +20,7 @@ export function FeedSettingsDialog({
   mutating: boolean;
   onClose: () => void;
   onToggleFeedEnabled: () => void;
+  onToggleFeedCaptions: () => void;
   onChangeFeedFormat: (evidenceFormatId: string) => void;
   onChangeFeedSchedule: (schedule: DailyFeedSchedule) => void;
   onRefreshGeneration: () => void;
@@ -146,6 +148,15 @@ export function FeedSettingsDialog({
                 ))}
               </select>
             </label>
+          </section>
+          <section className="feed-settings-section" aria-label="Captions">
+            <div>
+              <div className="section-title">Captions</div>
+              <div className="meta">{feed.captions_enabled ? "Available on posts" : "Unavailable on posts"}</div>
+            </div>
+            <button className="secondary" disabled={mutating} type="button" onClick={onToggleFeedCaptions}>
+              {feed.captions_enabled ? "Disable captions" : "Enable captions"}
+            </button>
           </section>
           <section className="feed-settings-section feed-schedule-section" aria-label="Cadence">
             <div>

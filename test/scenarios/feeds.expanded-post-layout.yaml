@@ -144,19 +144,19 @@ steps:
   - within: Posts
     click:
       role: button
-      name: Expand evidence
+      name: Expand content
 
   - within: Posts
     expectVisible:
       role: button
-      name: Collapse evidence
+      name: Collapse content
 
   - within: Posts
     click:
       role: button
-      name: Collapse evidence
+      name: Collapse content
 
   - within: Posts
     expectVisible:
       role: button
-      name: Expand evidence
+      name: Expand content

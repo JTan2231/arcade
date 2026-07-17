@@ -205,7 +205,7 @@ steps:
 
   - within: Posts
     fill:
-      label: Evidence
+      label: Content
       value: Solved a leaderboard sample.
 
   - within: Posts

@@ -14,25 +14,30 @@ Found 1 occurrence.
 
 ## onActivate
 
-Found 15 occurrences.
+Found 20 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| unknown | no enclosing accessible region | Scoring method | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:158](../../web/frontend/src/components/CreateMetricDialog.tsx#L158) |
-| unknown | no enclosing accessible region | Calculation | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:196](../../web/frontend/src/components/CreateMetricDialog.tsx#L196) |
-| unknown | no enclosing accessible region | Metric name | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:229](../../web/frontend/src/components/CreateMetricDialog.tsx#L229) |
-| unknown | no enclosing accessible region | Judging prompt | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:255](../../web/frontend/src/components/CreateMetricDialog.tsx#L255) |
-| unknown | no enclosing accessible region | Combine scores / Combine values | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:277](../../web/frontend/src/components/CreateMetricDialog.tsx#L277) |
-| unknown | no enclosing accessible region | Feed type | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:342](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L342) |
-| unknown | no enclosing accessible region | Feed details | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:380](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L380) |
-| unknown | no enclosing accessible region | Post format | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:430](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L430) |
-| unknown | no enclosing accessible region | Catalog setup | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:467](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L467) |
-| unknown | no enclosing accessible region | Schedule | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:544](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L544) |
-| unknown | no enclosing accessible region | Review and preview | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:597](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L597) |
-| unknown | no enclosing accessible region | Format details | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:128](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L128) |
-| unknown | no enclosing accessible region | Overall length | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:168](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L168) |
-| unknown | no enclosing accessible region | Line rules | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:183](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L183) |
-| unknown | no enclosing accessible region | Per-line length | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:202](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L202) |
+| unknown | no enclosing accessible region | Scoring method | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:255](../../web/frontend/src/components/CreateMetricDialog.tsx#L255) |
+| unknown | no enclosing accessible region | Calculation | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:297](../../web/frontend/src/components/CreateMetricDialog.tsx#L297) |
+| unknown | no enclosing accessible region | Metric name | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:333](../../web/frontend/src/components/CreateMetricDialog.tsx#L333) |
+| unknown | no enclosing accessible region | Judging prompt | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:360](../../web/frontend/src/components/CreateMetricDialog.tsx#L360) |
+| unknown | no enclosing accessible region | Combine scores / Combine values | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:383](../../web/frontend/src/components/CreateMetricDialog.tsx#L383) |
+| unknown | no enclosing accessible region | Feed type | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:344](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L344) |
+| unknown | no enclosing accessible region | Feed details | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:382](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L382) |
+| unknown | no enclosing accessible region | Post format | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:432](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L432) |
+| unknown | no enclosing accessible region | Catalog setup | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:481](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L481) |
+| unknown | no enclosing accessible region | Schedule | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:558](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L558) |
+| unknown | no enclosing accessible region | Review and preview | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:611](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L611) |
+| unknown | no enclosing accessible region | Format details | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:242](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L242) |
+| unknown | no enclosing accessible region | Overall length | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:284](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L284) |
+| unknown | no enclosing accessible region | Line rules | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:299](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L299) |
+| unknown | no enclosing accessible region | Per-line length | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:318](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L318) |
+| unknown | no enclosing accessible region | Link label | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/settings/CreateInviteLinkDialog.tsx:115](../../web/frontend/src/components/settings/CreateInviteLinkDialog.tsx#L115) |
+| unknown | no enclosing accessible region | Expiration | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/settings/CreateInviteLinkDialog.tsx:139](../../web/frontend/src/components/settings/CreateInviteLinkDialog.tsx#L139) |
+| unknown | no enclosing accessible region | Usage limit | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/settings/CreateInviteLinkDialog.tsx:165](../../web/frontend/src/components/settings/CreateInviteLinkDialog.tsx#L165) |
+| unknown | no enclosing accessible region | Review | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/settings/CreateInviteLinkDialog.tsx:220](../../web/frontend/src/components/settings/CreateInviteLinkDialog.tsx#L220) |
+| unknown | no enclosing accessible region | Tag name | component prop label (distance 0) | Component &lt;CreateWizardStep&gt; | [web/frontend/src/components/settings/PostTagManager.tsx:209](../../web/frontend/src/components/settings/PostTagManager.tsx#L209) |
 
 ## onAddFeed
 
@@ -40,8 +45,8 @@ Found 2 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Groups | ancestor section label (distance 3) | Groups | region fallback (ancestor section label (distance 3)) | Component &lt;FeedSublist&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:192](../../web/frontend/src/components/groups/GroupsPanel.tsx#L192) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:138](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L138) |
+| Groups | ancestor section label (distance 3) | Groups | region fallback (ancestor section label (distance 3)) | Component &lt;FeedSublist&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:198](../../web/frontend/src/components/groups/GroupsPanel.tsx#L198) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:144](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L144) |
 
 ## onAddFeedDraftChanged
 
@@ -57,7 +62,18 @@ Found 1 occurrence.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| unknown | no enclosing accessible region | Add metric | component prop label (distance 0) | Component &lt;CreateWizardDialog&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:147](../../web/frontend/src/components/CreateMetricDialog.tsx#L147) |
+| unknown | no enclosing accessible region | Edit metric / Add metric | component prop label (distance 0) | Component &lt;CreateWizardDialog&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:244](../../web/frontend/src/components/CreateMetricDialog.tsx#L244) |
+
+## onBlur
+
+Found 4 occurrences.
+
+| Region | Region relationship | Nearest label | Label relationship | Target | Source |
+| --- | --- | --- | --- | --- | --- |
+| Posts | grandparent section label (distance 2) | Posts | region fallback (grandparent section label (distance 2)) | DOM &lt;textarea&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:209](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L209) |
+| Posts | ancestor section label (distance 3) | Caption | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:223](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L223) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | DOM &lt;textarea&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:621](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L621) |
+| unknown | no enclosing accessible region | Caption | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:635](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L635) |
 
 ## onCancel
 
@@ -69,72 +85,66 @@ Found 1 occurrence.
 
 ## onChange
 
-Found 62 occurrences.
+Found 56 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Cadence | ancestor section label (distance 3) | Start time | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:162](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L162) |
-| Cadence | ancestor section label (distance 3) | Timezone | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:173](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L173) |
-| Cadence | ancestor section label (distance 3) | Repeat | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:184](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L184) |
-| Edit metric | ancestor role dialog (distance 4) | Name | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:291](../../web/frontend/src/components/MetricSettingsManager.tsx#L291) |
-| Edit metric | ancestor role dialog (distance 4) | Aggregation | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:299](../../web/frontend/src/components/MetricSettingsManager.tsx#L299) |
-| Edit metric | ancestor role dialog (distance 3) | Prompt | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:314](../../web/frontend/src/components/MetricSettingsManager.tsx#L314) |
-| Filters | grandparent section label (distance 2) | Filters | region fallback (grandparent section label (distance 2)) | Component &lt;FilterEditor&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:524](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L524) |
-| Group visibility | parent section label (distance 1) | Group visibility | region fallback (parent section label (distance 1)) | DOM &lt;select&gt; | [web/frontend/src/components/settings/GroupVisibilityControl.tsx:20](../../web/frontend/src/components/settings/GroupVisibilityControl.tsx#L20) |
-| Groups | ancestor section label (distance 3) | New group name | self aria-label (distance 0) | DOM &lt;input&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:101](../../web/frontend/src/components/groups/GroupsPanel.tsx#L101) |
-| Invite links | ancestor section label (distance 3) | Label | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/InviteLinksManager.tsx:65](../../web/frontend/src/components/settings/InviteLinksManager.tsx#L65) |
-| Invite links | ancestor section label (distance 3) | Expires | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/settings/InviteLinksManager.tsx:69](../../web/frontend/src/components/settings/InviteLinksManager.tsx#L69) |
-| Invite links | ancestor section label (distance 3) | Max uses | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/InviteLinksManager.tsx:83](../../web/frontend/src/components/settings/InviteLinksManager.tsx#L83) |
-| Metric settings | grandparent section label (distance 2) | Feed | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:123](../../web/frontend/src/components/MetricSettingsManager.tsx#L123) |
-| Post format | grandparent section label (distance 2) | Format | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:139](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L139) |
-| Post tags | ancestor section label (distance 3) | Tag name | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/PostTagManager.tsx:55](../../web/frontend/src/components/settings/PostTagManager.tsx#L55) |
-| Posts | grandparent section label (distance 2) | Posts | region fallback (grandparent section label (distance 2)) | DOM &lt;textarea&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:172](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L172) |
-| Posts | ancestor section label (distance 3) | Caption | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:182](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L182) |
+| Cadence | ancestor section label (distance 3) | Start time | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:173](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L173) |
+| Cadence | ancestor section label (distance 3) | Timezone | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:184](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L184) |
+| Cadence | ancestor section label (distance 3) | Repeat | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:195](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L195) |
+| Filters | grandparent section label (distance 2) | Filters | region fallback (grandparent section label (distance 2)) | Component &lt;FilterEditor&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:538](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L538) |
+| Group visibility | parent section label (distance 1) | Group visibility | region fallback (parent section label (distance 1)) | DOM &lt;select&gt; | [web/frontend/src/components/settings/GroupVisibilityControl.tsx:19](../../web/frontend/src/components/settings/GroupVisibilityControl.tsx#L19) |
+| Groups | ancestor section label (distance 3) | New group name | self aria-label (distance 0) | DOM &lt;input&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:105](../../web/frontend/src/components/groups/GroupsPanel.tsx#L105) |
+| Metric settings | grandparent section label (distance 2) | Feed | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:146](../../web/frontend/src/components/MetricSettingsManager.tsx#L146) |
+| Post format | grandparent section label (distance 2) | Format | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:141](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L141) |
+| Posts | grandparent section label (distance 2) | Posts | region fallback (grandparent section label (distance 2)) | DOM &lt;textarea&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:205](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L205) |
+| Posts | ancestor section label (distance 3) | Caption | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:222](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L222) |
 | Selected feed output | ancestor section label (distance 4) | Feed | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/GroupDashboard.tsx:171](../../web/frontend/src/components/GroupDashboard.tsx#L171) |
-| unknown | no enclosing accessible region | Calculation | self aria-label (distance 0) | DOM &lt;select&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:202](../../web/frontend/src/components/CreateMetricDialog.tsx#L202) |
-| unknown | no enclosing accessible region | Metric name | self aria-label (distance 0) | DOM &lt;input&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:235](../../web/frontend/src/components/CreateMetricDialog.tsx#L235) |
-| unknown | no enclosing accessible region | Judging prompt | self aria-label (distance 0) | DOM &lt;textarea&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:261](../../web/frontend/src/components/CreateMetricDialog.tsx#L261) |
-| unknown | no enclosing accessible region | Combine scores by / Combine values by | self aria-label (distance 0) | DOM &lt;select&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:283](../../web/frontend/src/components/CreateMetricDialog.tsx#L283) |
-| unknown | no enclosing accessible region | Name | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:389](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L389) |
-| unknown | no enclosing accessible region | Active | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:400](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L400) |
-| unknown | no enclosing accessible region | Description | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:413](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L413) |
-| unknown | no enclosing accessible region | Post format | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:437](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L437) |
-| unknown | no enclosing accessible region | Source | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:475](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L475) |
-| unknown | no enclosing accessible region | Item count | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:493](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L493) |
-| unknown | no enclosing accessible region | Start time | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:553](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L553) |
-| unknown | no enclosing accessible region | Timezone | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:564](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L564) |
-| unknown | no enclosing accessible region | Repeat | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:575](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L575) |
-| unknown | no enclosing accessible region | Field | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:726](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L726) |
-| unknown | no enclosing accessible region | Operator | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:736](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L736) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FilterValueInput&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:744](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L744) |
-| unknown | no enclosing accessible region | Min | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:776](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L776) |
-| unknown | no enclosing accessible region | Max | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:785](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L785) |
-| unknown | no enclosing accessible region | Value | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:798](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L798) |
-| unknown | no enclosing accessible region | Value | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:810](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L810) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | DOM &lt;textarea&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:537](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L537) |
-| unknown | no enclosing accessible region | Caption | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:547](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L547) |
-| unknown | no enclosing accessible region | {tag.name} | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:676](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L676) |
-| unknown | no enclosing accessible region | Score | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:759](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L759) |
-| unknown | no enclosing accessible region | Note | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:769](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L769) |
-| unknown | no enclosing accessible region | Name | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:136](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L136) |
-| unknown | no enclosing accessible region | Slug | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:145](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L145) |
-| unknown | no enclosing accessible region | Description | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:154](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L154) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;EvidenceFormatLengthFields&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:170](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L170) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;EvidenceFormatLineFields&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:189](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L189) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;EvidenceFormatLineLengthFields&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:204](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L204) |
-| unknown | no enclosing accessible region | Min chars | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx:30](../../web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx#L30) |
-| unknown | no enclosing accessible region | Max chars | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx:40](../../web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx#L40) |
-| unknown | no enclosing accessible region | {lineModeLabel} | self aria-label (distance 0) | DOM &lt;select&gt; | [web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx:62](../../web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx#L62) |
-| unknown | no enclosing accessible region | Blank lines | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx:73](../../web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx#L73) |
-| unknown | no enclosing accessible region | Exact lines | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx:86](../../web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx#L86) |
-| unknown | no enclosing accessible region | Min lines | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx:98](../../web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx#L98) |
-| unknown | no enclosing accessible region | Max lines | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx:108](../../web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx#L108) |
-| unknown | no enclosing accessible region | Line min chars | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx:127](../../web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx#L127) |
-| unknown | no enclosing accessible region | Line max chars | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx:137](../../web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx#L137) |
-| unknown | no enclosing accessible region | Name | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:224](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L224) |
-| unknown | no enclosing accessible region | Description | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:228](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L228) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;EvidenceFormatConstraintFields&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:231](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L231) |
-| unknown | no enclosing accessible region | Name | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/PostTagManager.tsx:139](../../web/frontend/src/components/settings/PostTagManager.tsx#L139) |
+| unknown | no enclosing accessible region | Calculation | self aria-label (distance 0) | DOM &lt;select&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:303](../../web/frontend/src/components/CreateMetricDialog.tsx#L303) |
+| unknown | no enclosing accessible region | Metric name | self aria-label (distance 0) | DOM &lt;input&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:339](../../web/frontend/src/components/CreateMetricDialog.tsx#L339) |
+| unknown | no enclosing accessible region | Judging prompt | self aria-label (distance 0) | DOM &lt;textarea&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:366](../../web/frontend/src/components/CreateMetricDialog.tsx#L366) |
+| unknown | no enclosing accessible region | Combine scores by / Combine values by | self aria-label (distance 0) | DOM &lt;select&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:389](../../web/frontend/src/components/CreateMetricDialog.tsx#L389) |
+| unknown | no enclosing accessible region | Name | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:391](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L391) |
+| unknown | no enclosing accessible region | Active | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:402](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L402) |
+| unknown | no enclosing accessible region | Description | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:415](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L415) |
+| unknown | no enclosing accessible region | Post format | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:439](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L439) |
+| unknown | no enclosing accessible region | Allow captions | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:456](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L456) |
+| unknown | no enclosing accessible region | Source | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:489](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L489) |
+| unknown | no enclosing accessible region | Item count | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:507](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L507) |
+| unknown | no enclosing accessible region | Start time | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:567](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L567) |
+| unknown | no enclosing accessible region | Timezone | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:578](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L578) |
+| unknown | no enclosing accessible region | Repeat | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:589](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L589) |
+| unknown | no enclosing accessible region | Field | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:740](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L740) |
+| unknown | no enclosing accessible region | Operator | parent label (distance 1) | DOM &lt;select&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:750](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L750) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FilterValueInput&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:758](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L758) |
+| unknown | no enclosing accessible region | Min | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:790](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L790) |
+| unknown | no enclosing accessible region | Max | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:799](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L799) |
+| unknown | no enclosing accessible region | Value | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:812](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L812) |
+| unknown | no enclosing accessible region | Value | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:824](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L824) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | DOM &lt;textarea&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:617](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L617) |
+| unknown | no enclosing accessible region | Caption | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:634](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L634) |
+| unknown | no enclosing accessible region | {tag.name} | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:778](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L778) |
+| unknown | no enclosing accessible region | Score | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:861](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L861) |
+| unknown | no enclosing accessible region | Note | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:871](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L871) |
+| unknown | no enclosing accessible region | Name | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:250](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L250) |
+| unknown | no enclosing accessible region | Slug | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:259](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L259) |
+| unknown | no enclosing accessible region | Description | self aria-label (distance 0) | DOM &lt;textarea&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:270](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L270) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;EvidenceFormatLengthFields&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:286](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L286) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;EvidenceFormatLineFields&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:305](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L305) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;EvidenceFormatLineLengthFields&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:320](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L320) |
+| unknown | no enclosing accessible region | Link label | self aria-label (distance 0) | DOM &lt;input&gt; | [web/frontend/src/components/settings/CreateInviteLinkDialog.tsx:123](../../web/frontend/src/components/settings/CreateInviteLinkDialog.tsx#L123) |
+| unknown | no enclosing accessible region | Expires after | self aria-label (distance 0) | DOM &lt;select&gt; | [web/frontend/src/components/settings/CreateInviteLinkDialog.tsx:145](../../web/frontend/src/components/settings/CreateInviteLinkDialog.tsx#L145) |
+| unknown | no enclosing accessible region | Maximum uses | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/CreateInviteLinkDialog.tsx:202](../../web/frontend/src/components/settings/CreateInviteLinkDialog.tsx#L202) |
+| unknown | no enclosing accessible region | Min chars | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx:20](../../web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx#L20) |
+| unknown | no enclosing accessible region | Max chars | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx:30](../../web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx#L30) |
+| unknown | no enclosing accessible region | {lineModeLabel} | self aria-label (distance 0) | DOM &lt;select&gt; | [web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx:52](../../web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx#L52) |
+| unknown | no enclosing accessible region | Blank lines | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx:63](../../web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx#L63) |
+| unknown | no enclosing accessible region | Exact lines | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx:76](../../web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx#L76) |
+| unknown | no enclosing accessible region | Min lines | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx:88](../../web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx#L88) |
+| unknown | no enclosing accessible region | Max lines | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx:98](../../web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx#L98) |
+| unknown | no enclosing accessible region | Line min chars | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx:117](../../web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx#L117) |
+| unknown | no enclosing accessible region | Line max chars | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx:127](../../web/frontend/src/components/settings/EvidenceFormatConstraintFields.tsx#L127) |
+| unknown | no enclosing accessible region | Tag name | self aria-label (distance 0) | DOM &lt;input&gt; | [web/frontend/src/components/settings/PostTagManager.tsx:216](../../web/frontend/src/components/settings/PostTagManager.tsx#L216) |
 
 ## onChangeFeedDate
 
@@ -157,9 +167,9 @@ Found 3 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Feeds | grandparent section label (distance 2) | Feeds | region fallback (grandparent section label (distance 2)) | Component &lt;FeedSettingsDialog&gt; | [web/frontend/src/components/groups/FeedSublist.tsx:154](../../web/frontend/src/components/groups/FeedSublist.tsx#L154) |
-| Groups | ancestor section label (distance 3) | Groups | region fallback (ancestor section label (distance 3)) | Component &lt;FeedSublist&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:187](../../web/frontend/src/components/groups/GroupsPanel.tsx#L187) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:118](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L118) |
+| Feeds | grandparent section label (distance 2) | Feeds | region fallback (grandparent section label (distance 2)) | Component &lt;FeedSettingsDialog&gt; | [web/frontend/src/components/groups/FeedSublist.tsx:160](../../web/frontend/src/components/groups/FeedSublist.tsx#L160) |
+| Groups | ancestor section label (distance 3) | Groups | region fallback (ancestor section label (distance 3)) | Component &lt;FeedSublist&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:193](../../web/frontend/src/components/groups/GroupsPanel.tsx#L193) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:124](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L124) |
 
 ## onChangeFeedSchedule
 
@@ -167,9 +177,9 @@ Found 3 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Feeds | grandparent section label (distance 2) | Feeds | region fallback (grandparent section label (distance 2)) | Component &lt;FeedSettingsDialog&gt; | [web/frontend/src/components/groups/FeedSublist.tsx:155](../../web/frontend/src/components/groups/FeedSublist.tsx#L155) |
-| Groups | ancestor section label (distance 3) | Groups | region fallback (ancestor section label (distance 3)) | Component &lt;FeedSublist&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:188](../../web/frontend/src/components/groups/GroupsPanel.tsx#L188) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:121](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L121) |
+| Feeds | grandparent section label (distance 2) | Feeds | region fallback (grandparent section label (distance 2)) | Component &lt;FeedSettingsDialog&gt; | [web/frontend/src/components/groups/FeedSublist.tsx:161](../../web/frontend/src/components/groups/FeedSublist.tsx#L161) |
+| Groups | ancestor section label (distance 3) | Groups | region fallback (ancestor section label (distance 3)) | Component &lt;FeedSublist&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:194](../../web/frontend/src/components/groups/GroupsPanel.tsx#L194) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:127](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L127) |
 
 ## onClearAuthError
 
@@ -185,7 +195,7 @@ Found 2 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;InviteLinksManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:208](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L208) |
+| Settings | ancestor role dialog (distance 3) | Settings | region fallback (ancestor role dialog (distance 3)) | Component &lt;InviteLinksManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:262](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L262) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/workspace/GroupSettingsAdapter.tsx:89](../../web/frontend/src/workspace/GroupSettingsAdapter.tsx#L89) |
 
 ## onClearError
@@ -194,7 +204,7 @@ Found 3 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;EvidenceFormatManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:186](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L186) |
+| Settings | ancestor role dialog (distance 3) | Settings | region fallback (ancestor role dialog (distance 3)) | Component &lt;EvidenceFormatManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:223](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L223) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;AuthView&gt; | [web/frontend/src/App.tsx:122](../../web/frontend/src/App.tsx#L122) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;AuthView&gt; | [web/frontend/src/components/InviteJoinView.tsx:101](../../web/frontend/src/components/InviteJoinView.tsx#L101) |
 
@@ -208,81 +218,96 @@ Found 1 occurrence.
 
 ## onClick
 
-Found 55 occurrences.
+Found 61 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
 | Arcade workspace | parent main landmark (distance 1) | Logout | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/workspace/WorkspaceShell.tsx:299](../../web/frontend/src/workspace/WorkspaceShell.tsx#L299) |
 | Authentication | grandparent section label (distance 2) | Login | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/AuthView.tsx:56](../../web/frontend/src/components/AuthView.tsx#L56) |
 | Authentication | grandparent section label (distance 2) | Signup | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/AuthView.tsx:65](../../web/frontend/src/components/AuthView.tsx#L65) |
-| Current generation | parent section label (distance 1) | Refresh | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:124](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L124) |
-| Delete feed | parent section label (distance 1) | Delete | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:209](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L209) |
-| Edit metric | ancestor role dialog (distance 3) | Close | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:281](../../web/frontend/src/components/MetricSettingsManager.tsx#L281) |
-| Edit metric | ancestor role dialog (distance 3) | Cancel | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:329](../../web/frontend/src/components/MetricSettingsManager.tsx#L329) |
-| Evidence formats | grandparent section label (distance 2) | Add format | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:91](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L91) |
-| Feed settings | grandparent role dialog (distance 2) | Close | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:104](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L104) |
-| Feed status | parent section label (distance 1) | Disable / Enable | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:114](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L114) |
-| Feeds | ancestor section label (distance 3) | {feed.name} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSublist.tsx:133](../../web/frontend/src/components/groups/FeedSublist.tsx#L133) |
-| Feeds | grandparent section label (distance 2) | Add feed | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSublist.tsx:171](../../web/frontend/src/components/groups/FeedSublist.tsx#L171) |
-| Filters | grandparent section label (distance 2) | Add filter | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:511](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L511) |
-| Group members | ancestor section label (distance 3) | {`Remove ${displayName}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/GroupMembersManager.tsx:56](../../web/frontend/src/components/settings/GroupMembersManager.tsx#L56) |
-| Groups | grandparent section label (distance 2) | Add group | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:124](../../web/frontend/src/components/groups/GroupsPanel.tsx#L124) |
-| Groups | ancestor section label (distance 4) | {group.name} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:163](../../web/frontend/src/components/groups/GroupsPanel.tsx#L163) |
+| Captions | parent section label (distance 1) | Disable captions / Enable captions | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:157](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L157) |
+| Current generation | parent section label (distance 1) | Refresh | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:126](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L126) |
+| Delete feed | parent section label (distance 1) | Delete | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:220](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L220) |
+| Evidence formats | grandparent section label (distance 2) | Add format | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:153](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L153) |
+| Feed settings | grandparent role dialog (distance 2) | Close | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:106](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L106) |
+| Feed status | parent section label (distance 1) | Disable / Enable | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:116](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L116) |
+| Feeds | ancestor section label (distance 3) | {feed.name} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSublist.tsx:138](../../web/frontend/src/components/groups/FeedSublist.tsx#L138) |
+| Feeds | grandparent section label (distance 2) | Add feed | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSublist.tsx:177](../../web/frontend/src/components/groups/FeedSublist.tsx#L177) |
+| Filters | grandparent section label (distance 2) | Add filter | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:525](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L525) |
+| Group members | ancestor section label (distance 3) | {`Remove ${displayName}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/GroupMembersManager.tsx:55](../../web/frontend/src/components/settings/GroupMembersManager.tsx#L55) |
+| Groups | grandparent section label (distance 2) | Add group | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:128](../../web/frontend/src/components/groups/GroupsPanel.tsx#L128) |
+| Groups | ancestor section label (distance 4) | {group.name} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:167](../../web/frontend/src/components/groups/GroupsPanel.tsx#L167) |
 | Invite link | parent section label (distance 1) | Join group | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/InviteJoinView.tsx:115](../../web/frontend/src/components/InviteJoinView.tsx#L115) |
-| Invite links | ancestor section label (distance 3) | Copy link | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/InviteLinksManager.tsx:98](../../web/frontend/src/components/settings/InviteLinksManager.tsx#L98) |
-| Invite links | ancestor section label (distance 3) | Clear | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/InviteLinksManager.tsx:104](../../web/frontend/src/components/settings/InviteLinksManager.tsx#L104) |
-| Invite links | ancestor section label (distance 3) | Revoke | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/InviteLinksManager.tsx:136](../../web/frontend/src/components/settings/InviteLinksManager.tsx#L136) |
-| Metric settings | grandparent section label (distance 2) | Add metric | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:113](../../web/frontend/src/components/MetricSettingsManager.tsx#L113) |
-| Metric settings | ancestor section label (distance 5) | {`Edit ${metric.display_name}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:174](../../web/frontend/src/components/MetricSettingsManager.tsx#L174) |
-| Metric settings | ancestor section label (distance 5) | {`Delete ${metric.display_name}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:183](../../web/frontend/src/components/MetricSettingsManager.tsx#L183) |
+| Invite links | grandparent section label (distance 2) | Add invite link | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/InviteLinksManager.tsx:92](../../web/frontend/src/components/settings/InviteLinksManager.tsx#L92) |
+| Invite links | ancestor section label (distance 3) | Copy link | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/InviteLinksManager.tsx:105](../../web/frontend/src/components/settings/InviteLinksManager.tsx#L105) |
+| Invite links | ancestor section label (distance 3) | Clear | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/InviteLinksManager.tsx:111](../../web/frontend/src/components/settings/InviteLinksManager.tsx#L111) |
+| Invite links | ancestor section label (distance 3) | Revoke | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/InviteLinksManager.tsx:143](../../web/frontend/src/components/settings/InviteLinksManager.tsx#L143) |
+| Metric settings | grandparent section label (distance 2) | Add metric | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:135](../../web/frontend/src/components/MetricSettingsManager.tsx#L135) |
+| Metric settings | ancestor section label (distance 5) | {`Edit ${metric.display_name}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:198](../../web/frontend/src/components/MetricSettingsManager.tsx#L198) |
+| Metric settings | ancestor section label (distance 5) | {`Delete ${metric.display_name}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:207](../../web/frontend/src/components/MetricSettingsManager.tsx#L207) |
 | Metrics | ancestor section label (distance 5) | {metricTitle} | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/MetricsSection.tsx:92](../../web/frontend/src/components/dashboard/MetricsSection.tsx#L92) |
 | Metrics | ancestor section label (distance 5) | Metric choices | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/MetricsSection.tsx:101](../../web/frontend/src/components/dashboard/MetricsSection.tsx#L101) |
 | Metrics | ancestor section label (distance 4) | {`Select ${metric.display_name}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/MetricsSection.tsx:122](../../web/frontend/src/components/dashboard/MetricsSection.tsx#L122) |
 | Metrics | grandparent section label (distance 2) | Add metric | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/MetricsSection.tsx:137](../../web/frontend/src/components/dashboard/MetricsSection.tsx#L137) |
-| Posts | grandparent section label (distance 2) | Post | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:153](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L153) |
-| Posts | ancestor section label (distance 3) | Cancel | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:186](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L186) |
-| Settings | grandparent role dialog (distance 2) | Close | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:146](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L146) |
-| unknown | no enclosing accessible region | Calculated | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:166](../../web/frontend/src/components/CreateMetricDialog.tsx#L166) |
-| unknown | no enclosing accessible region | Judged | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:175](../../web/frontend/src/components/CreateMetricDialog.tsx#L175) |
+| Post tags | grandparent section label (distance 2) | Add tag | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/PostTagManager.tsx:85](../../web/frontend/src/components/settings/PostTagManager.tsx#L85) |
+| Post tags | ancestor section label (distance 4) | {`Edit ${tag.name}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/PostTagManager.tsx:114](../../web/frontend/src/components/settings/PostTagManager.tsx#L114) |
+| Post tags | ancestor section label (distance 4) | Unarchive | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/PostTagManager.tsx:123](../../web/frontend/src/components/settings/PostTagManager.tsx#L123) |
+| Post tags | ancestor section label (distance 4) | Archive | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/PostTagManager.tsx:128](../../web/frontend/src/components/settings/PostTagManager.tsx#L128) |
+| Posts | grandparent section label (distance 2) | Post | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:180](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L180) |
+| Posts | ancestor section label (distance 3) | Cancel | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:235](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L235) |
+| Settings | grandparent role dialog (distance 2) | Close | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:152](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L152) |
+| unknown | no enclosing accessible region | Calculated | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:263](../../web/frontend/src/components/CreateMetricDialog.tsx#L263) |
+| unknown | no enclosing accessible region | Judged | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:272](../../web/frontend/src/components/CreateMetricDialog.tsx#L272) |
 | unknown | no enclosing accessible region | Close | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/CreateWizardDialog.tsx:108](../../web/frontend/src/components/CreateWizardDialog.tsx#L108) |
 | unknown | no enclosing accessible region | Back | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/CreateWizardDialog.tsx:132](../../web/frontend/src/components/CreateWizardDialog.tsx#L132) |
-| unknown | no enclosing accessible region | Practice feed | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:350](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L350) |
-| unknown | no enclosing accessible region | Daily thread | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:359](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L359) |
-| unknown | no enclosing accessible region | Previewing... / Preview | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:611](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L611) |
-| unknown | no enclosing accessible region | Remove | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:745](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L745) |
-| unknown | no enclosing accessible region | Feed output choices | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedOutput.tsx:432](../../web/frontend/src/components/dashboard/FeedOutput.tsx#L432) |
-| unknown | no enclosing accessible region | {`Select ${optionTitle} (${option.value})`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedOutput.tsx:457](../../web/frontend/src/components/dashboard/FeedOutput.tsx#L457) |
-| unknown | no enclosing accessible region | Post actions | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:448](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L448) |
-| unknown | no enclosing accessible region | Tag | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:465](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L465) |
-| unknown | no enclosing accessible region | Edit | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:481](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L481) |
-| unknown | no enclosing accessible region | Delete | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:494](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L494) |
-| unknown | no enclosing accessible region | Cancel | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:551](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L551) |
-| unknown | no enclosing accessible region | Expand evidence | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:602](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L602) |
-| unknown | no enclosing accessible region | Done | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:684](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L684) |
-| unknown | no enclosing accessible region | Collapse evidence | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:870](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L870) |
-| unknown | no enclosing accessible region | Evidence copied / Copy evidence | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:882](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L882) |
+| unknown | no enclosing accessible region | Practice feed | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:352](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L352) |
+| unknown | no enclosing accessible region | Daily thread | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:361](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L361) |
+| unknown | no enclosing accessible region | Previewing... / Preview | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:625](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L625) |
+| unknown | no enclosing accessible region | Remove | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:759](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L759) |
+| unknown | no enclosing accessible region | Feed output choices | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedOutput.tsx:433](../../web/frontend/src/components/dashboard/FeedOutput.tsx#L433) |
+| unknown | no enclosing accessible region | {`Select ${optionTitle} (${option.value})`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedOutput.tsx:458](../../web/frontend/src/components/dashboard/FeedOutput.tsx#L458) |
+| unknown | no enclosing accessible region | Post actions | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:526](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L526) |
+| unknown | no enclosing accessible region | Tag | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:543](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L543) |
+| unknown | no enclosing accessible region | Edit | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:559](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L559) |
+| unknown | no enclosing accessible region | Delete | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:572](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L572) |
+| unknown | no enclosing accessible region | Cancel | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:648](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L648) |
+| unknown | no enclosing accessible region | Expand content | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:704](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L704) |
+| unknown | no enclosing accessible region | Done | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:786](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L786) |
+| unknown | no enclosing accessible region | Collapse content | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:972](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L972) |
+| unknown | no enclosing accessible region | Content copied / Copy content | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:984](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L984) |
 | unknown | no enclosing accessible region | {label} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/RowActionMenu.tsx:53](../../web/frontend/src/components/RowActionMenu.tsx#L53) |
 | unknown | no enclosing accessible region | {action.label} | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/RowActionMenu.tsx:69](../../web/frontend/src/components/RowActionMenu.tsx#L69) |
-| unknown | no enclosing accessible region | Unarchive | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:245](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L245) |
-| unknown | no enclosing accessible region | Archive | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:255](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L255) |
-| unknown | no enclosing accessible region | Unarchive | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/PostTagManager.tsx:154](../../web/frontend/src/components/settings/PostTagManager.tsx#L154) |
-| unknown | no enclosing accessible region | Archive | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/PostTagManager.tsx:159](../../web/frontend/src/components/settings/PostTagManager.tsx#L159) |
+| unknown | no enclosing accessible region | Unlimited | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CreateInviteLinkDialog.tsx:173](../../web/frontend/src/components/settings/CreateInviteLinkDialog.tsx#L173) |
+| unknown | no enclosing accessible region | Limited | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CreateInviteLinkDialog.tsx:185](../../web/frontend/src/components/settings/CreateInviteLinkDialog.tsx#L185) |
+| unknown | no enclosing accessible region | {`Edit ${format.name}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:261](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L261) |
+| unknown | no enclosing accessible region | Unarchive | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:271](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L271) |
+| unknown | no enclosing accessible region | Archive | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:281](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L281) |
+| unknown | no enclosing accessible region | {title} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:297](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L297) |
 
 ## onClose
 
-Found 10 occurrences.
+Found 19 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Evidence formats | parent section label (distance 1) | Evidence formats | region fallback (parent section label (distance 1)) | Component &lt;CreateEvidenceFormatDialog&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:125](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L125) |
-| Feeds | grandparent section label (distance 2) | Feeds | region fallback (grandparent section label (distance 2)) | Component &lt;FeedSettingsDialog&gt; | [web/frontend/src/components/groups/FeedSublist.tsx:145](../../web/frontend/src/components/groups/FeedSublist.tsx#L145) |
-| Metric settings | parent section label (distance 1) | Metric settings | region fallback (parent section label (distance 1)) | Component &lt;CreateMetricDialog&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:203](../../web/frontend/src/components/MetricSettingsManager.tsx#L203) |
-| Metric settings | parent section label (distance 1) | Metric settings | region fallback (parent section label (distance 1)) | Component &lt;EditMetricDialog&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:216](../../web/frontend/src/components/MetricSettingsManager.tsx#L216) |
-| unknown | no enclosing accessible region | Add metric | component prop label (distance 0) | Component &lt;CreateWizardDialog&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:148](../../web/frontend/src/components/CreateMetricDialog.tsx#L148) |
-| unknown | no enclosing accessible region | Add feed | component prop label (distance 0) | Component &lt;CreateWizardDialog&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:332](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L332) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;PostTagMenu&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:520](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L520) |
+| Evidence formats | parent section label (distance 1) | Evidence formats | region fallback (parent section label (distance 1)) | Component &lt;CreateEvidenceFormatDialog&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:193](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L193) |
+| Evidence formats | parent section label (distance 1) | Evidence formats | region fallback (parent section label (distance 1)) | Component &lt;EditEvidenceFormatDialog&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:211](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L211) |
+| Feeds | grandparent section label (distance 2) | Feeds | region fallback (grandparent section label (distance 2)) | Component &lt;FeedSettingsDialog&gt; | [web/frontend/src/components/groups/FeedSublist.tsx:150](../../web/frontend/src/components/groups/FeedSublist.tsx#L150) |
+| Invite links | parent section label (distance 1) | Invite links | region fallback (parent section label (distance 1)) | Component &lt;CreateInviteLinkDialog&gt; | [web/frontend/src/components/settings/InviteLinksManager.tsx:156](../../web/frontend/src/components/settings/InviteLinksManager.tsx#L156) |
+| Metric settings | parent section label (distance 1) | Metric settings | region fallback (parent section label (distance 1)) | Component &lt;CreateMetricDialog&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:224](../../web/frontend/src/components/MetricSettingsManager.tsx#L224) |
+| Metric settings | parent section label (distance 1) | Metric settings | region fallback (parent section label (distance 1)) | Component &lt;EditMetricDialog&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:239](../../web/frontend/src/components/MetricSettingsManager.tsx#L239) |
+| Post tags | parent section label (distance 1) | Post tags | region fallback (parent section label (distance 1)) | Component &lt;PostTagDialog&gt; | [web/frontend/src/components/settings/PostTagManager.tsx:143](../../web/frontend/src/components/settings/PostTagManager.tsx#L143) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;MetricWizardDialog&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:37](../../web/frontend/src/components/CreateMetricDialog.tsx#L37) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;MetricWizardDialog&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:67](../../web/frontend/src/components/CreateMetricDialog.tsx#L67) |
+| unknown | no enclosing accessible region | Edit metric / Add metric | component prop label (distance 0) | Component &lt;CreateWizardDialog&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:245](../../web/frontend/src/components/CreateMetricDialog.tsx#L245) |
+| unknown | no enclosing accessible region | Add feed | component prop label (distance 0) | Component &lt;CreateWizardDialog&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:334](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L334) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;PostTagMenu&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:598](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L598) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;AddFeedDialog&gt; | [web/frontend/src/components/GroupDashboard.tsx:221](../../web/frontend/src/components/GroupDashboard.tsx#L221) |
-| unknown | no enclosing accessible region | Add format | component prop label (distance 0) | Component &lt;CreateWizardDialog&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:118](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L118) |
+| unknown | no enclosing accessible region | Add format | component prop label (distance 0) | Component &lt;EvidenceFormatWizardDialog&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:53](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L53) |
+| unknown | no enclosing accessible region | {`Edit ${format.name}`} | component prop label (distance 0) | Component &lt;EvidenceFormatWizardDialog&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:107](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L107) |
+| unknown | no enclosing accessible region | {title} | component prop label (distance 0) | Component &lt;CreateWizardDialog&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:232](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L232) |
+| unknown | no enclosing accessible region | Create invite link | component prop label (distance 0) | Component &lt;CreateWizardDialog&gt; | [web/frontend/src/components/settings/CreateInviteLinkDialog.tsx:105](../../web/frontend/src/components/settings/CreateInviteLinkDialog.tsx#L105) |
+| unknown | no enclosing accessible region | {title} | component prop label (distance 0) | Component &lt;CreateWizardDialog&gt; | [web/frontend/src/components/settings/PostTagManager.tsx:200](../../web/frontend/src/components/settings/PostTagManager.tsx#L200) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/workspace/GroupSettingsAdapter.tsx:90](../../web/frontend/src/workspace/GroupSettingsAdapter.tsx#L90) |
 
 ## onCloseAddFeed
@@ -299,7 +324,7 @@ Found 1 occurrence.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;EvidenceCodeBlock&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:582](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L582) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;EvidenceCodeBlock&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:684](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L684) |
 
 ## onCopyPublicFeedLink
 
@@ -307,17 +332,19 @@ Found 2 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Groups | ancestor section label (distance 3) | Groups | region fallback (ancestor section label (distance 3)) | Component &lt;FeedSublist&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:190](../../web/frontend/src/components/groups/GroupsPanel.tsx#L190) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:130](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L130) |
+| Groups | ancestor section label (distance 3) | Groups | region fallback (ancestor section label (distance 3)) | Component &lt;FeedSublist&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:196](../../web/frontend/src/components/groups/GroupsPanel.tsx#L196) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:136](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L136) |
 
 ## onCreate
 
-Found 2 occurrences.
+Found 4 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Evidence formats | parent section label (distance 1) | Evidence formats | region fallback (parent section label (distance 1)) | Component &lt;CreateEvidenceFormatDialog&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:130](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L130) |
-| Metric settings | parent section label (distance 1) | Metric settings | region fallback (parent section label (distance 1)) | Component &lt;CreateMetricDialog&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:204](../../web/frontend/src/components/MetricSettingsManager.tsx#L204) |
+| Evidence formats | parent section label (distance 1) | Evidence formats | region fallback (parent section label (distance 1)) | Component &lt;CreateEvidenceFormatDialog&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:198](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L198) |
+| Invite links | parent section label (distance 1) | Invite links | region fallback (parent section label (distance 1)) | Component &lt;CreateInviteLinkDialog&gt; | [web/frontend/src/components/settings/InviteLinksManager.tsx:157](../../web/frontend/src/components/settings/InviteLinksManager.tsx#L157) |
+| Metric settings | parent section label (distance 1) | Metric settings | region fallback (parent section label (distance 1)) | Component &lt;CreateMetricDialog&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:225](../../web/frontend/src/components/MetricSettingsManager.tsx#L225) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;MetricWizardDialog&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:38](../../web/frontend/src/components/CreateMetricDialog.tsx#L38) |
 
 ## onCreateFeed
 
@@ -336,7 +363,7 @@ Found 4 occurrences.
 | --- | --- | --- | --- | --- | --- |
 | Selected feed output | grandparent section label (distance 2) | Selected feed output | region fallback (grandparent section label (distance 2)) | Component &lt;FeedOutput&gt; | [web/frontend/src/components/GroupDashboard.tsx:203](../../web/frontend/src/components/GroupDashboard.tsx#L203) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;LoadedFeedOutput&gt; | [web/frontend/src/components/dashboard/FeedOutput.tsx:144](../../web/frontend/src/components/dashboard/FeedOutput.tsx#L144) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FeedPostSection&gt; | [web/frontend/src/components/dashboard/FeedOutput.tsx:283](../../web/frontend/src/components/dashboard/FeedOutput.tsx#L283) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FeedPostSection&gt; | [web/frontend/src/components/dashboard/FeedOutput.tsx:284](../../web/frontend/src/components/dashboard/FeedOutput.tsx#L284) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupDashboard&gt; | [web/frontend/src/components/PublicPages.tsx:257](../../web/frontend/src/components/PublicPages.tsx#L257) |
 
 ## onCreateFormat
@@ -345,17 +372,16 @@ Found 2 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;EvidenceFormatManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:187](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L187) |
+| Settings | ancestor role dialog (distance 3) | Settings | region fallback (ancestor role dialog (distance 3)) | Component &lt;EvidenceFormatManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:224](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L224) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/workspace/GroupSettingsAdapter.tsx:93](../../web/frontend/src/workspace/GroupSettingsAdapter.tsx#L93) |
 
 ## onCreateFormatVersion
 
-Found 3 occurrences.
+Found 2 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Evidence formats | grandparent section label (distance 2) | Evidence formats | region fallback (grandparent section label (distance 2)) | Component &lt;EvidenceFormatManagerRow&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:114](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L114) |
-| Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;EvidenceFormatManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:188](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L188) |
+| Settings | ancestor role dialog (distance 3) | Settings | region fallback (ancestor role dialog (distance 3)) | Component &lt;EvidenceFormatManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:225](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L225) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/workspace/GroupSettingsAdapter.tsx:94](../../web/frontend/src/workspace/GroupSettingsAdapter.tsx#L94) |
 
 ## onCreateGroup
@@ -364,7 +390,7 @@ Found 1 occurrence.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:100](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L100) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:105](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L105) |
 
 ## onCreateInviteLink
 
@@ -372,7 +398,7 @@ Found 2 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;InviteLinksManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:209](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L209) |
+| Settings | ancestor role dialog (distance 3) | Settings | region fallback (ancestor role dialog (distance 3)) | Component &lt;InviteLinksManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:263](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L263) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/workspace/GroupSettingsAdapter.tsx:101](../../web/frontend/src/workspace/GroupSettingsAdapter.tsx#L101) |
 
 ## onCreateMetric
@@ -381,7 +407,7 @@ Found 2 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;MetricSettingsManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:162](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L162) |
+| Settings | ancestor role dialog (distance 3) | Settings | region fallback (ancestor role dialog (distance 3)) | Component &lt;MetricSettingsManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:183](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L183) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/workspace/GroupSettingsAdapter.tsx:92](../../web/frontend/src/workspace/GroupSettingsAdapter.tsx#L92) |
 
 ## onCreateMetricJudgment
@@ -390,10 +416,10 @@ Found 5 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Posts | grandparent section label (distance 2) | Posts | region fallback (grandparent section label (distance 2)) | Component &lt;FeedPostCard&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:137](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L137) |
+| Posts | grandparent section label (distance 2) | Posts | region fallback (grandparent section label (distance 2)) | Component &lt;FeedPostCard&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:162](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L162) |
 | Selected feed output | grandparent section label (distance 2) | Selected feed output | region fallback (grandparent section label (distance 2)) | Component &lt;FeedOutput&gt; | [web/frontend/src/components/GroupDashboard.tsx:206](../../web/frontend/src/components/GroupDashboard.tsx#L206) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;LoadedFeedOutput&gt; | [web/frontend/src/components/dashboard/FeedOutput.tsx:147](../../web/frontend/src/components/dashboard/FeedOutput.tsx#L147) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FeedPostSection&gt; | [web/frontend/src/components/dashboard/FeedOutput.tsx:286](../../web/frontend/src/components/dashboard/FeedOutput.tsx#L286) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FeedPostSection&gt; | [web/frontend/src/components/dashboard/FeedOutput.tsx:287](../../web/frontend/src/components/dashboard/FeedOutput.tsx#L287) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupDashboard&gt; | [web/frontend/src/components/PublicPages.tsx:258](../../web/frontend/src/components/PublicPages.tsx#L258) |
 
 ## onCreateTag
@@ -402,7 +428,7 @@ Found 2 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;PostTagManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:174](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L174) |
+| Settings | ancestor role dialog (distance 3) | Settings | region fallback (ancestor role dialog (distance 3)) | Component &lt;PostTagManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:203](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L203) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/workspace/GroupSettingsAdapter.tsx:97](../../web/frontend/src/workspace/GroupSettingsAdapter.tsx#L97) |
 
 ## onDeleteFeed
@@ -411,9 +437,9 @@ Found 3 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Feeds | grandparent section label (distance 2) | Feeds | region fallback (grandparent section label (distance 2)) | Component &lt;FeedSettingsDialog&gt; | [web/frontend/src/components/groups/FeedSublist.tsx:146](../../web/frontend/src/components/groups/FeedSublist.tsx#L146) |
-| Groups | ancestor section label (distance 3) | Groups | region fallback (ancestor section label (distance 3)) | Component &lt;FeedSublist&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:191](../../web/frontend/src/components/groups/GroupsPanel.tsx#L191) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:137](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L137) |
+| Feeds | grandparent section label (distance 2) | Feeds | region fallback (grandparent section label (distance 2)) | Component &lt;FeedSettingsDialog&gt; | [web/frontend/src/components/groups/FeedSublist.tsx:151](../../web/frontend/src/components/groups/FeedSublist.tsx#L151) |
+| Groups | ancestor section label (distance 3) | Groups | region fallback (ancestor section label (distance 3)) | Component &lt;FeedSublist&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:197](../../web/frontend/src/components/groups/GroupsPanel.tsx#L197) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:143](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L143) |
 
 ## onDeleteFeedPost
 
@@ -421,10 +447,10 @@ Found 5 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Posts | grandparent section label (distance 2) | Posts | region fallback (grandparent section label (distance 2)) | Component &lt;FeedPostCard&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:136](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L136) |
+| Posts | grandparent section label (distance 2) | Posts | region fallback (grandparent section label (distance 2)) | Component &lt;FeedPostCard&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:161](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L161) |
 | Selected feed output | grandparent section label (distance 2) | Selected feed output | region fallback (grandparent section label (distance 2)) | Component &lt;FeedOutput&gt; | [web/frontend/src/components/GroupDashboard.tsx:205](../../web/frontend/src/components/GroupDashboard.tsx#L205) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;LoadedFeedOutput&gt; | [web/frontend/src/components/dashboard/FeedOutput.tsx:146](../../web/frontend/src/components/dashboard/FeedOutput.tsx#L146) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FeedPostSection&gt; | [web/frontend/src/components/dashboard/FeedOutput.tsx:285](../../web/frontend/src/components/dashboard/FeedOutput.tsx#L285) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FeedPostSection&gt; | [web/frontend/src/components/dashboard/FeedOutput.tsx:286](../../web/frontend/src/components/dashboard/FeedOutput.tsx#L286) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupDashboard&gt; | [web/frontend/src/components/PublicPages.tsx:259](../../web/frontend/src/components/PublicPages.tsx#L259) |
 
 ## onDeleteFormat
@@ -433,8 +459,8 @@ Found 3 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Evidence formats | grandparent section label (distance 2) | Evidence formats | region fallback (grandparent section label (distance 2)) | Component &lt;EvidenceFormatManagerRow&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:115](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L115) |
-| Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;EvidenceFormatManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:189](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L189) |
+| Evidence formats | grandparent section label (distance 2) | Evidence formats | region fallback (grandparent section label (distance 2)) | Component &lt;EvidenceFormatManagerRow&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:177](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L177) |
+| Settings | ancestor role dialog (distance 3) | Settings | region fallback (ancestor role dialog (distance 3)) | Component &lt;EvidenceFormatManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:226](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L226) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/workspace/GroupSettingsAdapter.tsx:98](../../web/frontend/src/workspace/GroupSettingsAdapter.tsx#L98) |
 
 ## onDeleteGroup
@@ -443,7 +469,7 @@ Found 1 occurrence.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:109](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L109) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:114](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L114) |
 
 ## onDeleteMetric
 
@@ -451,27 +477,48 @@ Found 2 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;MetricSettingsManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:163](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L163) |
+| Settings | ancestor role dialog (distance 3) | Settings | region fallback (ancestor role dialog (distance 3)) | Component &lt;MetricSettingsManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:184](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L184) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/workspace/GroupSettingsAdapter.tsx:99](../../web/frontend/src/workspace/GroupSettingsAdapter.tsx#L99) |
 
 ## onDeleteTag
-
-Found 3 occurrences.
-
-| Region | Region relationship | Nearest label | Label relationship | Target | Source |
-| --- | --- | --- | --- | --- | --- |
-| Post tags | grandparent section label (distance 2) | Post tags | region fallback (grandparent section label (distance 2)) | Component &lt;PostTagManagerRow&gt; | [web/frontend/src/components/settings/PostTagManager.tsx:79](../../web/frontend/src/components/settings/PostTagManager.tsx#L79) |
-| Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;PostTagManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:175](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L175) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/workspace/GroupSettingsAdapter.tsx:100](../../web/frontend/src/workspace/GroupSettingsAdapter.tsx#L100) |
-
-## onDraftChanged
 
 Found 2 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Evidence formats | parent section label (distance 1) | Evidence formats | region fallback (parent section label (distance 1)) | Component &lt;CreateEvidenceFormatDialog&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:126](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L126) |
+| Settings | ancestor role dialog (distance 3) | Settings | region fallback (ancestor role dialog (distance 3)) | Component &lt;PostTagManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:204](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L204) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/workspace/GroupSettingsAdapter.tsx:100](../../web/frontend/src/workspace/GroupSettingsAdapter.tsx#L100) |
+
+## onDraftChanged
+
+Found 5 occurrences.
+
+| Region | Region relationship | Nearest label | Label relationship | Target | Source |
+| --- | --- | --- | --- | --- | --- |
+| Evidence formats | parent section label (distance 1) | Evidence formats | region fallback (parent section label (distance 1)) | Component &lt;CreateEvidenceFormatDialog&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:194](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L194) |
+| Evidence formats | parent section label (distance 1) | Evidence formats | region fallback (parent section label (distance 1)) | Component &lt;EditEvidenceFormatDialog&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:212](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L212) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;AddFeedDialog&gt; | [web/frontend/src/components/GroupDashboard.tsx:223](../../web/frontend/src/components/GroupDashboard.tsx#L223) |
+| unknown | no enclosing accessible region | Add format | component prop label (distance 0) | Component &lt;EvidenceFormatWizardDialog&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:54](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L54) |
+| unknown | no enclosing accessible region | {`Edit ${format.name}`} | component prop label (distance 0) | Component &lt;EvidenceFormatWizardDialog&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:108](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L108) |
+
+## onEdit
+
+Found 1 occurrence.
+
+| Region | Region relationship | Nearest label | Label relationship | Target | Source |
+| --- | --- | --- | --- | --- | --- |
+| Evidence formats | grandparent section label (distance 2) | Evidence formats | region fallback (grandparent section label (distance 2)) | Component &lt;EvidenceFormatManagerRow&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:178](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L178) |
+
+## onFocus
+
+Found 4 occurrences.
+
+| Region | Region relationship | Nearest label | Label relationship | Target | Source |
+| --- | --- | --- | --- | --- | --- |
+| Posts | grandparent section label (distance 2) | Posts | region fallback (grandparent section label (distance 2)) | DOM &lt;textarea&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:210](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L210) |
+| Posts | ancestor section label (distance 3) | Caption | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:224](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L224) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | DOM &lt;textarea&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:622](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L622) |
+| unknown | no enclosing accessible region | Caption | parent label (distance 1) | DOM &lt;textarea&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:636](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L636) |
 
 ## onFocusCapture
 
@@ -487,7 +534,7 @@ Found 1 occurrence.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Groups | ancestor section label (distance 3) | New group name | self aria-label (distance 0) | DOM &lt;input&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:102](../../web/frontend/src/components/groups/GroupsPanel.tsx#L102) |
+| Groups | ancestor section label (distance 3) | New group name | self aria-label (distance 0) | DOM &lt;input&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:106](../../web/frontend/src/components/groups/GroupsPanel.tsx#L106) |
 
 ## onLogin
 
@@ -533,7 +580,7 @@ Found 1 occurrence.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:108](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L108) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:113](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L113) |
 
 ## onPreviewFeed
 
@@ -550,8 +597,8 @@ Found 2 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Groups | ancestor section label (distance 3) | Groups | region fallback (ancestor section label (distance 3)) | Component &lt;FeedSublist&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:189](../../web/frontend/src/components/groups/GroupsPanel.tsx#L189) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:124](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L124) |
+| Groups | ancestor section label (distance 3) | Groups | region fallback (ancestor section label (distance 3)) | Component &lt;FeedSublist&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:195](../../web/frontend/src/components/groups/GroupsPanel.tsx#L195) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:130](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L130) |
 
 ## onRefreshGeneration
 
@@ -559,7 +606,7 @@ Found 1 occurrence.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Feeds | grandparent section label (distance 2) | Feeds | region fallback (grandparent section label (distance 2)) | Component &lt;FeedSettingsDialog&gt; | [web/frontend/src/components/groups/FeedSublist.tsx:156](../../web/frontend/src/components/groups/FeedSublist.tsx#L156) |
+| Feeds | grandparent section label (distance 2) | Feeds | region fallback (grandparent section label (distance 2)) | Component &lt;FeedSettingsDialog&gt; | [web/frontend/src/components/groups/FeedSublist.tsx:162](../../web/frontend/src/components/groups/FeedSublist.tsx#L162) |
 
 ## onRemove
 
@@ -567,7 +614,7 @@ Found 1 occurrence.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Filters | grandparent section label (distance 2) | Filters | region fallback (grandparent section label (distance 2)) | Component &lt;FilterEditor&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:525](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L525) |
+| Filters | grandparent section label (distance 2) | Filters | region fallback (grandparent section label (distance 2)) | Component &lt;FilterEditor&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:539](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L539) |
 
 ## onRemoveMember
 
@@ -575,7 +622,7 @@ Found 2 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;GroupMembersManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:199](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L199) |
+| Settings | ancestor role dialog (distance 3) | Settings | region fallback (ancestor role dialog (distance 3)) | Component &lt;GroupMembersManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:244](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L244) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/workspace/GroupSettingsAdapter.tsx:102](../../web/frontend/src/workspace/GroupSettingsAdapter.tsx#L102) |
 
 ## onRevokeInviteLink
@@ -584,8 +631,16 @@ Found 2 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;InviteLinksManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:210](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L210) |
+| Settings | ancestor role dialog (distance 3) | Settings | region fallback (ancestor role dialog (distance 3)) | Component &lt;InviteLinksManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:264](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L264) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/workspace/GroupSettingsAdapter.tsx:103](../../web/frontend/src/workspace/GroupSettingsAdapter.tsx#L103) |
+
+## onSave
+
+Found 1 occurrence.
+
+| Region | Region relationship | Nearest label | Label relationship | Target | Source |
+| --- | --- | --- | --- | --- | --- |
+| Evidence formats | parent section label (distance 1) | Evidence formats | region fallback (parent section label (distance 1)) | Component &lt;EditEvidenceFormatDialog&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:216](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L216) |
 
 ## onSelectFeed
 
@@ -593,11 +648,11 @@ Found 5 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Groups | ancestor section label (distance 3) | Groups | region fallback (ancestor section label (distance 3)) | Component &lt;FeedSublist&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:185](../../web/frontend/src/components/groups/GroupsPanel.tsx#L185) |
-| Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;MetricSettingsManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:164](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L164) |
+| Groups | ancestor section label (distance 3) | Groups | region fallback (ancestor section label (distance 3)) | Component &lt;FeedSublist&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:190](../../web/frontend/src/components/groups/GroupsPanel.tsx#L190) |
+| Settings | ancestor role dialog (distance 3) | Settings | region fallback (ancestor role dialog (distance 3)) | Component &lt;MetricSettingsManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:185](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L185) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupDashboard&gt; | [web/frontend/src/components/PublicPages.tsx:261](../../web/frontend/src/components/PublicPages.tsx#L261) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/workspace/GroupSettingsAdapter.tsx:104](../../web/frontend/src/workspace/GroupSettingsAdapter.tsx#L104) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:110](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L110) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:115](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L115) |
 
 ## onSelectGroup
 
@@ -605,7 +660,7 @@ Found 1 occurrence.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:101](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L101) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:106](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L106) |
 
 ## onSelectMetric
 
@@ -622,7 +677,7 @@ Found 1 occurrence.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;PostTagMenu&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:521](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L521) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;PostTagMenu&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:599](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L599) |
 
 ## onSignup
 
@@ -636,27 +691,34 @@ Found 3 occurrences.
 
 ## onSubmit
 
-Found 17 occurrences.
+Found 15 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
 | Authentication | parent section label (distance 1) | Authentication | region fallback (parent section label (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/AuthView.tsx:72](../../web/frontend/src/components/AuthView.tsx#L72) |
 | Authentication | parent section label (distance 1) | Authentication | region fallback (parent section label (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/AuthView.tsx:90](../../web/frontend/src/components/AuthView.tsx#L90) |
-| Cadence | parent section label (distance 1) | Cadence | region fallback (parent section label (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:155](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L155) |
-| Edit metric | parent role dialog (distance 1) | Edit metric | region fallback (parent role dialog (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:275](../../web/frontend/src/components/MetricSettingsManager.tsx#L275) |
-| Groups | grandparent section label (distance 2) | Groups | region fallback (grandparent section label (distance 2)) | DOM &lt;form&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:93](../../web/frontend/src/components/groups/GroupsPanel.tsx#L93) |
-| Invite links | parent section label (distance 1) | Invite links | region fallback (parent section label (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/settings/InviteLinksManager.tsx:62](../../web/frontend/src/components/settings/InviteLinksManager.tsx#L62) |
-| Post tags | parent section label (distance 1) | Post tags | region fallback (parent section label (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/settings/PostTagManager.tsx:49](../../web/frontend/src/components/settings/PostTagManager.tsx#L49) |
-| Posts | parent section label (distance 1) | Posts | region fallback (parent section label (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:161](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L161) |
-| unknown | no enclosing accessible region | Add metric | component prop label (distance 0) | Component &lt;CreateWizardDialog&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:149](../../web/frontend/src/components/CreateMetricDialog.tsx#L149) |
+| Cadence | parent section label (distance 1) | Cadence | region fallback (parent section label (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:166](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L166) |
+| Groups | grandparent section label (distance 2) | Groups | region fallback (grandparent section label (distance 2)) | DOM &lt;form&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:97](../../web/frontend/src/components/groups/GroupsPanel.tsx#L97) |
+| Post tags | parent section label (distance 1) | Post tags | region fallback (parent section label (distance 1)) | Component &lt;PostTagDialog&gt; | [web/frontend/src/components/settings/PostTagManager.tsx:144](../../web/frontend/src/components/settings/PostTagManager.tsx#L144) |
+| Posts | parent section label (distance 1) | Posts | region fallback (parent section label (distance 1)) | DOM &lt;form&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:192](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L192) |
+| unknown | no enclosing accessible region | Edit metric / Add metric | component prop label (distance 0) | Component &lt;CreateWizardDialog&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:246](../../web/frontend/src/components/CreateMetricDialog.tsx#L246) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | DOM &lt;form&gt; | [web/frontend/src/components/CreateWizardDialog.tsx:99](../../web/frontend/src/components/CreateWizardDialog.tsx#L99) |
-| unknown | no enclosing accessible region | Add feed | component prop label (distance 0) | Component &lt;CreateWizardDialog&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:333](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L333) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | DOM &lt;form&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:526](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L526) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;MetricJudgmentForm&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:615](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L615) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | DOM &lt;form&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:744](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L744) |
-| unknown | no enclosing accessible region | Add format | component prop label (distance 0) | Component &lt;CreateWizardDialog&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:119](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L119) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | DOM &lt;form&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:211](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L211) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | DOM &lt;form&gt; | [web/frontend/src/components/settings/PostTagManager.tsx:133](../../web/frontend/src/components/settings/PostTagManager.tsx#L133) |
+| unknown | no enclosing accessible region | Add feed | component prop label (distance 0) | Component &lt;CreateWizardDialog&gt; | [web/frontend/src/components/dashboard/AddFeedDialog.tsx:335](../../web/frontend/src/components/dashboard/AddFeedDialog.tsx#L335) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | DOM &lt;form&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:604](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L604) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;MetricJudgmentForm&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:717](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L717) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | DOM &lt;form&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:846](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L846) |
+| unknown | no enclosing accessible region | {title} | component prop label (distance 0) | Component &lt;CreateWizardDialog&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:233](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L233) |
+| unknown | no enclosing accessible region | Create invite link | component prop label (distance 0) | Component &lt;CreateWizardDialog&gt; | [web/frontend/src/components/settings/CreateInviteLinkDialog.tsx:106](../../web/frontend/src/components/settings/CreateInviteLinkDialog.tsx#L106) |
+| unknown | no enclosing accessible region | {title} | component prop label (distance 0) | Component &lt;CreateWizardDialog&gt; | [web/frontend/src/components/settings/PostTagManager.tsx:201](../../web/frontend/src/components/settings/PostTagManager.tsx#L201) |
+
+## onSubmitDraft
+
+Found 2 occurrences.
+
+| Region | Region relationship | Nearest label | Label relationship | Target | Source |
+| --- | --- | --- | --- | --- | --- |
+| unknown | no enclosing accessible region | Add format | component prop label (distance 0) | Component &lt;EvidenceFormatWizardDialog&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:55](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L55) |
+| unknown | no enclosing accessible region | {`Edit ${format.name}`} | component prop label (distance 0) | Component &lt;EvidenceFormatWizardDialog&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:109](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L109) |
 
 ## onToast
 
@@ -668,15 +730,38 @@ Found 3 occurrences.
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;InviteJoinView&gt; | [web/frontend/src/App.tsx:108](../../web/frontend/src/App.tsx#L108) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;WorkspaceShell&gt; | [web/frontend/src/App.tsx:141](../../web/frontend/src/App.tsx#L141) |
 
+## onToggle
+
+Found 6 occurrences.
+
+| Region | Region relationship | Nearest label | Label relationship | Target | Source |
+| --- | --- | --- | --- | --- | --- |
+| Settings | grandparent role dialog (distance 2) | Visibility | component prop label (distance 0) | Component &lt;GroupSettingsDisclosure&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:163](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L163) |
+| Settings | grandparent role dialog (distance 2) | Metrics | component prop label (distance 0) | Component &lt;GroupSettingsDisclosure&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:172](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L172) |
+| Settings | grandparent role dialog (distance 2) | Post tags | component prop label (distance 0) | Component &lt;GroupSettingsDisclosure&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:194](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L194) |
+| Settings | grandparent role dialog (distance 2) | Post formats | component prop label (distance 0) | Component &lt;GroupSettingsDisclosure&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:213](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L213) |
+| Settings | grandparent role dialog (distance 2) | Members | component prop label (distance 0) | Component &lt;GroupSettingsDisclosure&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:235](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L235) |
+| Settings | grandparent role dialog (distance 2) | Invite links | component prop label (distance 0) | Component &lt;GroupSettingsDisclosure&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:252](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L252) |
+
+## onToggleFeedCaptions
+
+Found 3 occurrences.
+
+| Region | Region relationship | Nearest label | Label relationship | Target | Source |
+| --- | --- | --- | --- | --- | --- |
+| Feeds | grandparent section label (distance 2) | Feeds | region fallback (grandparent section label (distance 2)) | Component &lt;FeedSettingsDialog&gt; | [web/frontend/src/components/groups/FeedSublist.tsx:159](../../web/frontend/src/components/groups/FeedSublist.tsx#L159) |
+| Groups | ancestor section label (distance 3) | Groups | region fallback (ancestor section label (distance 3)) | Component &lt;FeedSublist&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:192](../../web/frontend/src/components/groups/GroupsPanel.tsx#L192) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:123](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L123) |
+
 ## onToggleFeedEnabled
 
 Found 3 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Feeds | grandparent section label (distance 2) | Feeds | region fallback (grandparent section label (distance 2)) | Component &lt;FeedSettingsDialog&gt; | [web/frontend/src/components/groups/FeedSublist.tsx:150](../../web/frontend/src/components/groups/FeedSublist.tsx#L150) |
-| Groups | ancestor section label (distance 3) | Groups | region fallback (ancestor section label (distance 3)) | Component &lt;FeedSublist&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:186](../../web/frontend/src/components/groups/GroupsPanel.tsx#L186) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:117](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L117) |
+| Feeds | grandparent section label (distance 2) | Feeds | region fallback (grandparent section label (distance 2)) | Component &lt;FeedSettingsDialog&gt; | [web/frontend/src/components/groups/FeedSublist.tsx:155](../../web/frontend/src/components/groups/FeedSublist.tsx#L155) |
+| Groups | ancestor section label (distance 3) | Groups | region fallback (ancestor section label (distance 3)) | Component &lt;FeedSublist&gt; | [web/frontend/src/components/groups/GroupsPanel.tsx:191](../../web/frontend/src/components/groups/GroupsPanel.tsx#L191) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupsPanel&gt; | [web/frontend/src/workspace/GroupsNavAdapter.tsx:122](../../web/frontend/src/workspace/GroupsNavAdapter.tsx#L122) |
 
 ## onUnauthorized
 
@@ -689,11 +774,12 @@ Found 2 occurrences.
 
 ## onUpdate
 
-Found 1 occurrence.
+Found 2 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Metric settings | parent section label (distance 1) | Metric settings | region fallback (parent section label (distance 1)) | Component &lt;EditMetricDialog&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:217](../../web/frontend/src/components/MetricSettingsManager.tsx#L217) |
+| Metric settings | parent section label (distance 1) | Metric settings | region fallback (parent section label (distance 1)) | Component &lt;EditMetricDialog&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:240](../../web/frontend/src/components/MetricSettingsManager.tsx#L240) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;MetricWizardDialog&gt; | [web/frontend/src/components/CreateMetricDialog.tsx:68](../../web/frontend/src/components/CreateMetricDialog.tsx#L68) |
 
 ## onUpdateFeedPost
 
@@ -701,10 +787,10 @@ Found 5 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Posts | grandparent section label (distance 2) | Posts | region fallback (grandparent section label (distance 2)) | Component &lt;FeedPostCard&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:135](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L135) |
+| Posts | grandparent section label (distance 2) | Posts | region fallback (grandparent section label (distance 2)) | Component &lt;FeedPostCard&gt; | [web/frontend/src/components/dashboard/FeedPosts.tsx:160](../../web/frontend/src/components/dashboard/FeedPosts.tsx#L160) |
 | Selected feed output | grandparent section label (distance 2) | Selected feed output | region fallback (grandparent section label (distance 2)) | Component &lt;FeedOutput&gt; | [web/frontend/src/components/GroupDashboard.tsx:204](../../web/frontend/src/components/GroupDashboard.tsx#L204) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;LoadedFeedOutput&gt; | [web/frontend/src/components/dashboard/FeedOutput.tsx:145](../../web/frontend/src/components/dashboard/FeedOutput.tsx#L145) |
-| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FeedPostSection&gt; | [web/frontend/src/components/dashboard/FeedOutput.tsx:284](../../web/frontend/src/components/dashboard/FeedOutput.tsx#L284) |
+| unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FeedPostSection&gt; | [web/frontend/src/components/dashboard/FeedOutput.tsx:285](../../web/frontend/src/components/dashboard/FeedOutput.tsx#L285) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupDashboard&gt; | [web/frontend/src/components/PublicPages.tsx:263](../../web/frontend/src/components/PublicPages.tsx#L263) |
 
 ## onUpdateFormat
@@ -713,8 +799,8 @@ Found 3 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Evidence formats | grandparent section label (distance 2) | Evidence formats | region fallback (grandparent section label (distance 2)) | Component &lt;EvidenceFormatManagerRow&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:116](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L116) |
-| Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;EvidenceFormatManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:190](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L190) |
+| Evidence formats | grandparent section label (distance 2) | Evidence formats | region fallback (grandparent section label (distance 2)) | Component &lt;EvidenceFormatManagerRow&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:184](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L184) |
+| Settings | ancestor role dialog (distance 3) | Settings | region fallback (ancestor role dialog (distance 3)) | Component &lt;EvidenceFormatManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:227](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L227) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/workspace/GroupSettingsAdapter.tsx:112](../../web/frontend/src/workspace/GroupSettingsAdapter.tsx#L112) |
 
 ## onUpdateMetric
@@ -723,17 +809,16 @@ Found 2 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;MetricSettingsManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:165](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L165) |
+| Settings | ancestor role dialog (distance 3) | Settings | region fallback (ancestor role dialog (distance 3)) | Component &lt;MetricSettingsManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:186](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L186) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/workspace/GroupSettingsAdapter.tsx:111](../../web/frontend/src/workspace/GroupSettingsAdapter.tsx#L111) |
 
 ## onUpdateTag
 
-Found 3 occurrences.
+Found 2 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Post tags | grandparent section label (distance 2) | Post tags | region fallback (grandparent section label (distance 2)) | Component &lt;PostTagManagerRow&gt; | [web/frontend/src/components/settings/PostTagManager.tsx:80](../../web/frontend/src/components/settings/PostTagManager.tsx#L80) |
-| Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;PostTagManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:176](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L176) |
+| Settings | ancestor role dialog (distance 3) | Settings | region fallback (ancestor role dialog (distance 3)) | Component &lt;PostTagManager&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:205](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L205) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/workspace/GroupSettingsAdapter.tsx:115](../../web/frontend/src/workspace/GroupSettingsAdapter.tsx#L115) |
 
 ## onUpdateVisibility
@@ -742,6 +827,6 @@ Found 2 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Settings | grandparent role dialog (distance 2) | Settings | region fallback (grandparent role dialog (distance 2)) | Component &lt;GroupVisibilityControl&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:152](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L152) |
+| Settings | ancestor role dialog (distance 3) | Settings | region fallback (ancestor role dialog (distance 3)) | Component &lt;GroupVisibilityControl&gt; | [web/frontend/src/components/settings/GroupSettingsDialog.tsx:165](../../web/frontend/src/components/settings/GroupSettingsDialog.tsx#L165) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;GroupSettingsDialog&gt; | [web/frontend/src/workspace/GroupSettingsAdapter.tsx:108](../../web/frontend/src/workspace/GroupSettingsAdapter.tsx#L108) |
 

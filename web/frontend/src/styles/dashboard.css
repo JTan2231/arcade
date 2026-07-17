@@ -43,11 +43,11 @@
   width: 100vw;
 }
 
-.feed-spotlight-ambient-canvas:has(~ .feed-spotlight-post-canvas-visible) {
+.feed-spotlight-ambient-canvas:has(~ .feed-spotlight-focus-canvas-visible) {
   opacity: 0.4;
 }
 
-.feed-spotlight-post-canvas {
+.feed-spotlight-focus-canvas {
   left: 0;
   opacity: 0;
   top: 0;
@@ -55,7 +55,7 @@
   will-change: opacity, transform;
 }
 
-.feed-spotlight-post-canvas-visible {
+.feed-spotlight-focus-canvas-visible {
   opacity: 1;
 }
 

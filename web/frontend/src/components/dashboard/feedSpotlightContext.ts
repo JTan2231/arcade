@@ -1,13 +1,20 @@
 import { createContext, useContext, useLayoutEffect, type RefObject } from "react";
 
+export type FeedSpotlightTone = "feed" | "post";
+
 type FeedSpotlightContextValue = {
-  registerTarget: (id: string, element: HTMLElement) => void;
+  registerTarget: (id: string, element: HTMLElement, tone: FeedSpotlightTone) => void;
   releaseTarget: (id: string, element: HTMLElement) => void;
 };
 
 export const FeedSpotlightContext = createContext<FeedSpotlightContextValue | null>(null);
 
-export function useFeedSpotlightTarget(id: string, targetRef: RefObject<HTMLElement | null>, active: boolean) {
+export function useFeedSpotlightTarget(
+  id: string,
+  targetRef: RefObject<HTMLElement | null>,
+  active: boolean,
+  tone: FeedSpotlightTone = "post",
+) {
   const spotlight = useContext(FeedSpotlightContext);
 
   useLayoutEffect(() => {
@@ -16,7 +23,7 @@ export function useFeedSpotlightTarget(id: string, targetRef: RefObject<HTMLElem
       return;
     }
 
-    spotlight.registerTarget(id, element);
+    spotlight.registerTarget(id, element, tone);
     return () => spotlight.releaseTarget(id, element);
-  }, [active, id, spotlight, targetRef]);
+  }, [active, id, spotlight, targetRef, tone]);
 }

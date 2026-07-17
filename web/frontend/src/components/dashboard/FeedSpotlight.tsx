@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
-import { FeedSpotlightContext } from "./feedSpotlightContext";
+import { FeedSpotlightContext, type FeedSpotlightTone } from "./feedSpotlightContext";
 
 type Rgba = {
   red: number;
@@ -14,14 +14,16 @@ type SpotlightTarget = {
   element: HTMLElement;
   id: string;
   order: number;
+  tone: FeedSpotlightTone;
 };
 
 const ambientSpotlightRadiusX = 0.62;
 const ambientSpotlightRadiusY = 0.5;
-const postSpotlightWidthRatio = 1.16;
-const postSpotlightHeightRatio = 0.82;
-const minimumPostSpotlightWidth = 440;
-const minimumPostSpotlightHeight = 420;
+const focusSpotlightWidthRatio = 1.16;
+const focusSpotlightHeightRatio = 0.82;
+const minimumFocusSpotlightWidth = 440;
+const minimumFocusSpotlightHeight = 420;
+const focusedFeedSpotlightIntensity = 1.6;
 const ditherStrength = 1.25;
 const maxAmbientDevicePixelRatio = 2;
 const maxPostDevicePixelRatio = 1.25;
@@ -83,6 +85,7 @@ function drawSpotlight({
   radiusX,
   radiusY,
   maximumDevicePixelRatio,
+  intensity = 1,
 }: {
   canvas: HTMLCanvasElement;
   cssWidth: number;
@@ -92,6 +95,7 @@ function drawSpotlight({
   radiusX: number;
   radiusY: number;
   maximumDevicePixelRatio: number;
+  intensity?: number;
 }) {
   const context = canvas.getContext("2d");
   if (context === null) {
@@ -124,8 +128,9 @@ function drawSpotlight({
   const centerY = height * 0.5;
   const pixelRadiusX = width * radiusX;
   const pixelRadiusY = height * radiusY;
-  const alphaStart = endpoint.alpha;
-  const alphaRange = origin.alpha - endpoint.alpha;
+  const alphaStart = clamp(endpoint.alpha * intensity, 0, 255);
+  const alphaEnd = clamp(origin.alpha * intensity, 0, 255);
+  const alphaRange = alphaEnd - alphaStart;
 
   for (let y = 0; y < height; y += 1) {
     const normalizedY = (y + 0.5 - centerY) / pixelRadiusY;
@@ -200,10 +205,14 @@ function AmbientSpotlight() {
   return <canvas aria-hidden="true" className="feed-spotlight-canvas feed-spotlight-ambient-canvas" ref={canvasRef} />;
 }
 
-function PostSpotlight({ target }: { target: SpotlightTarget | null }) {
+function FocusedSpotlight({ target, tone }: { target: SpotlightTarget | null; tone: FeedSpotlightTone }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const layerSizeRef = useRef({ height: 1, width: 1 });
   const [positioned, setPositioned] = useState(false);
+  const feedTone = tone === "feed";
+  const originToken = feedTone ? "--color-feed-spotlight" : "--color-post-spotlight";
+  const endpointToken = feedTone ? "--color-feed-spotlight-transparent" : "--color-post-spotlight-transparent";
+  const intensity = feedTone ? focusedFeedSpotlightIntensity : 1;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -212,18 +221,19 @@ function PostSpotlight({ target }: { target: SpotlightTarget | null }) {
     }
 
     const draw = () => {
-      const width = Math.max(minimumPostSpotlightWidth, window.innerWidth * postSpotlightWidthRatio);
-      const height = Math.max(minimumPostSpotlightHeight, window.innerHeight * postSpotlightHeightRatio);
+      const width = Math.max(minimumFocusSpotlightWidth, window.innerWidth * focusSpotlightWidthRatio);
+      const height = Math.max(minimumFocusSpotlightHeight, window.innerHeight * focusSpotlightHeightRatio);
       layerSizeRef.current = { height, width };
       drawSpotlight({
         canvas,
         cssWidth: width,
         cssHeight: height,
-        originToken: "--color-post-spotlight",
-        endpointToken: "--color-post-spotlight-transparent",
+        originToken,
+        endpointToken,
         radiusX: 0.5,
         radiusY: 0.5,
         maximumDevicePixelRatio: maxPostDevicePixelRatio,
+        intensity,
       });
     };
 
@@ -241,7 +251,7 @@ function PostSpotlight({ target }: { target: SpotlightTarget | null }) {
         visualViewport.removeEventListener("resize", draw);
       }
     };
-  }, []);
+  }, [endpointToken, intensity, originToken]);
 
   const targetElement = target?.element ?? null;
   const targetActive = target?.active === true;
@@ -322,8 +332,8 @@ function PostSpotlight({ target }: { target: SpotlightTarget | null }) {
   const visible = targetActive && positioned;
   const className = [
     "feed-spotlight-canvas",
-    "feed-spotlight-post-canvas",
-    visible ? "feed-spotlight-post-canvas-visible" : "",
+    "feed-spotlight-focus-canvas",
+    visible ? "feed-spotlight-focus-canvas-visible" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -336,7 +346,7 @@ export function FeedSpotlight({ children }: { children: ReactNode }) {
   const removalTimers = useRef(new Map<string, number>());
   const nextTargetOrder = useRef(0);
 
-  const registerTarget = useCallback((id: string, element: HTMLElement) => {
+  const registerTarget = useCallback((id: string, element: HTMLElement, tone: FeedSpotlightTone) => {
     const timer = removalTimers.current.get(id);
     if (timer !== undefined) {
       window.clearTimeout(timer);
@@ -345,12 +355,12 @@ export function FeedSpotlight({ children }: { children: ReactNode }) {
 
     setTargets((current) => {
       const existing = current.get(id);
-      if (existing?.active === true && existing.element === element) {
+      if (existing?.active === true && existing.element === element && existing.tone === tone) {
         return current;
       }
       nextTargetOrder.current += 1;
       const next = new Map(current);
-      next.set(id, { active: true, element, id, order: nextTargetOrder.current });
+      next.set(id, { active: true, element, id, order: nextTargetOrder.current, tone });
       return next;
     });
   }, []);
@@ -398,11 +408,14 @@ export function FeedSpotlight({ children }: { children: ReactNode }) {
   const context = useMemo(() => ({ registerTarget, releaseTarget }), [registerTarget, releaseTarget]);
   const orderedTargets = [...targets.values()].sort((left, right) => right.order - left.order);
   const presentedTarget = orderedTargets.find((target) => target.active) ?? orderedTargets[0] ?? null;
+  const feedTarget = presentedTarget?.tone === "feed" ? presentedTarget : null;
+  const postTarget = presentedTarget?.tone === "post" ? presentedTarget : null;
 
   return (
     <FeedSpotlightContext.Provider value={context}>
       <AmbientSpotlight />
-      <PostSpotlight target={presentedTarget} />
+      <FocusedSpotlight target={postTarget} tone="post" />
+      <FocusedSpotlight target={feedTarget} tone="feed" />
       {children}
     </FeedSpotlightContext.Provider>
   );

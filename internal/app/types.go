@@ -44,16 +44,17 @@ type PublicGroup struct {
 }
 
 type PublicGroupFeed struct {
-	ID             string            `json:"id"`
-	Name           string            `json:"name"`
-	Slug           string            `json:"slug"`
-	Kind           string            `json:"kind"`
-	Description    *string           `json:"description,omitempty"`
-	Enabled        bool              `json:"enabled"`
-	EvidenceFormat EvidenceFormat    `json:"evidence_format"`
-	Schedule       DailyFeedSchedule `json:"schedule"`
-	CreatedAt      time.Time         `json:"created_at"`
-	UpdatedAt      time.Time         `json:"updated_at"`
+	ID              string            `json:"id"`
+	Name            string            `json:"name"`
+	Slug            string            `json:"slug"`
+	Kind            string            `json:"kind"`
+	Description     *string           `json:"description,omitempty"`
+	Enabled         bool              `json:"enabled"`
+	CaptionsEnabled bool              `json:"captions_enabled"`
+	EvidenceFormat  EvidenceFormat    `json:"evidence_format"`
+	Schedule        DailyFeedSchedule `json:"schedule"`
+	CreatedAt       time.Time         `json:"created_at"`
+	UpdatedAt       time.Time         `json:"updated_at"`
 }
 
 type PublicParentGroup struct {
@@ -137,6 +138,7 @@ type DailyFeed struct {
 	Kind            string                `json:"kind"`
 	Description     *string               `json:"description,omitempty"`
 	Enabled         bool                  `json:"enabled"`
+	CaptionsEnabled bool                  `json:"captions_enabled"`
 	SourceID        *string               `json:"source_id,omitempty"`
 	SourceName      *string               `json:"source_name,omitempty"`
 	ItemCount       *int                  `json:"item_count,omitempty"`
@@ -220,20 +222,21 @@ type DailyFeedAction struct {
 }
 
 type PublicFeed struct {
-	ID             string                 `json:"id"`
-	Group          PublicParentGroup      `json:"group"`
-	Name           string                 `json:"name"`
-	Slug           string                 `json:"slug"`
-	Kind           string                 `json:"kind"`
-	Description    *string                `json:"description,omitempty"`
-	Enabled        bool                   `json:"enabled"`
-	EvidenceFormat EvidenceFormat         `json:"evidence_format"`
-	Schedule       DailyFeedSchedule      `json:"schedule"`
-	Date           string                 `json:"date"`
-	Items          []PublicFeedOutputItem `json:"items"`
-	Posts          []PublicPost           `json:"posts"`
-	CreatedAt      time.Time              `json:"created_at"`
-	UpdatedAt      time.Time              `json:"updated_at"`
+	ID              string                 `json:"id"`
+	Group           PublicParentGroup      `json:"group"`
+	Name            string                 `json:"name"`
+	Slug            string                 `json:"slug"`
+	Kind            string                 `json:"kind"`
+	Description     *string                `json:"description,omitempty"`
+	Enabled         bool                   `json:"enabled"`
+	CaptionsEnabled bool                   `json:"captions_enabled"`
+	EvidenceFormat  EvidenceFormat         `json:"evidence_format"`
+	Schedule        DailyFeedSchedule      `json:"schedule"`
+	Date            string                 `json:"date"`
+	Items           []PublicFeedOutputItem `json:"items"`
+	Posts           []PublicPost           `json:"posts"`
+	CreatedAt       time.Time              `json:"created_at"`
+	UpdatedAt       time.Time              `json:"updated_at"`
 }
 
 type PublicFeedOutputItem struct {

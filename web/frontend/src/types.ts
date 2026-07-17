@@ -48,6 +48,7 @@ export type PublicGroupFeed = {
   kind: "catalog_daily" | "daily_thread";
   description?: string;
   enabled: boolean;
+  captions_enabled: boolean;
   evidence_format: EvidenceFormat;
   schedule: DailyFeedSchedule;
   created_at: string;
@@ -153,6 +154,7 @@ export type DailyFeed = {
   kind: "catalog_daily" | "daily_thread";
   description?: string;
   enabled: boolean;
+  captions_enabled: boolean;
   source_id?: string;
   source_name?: string;
   item_count?: number;
@@ -248,6 +250,7 @@ export type PublicFeed = {
   kind: "catalog_daily" | "daily_thread";
   description?: string;
   enabled: boolean;
+  captions_enabled: boolean;
   evidence_format: EvidenceFormat;
   schedule: DailyFeedSchedule;
   date: string;
@@ -291,6 +294,7 @@ export type CreateDailyFeedRequest = {
   kind: "catalog_daily" | "daily_thread";
   description?: string;
   enabled: boolean;
+  captions_enabled: boolean;
   source_id?: string;
   item_count?: number;
   evidence_format_id?: string;
@@ -300,6 +304,7 @@ export type CreateDailyFeedRequest = {
 
 export type PatchDailyFeedRequest = {
   enabled?: boolean;
+  captions_enabled?: boolean;
   evidence_format_id?: string;
   schedule?: DailyFeedSchedule;
 };

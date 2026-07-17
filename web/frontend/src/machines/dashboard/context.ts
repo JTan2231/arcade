@@ -42,6 +42,7 @@ export function resetSelectedGroupContext(): Omit<
     postMutation: null,
     postTagMutation: null,
     evidenceFormatMutation: null,
+    feedCaptionsMutation: null,
     feedFormatMutation: null,
     feedScheduleMutation: null,
     groupMemberMutation: null,

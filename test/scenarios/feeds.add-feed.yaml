@@ -104,6 +104,10 @@ steps:
       name: Next
 
   - within: Add feed
+    uncheck:
+      label: Allow captions
+
+  - within: Add feed
     click:
       role: button
       name: Next
@@ -197,3 +201,13 @@ steps:
   - within: Selected feed output
     expectVisible:
       text: Warmup
+
+  - within: Posts
+    click:
+      role: button
+      name: Post
+
+  - within: Posts
+    expectHidden:
+      role: textbox
+      name: Caption

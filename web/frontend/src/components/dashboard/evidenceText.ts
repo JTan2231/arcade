@@ -7,30 +7,28 @@ export function normalizeEvidenceText(input: string): string {
 export function validateEvidenceText(text: string, version: EvidenceFormatVersion): string {
   const charCount = Array.from(text).length;
   if (charCount < version.min_chars) {
-    return version.min_chars === 1
-      ? "Evidence is required"
-      : `Evidence must be at least ${version.min_chars} characters`;
+    return version.min_chars === 1 ? "Content is required" : `Content must be at least ${version.min_chars} characters`;
   }
   if (version.max_chars !== undefined && charCount > version.max_chars) {
-    return `Evidence must be at most ${version.max_chars} characters`;
+    return `Content must be at most ${version.max_chars} characters`;
   }
 
   const lines = text.split("\n");
   if (version.exact_lines !== undefined && lines.length !== version.exact_lines) {
-    return `Evidence must be exactly ${version.exact_lines} lines`;
+    return `Content must be exactly ${version.exact_lines} lines`;
   }
   if (version.min_lines !== undefined && lines.length < version.min_lines) {
-    return `Evidence must be at least ${version.min_lines} lines`;
+    return `Content must be at least ${version.min_lines} lines`;
   }
   if (version.max_lines !== undefined && lines.length > version.max_lines) {
-    return `Evidence must be at most ${version.max_lines} lines`;
+    return `Content must be at most ${version.max_lines} lines`;
   }
 
   for (const line of lines) {
     const trimmed = line.trim();
     if (trimmed === "") {
       if (!version.allow_blank_lines) {
-        return "Evidence cannot contain blank lines";
+        return "Content cannot contain blank lines";
       }
       continue;
     }
@@ -47,7 +45,7 @@ export function validateEvidenceText(text: string, version: EvidenceFormatVersio
 }
 
 export function evidenceFormatConstraintSummary(version: EvidenceFormatVersion): string {
-  const parts: string[] = [`v${version.version_number}`];
+  const parts: string[] = [];
   if (version.max_chars !== undefined) {
     parts.push(`${version.min_chars}-${version.max_chars} chars`);
   } else if (version.min_chars > 1) {

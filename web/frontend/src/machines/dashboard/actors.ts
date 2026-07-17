@@ -44,6 +44,7 @@ import type {
 } from "../../types";
 import { addFeedMachine } from "../addFeedMachine";
 import type {
+  ChangeFeedCaptionsInput,
   ChangeFeedFormatInput,
   ChangeFeedScheduleInput,
   CreateEvidenceFormatInput,
@@ -187,6 +188,19 @@ export const dashboardActors = {
     queryCache.touched(["user", input.currentUserId, "group", input.groupId, "feed", input.feed.id]);
     queryCache.touched(["user", input.currentUserId, "me", "daily-feeds"]);
     queryCache.touched(["anon", "public", "feed", input.feed.id]);
+    return feed;
+  }),
+  changeFeedCaptions: fromPromise<DailyFeed, ChangeFeedCaptionsInput>(async ({ input, signal }) => {
+    const feed = await updateGroupDailyFeed(
+      input.groupId,
+      input.feedId,
+      { captions_enabled: input.captionsEnabled },
+      { signal },
+    );
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId, "feeds"]);
+    queryCache.touched(["user", input.currentUserId, "group", input.groupId, "feed", input.feedId]);
+    queryCache.touched(["user", input.currentUserId, "me", "daily-feeds"]);
+    queryCache.touched(["anon", "public", "feed", input.feedId]);
     return feed;
   }),
   changeFeedFormat: fromPromise<DailyFeed, ChangeFeedFormatInput>(async ({ input, signal }) => {

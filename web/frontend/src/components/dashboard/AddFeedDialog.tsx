@@ -61,6 +61,7 @@ export function AddFeedDialog({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [enabled, setEnabled] = useState(true);
+  const [captionsEnabled, setCaptionsEnabled] = useState(true);
   const [sourceId, setSourceId] = useState("");
   const [evidenceFormatId, setEvidenceFormatId] = useState("");
   const [itemCount, setItemCount] = useState("3");
@@ -208,6 +209,7 @@ export function AddFeedDialog({
       name: trimmedName,
       kind,
       enabled,
+      captions_enabled: captionsEnabled,
       schedule,
     };
     if (evidenceFormatId !== "") {
@@ -445,6 +447,18 @@ export function AddFeedDialog({
                 </option>
               ))}
             </select>
+          </label>
+          <label className="checkbox-row">
+            <input
+              checked={captionsEnabled}
+              disabled={saving}
+              type="checkbox"
+              onChange={(event) => {
+                setCaptionsEnabled(event.target.checked);
+                markDraftChanged();
+              }}
+            />
+            Allow captions
           </label>
           {sourcesLoading ? (
             <div className="field-hint">Loading post formats...</div>

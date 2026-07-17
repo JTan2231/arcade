@@ -126,7 +126,7 @@ steps:
 
   - within: Posts
     fill:
-      label: Evidence
+      label: Content
       exact: false
       value: Updated proof without tag edits.
 

@@ -95,7 +95,8 @@ order; operator semantics stay in application code.
 
 `group_daily_feeds` stores the durable daily feed definition owned by a group.
 Each feed has a unique slug within its group, a kind, an enabled flag, an
-assigned evidence format for future posts, explicit schedule columns
+assigned evidence format for future posts, a `captions_enabled` flag that
+defaults to true, explicit schedule columns
 (`schedule_starts_at`, `schedule_timezone`, and `schedule_interval_seconds`),
 and optional practice-feed source/count columns.
 The schedule start date cannot be later than the current date in the schedule
@@ -156,10 +157,13 @@ rewriting existing rows.
 `group_feed_posts` stores one member-authored response per feed instance. A post
 stores normalized text evidence and the exact
 `group_evidence_format_versions` row that validated that evidence. `caption` is
-optional and separate from evidence. Posts are soft deleted with `deleted_at`,
-and the unique `(feed_instance_id, author_user_id)` rule means a later post by
-the same member reuses and reactivates the existing row with the feed's current
-active evidence format version.
+optional and separate from evidence. A feed with captions disabled rejects new
+non-null caption values but retains and continues to expose historical captions;
+omitting a caption during an evidence edit leaves the existing value unchanged.
+Posts are soft deleted with `deleted_at`, and the unique
+`(feed_instance_id, author_user_id)` rule means a later post by the same member
+reuses and reactivates the existing row with the feed's current active evidence
+format version.
 
 `group_post_tags` stores the post tag vocabulary owned by a group. Arcade does
 not create default tag definitions; a group has no tags until an owner or admin

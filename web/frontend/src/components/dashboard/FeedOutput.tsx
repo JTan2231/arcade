@@ -266,6 +266,7 @@ function LoadedFeedOutput({
       <FeedPostSection
         key={`${feed.id}-${output.date}`}
         disabled={!feed.enabled}
+        captionsEnabled={feed.captions_enabled}
         evidenceFormat={feed.evidence_format}
         posts={posts}
         postTags={postTags}

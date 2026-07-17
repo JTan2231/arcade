@@ -16,6 +16,7 @@ export type GroupsPanelProps = {
   creating: boolean;
   deletingGroupId: string | null;
   pendingToggleFeedId: string | null;
+  pendingFeedCaptionsFeedId: string | null;
   pendingFeedFormatFeedId: string | null;
   pendingFeedScheduleFeedId: string | null;
   pendingRefreshFeedId: string | null;
@@ -26,6 +27,7 @@ export type GroupsPanelProps = {
   onDeleteGroup: (id: string) => void;
   onSelectFeed: (id: string) => void;
   onToggleFeedEnabled: (id: string) => void;
+  onToggleFeedCaptions: (id: string) => void;
   onChangeFeedFormat: (feedId: string, evidenceFormatId: string) => void;
   onChangeFeedSchedule: (feedId: string, schedule: DailyFeedSchedule) => void;
   onRefreshFeedGeneration: (id: string) => void;
@@ -46,6 +48,7 @@ export function GroupsPanel({
   creating,
   deletingGroupId,
   pendingToggleFeedId,
+  pendingFeedCaptionsFeedId,
   pendingFeedFormatFeedId,
   pendingFeedScheduleFeedId,
   pendingRefreshFeedId,
@@ -56,6 +59,7 @@ export function GroupsPanel({
   onDeleteGroup,
   onSelectFeed,
   onToggleFeedEnabled,
+  onToggleFeedCaptions,
   onChangeFeedFormat,
   onChangeFeedSchedule,
   onRefreshFeedGeneration,
@@ -177,6 +181,7 @@ export function GroupsPanel({
                   selectedGroup={selected}
                   selectedFeedId={selected ? selectedFeedId : null}
                   pendingToggleFeedId={selected ? pendingToggleFeedId : null}
+                  pendingFeedCaptionsFeedId={selected ? pendingFeedCaptionsFeedId : null}
                   pendingFeedFormatFeedId={selected ? pendingFeedFormatFeedId : null}
                   pendingFeedScheduleFeedId={selected ? pendingFeedScheduleFeedId : null}
                   pendingRefreshFeedId={selected ? pendingRefreshFeedId : null}
@@ -184,6 +189,7 @@ export function GroupsPanel({
                   publicLinksAvailable={selected && group.visibility === "public"}
                   onSelectFeed={onSelectFeed}
                   onToggleFeedEnabled={onToggleFeedEnabled}
+                  onToggleFeedCaptions={onToggleFeedCaptions}
                   onChangeFeedFormat={onChangeFeedFormat}
                   onChangeFeedSchedule={onChangeFeedSchedule}
                   onRefreshFeedGeneration={onRefreshFeedGeneration}

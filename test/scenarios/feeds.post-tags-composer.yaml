@@ -57,7 +57,7 @@ steps:
 
   - within: Posts
     fill:
-      label: Evidence
+      label: Content
       value: Tagged from the composer.
 
   - within: Posts

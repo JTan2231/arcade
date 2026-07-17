@@ -124,6 +124,9 @@ The current daily feed model follows these rules:
   member can own at most one post on that instance. New posts validate
   normalized `evidence_text` against the feed's assigned evidence format active
   version, and existing posts keep the exact version used at submission time.
+  Each feed also controls whether members may add captions. Non-null caption
+  writes are rejected while captions are disabled, while captions on existing
+  posts remain stored and readable.
   Feed post read responses are hydrated with attached group post tags ordered by name,
   including archived tags that remain attached to historical posts.
 - Owners and admins can reroll the current catalog output with
@@ -222,8 +225,9 @@ The main group surface loads `/api/groups/{group_id}/daily-feeds`,
 admins request archived tag definitions for the tag manager and can toggle feed
 enabled state through
 `PATCH /api/groups/{group_id}/daily-feeds/{feed_id}`. Feed settings also patch
-the current schedule when owners or admins change cadence. The same surface
-exposes an owner/admin-only Add feed flow backed by group catalog sources,
+caption availability and the current schedule when owners or admins change
+those settings. The same surface exposes an owner/admin-only Add feed flow
+backed by group catalog sources,
 source field metadata, `POST /api/groups/{group_id}/daily-feeds/preview`, and
 `POST /api/groups/{group_id}/daily-feeds`.
 

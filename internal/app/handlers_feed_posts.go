@@ -130,6 +130,17 @@ func (s *Server) handleCreateGroupFeedPost(w http.ResponseWriter, r *http.Reques
 		handleError(w, err)
 		return
 	}
+	if payload.Caption != nil {
+		feed, err := s.getGroupDailyFeed(r.Context(), groupID, feedID)
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+		if err := validateGroupFeedPostCaptionWrite(feed.CaptionsEnabled, true, payload.Caption); err != nil {
+			handleError(w, err)
+			return
+		}
+	}
 
 	evidenceFormatVersion, err := s.activeEvidenceFormatVersionForFeed(r.Context(), groupID, feedID)
 	if err != nil {
@@ -298,6 +309,17 @@ func (s *Server) handlePatchGroupFeedPost(w http.ResponseWriter, r *http.Request
 	if post.DeletedAt != nil {
 		handleError(w, errNotFound("feed post"))
 		return
+	}
+	if patch.CaptionSet && patch.Caption != nil {
+		feed, err := s.getGroupDailyFeed(r.Context(), groupID, post.FeedID)
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+		if err := validateGroupFeedPostCaptionWrite(feed.CaptionsEnabled, patch.CaptionSet, patch.Caption); err != nil {
+			handleError(w, err)
+			return
+		}
 	}
 	if patch.EvidenceText != nil {
 		if err := validateEvidenceText(*patch.EvidenceText, post.EvidenceFormatVersion); err != nil {
@@ -676,4 +698,11 @@ func normalizeGroupFeedPostCaption(caption *string) (*string, error) {
 		return nil, badRequest("caption cannot be empty")
 	}
 	return &trimmed, nil
+}
+
+func validateGroupFeedPostCaptionWrite(captionsEnabled bool, captionSet bool, caption *string) error {
+	if !captionsEnabled && captionSet && caption != nil {
+		return badRequest("captions are disabled for this feed")
+	}
+	return nil
 }

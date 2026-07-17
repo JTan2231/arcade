@@ -34,6 +34,7 @@ import type {
   DashboardInput,
   DashboardOutputEvent,
   EvidenceFormatMutation,
+  FeedCaptionsMutation,
   FeedFormatMutation,
   FeedScheduleMutation,
   GroupMemberMutation,
@@ -164,6 +165,17 @@ export const dashboardMachine = dashboardSetup.createMachine({
         pendingToggleFeedId: event.feedId,
       })),
     },
+    FEED_CAPTIONS_TOGGLED: {
+      guard: ({ context, event }) =>
+        context.selectedGroupId !== null && context.feeds.some((feed) => feed.id === event.feedId),
+      target: ".groupSelected.changingFeedCaptions",
+      actions: assign(({ context, event }) => ({
+        feedCaptionsMutation: {
+          feedId: event.feedId,
+          captionsEnabled: context.feeds.find((feed) => feed.id === event.feedId)?.captions_enabled !== true,
+        },
+      })),
+    },
     FEED_FORMAT_CHANGED: {
       guard: ({ context, event }) =>
         context.selectedGroupId !== null &&
@@ -237,6 +249,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
           posts: [],
           postsError: "",
           postMutation: null,
+          feedCaptionsMutation: null,
           ...resetMetricContext(),
           pendingToggleFeedId: null,
           pendingRefreshFeedId: null,
@@ -552,6 +565,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                     postMutation: null,
                     postTagMutation: null,
                     evidenceFormatMutation: null,
+                    feedCaptionsMutation: null,
                     feedFormatMutation: null,
                     feedScheduleMutation: null,
                     groupMemberMutation: null,
@@ -582,6 +596,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   postMutation: null,
                   postTagMutation: null,
                   evidenceFormatMutation: null,
+                  feedCaptionsMutation: null,
                   feedFormatMutation: null,
                   feedScheduleMutation: null,
                   groupMemberMutation: null,
@@ -614,6 +629,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
                   postMutation: null,
                   postTagMutation: null,
                   evidenceFormatMutation: null,
+                  feedCaptionsMutation: null,
                   feedFormatMutation: null,
                   feedScheduleMutation: null,
                   groupMemberMutation: null,
@@ -1418,6 +1434,37 @@ export const dashboardMachine = dashboardSetup.createMachine({
             ],
           },
         },
+        changingFeedCaptions: {
+          invoke: {
+            src: "changeFeedCaptions",
+            input: ({ context }) => {
+              const mutation = requireFeedCaptionsMutation(context);
+              return {
+                currentUserId: context.currentUserId,
+                groupId: requireSelectedGroupId(context),
+                feedId: mutation.feedId,
+                captionsEnabled: mutation.captionsEnabled,
+              };
+            },
+            onDone: {
+              target: "feedSelected.ready",
+              actions: [
+                assign(({ context, event }) => ({
+                  feeds: replaceFeed(context.feeds, event.output),
+                  feedCaptionsMutation: null,
+                })),
+                sendFeedCaptionsToastToParent(),
+              ],
+            },
+            onError: [
+              unauthorizedToParentTransition(),
+              {
+                target: "feedSelected.ready",
+                actions: [clearFeedCaptionsMutationOnError(), sendErrorToastToParent()],
+              },
+            ],
+          },
+        },
         changingFeedFormat: {
           invoke: {
             src: "changeFeedFormat",
@@ -1907,6 +1954,12 @@ function sendToggleToastToParent() {
   );
 }
 
+function sendFeedCaptionsToastToParent() {
+  return sendParent<DashboardContext, DoneActorEvent<DailyFeed>, undefined, DashboardOutputEvent, DashboardEvent>(
+    ({ event }) => toastRequested(event.output.captions_enabled ? "Feed captions enabled" : "Feed captions disabled"),
+  );
+}
+
 function sendUnauthorizedDashboardEventToParent() {
   return sendParent<DashboardContext, DashboardEvent, undefined, DashboardOutputEvent, DashboardEvent>({
     type: "UNAUTHORIZED",
@@ -1957,6 +2010,12 @@ function clearEvidenceFormatMutationOnError() {
 function clearFeedFormatMutationOnError() {
   return assign<DashboardContext, ErrorActorEvent, undefined, DashboardEvent, never>({
     feedFormatMutation: null,
+  });
+}
+
+function clearFeedCaptionsMutationOnError() {
+  return assign<DashboardContext, ErrorActorEvent, undefined, DashboardEvent, never>({
+    feedCaptionsMutation: null,
   });
 }
 
@@ -2104,6 +2163,13 @@ function requireFeedFormatMutation(context: DashboardContext): FeedFormatMutatio
     throw new Error("Feed format mutation is missing");
   }
   return context.feedFormatMutation;
+}
+
+function requireFeedCaptionsMutation(context: DashboardContext): FeedCaptionsMutation {
+  if (context.feedCaptionsMutation === null) {
+    throw new Error("Feed captions mutation is missing");
+  }
+  return context.feedCaptionsMutation;
 }
 
 function requireFeedScheduleMutation(context: DashboardContext): FeedScheduleMutation {

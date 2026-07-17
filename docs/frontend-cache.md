@@ -217,8 +217,9 @@ Current mutation patterns:
 - Group membership: member removal touches group members and invite links,
   because removing a link creator can make their links invalid. Accepting an
   invite link touches the invitee's group list.
-- Feeds: add, toggle, schedule changes, format changes, and deletion touch group
-  feeds, affected feed subtrees, `meDailyFeeds`, and affected public feed data.
+- Feeds: add, toggle, caption availability changes, schedule changes, format
+  changes, and deletion touch group feeds, affected feed subtrees,
+  `meDailyFeeds`, and affected public feed data.
 - Feed refresh: touches today's output, the returned dated output, and public
   feed data, then writes the refreshed output into the matching member cache
   entries.

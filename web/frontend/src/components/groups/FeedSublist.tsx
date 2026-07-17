@@ -12,6 +12,7 @@ export function FeedSublist({
   manage,
   selectedFeedId,
   pendingToggleFeedId,
+  pendingFeedCaptionsFeedId,
   pendingFeedFormatFeedId,
   pendingFeedScheduleFeedId,
   pendingRefreshFeedId,
@@ -20,6 +21,7 @@ export function FeedSublist({
   selectedGroup = false,
   onSelectFeed,
   onToggleFeedEnabled,
+  onToggleFeedCaptions,
   onChangeFeedFormat,
   onChangeFeedSchedule,
   onRefreshFeedGeneration,
@@ -34,6 +36,7 @@ export function FeedSublist({
   manage: boolean;
   selectedFeedId: string | null;
   pendingToggleFeedId: string | null;
+  pendingFeedCaptionsFeedId: string | null;
   pendingFeedFormatFeedId: string | null;
   pendingFeedScheduleFeedId: string | null;
   pendingRefreshFeedId: string | null;
@@ -42,6 +45,7 @@ export function FeedSublist({
   selectedGroup?: boolean;
   onSelectFeed: (id: string) => void;
   onToggleFeedEnabled: (id: string) => void;
+  onToggleFeedCaptions: (id: string) => void;
   onChangeFeedFormat: (feedId: string, evidenceFormatId: string) => void;
   onChangeFeedSchedule: (feedId: string, schedule: DailyFeedSchedule) => void;
   onRefreshFeedGeneration: (id: string) => void;
@@ -97,6 +101,7 @@ export function FeedSublist({
           .join(" ");
         const mutating =
           pendingToggleFeedId === feed.id ||
+          pendingFeedCaptionsFeedId === feed.id ||
           pendingFeedFormatFeedId === feed.id ||
           pendingFeedScheduleFeedId === feed.id ||
           pendingRefreshFeedId === feed.id ||
@@ -151,6 +156,7 @@ export function FeedSublist({
                   setSettingsFeedId(null);
                   onToggleFeedEnabled(feed.id);
                 }}
+                onToggleFeedCaptions={() => onToggleFeedCaptions(feed.id)}
                 onChangeFeedFormat={(evidenceFormatId) => onChangeFeedFormat(feed.id, evidenceFormatId)}
                 onChangeFeedSchedule={(schedule) => onChangeFeedSchedule(feed.id, schedule)}
                 onRefreshGeneration={() => {
