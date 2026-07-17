@@ -157,6 +157,28 @@ func TestSortDailyCandidatesUsesGenerationSeed(t *testing.T) {
 	}
 }
 
+func TestCombineDailyFeedSelectionSeedsPreservesSingleSeed(t *testing.T) {
+	if got := combineDailyFeedSelectionSeeds("event-seed", ""); got != "event-seed" {
+		t.Fatalf("event-only seed = %q", got)
+	}
+	if got := combineDailyFeedSelectionSeeds("", "generation-seed"); got != "generation-seed" {
+		t.Fatalf("generation-only seed = %q", got)
+	}
+	if got := combineDailyFeedSelectionSeeds("", ""); got != "" {
+		t.Fatalf("empty seed = %q", got)
+	}
+}
+
+func TestCombineDailyFeedSelectionSeedsCombinesEventAndGeneration(t *testing.T) {
+	combined := combineDailyFeedSelectionSeeds("event-seed", "generation-seed")
+	if combined == "" || combined == "event-seed" || combined == "generation-seed" {
+		t.Fatalf("combined seed = %q", combined)
+	}
+	if combined != combineDailyFeedSelectionSeeds("event-seed", "generation-seed") {
+		t.Fatal("combined seed is not deterministic")
+	}
+}
+
 func TestDailyFeedDefaults(t *testing.T) {
 	if got := dailyFeedRole(0, 1); got != "target" {
 		t.Fatalf("single item role = %q", got)

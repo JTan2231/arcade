@@ -252,6 +252,14 @@ function LoadedFeedOutput({
   return (
     <>
       {items.length !== 1 ? <div className="feed-output-title-row">{titleMenu}</div> : null}
+      {output.event !== undefined ? (
+        <section className="feed-event-provenance" aria-label="Feed event">
+          <span className="title">{output.event.name}</span>
+          <span className="meta">
+            {output.event.starts_on} through {output.event.ends_on}
+          </span>
+        </section>
+      ) : null}
       {items.length ? (
         <div className="stack output-items">
           {items.map((item) => {

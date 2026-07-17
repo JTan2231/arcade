@@ -13,6 +13,7 @@ export function FeedSettingsDialog({
   onChangeFeedFormat,
   onChangeFeedSchedule,
   onRefreshGeneration,
+  onManageEvents,
   onDeleteFeed,
 }: {
   feed: DailyFeed;
@@ -24,6 +25,7 @@ export function FeedSettingsDialog({
   onChangeFeedFormat: (evidenceFormatId: string) => void;
   onChangeFeedSchedule: (schedule: DailyFeedSchedule) => void;
   onRefreshGeneration: () => void;
+  onManageEvents: () => void;
   onDeleteFeed: () => void;
 }) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -118,15 +120,26 @@ export function FeedSettingsDialog({
             </button>
           </section>
           {feed.kind === "catalog_daily" ? (
-            <section className="feed-settings-section" aria-label="Current generation">
-              <div>
-                <div className="section-title">Current generation</div>
-                <div className="meta">Reroll today's generated items.</div>
-              </div>
-              <button className="secondary" disabled={mutating} type="button" onClick={onRefreshGeneration}>
-                Refresh
-              </button>
-            </section>
+            <>
+              <section className="feed-settings-section" aria-label="Current generation">
+                <div>
+                  <div className="section-title">Current generation</div>
+                  <div className="meta">Reroll today's generated items.</div>
+                </div>
+                <button className="secondary" disabled={mutating} type="button" onClick={onRefreshGeneration}>
+                  Refresh
+                </button>
+              </section>
+              <section className="feed-settings-section" aria-label="Events">
+                <div>
+                  <div className="section-title">Events</div>
+                  <div className="meta">Schedule temporary item counts and filters.</div>
+                </div>
+                <button className="secondary" disabled={mutating} type="button" onClick={onManageEvents}>
+                  Manage
+                </button>
+              </section>
+            </>
           ) : null}
           <section className="feed-settings-section feed-format-section" aria-label="Post format">
             <div>

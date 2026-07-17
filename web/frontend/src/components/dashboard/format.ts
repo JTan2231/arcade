@@ -13,6 +13,7 @@ export function feedOutputSummary(output: DailyFeedOutput): DailyFeedOutputSumma
       date: output.date,
       title: outputItemDisplayTitle(output.items[0]!),
       subtitle: output.date,
+      ...(output.event !== undefined ? { event: output.event } : {}),
     };
   }
   if (output.items.length > 1) {
@@ -20,6 +21,7 @@ export function feedOutputSummary(output: DailyFeedOutput): DailyFeedOutputSumma
       feed_id: output.feed_id,
       date: output.date,
       title: output.date,
+      ...(output.event !== undefined ? { event: output.event } : {}),
     };
   }
   return {
@@ -27,6 +29,7 @@ export function feedOutputSummary(output: DailyFeedOutput): DailyFeedOutputSumma
     date: output.date,
     title: firstNonEmpty(output.title, output.date),
     subtitle: output.date,
+    ...(output.event !== undefined ? { event: output.event } : {}),
   };
 }
 

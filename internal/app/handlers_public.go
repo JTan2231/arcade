@@ -207,6 +207,7 @@ func (s *Server) getPublicFeed(ctx context.Context, feedID string, requestedDate
 		EvidenceFormat:  feed.EvidenceFormat,
 		Schedule:        feed.Schedule,
 		Date:            output.Date,
+		Event:           output.Event,
 		Items:           publicFeedOutputItems(output.Items),
 		Posts:           posts,
 		CreatedAt:       feed.CreatedAt,

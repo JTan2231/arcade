@@ -263,6 +263,23 @@ export const dashboardMachine = dashboardSetup.createMachine({
         sendToastToParent("Feed created"),
       ],
     },
+    FEED_EVENTS_OPENED: {
+      guard: ({ context, event }) =>
+        selectedGroupCanManage(context) &&
+        context.feeds.some((feed) => feed.id === event.feedId && feed.kind === "catalog_daily"),
+      target: ".groupSelected.feedEvents",
+      actions: assign(({ event }) => ({
+        managedFeedEventsFeedId: event.feedId,
+        feedEventsChanged: false,
+      })),
+    },
+    FEED_EVENTS_CLOSED: closeFeedEventsTransitions(),
+    FEED_EVENT_SAVED: {
+      actions: [assign({ feedEventsChanged: true }), sendFeedEventSavedToastToParent()],
+    },
+    FEED_EVENT_DELETED: {
+      actions: [assign({ feedEventsChanged: true }), sendToastToParent("Feed event deleted")],
+    },
     UNAUTHORIZED: {
       actions: sendUnauthorizedDashboardEventToParent(),
     },
@@ -1721,6 +1738,17 @@ export const dashboardMachine = dashboardSetup.createMachine({
             }),
           },
         },
+        feedEvents: {
+          invoke: {
+            id: "feedEvents",
+            src: "feedEventsMachine",
+            input: ({ context }) => ({
+              currentUserId: context.currentUserId,
+              groupId: requireSelectedGroupId(context),
+              feed: requireManagedFeedEventsFeed(context),
+            }),
+          },
+        },
       },
     },
   },
@@ -1737,6 +1765,36 @@ function closeAddFeedTransitions() {
       guard: { type: "hasRestorableGroup" },
     },
   ] as const;
+}
+
+function closeFeedEventsTransitions() {
+  return [
+    {
+      target: ".groupSelected.feedSelected.loadingDatedOutput",
+      guard: ({ context }: { context: DashboardContext }) =>
+        context.feedEventsChanged &&
+        context.selectedFeedId !== null &&
+        context.selectedFeedId === context.managedFeedEventsFeedId,
+      actions: clearFeedEventsManagement(),
+    },
+    {
+      target: ".groupSelected.feedSelected.ready",
+      guard: { type: "hasRestorableFeed" },
+      actions: clearFeedEventsManagement(),
+    },
+    {
+      target: ".groupSelected.noFeed",
+      guard: { type: "hasRestorableGroup" },
+      actions: clearFeedEventsManagement(),
+    },
+  ] as const;
+}
+
+function clearFeedEventsManagement() {
+  return assign<DashboardContext, { type: "FEED_EVENTS_CLOSED" }, undefined, DashboardEvent, never>({
+    managedFeedEventsFeedId: null,
+    feedEventsChanged: false,
+  });
 }
 
 function groupLoadErrorTransitions() {
@@ -1960,6 +2018,16 @@ function sendToggleToastToParent() {
   );
 }
 
+function sendFeedEventSavedToastToParent() {
+  return sendParent<
+    DashboardContext,
+    Extract<DashboardEvent, { type: "FEED_EVENT_SAVED" }>,
+    undefined,
+    DashboardOutputEvent,
+    DashboardEvent
+  >(({ event }) => toastRequested(event.operation === "created" ? "Feed event created" : "Feed event updated"));
+}
+
 function sendFeedCaptionsToastToParent() {
   return sendParent<DashboardContext, DoneActorEvent<DailyFeed>, undefined, DashboardOutputEvent, DashboardEvent>(
     ({ event }) => toastRequested(event.output.captions_enabled ? "Feed captions enabled" : "Feed captions disabled"),
@@ -2129,6 +2197,14 @@ function requirePendingDeleteFeedId(context: DashboardContext): string {
     throw new Error("No feed delete is pending");
   }
   return context.pendingDeleteFeedId;
+}
+
+function requireManagedFeedEventsFeed(context: DashboardContext): DailyFeed {
+  const feed = context.feeds.find((candidate) => candidate.id === context.managedFeedEventsFeedId);
+  if (feed === undefined || feed.kind !== "catalog_daily") {
+    throw new Error("Managed feed not found");
+  }
+  return feed;
 }
 
 function requirePostMutation<TKind extends PostMutation["kind"]>(

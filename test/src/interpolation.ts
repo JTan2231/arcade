@@ -73,6 +73,11 @@ function tokenValue(token: string, variables: RuntimeVariables): unknown {
     return formatDateValue(Number(daysAgoMatch[1]));
   }
 
+  const daysAheadMatch = /^daysAhead:(\d+)$/.exec(token);
+  if (daysAheadMatch !== null) {
+    return formatDateValue(-Number(daysAheadMatch[1]));
+  }
+
   if (!variables.has(token)) {
     throw new Error(`unknown scenario variable or token: ${token}`);
   }

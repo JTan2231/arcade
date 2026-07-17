@@ -1,0 +1,491 @@
+name: feed events apply bounded catalog configuration through the API
+
+vars:
+  owner_email: feed-events-owner@example.test
+  member_email: feed-events-member@example.test
+  password: password123
+  selection_token: 0123456789abcdef0123456789abcdef
+
+before:
+  - request:
+      id: signup_owner
+      client: browser
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Feed Events Owner
+        email: "{{owner_email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Feed Events Dojo
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: capture_daily_thread
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds
+      expectStatus: 200
+      capture:
+        thread_feed_id: $[0].id
+
+  - request:
+      id: create_source
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/catalog-sources
+      json:
+        name: Feed Events Source
+        template: https://example.test/{slug}
+        fields:
+          - key: difficulty
+            label: Difficulty
+            value_type: number
+            is_array: false
+            display_order: 0
+        items:
+          - title: Baseline Drill
+            data:
+              slug: baseline-drill
+              difficulty: 100
+          - title: Event Drill
+            data:
+              slug: event-drill
+              difficulty: 200
+      expectStatus: 201
+      capture:
+        source_id: $.id
+        difficulty_field_id: $.fields[0].id
+
+  - request:
+      id: create_replacement_source
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/catalog-sources
+      json:
+        name: Feed Events Replacement Source
+        template: https://example.test/{slug}
+        items:
+          - title: Replacement Drill
+            data:
+              slug: replacement-drill
+      expectStatus: 201
+      capture:
+        replacement_source_id: $.id
+
+  - request:
+      id: create_feed
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds
+      json:
+        name: Event Practice
+        kind: catalog_daily
+        enabled: true
+        source_id: "{{source_id}}"
+        item_count: 1
+        filters:
+          - field_id: "{{difficulty_field_id}}"
+            op: eq
+            number_values:
+              - 100
+        schedule:
+          starts_at: "2020-01-01T00:00:00Z"
+          timezone: UTC
+          interval_seconds: 86400
+      expectStatus: 201
+      capture:
+        feed_id: $.id
+
+steps:
+  - request:
+      id: preview_event
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/events/preview
+      json:
+        name: Challenge Window
+        description: Use the event-only difficulty.
+        starts_on: "{{today}}"
+        ends_on: "{{daysAhead:1}}"
+        item_count: 1
+        filters:
+          - field_id: "{{difficulty_field_id}}"
+            op: eq
+            number_values:
+              - 200
+        selection_token: "{{selection_token}}"
+      expectStatus: 200
+      expectJson:
+        selection_token: "{{selection_token}}"
+        event:
+          selection_token: "{{selection_token}}"
+          starts_on: "{{today}}"
+          ends_on: "{{daysAhead:1}}"
+        output:
+          date: "{{today}}"
+          event:
+            name: Challenge Window
+          items:
+            - item:
+                title: Event Drill
+        eligible_item_count: 1
+
+  - request:
+      id: create_event
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/events
+      json:
+        name: Challenge Window
+        description: Use the event-only difficulty.
+        starts_on: "{{today}}"
+        ends_on: "{{daysAhead:1}}"
+        item_count: 1
+        filters:
+          - field_id: "{{difficulty_field_id}}"
+            op: eq
+            number_values:
+              - 200
+        selection_token: "{{selection_token}}"
+      expectStatus: 201
+      expectJson:
+        name: Challenge Window
+        starts_on: "{{today}}"
+        ends_on: "{{daysAhead:1}}"
+        status: active
+        source_id: "{{source_id}}"
+        item_count: 1
+        selection_token: "{{selection_token}}"
+        filters:
+          - field_id: "{{difficulty_field_id}}"
+            op: eq
+            number_values:
+              - 200
+      capture:
+        event_id: $.id
+
+  - sql:
+      statement: |
+        do $$
+        declare
+          persisted_seed text;
+          persisted_start date;
+          persisted_end date;
+          persisted_filter_count integer;
+          persisted_filter_value numeric;
+        begin
+          select selection_seed, starts_on, ends_before
+          into persisted_seed, persisted_start, persisted_end
+          from group_daily_feed_events
+          where id = '{{event_id}}'::uuid;
+
+          if persisted_seed is distinct from '{{selection_token}}' then
+            raise exception 'selection_seed = %, want {{selection_token}}', persisted_seed;
+          end if;
+          if persisted_start is distinct from '{{today}}'::date then
+            raise exception 'starts_on = %, want {{today}}', persisted_start;
+          end if;
+          if persisted_end is distinct from '{{daysAhead:2}}'::date then
+            raise exception 'ends_before = %, want {{daysAhead:2}}', persisted_end;
+          end if;
+
+          select count(*)::integer, min(number_values[1])
+          into persisted_filter_count, persisted_filter_value
+          from group_daily_feed_event_filters
+          where event_id = '{{event_id}}'::uuid;
+
+          if persisted_filter_count <> 1 or persisted_filter_value is distinct from 200::numeric then
+            raise exception 'event filter snapshot count/value = %/%, want 1/200',
+              persisted_filter_count, persisted_filter_value;
+          end if;
+        end $$;
+
+  - request:
+      id: list_events
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/events
+      expectStatus: 200
+      expectJson:
+        - id: "{{event_id}}"
+          name: Challenge Window
+          starts_on: "{{today}}"
+          ends_on: "{{daysAhead:1}}"
+          status: active
+
+  - request:
+      id: output_before_event
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{yesterday}}
+      expectStatus: 200
+      expectJson:
+        date: "{{yesterday}}"
+        items:
+          - item:
+              title: Baseline Drill
+
+  - request:
+      id: output_event_start
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{today}}
+      expectStatus: 200
+      expectJson:
+        date: "{{today}}"
+        event:
+          id: "{{event_id}}"
+          name: Challenge Window
+          starts_on: "{{today}}"
+          ends_on: "{{daysAhead:1}}"
+        items:
+          - item:
+              title: Event Drill
+
+  - request:
+      id: output_event_end
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{daysAhead:1}}
+      expectStatus: 200
+      expectJson:
+        date: "{{daysAhead:1}}"
+        event:
+          id: "{{event_id}}"
+          name: Challenge Window
+          starts_on: "{{today}}"
+          ends_on: "{{daysAhead:1}}"
+        items:
+          - item:
+              title: Event Drill
+
+  - request:
+      id: output_after_event
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{daysAhead:2}}
+      expectStatus: 200
+      expectJson:
+        date: "{{daysAhead:2}}"
+        items:
+          - item:
+              title: Baseline Drill
+
+  - request:
+      id: reject_overlapping_event
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/events
+      json:
+        name: Overlapping Window
+        starts_on: "{{daysAhead:1}}"
+        ends_on: "{{daysAhead:2}}"
+      expectStatus: 409
+
+  - request:
+      id: create_adjacent_event
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/events
+      json:
+        name: Adjacent Window
+        starts_on: "{{daysAhead:2}}"
+        ends_on: "{{daysAhead:2}}"
+      expectStatus: 201
+      expectJson:
+        status: upcoming
+        starts_on: "{{daysAhead:2}}"
+        ends_on: "{{daysAhead:2}}"
+      capture:
+        adjacent_event_id: $.id
+
+  - request:
+      id: delete_upcoming_event
+      client: browser
+      method: DELETE
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/events/{{adjacent_event_id}}
+      expectStatus: 204
+
+  - request:
+      id: reject_daily_thread_event
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{thread_feed_id}}/events
+      json:
+        name: Unsupported Thread Event
+        starts_on: "{{today}}"
+        ends_on: "{{today}}"
+      expectStatus: 400
+
+  - request:
+      id: reject_active_config_patch
+      client: browser
+      method: PATCH
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/events/{{event_id}}
+      json:
+        name: Renamed Active Window
+      expectStatus: 409
+
+  - request:
+      id: shorten_active_event
+      client: browser
+      method: PATCH
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/events/{{event_id}}
+      json:
+        ends_on: "{{today}}"
+      expectStatus: 200
+      expectJson:
+        id: "{{event_id}}"
+        ends_on: "{{today}}"
+        status: active
+
+  - request:
+      id: removed_date_returns_to_baseline
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{daysAhead:1}}
+      expectStatus: 200
+      expectJson:
+        date: "{{daysAhead:1}}"
+        items:
+          - item:
+              title: Baseline Drill
+
+  - request:
+      id: reject_active_delete
+      client: browser
+      method: DELETE
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/events/{{event_id}}
+      expectStatus: 409
+
+  - request:
+      id: change_baseline_source
+      client: browser
+      method: PATCH
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}
+      json:
+        source_id: "{{replacement_source_id}}"
+        item_count: 1
+        filters: []
+      expectStatus: 200
+      expectJson:
+        source_id: "{{replacement_source_id}}"
+
+  - request:
+      id: preview_snapshotted_source_after_baseline_change
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/events/preview
+      json:
+        name: Challenge Window
+        starts_on: "{{today}}"
+        ends_on: "{{today}}"
+        source_id: "{{source_id}}"
+        item_count: 1
+        filters:
+          - field_id: "{{difficulty_field_id}}"
+            op: eq
+            number_values:
+              - 200
+        selection_token: "{{selection_token}}"
+      expectStatus: 200
+      expectJson:
+        event:
+          source_id: "{{source_id}}"
+          source_name: Feed Events Source
+        output:
+          items:
+            - item:
+                title: Event Drill
+
+  - request:
+      id: reject_create_with_nonbaseline_source
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/events
+      json:
+        name: Invalid Source Window
+        starts_on: "{{daysAhead:3}}"
+        ends_on: "{{daysAhead:3}}"
+        source_id: "{{source_id}}"
+        item_count: 1
+        filters:
+          - field_id: "{{difficulty_field_id}}"
+            op: eq
+            number_values:
+              - 200
+      expectStatus: 400
+
+  - request:
+      id: logout_owner
+      client: browser
+      method: POST
+      path: /api/auth/logout
+      expectStatus: 204
+
+  - request:
+      id: signup_member
+      client: browser
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Feed Events Member
+        email: "{{member_email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+      capture:
+        member_id: $.id
+
+  - sql:
+      statement: |
+        insert into group_memberships (group_id, user_id, role, status, joined_at)
+        values ('{{group_id}}'::uuid, '{{member_id}}'::uuid, 'member', 'active', now());
+
+  - request:
+      id: member_cannot_manage_events
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/events
+      expectStatus: 403
+
+  - request:
+      id: member_sees_event_provenance
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{today}}
+      expectStatus: 200
+      expectJson:
+        event:
+          id: "{{event_id}}"
+          name: Challenge Window
+          starts_on: "{{today}}"
+          ends_on: "{{today}}"
+        items:
+          - item:
+              title: Event Drill
+
+  - request:
+      id: public_output_has_event_provenance
+      method: GET
+      path: /api/public/feeds/{{feed_id}}/outputs/{{today}}
+      expectStatus: 200
+      expectJson:
+        event:
+          id: "{{event_id}}"
+          name: Challenge Window
+          starts_on: "{{today}}"
+          ends_on: "{{today}}"
+        items:
+          - title: Event Drill

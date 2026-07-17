@@ -626,6 +626,7 @@ function publicFeedToOutput(feed: PublicFeed): DailyFeedOutput {
     group_name: feed.group.name,
     date: feed.date,
     title: feed.name,
+    ...(feed.event !== undefined ? { event: feed.event } : {}),
     items: feed.items.map((item) => publicOutputItemToDailyItem(feed, item)),
   };
 }

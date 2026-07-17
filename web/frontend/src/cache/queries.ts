@@ -2,6 +2,7 @@ import * as api from "../api";
 import type {
   CatalogSource,
   DailyFeed,
+  DailyFeedEvent,
   DailyFeedOutput,
   DailyFeedOutputSummary,
   EvidenceFormat,
@@ -78,6 +79,15 @@ export const queries = {
     key: (uid: string, groupID: string) => ["user", uid, "group", groupID, "catalog-sources"] as const,
     fetch: (_uid: string, groupID: string, options: QueryFetcherOptions): Promise<CatalogSource[]> =>
       api.listGroupCatalogSources(groupID, options),
+    staleMs: QUERY_TTL_MS,
+    expiresMs: QUERY_TTL_MS,
+  }),
+
+  feedEvents: defineQuery({
+    key: (uid: string, groupID: string, feedID: string) =>
+      ["user", uid, "group", groupID, "feed", feedID, "events"] as const,
+    fetch: (_uid: string, groupID: string, feedID: string, options: QueryFetcherOptions): Promise<DailyFeedEvent[]> =>
+      api.listGroupDailyFeedEvents(groupID, feedID, options),
     staleMs: QUERY_TTL_MS,
     expiresMs: QUERY_TTL_MS,
   }),

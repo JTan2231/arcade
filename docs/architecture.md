@@ -58,7 +58,8 @@ Routes are grouped by resource in `Server.Routes()`:
   token.
 - Groups: groups and group memberships.
 - Divisions: group-scoped divisions and optional user-rating rules.
-- Dailies: group-owned daily feed definitions and deterministic feed outputs.
+- Dailies: group-owned daily feed definitions, bounded catalog feed events, and
+  deterministic feed outputs.
 - Public reads: signed-out-safe group, feed, and post pages backed by
   `/api/public/...` routes and visibility checks.
 - Evidence formats: group-owned post text validation formats, immutable
@@ -80,6 +81,8 @@ The main persisted entities are:
   accountability.
 - `divisions` and `division_rules`: group-scoped division metadata.
 - `group_daily_feeds`: durable group-owned daily feed definitions.
+- `group_daily_feed_events` and `group_daily_feed_event_filters`: dated,
+  snapshotted catalog configuration overlays for catalog daily feeds.
 - `group_evidence_formats` and `group_evidence_format_versions`: group-owned
   post evidence validation formats and immutable constraint versions.
 - `group_daily_feed_instances` and `group_feed_posts`: durable member posts
@@ -105,17 +108,46 @@ The current daily feed model follows these rules:
   only one daily thread per group; it can be deleted and created again later.
 - Catalog daily outputs are computed on demand from `catalog_sources`,
   `catalog_source_fields`, `catalog_items`, `group_daily_feeds`, and
-  `feed_rule_filters`.
+  `feed_rule_filters`, with an applicable feed event supplying the effective
+  catalog configuration when one exists.
+- A feed event belongs to one `catalog_daily` feed and snapshots its complete
+  catalog selection configuration: source, item count, normalized typed
+  filters, and a stable event selection seed. Events do not alter cadence,
+  timezone, enablement, visibility, captions, evidence format, metrics, or
+  posting rules.
+- Event `starts_on` and `ends_on` values are inclusive calendar dates in the
+  feed's schedule timezone. Output generation first resolves the canonical
+  feed-local output date through schedule-version history, then applies the one
+  event whose inclusive date window contains that date. Events on the same feed
+  cannot overlap.
+- Upcoming events can be edited or deleted. Once the first affected feed date
+  begins, the event name, start date, snapshotted configuration, and selection
+  seed are immutable. An active event may move its end earlier or later, but it
+  must continue to include the current feed date; ended events remain read-only
+  so historical output provenance continues to resolve. Event creation or date
+  changes are rejected when an affected date already has posts or an explicit
+  reroll.
+- Event writes, output rerolls, and post creation serialize on the parent feed
+  row. Lifecycle and used-date checks are repeated under that lock so a
+  concurrent request cannot reinterpret configuration after durable output
+  state has been written.
 - Catalog selection is deterministic by feed, date, source, filters, and
-  catalog item set. When an owner or admin refreshes the current output, the
-  refreshed feed/date stores a generation seed in
+  catalog item set. An applicable event seed establishes the event-specific
+  sequence. When an owner or admin refreshes the current output, the refreshed
+  feed/date stores a separate generation seed in
   `group_daily_feed_generations`, and that seed becomes part of the deterministic
-  selection key for that feed/date only.
+  selection key for that feed/date only. When both exist, the selection key
+  composes the feed identity, feed date, event seed, reroll seed, and item
+  identity; a reroll never mutates the event snapshot or its seed.
 - Feed cadence changes insert schedule-version history. The current schedule
   starts at the moment of the change, while historical output lookups resolve
   the schedule version active for the requested date.
 - Catalog outputs render from source templates. HTTPS renders become links;
   other renders become text prompts. Outputs are not persisted.
+- Generated member outputs carry optional event provenance separately from
+  optional reroll provenance. Event provenance contains the event identity,
+  name, and inclusive date window, allowing current and historical surfaces to
+  explain why an output used different rules.
 - Global catalog sources are available to every group for catalog daily feeds,
   while group-owned sources remain mutable through that group's admin catalog
   APIs.
@@ -133,6 +165,11 @@ The current daily feed model follows these rules:
   `POST /api/groups/{group_id}/daily-feeds/{feed_id}/today/refresh`. Refreshes
   are rejected for daily thread feeds and for feed dates that already have
   non-deleted member posts.
+- Owners and admins manage full event definitions under the selected feed's
+  `/events` routes. Active members can read the event summary attached to an
+  enabled feed output but cannot read management-only configuration, seeds, or
+  audit fields. Public feeds expose the same display-safe event summary when
+  the parent group is public and the feed is enabled.
 - Group visibility controls public reads for the group, its enabled feeds, and
   non-deleted posts. Authenticated active members continue reading private group
   content through member routes, while public routes return 404 for private
@@ -148,7 +185,14 @@ The current daily feed model follows these rules:
   their own existing posts, and owners/admins can attach active tags to any
   existing post in the group. Arcade creates no default tags.
 
-The generator uses feed configuration and catalog item data only.
+The generator uses feed configuration, an optional event snapshot, an optional
+per-date reroll, and current catalog item data. The snapshot preserves the
+selection rules, not a copy of catalog rows or rendered output, so later catalog
+imports can still change which items are eligible for an historical date.
+
+Events require no start or end job. They activate and expire through the same
+on-demand feed-date resolution used by normal output reads; no backend
+scheduler or frontend rollover timer is added.
 
 ## Feed Metrics
 
@@ -191,9 +235,9 @@ The browser app source lives in `web/frontend`:
   logout, current user state, unauthorized recovery, and toast messages.
 - `src/machines/dashboardMachine.ts` owns authenticated workspace state:
   groups, group selection, feed loading/selection, output and post loading,
-  group post tag loading/mutations, feed toggling, post mutations, feed metric
-  loading/selection, leaderboard loading, metric mutations, and judged score
-  saves.
+  feed event loading/mutations, group post tag loading/mutations, feed
+  toggling, post mutations, feed metric loading/selection, leaderboard loading,
+  metric mutations, and judged score saves.
 - `src/machines/addFeedMachine.ts` owns the Add Feed dialog remote workflow:
   source loading, preview, creation, and dialog-scoped errors.
 - `src/api.ts` wraps same-origin JSON requests to `/api/*` and preserves the
@@ -231,7 +275,8 @@ The main group surface loads `/api/groups/{group_id}/daily-feeds`,
 `/api/groups/{group_id}/post-tags`, and
 `/api/groups/{group_id}/daily-feeds/{feed_id}/today` or
 `/api/groups/{group_id}/daily-feeds/{feed_id}/outputs/{date}`. Owners and
-admins request archived tag definitions for the tag manager and can toggle feed
+admins also load and manage `/api/groups/{group_id}/daily-feeds/{feed_id}/events`,
+request archived tag definitions for the tag manager, and can toggle feed
 enabled state through
 `PATCH /api/groups/{group_id}/daily-feeds/{feed_id}`. Feed settings also patch
 caption availability and the current schedule when owners or admins change

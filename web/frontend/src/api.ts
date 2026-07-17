@@ -10,6 +10,8 @@ import type {
   CreateGroupPostTagRequest,
   CreateGroupRequest,
   DailyFeed,
+  DailyFeedEvent,
+  DailyFeedEventPreview,
   DailyFeedOutput,
   DailyFeedOutputSummary,
   DailyFeedPreview,
@@ -27,6 +29,7 @@ import type {
   MetricLeaderboard,
   PatchFeedMetricJudgmentRequest,
   PatchFeedMetricRequest,
+  PatchDailyFeedEventRequest,
   PatchDailyFeedRequest,
   PatchEvidenceFormatRequest,
   PatchGroupRequest,
@@ -36,6 +39,7 @@ import type {
   PublicGroup,
   PublicPost,
   SignupRequest,
+  UpsertDailyFeedEventRequest,
   User,
 } from "./types";
 
@@ -234,6 +238,81 @@ export function previewGroupDailyFeed(
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export function listGroupDailyFeedEvents(
+  groupID: string,
+  feedID: string,
+  options: APIOptions = {},
+): Promise<DailyFeedEvent[]> {
+  return api<DailyFeedEvent[]>(
+    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/events`,
+    options,
+  );
+}
+
+export function previewGroupDailyFeedEvent(
+  groupID: string,
+  feedID: string,
+  payload: UpsertDailyFeedEventRequest,
+  options: APIOptions = {},
+): Promise<DailyFeedEventPreview> {
+  return api<DailyFeedEventPreview>(
+    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/events/preview`,
+    {
+      ...options,
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function createGroupDailyFeedEvent(
+  groupID: string,
+  feedID: string,
+  payload: UpsertDailyFeedEventRequest,
+  options: APIOptions = {},
+): Promise<DailyFeedEvent> {
+  return api<DailyFeedEvent>(
+    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/events`,
+    {
+      ...options,
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function updateGroupDailyFeedEvent(
+  groupID: string,
+  feedID: string,
+  eventID: string,
+  payload: PatchDailyFeedEventRequest,
+  options: APIOptions = {},
+): Promise<DailyFeedEvent> {
+  return api<DailyFeedEvent>(
+    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/events/${encodeURIComponent(eventID)}`,
+    {
+      ...options,
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function deleteGroupDailyFeedEvent(
+  groupID: string,
+  feedID: string,
+  eventID: string,
+  options: APIOptions = {},
+): Promise<null> {
+  return api<null>(
+    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/events/${encodeURIComponent(eventID)}`,
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
 }
 
 export function getGroupDailyFeedToday(

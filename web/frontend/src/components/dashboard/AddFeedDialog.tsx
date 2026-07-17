@@ -11,16 +11,10 @@ import type {
   DailyFeedPreview,
   EvidenceFormat,
 } from "../../types";
+import { CatalogFiltersEditor } from "./CatalogFiltersEditor";
 import { firstNonEmpty, primitiveDisplay } from "./format";
 import type { DraftFilter, FeedKind } from "./feedDraft";
-import {
-  defaultOperatorForField,
-  defaultStartsAtInput,
-  defaultTimezone,
-  draftFilterToRequest,
-  localInputToISOString,
-  operatorsForField,
-} from "./feedDraft";
+import { defaultStartsAtInput, defaultTimezone, draftFilterToRequest, localInputToISOString } from "./feedDraft";
 
 type FeedStep = "type" | "details" | "format" | "catalog" | "schedule" | "review";
 
@@ -136,35 +130,6 @@ export function AddFeedDialog({
       setRevealedSteps(steps.slice(0, catalogStepIndex + 1));
       setCurrentStep("catalog");
     }
-  }
-
-  function handleAddFilter() {
-    const field = sourceFields[0];
-    if (field === undefined) {
-      return;
-    }
-    setFilters((current) => [
-      ...current,
-      {
-        id: `${Date.now()}-${current.length}`,
-        fieldId: field.id,
-        op: defaultOperatorForField(field),
-        textValue: "",
-        numberValue: "",
-        numberMaxValue: "",
-      },
-    ]);
-    markDraftChanged();
-  }
-
-  function updateFilter(id: string, patch: Partial<DraftFilter>) {
-    setFilters((current) => current.map((filter) => (filter.id === id ? { ...filter, ...patch } : filter)));
-    markDraftChanged();
-  }
-
-  function removeFilter(id: string) {
-    setFilters((current) => current.filter((filter) => filter.id !== id));
-    markDraftChanged();
   }
 
   function activateStep(step: FeedStep) {
@@ -515,35 +480,15 @@ export function AddFeedDialog({
           {!sourcesLoading && sources.length === 0 ? (
             <div className="empty-state">No catalog sources available.</div>
           ) : null}
-          <section className="feed-filters-section" aria-label="Filters">
-            <div className="section-header-row">
-              <div className="title">Filters</div>
-              <button
-                className="secondary"
-                type="button"
-                disabled={saving || sourceFields.length === 0}
-                onClick={handleAddFilter}
-              >
-                Add filter
-              </button>
-            </div>
-            {filters.length > 0 ? (
-              <div className="stack">
-                {filters.map((filter) => (
-                  <FilterEditor
-                    disabled={saving}
-                    fields={sourceFields}
-                    filter={filter}
-                    key={filter.id}
-                    onChange={(patch) => updateFilter(filter.id, patch)}
-                    onRemove={() => removeFilter(filter.id)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="empty-state">No filters.</div>
-            )}
-          </section>
+          <CatalogFiltersEditor
+            disabled={saving}
+            fields={sourceFields}
+            filters={filters}
+            onChange={(nextFilters) => {
+              setFilters(nextFilters);
+              markDraftChanged();
+            }}
+          />
           {stepError("catalog")}
         </CreateWizardStep>
       ) : null}
@@ -701,130 +646,6 @@ function validateFeedStep(step: FeedStep, draft: FeedValidationDraft): string {
 
 function firstInvalidFeedStep(steps: FeedStep[], draft: FeedValidationDraft): FeedStep {
   return steps.find((step) => validateFeedStep(step, draft) !== "") ?? steps[steps.length - 1] ?? "details";
-}
-
-function FilterEditor({
-  disabled,
-  fields,
-  filter,
-  onChange,
-  onRemove,
-}: {
-  disabled: boolean;
-  fields: CatalogSourceField[];
-  filter: DraftFilter;
-  onChange: (patch: Partial<DraftFilter>) => void;
-  onRemove: () => void;
-}) {
-  const field = fields.find((candidate) => candidate.id === filter.fieldId) ?? fields[0] ?? null;
-  const operators = field ? operatorsForField(field) : [];
-  const currentOp = operators.some((operator) => operator.value === filter.op)
-    ? filter.op
-    : (operators[0]?.value ?? "");
-
-  function handleFieldChange(fieldId: string) {
-    const nextField = fields.find((candidate) => candidate.id === fieldId);
-    onChange({
-      fieldId,
-      op: nextField ? defaultOperatorForField(nextField) : "",
-      textValue: "",
-      numberValue: "",
-      numberMaxValue: "",
-    });
-  }
-
-  return (
-    <div className="filter-row">
-      <label>
-        Field
-        <select disabled={disabled} value={filter.fieldId} onChange={(event) => handleFieldChange(event.target.value)}>
-          {fields.map((candidate) => (
-            <option value={candidate.id} key={candidate.id}>
-              {candidate.label}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        Operator
-        <select disabled={disabled} value={currentOp} onChange={(event) => onChange({ op: event.target.value })}>
-          {operators.map((operator) => (
-            <option value={operator.value} key={operator.value}>
-              {operator.label}
-            </option>
-          ))}
-        </select>
-      </label>
-      <FilterValueInput disabled={disabled} field={field} filter={{ ...filter, op: currentOp }} onChange={onChange} />
-      <button className="secondary filter-remove-button" type="button" disabled={disabled} onClick={onRemove}>
-        Remove
-      </button>
-    </div>
-  );
-}
-
-function FilterValueInput({
-  disabled,
-  field,
-  filter,
-  onChange,
-}: {
-  disabled: boolean;
-  field: CatalogSourceField | null;
-  filter: DraftFilter;
-  onChange: (patch: Partial<DraftFilter>) => void;
-}) {
-  if (field === null) {
-    return <div />;
-  }
-  if (field.value_type === "number") {
-    if (filter.op === "between") {
-      return (
-        <div className="filter-between-inputs">
-          <label>
-            Min
-            <input
-              disabled={disabled}
-              type="number"
-              value={filter.numberValue}
-              onChange={(event) => onChange({ numberValue: event.target.value })}
-            />
-          </label>
-          <label>
-            Max
-            <input
-              disabled={disabled}
-              type="number"
-              value={filter.numberMaxValue}
-              onChange={(event) => onChange({ numberMaxValue: event.target.value })}
-            />
-          </label>
-        </div>
-      );
-    }
-    return (
-      <label>
-        Value
-        <input
-          disabled={disabled}
-          type="number"
-          value={filter.numberValue}
-          onChange={(event) => onChange({ numberValue: event.target.value })}
-        />
-      </label>
-    );
-  }
-
-  return (
-    <label>
-      Value
-      <input
-        disabled={disabled}
-        value={filter.textValue}
-        onChange={(event) => onChange({ textValue: event.target.value })}
-      />
-    </label>
-  );
 }
 
 function PreviewPanel({ preview }: { preview: DailyFeedPreview }) {

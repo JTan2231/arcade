@@ -150,6 +150,44 @@ export type DailyFeedRuleFilter = {
   number_values?: number[];
 };
 
+type DailyFeedEventProvenance = {
+  id: string;
+  name: string;
+  starts_on: string;
+  ends_on: string;
+};
+
+export type DailyFeedEvent = DailyFeedEventProvenance & {
+  group_id: string;
+  feed_id: string;
+  description?: string;
+  source_id: string;
+  source_name: string;
+  item_count: number;
+  filters: DailyFeedRuleFilter[];
+  selection_token: string;
+  status: "upcoming" | "active" | "ended";
+  created_by_user_id?: string;
+  updated_by_user_id?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type UpsertDailyFeedEventRequest = {
+  name: string;
+  description?: string;
+  starts_on: string;
+  ends_on: string;
+  source_id?: string;
+  item_count: number;
+  filters: DailyFeedRuleFilter[];
+  selection_token?: string;
+};
+
+export type PatchDailyFeedEventRequest = Omit<Partial<UpsertDailyFeedEventRequest>, "description"> & {
+  description?: string | null;
+};
+
 export type DailyFeed = {
   id: string;
   group_id: string;
@@ -201,6 +239,7 @@ export type DailyFeedOutput = {
   group_name?: string;
   date: string;
   title: string;
+  event?: DailyFeedEventProvenance;
   items: DailyFeedOutputItem[];
 };
 
@@ -209,6 +248,7 @@ export type DailyFeedOutputSummary = {
   date: string;
   title: string;
   subtitle?: string;
+  event?: DailyFeedEventProvenance;
 };
 
 type PublicFeedAction = {
@@ -259,6 +299,7 @@ export type PublicFeed = {
   evidence_format: EvidenceFormat;
   schedule: DailyFeedSchedule;
   date: string;
+  event?: DailyFeedEventProvenance;
   items: PublicFeedOutputItem[];
   posts: PublicPost[];
   created_at: string;
@@ -292,6 +333,11 @@ export type DailyFeedPreview = {
     title?: string;
     missing_fields: string[];
   }>;
+};
+
+export type DailyFeedEventPreview = DailyFeedPreview & {
+  selection_token: string;
+  event: DailyFeedEvent;
 };
 
 export type CreateDailyFeedRequest = {

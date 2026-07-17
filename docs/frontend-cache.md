@@ -113,7 +113,7 @@ Current examples:
 - Loading today's member feed output also writes the dated output entry for the
   returned date.
 - Refreshing the current feed generation writes both `feedToday` and the dated
-  `feedOutput`.
+  `feedOutput`, including any event and reroll provenance returned with it.
 - Loading a public feed route writes the dated public feed entry for the
   returned date.
 
@@ -176,8 +176,8 @@ it prevents a signed-out screen from reusing public data that may have been made
 stale by authenticated mutations.
 
 Mutations that affect public pages must touch public keys in addition to private
-member keys. Group access, feed enablement, feed output refreshes, posts, post
-tags, and evidence formats can all alter public route rendering.
+member keys. Group access, feed enablement, feed events, feed output refreshes,
+posts, post tags, and evidence formats can all alter public route rendering.
 
 ## Current Query Catalog
 
@@ -189,6 +189,7 @@ tags, and evidence formats can all alter public route rendering.
 | `groupPostTags` | `["user", uid, "group", groupID, "post-tags", mode]` | `mode` is `"active"` or `"all"`. |
 | `groupEvidenceFormats` | `["user", uid, "group", groupID, "evidence-formats", mode]` | `mode` is `"active"` or `"all"`. |
 | `groupCatalogSources` | `["user", uid, "group", groupID, "catalog-sources"]` | Used by Add Feed. |
+| `feedEvents` | `["user", uid, "group", groupID, "feed", feedID, "events"]` | Owner/admin event definitions and lifecycle state. |
 | `feedToday` | `["user", uid, "group", groupID, "feed", feedID, "today"]` | Current scheduled output. |
 | `feedOutput` | `["user", uid, "group", groupID, "feed", feedID, "output", date]` | Historical or dated output. |
 | `feedOutputSummaries` | `["user", uid, "group", groupID, "feed", feedID, "outputs", selectedDate]` | Date navigation summaries. |
@@ -221,6 +222,12 @@ Current mutation patterns:
 - Feeds: add, toggle, caption availability changes, schedule changes, format
   changes, and deletion touch group feeds, affected feed subtrees,
   `meDailyFeeds`, and affected public feed data.
+- Feed events: create, update, and delete touch the selected feed's event list,
+  today's output, dated outputs, and output summaries so those entries cannot
+  retain old event provenance or selection. They also touch the anonymous
+  public feed subtree. Full event snapshots, selection tokens, and audit fields
+  stay in authenticated owner/admin data; anonymous entries contain only the
+  display-safe event summary attached to a public output.
 - Feed refresh: touches today's output, the returned dated output, and public
   feed data, then writes the refreshed output into the matching member cache
   entries.
@@ -239,6 +246,12 @@ Current mutation patterns:
   prefix. Leaderboards invalidate through their judgment dependency.
 - Invite links: create and revoke touch the selected group's invite-link
   prefix. Link redemption touches the joining user's authenticated group list.
+
+Event start and end boundaries do not perform a mutation, so they do not cause
+boundary-triggered cache invalidation. The backend chooses the applicable event
+when it resolves each output request, and the frontend observes the change on
+the next uncached or stale read under the existing five-minute cache policy.
+Feed events do not add or change a rollover timer.
 
 If a mutation changes more than one visible surface, touch all of them. For
 example, changing feed enablement affects the member feed list, member route

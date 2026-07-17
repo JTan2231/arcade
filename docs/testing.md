@@ -178,6 +178,7 @@ Built-in date tokens are:
 - `{{today}}`
 - `{{yesterday}}`
 - `{{daysAgo:N}}`
+- `{{daysAhead:N}}`
 
 Date tokens resolve as UTC calendar dates, matching the default UTC schedule
 used by scenario-created daily thread feeds.

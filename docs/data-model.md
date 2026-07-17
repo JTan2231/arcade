@@ -41,6 +41,10 @@ erDiagram
     catalog_sources ||--o{ group_daily_feeds : powers
     group_daily_feeds ||--o{ feed_rule_filters : filters
     catalog_source_fields ||--o{ feed_rule_filters : constrains
+    group_daily_feeds ||--o{ group_daily_feed_events : schedules
+    catalog_sources ||--o{ group_daily_feed_events : snapshots
+    group_daily_feed_events ||--o{ group_daily_feed_event_filters : filters
+    catalog_source_fields ||--o{ group_daily_feed_event_filters : constrains
 
     group_daily_feeds ||--o{ group_daily_feed_metrics : scores
     group_daily_feed_metrics ||--o{ group_daily_feed_metric_judgments : collects
@@ -123,17 +127,51 @@ stores an operator plus either text operands or numeric operands. Scalar values
 are represented as one-element arrays; multi-value operators use the same
 columns with multiple operands.
 
+`group_daily_feed_events` stores bounded configuration overlays for
+`catalog_daily` feeds. Each event has a name, optional description, source,
+item count, stable selection seed, creator/updater audit metadata, and a date
+window. The API exposes inclusive `starts_on` and `ends_on` feed-local calendar
+dates. Persistence represents the same window as the half-open range
+`[starts_on, ends_before)`, where `ends_before` is the day after the inclusive
+end. Event dates apply to the canonical `feed_date` returned by schedule
+resolution; they are not UTC instants. A GiST exclusion constraint prevents
+overlapping ranges for one feed, while events may occupy consecutive,
+non-overlapping dates.
+
+An event row and its `group_daily_feed_event_filters` children are a complete
+snapshot of the catalog selection configuration. The child rows preserve the
+source field, normalized operator and position, and text or numeric operands
+needed to evaluate each typed rule. Editing the permanent feed or its
+`feed_rule_filters` therefore does not rewrite an event. The snapshot does not
+copy `catalog_items` or source template contents; outputs remain computed
+against the current catalog and are not exact historical materializations.
+
+Only upcoming events are freely mutable or deletable. Once the event's first
+feed date is current, its name, start date, configuration, and selection seed
+freeze. An active event may move its inclusive end earlier or later while
+keeping the current feed date covered. Ended events remain read-only. Creating
+or moving an event cannot reinterpret a date that already has a
+`group_daily_feed_generations` row or non-deleted feed post.
+Event writes, rerolls, and post creation lock their parent feed row before
+checking or establishing that durable state, closing the race between the
+used-date check and the corresponding write.
+
 Catalog daily feed outputs are generated on demand from `group_daily_feeds`,
 `catalog_items`, `catalog_sources`, `catalog_source_fields`, and
-`feed_rule_filters`. Daily thread outputs return the daily feed shell without
-generated items. Generated outputs are not persisted.
+`feed_rule_filters`, or from the applicable event snapshot in place of the
+permanent catalog configuration. Daily thread outputs do not support events and
+return the daily feed shell without generated items. Generated outputs are not
+persisted.
 
 `group_daily_feed_generations` stores explicit reroll state for catalog feed
 dates that have been refreshed by a group owner or admin. No row exists for the
 default deterministic generation. A refresh creates or updates one `(feed_id,
 feed_date)` row with a generation number, seed, refresher, and timestamp; that
-seed participates in item selection for that feed/date only. Refreshes are not
-allowed once non-deleted posts exist for the feed/date.
+seed participates in item selection for that feed/date only. For an event date,
+the deterministic selection input includes both the stable event seed and the
+per-date reroll seed; the reroll row remains independent of the event and does
+not replace its snapshot. Refreshes are not allowed once non-deleted posts exist
+for the feed/date.
 
 `group_daily_feed_instances` materializes a dated `(feed_id, feed_date)` only
 when durable member content exists for that feed instance. The row carries

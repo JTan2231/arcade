@@ -9,11 +9,12 @@ import { matchesTopState } from "../machines/stateMatches";
 import { groupPath, publicRouteCacheKey, type AppRoute } from "../routes";
 import type { Group, User } from "../types";
 import { GroupDashboardAdapter } from "./GroupDashboardAdapter";
+import { FeedEventsAdapter } from "./FeedEventsAdapter";
 import { GroupSettingsAdapter } from "./GroupSettingsAdapter";
 import { GroupsNavAdapter } from "./GroupsNavAdapter";
 import { PublicRouteAdapter } from "./PublicRouteAdapter";
 import { EMPTY_FEEDS } from "./empty";
-import type { AddFeedActorRef, DashboardActorRef, Navigate, ToastCallback } from "./types";
+import type { AddFeedActorRef, DashboardActorRef, FeedEventsActorRef, Navigate, ToastCallback } from "./types";
 
 type MemberRouteTarget =
   | { routeKey: string; status: "loading" | "public" }
@@ -47,6 +48,8 @@ export function WorkspaceShell({
   const dashboardSnapshot = useSelector(dashboardRef, (childSnapshot) => childSnapshot);
   const addFeedRef = dashboardSnapshot?.children["addFeed"] as AddFeedActorRef | undefined;
   const addFeedSnapshot = useSelector(addFeedRef, (childSnapshot) => childSnapshot);
+  const feedEventsRef = dashboardSnapshot?.children["feedEvents"] as FeedEventsActorRef | undefined;
+  const feedEventsSnapshot = useSelector(feedEventsRef, (childSnapshot) => childSnapshot);
   const [memberRouteTarget, setMemberRouteTarget] = useState<MemberRouteTarget | null>(null);
   const [ambientSpotlightTarget, setAmbientSpotlightTarget] = useState<HTMLElement | null>(null);
   const memberRouteGroupRefreshRef = useRef<string | null>(null);
@@ -55,6 +58,8 @@ export function WorkspaceShell({
   const addFeedContext = addFeedSnapshot?.context ?? null;
   const dashboardStateValue = dashboardSnapshot?.value;
   const addFeedStateValue = addFeedSnapshot?.value;
+  const feedEventsContext = feedEventsSnapshot?.context ?? null;
+  const feedEventsStateValue = feedEventsSnapshot?.value;
   const loadingGroups = matchesTopState(dashboardStateValue, "loadingGroups");
   const publicRoute = typeof route === "object" && route.kind !== "invite" ? route : null;
   const publicRouteKey = publicRoute === null ? "" : publicRouteCacheKey(publicRoute);
@@ -354,6 +359,7 @@ export function WorkspaceShell({
         inviteLinkProps={inviteLinks}
         onNavigate={onNavigate}
       />
+      <FeedEventsAdapter context={feedEventsContext} feedEventsRef={feedEventsRef} stateValue={feedEventsStateValue} />
     </main>
   );
 }

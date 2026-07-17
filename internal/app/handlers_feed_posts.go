@@ -158,6 +158,10 @@ func (s *Server) handleCreateGroupFeedPost(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	defer tx.Rollback(r.Context())
+	if _, err := lockGroupDailyFeedForWrite(r.Context(), tx, groupID, feedID); err != nil {
+		handleError(w, err)
+		return
+	}
 
 	instanceID, err := createGroupDailyFeedInstance(r.Context(), tx, groupID, feedID, resolvedDate)
 	if err != nil {

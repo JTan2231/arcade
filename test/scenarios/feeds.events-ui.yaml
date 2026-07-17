@@ -1,0 +1,225 @@
+name: feed events can be previewed, created, and shown on member and public outputs
+
+vars:
+  email: feed-events-ui-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Feed Events Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: login_owner
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Feed Events UI Dojo
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: create_source
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/catalog-sources
+      json:
+        name: Event Source
+        template: https://example.test/{slug}
+        fields:
+          - key: difficulty
+            label: Difficulty
+            value_type: number
+            is_array: false
+            display_order: 0
+        items:
+          - title: Alpha Event
+            data:
+              slug: alpha-event
+              difficulty: 800
+          - title: Beta Event
+            data:
+              slug: beta-event
+              difficulty: 1200
+      expectStatus: 201
+      capture:
+        source_id: $.id
+
+  - request:
+      id: create_feed
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds
+      json:
+        name: A Event Practice
+        kind: catalog_daily
+        enabled: true
+        source_id: "{{source_id}}"
+        item_count: 1
+        schedule:
+          starts_at: "2020-01-01T00:00:00Z"
+          timezone: UTC
+          interval_seconds: 86400
+      expectStatus: 201
+      capture:
+        feed_id: $.id
+
+steps:
+  - visit: /
+
+  - within: Feeds
+    click:
+      role: button
+      name: Feed settings for A Event Practice
+
+  - within: Feeds
+    click:
+      role: button
+      name: Settings
+
+  - within: Events
+    click:
+      role: button
+      name: Manage
+
+  - within: Feed events
+    click:
+      role: button
+      name: Add event
+
+  - within: Add feed event
+    fill:
+      label: Name
+      value: Graph Week
+
+  - within: Add feed event
+    fill:
+      label: Start date
+      value: "{{daysAhead:1}}"
+
+  - within: Add feed event
+    fill:
+      label: End date
+      value: "{{daysAhead:3}}"
+
+  - within: Add feed event
+    click:
+      role: button
+      name: Next
+
+  - within: Filters
+    click:
+      role: button
+      name: Add filter
+
+  - within: Filters
+    fill:
+      label: Value
+      value: 800
+
+  - within: Add feed event
+    click:
+      role: button
+      name: Next
+
+  - holdRequest:
+      id: event_preview
+      method: POST
+      path: /api/groups/*/daily-feeds/*/events/preview
+      times: 1
+
+  - within: Add feed event
+    click:
+      role: button
+      name: Preview
+
+  - expectRequest:
+      id: event_preview
+
+  - releaseRequest: event_preview
+
+  - within: Event preview
+    expectVisible:
+      text: 1 selected, 1 eligible
+
+  - within: Event preview
+    expectVisible:
+      text: Alpha Event
+
+  - within: Add feed event
+    click:
+      role: button
+      name: Add event
+
+  - expectStatus:
+      text: Feed event created
+
+  - within: Upcoming events
+    expectVisible:
+      text: Graph Week
+
+  - request:
+      id: list_events
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/events
+      expectStatus: 200
+      capture:
+        event_id: $[0].id
+
+  - sql:
+      statement: |
+        update group_daily_feed_events
+        set starts_on = '{{today}}'::date,
+            ends_before = '{{daysAhead:2}}'::date
+        where id = '{{event_id}}'::uuid
+
+  - within: Feed events
+    click:
+      role: button
+      name: Close
+
+  - within: Selected feed output
+    expectVisible:
+      text: Graph Week
+
+  - within: Selected feed output
+    expectVisible:
+      text: Alpha Event
+
+  - request:
+      id: logout_owner
+      client: browser
+      method: POST
+      path: /api/auth/logout
+      expectStatus: 204
+
+  - visit: /f/{{feed_id}}/{{today}}
+
+  - within: Selected feed output
+    expectVisible:
+      text: Graph Week
+
+  - within: Selected feed output
+    expectVisible:
+      text: Alpha Event

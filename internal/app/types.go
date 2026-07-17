@@ -176,21 +176,50 @@ type DailyFeedRuleFilter struct {
 	UpdatedAt    time.Time `json:"updated_at,omitempty"`
 }
 
+type DailyFeedEvent struct {
+	ID              string                `json:"id"`
+	GroupID         string                `json:"group_id"`
+	FeedID          string                `json:"feed_id"`
+	Name            string                `json:"name"`
+	Description     *string               `json:"description,omitempty"`
+	StartsOn        string                `json:"starts_on"`
+	EndsOn          string                `json:"ends_on"`
+	SourceID        string                `json:"source_id"`
+	SourceName      string                `json:"source_name"`
+	ItemCount       int                   `json:"item_count"`
+	Filters         []DailyFeedRuleFilter `json:"filters"`
+	Status          string                `json:"status"`
+	CreatedByUserID *string               `json:"created_by_user_id,omitempty"`
+	UpdatedByUserID *string               `json:"updated_by_user_id,omitempty"`
+	CreatedAt       time.Time             `json:"created_at"`
+	UpdatedAt       time.Time             `json:"updated_at"`
+	SelectionSeed   string                `json:"selection_token"`
+}
+
+type DailyFeedOutputEvent struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	StartsOn string `json:"starts_on"`
+	EndsOn   string `json:"ends_on"`
+}
+
 type DailyFeedOutput struct {
 	FeedID     string                     `json:"feed_id"`
 	GroupID    string                     `json:"group_id"`
 	GroupName  *string                    `json:"group_name,omitempty"`
 	Date       string                     `json:"date"`
 	Title      string                     `json:"title"`
+	Event      *DailyFeedOutputEvent      `json:"event,omitempty"`
 	Generation *DailyFeedOutputGeneration `json:"generation,omitempty"`
 	Items      []DailyFeedOutputItem      `json:"items"`
 }
 
 type DailyFeedOutputSummary struct {
-	FeedID   string  `json:"feed_id"`
-	Date     string  `json:"date"`
-	Title    string  `json:"title"`
-	Subtitle *string `json:"subtitle,omitempty"`
+	FeedID   string                `json:"feed_id"`
+	Date     string                `json:"date"`
+	Title    string                `json:"title"`
+	Subtitle *string               `json:"subtitle,omitempty"`
+	Event    *DailyFeedOutputEvent `json:"event,omitempty"`
 }
 
 type DailyFeedOutputGeneration struct {
@@ -236,6 +265,7 @@ type PublicFeed struct {
 	EvidenceFormat  EvidenceFormat         `json:"evidence_format"`
 	Schedule        DailyFeedSchedule      `json:"schedule"`
 	Date            string                 `json:"date"`
+	Event           *DailyFeedOutputEvent  `json:"event,omitempty"`
 	Items           []PublicFeedOutputItem `json:"items"`
 	Posts           []PublicPost           `json:"posts"`
 	CreatedAt       time.Time              `json:"created_at"`
@@ -432,6 +462,16 @@ type CatalogItem struct {
 }
 
 type DailyFeedPreview struct {
+	Output              DailyFeedOutput          `json:"output"`
+	CandidateItemCount  int                      `json:"candidate_item_count"`
+	EligibleItemCount   int                      `json:"eligible_item_count"`
+	IneligibleItemCount int                      `json:"ineligible_item_count"`
+	IneligibleItems     []CatalogItemEligibility `json:"ineligible_items"`
+}
+
+type DailyFeedEventPreview struct {
+	SelectionToken      string                   `json:"selection_token"`
+	Event               DailyFeedEvent           `json:"event"`
 	Output              DailyFeedOutput          `json:"output"`
 	CandidateItemCount  int                      `json:"candidate_item_count"`
 	EligibleItemCount   int                      `json:"eligible_item_count"`

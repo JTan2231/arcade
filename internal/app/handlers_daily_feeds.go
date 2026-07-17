@@ -1075,6 +1075,7 @@ func dailyFeedOutputSummary(output DailyFeedOutput) DailyFeedOutputSummary {
 			Date:     output.Date,
 			Title:    publicFeedOutputTitle(output.Items[0]),
 			Subtitle: &output.Date,
+			Event:    output.Event,
 		}
 	}
 	if len(output.Items) > 1 {
@@ -1082,6 +1083,7 @@ func dailyFeedOutputSummary(output DailyFeedOutput) DailyFeedOutputSummary {
 			FeedID: output.FeedID,
 			Date:   output.Date,
 			Title:  output.Date,
+			Event:  output.Event,
 		}
 	}
 	return DailyFeedOutputSummary{
@@ -1089,19 +1091,34 @@ func dailyFeedOutputSummary(output DailyFeedOutput) DailyFeedOutputSummary {
 		Date:     output.Date,
 		Title:    firstNonEmptyString(output.Title, output.Date),
 		Subtitle: &output.Date,
+		Event:    output.Event,
 	}
 }
 
 func (s *Server) refreshDailyFeedGeneration(ctx context.Context, userID string, groupID string, feedID string) (DailyFeedOutput, error) {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return DailyFeedOutput{}, err
+	}
+	defer tx.Rollback(ctx)
+
+	kind, err := lockGroupDailyFeedForWrite(ctx, tx, groupID, feedID)
+	if err != nil {
+		return DailyFeedOutput{}, err
+	}
+	if kind == dailyFeedKindDailyThread {
+		return DailyFeedOutput{}, badRequest("daily thread feeds do not support refresh")
+	}
 	feed, err := s.getGroupDailyFeed(ctx, groupID, feedID)
 	if err != nil {
 		return DailyFeedOutput{}, err
 	}
-	if feed.Kind == dailyFeedKindDailyThread {
-		return DailyFeedOutput{}, badRequest("daily thread feeds do not support refresh")
-	}
 
 	date, err := s.dailyFeedOutputDateForFeed(ctx, feed, nil, time.Now())
+	if err != nil {
+		return DailyFeedOutput{}, err
+	}
+	config, err := s.resolveDailyFeedSelectionConfig(ctx, feed, date)
 	if err != nil {
 		return DailyFeedOutput{}, err
 	}
@@ -1110,13 +1127,16 @@ func (s *Server) refreshDailyFeedGeneration(ctx context.Context, userID string, 
 	if err != nil {
 		return DailyFeedOutput{}, err
 	}
-	selection, err := s.selectDailyFeedItemsForDate(ctx, feed, date, &dailyFeedGeneration{Seed: seed}, true)
+	selection, err := s.selectDailyFeedItemsForDate(ctx, feed, config, date, &dailyFeedGeneration{Seed: seed}, true)
 	if err != nil {
 		return DailyFeedOutput{}, err
 	}
 
-	generation, err := s.upsertDailyFeedGeneration(ctx, groupID, feedID, date, seed, userID)
+	generation, err := s.upsertDailyFeedGeneration(ctx, tx, groupID, feedID, date, seed, userID)
 	if err != nil {
+		return DailyFeedOutput{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
 		return DailyFeedOutput{}, err
 	}
 	selection.Output.Generation = publicDailyFeedGeneration(generation)
@@ -1128,15 +1148,19 @@ func (s *Server) selectDailyFeedItems(ctx context.Context, feed DailyFeed, reque
 	if err != nil {
 		return dailyFeedSelection{}, err
 	}
+	config, err := s.resolveDailyFeedSelectionConfig(ctx, feed, date)
+	if err != nil {
+		return dailyFeedSelection{}, err
+	}
 
 	generation, err := s.getDailyFeedGeneration(ctx, feed.ID, date)
 	if err != nil {
 		return dailyFeedSelection{}, err
 	}
-	return s.selectDailyFeedItemsForDate(ctx, feed, date, generation, requireFullCount)
+	return s.selectDailyFeedItemsForDate(ctx, feed, config, date, generation, requireFullCount)
 }
 
-func (s *Server) selectDailyFeedItemsForDate(ctx context.Context, feed DailyFeed, date time.Time, generation *dailyFeedGeneration, requireFullCount bool) (dailyFeedSelection, error) {
+func (s *Server) selectDailyFeedItemsForDate(ctx context.Context, feed DailyFeed, config dailyFeedSelectionConfig, date time.Time, generation *dailyFeedGeneration, requireFullCount bool) (dailyFeedSelection, error) {
 	dateString := date.Format(dailyFeedDateLayout)
 
 	selection := dailyFeedSelection{
@@ -1146,6 +1170,7 @@ func (s *Server) selectDailyFeedItemsForDate(ctx context.Context, feed DailyFeed
 			GroupName:  feed.GroupName,
 			Date:       dateString,
 			Title:      feed.Name,
+			Event:      dailyFeedOutputEvent(config.Event),
 			Generation: publicDailyFeedGeneration(generation),
 			Items:      []DailyFeedOutputItem{},
 		},
@@ -1154,11 +1179,11 @@ func (s *Server) selectDailyFeedItemsForDate(ctx context.Context, feed DailyFeed
 	if feed.Kind == dailyFeedKindDailyThread {
 		return selection, nil
 	}
-	if feed.SourceID == nil || feed.ItemCount == nil {
+	if config.SourceID == "" || config.ItemCount == 0 {
 		return dailyFeedSelection{}, badRequest("practice feed source and item count are required")
 	}
 
-	candidates, err := s.dailyCatalogCandidates(ctx, *feed.SourceID)
+	candidates, err := s.dailyCatalogCandidates(ctx, config.SourceID)
 	if err != nil {
 		return dailyFeedSelection{}, err
 	}
@@ -1175,7 +1200,7 @@ func (s *Server) selectDailyFeedItemsForDate(ctx context.Context, feed DailyFeed
 			})
 			continue
 		}
-		if !dailyCandidateMatchesFilters(candidate, feed.Filters) {
+		if !dailyCandidateMatchesFilters(candidate, config.Filters) {
 			continue
 		}
 		action, ok := resolveDailyAction(candidate)
@@ -1188,19 +1213,24 @@ func (s *Server) selectDailyFeedItemsForDate(ctx context.Context, feed DailyFeed
 
 	selection.EligibleItemCount = len(matching)
 	selection.IneligibleItemCount = len(selection.IneligibleItems)
+	eventSeed := ""
+	if config.Event != nil {
+		eventSeed = config.Event.SelectionSeed
+	}
 	generationSeed := ""
 	if generation != nil {
 		generationSeed = generation.Seed
 	}
-	sortDailyCandidates(matching, dailyFeedSelectionKey(feed), dateString, generationSeed)
-	if requireFullCount && len(matching) < *feed.ItemCount {
+	selectionSeed := combineDailyFeedSelectionSeeds(eventSeed, generationSeed)
+	sortDailyCandidates(matching, dailyFeedSelectionKey(feed), dateString, selectionSeed)
+	if requireFullCount && len(matching) < config.ItemCount {
 		return dailyFeedSelection{}, statusError{
 			status:  http.StatusUnprocessableEntity,
-			message: fmt.Sprintf("daily feed could select only %d of %d items", len(matching), *feed.ItemCount),
+			message: fmt.Sprintf("daily feed could select only %d of %d items", len(matching), config.ItemCount),
 		}
 	}
 
-	limit := *feed.ItemCount
+	limit := config.ItemCount
 	if len(matching) < limit {
 		limit = len(matching)
 	}
@@ -1210,7 +1240,7 @@ func (s *Server) selectDailyFeedItemsForDate(ctx context.Context, feed DailyFeed
 			Position: index + 1,
 			Role:     role,
 			Points:   1,
-			Reason:   dailyFeedReason(candidate, feed.Filters),
+			Reason:   dailyFeedReason(candidate, config.Filters),
 			Item: DailyCatalogItem{
 				ID:         candidate.ID,
 				SourceID:   candidate.SourceID,
@@ -1259,10 +1289,10 @@ func (s *Server) getDailyFeedGeneration(ctx context.Context, feedID string, feed
 	return &generation, nil
 }
 
-func (s *Server) upsertDailyFeedGeneration(ctx context.Context, groupID string, feedID string, feedDate time.Time, seed string, userID string) (*dailyFeedGeneration, error) {
+func (s *Server) upsertDailyFeedGeneration(ctx context.Context, tx pgx.Tx, groupID string, feedID string, feedDate time.Time, seed string, userID string) (*dailyFeedGeneration, error) {
 	var generation dailyFeedGeneration
 	var refreshedByUserID sql.NullString
-	err := s.db.QueryRow(ctx, `
+	err := tx.QueryRow(ctx, `
 		insert into group_daily_feed_generations (
 			group_id,
 			feed_id,
@@ -1616,6 +1646,17 @@ func stringSliceContainsFold(values []string, needle string) bool {
 		}
 	}
 	return false
+}
+
+func combineDailyFeedSelectionSeeds(eventSeed string, generationSeed string) string {
+	if eventSeed == "" {
+		return generationSeed
+	}
+	if generationSeed == "" {
+		return eventSeed
+	}
+	sum := sha256.Sum256([]byte(eventSeed + "\x00" + generationSeed))
+	return fmt.Sprintf("%x", sum[:])
 }
 
 func sortDailyCandidates(candidates []dailyCatalogCandidate, feedKey string, date string, generationSeed string) {
