@@ -74,6 +74,7 @@ export type GroupDashboardProps = {
   readOnly?: boolean;
   standalone?: boolean;
   onSelectFeed?: (feedId: string) => void;
+  ambientSpotlightTarget?: HTMLElement | null;
 };
 
 export function GroupDashboard({
@@ -122,6 +123,7 @@ export function GroupDashboard({
   readOnly = false,
   standalone = false,
   onSelectFeed,
+  ambientSpotlightTarget = null,
 }: GroupDashboardProps) {
   if (!group) {
     return (
@@ -153,7 +155,7 @@ export function GroupDashboard({
     <>
       <section className="panel group-dashboard-panel group-dashboard-feed-panel">
         <section className="dashboard-section feed-output-section" aria-label="Selected feed output">
-          <FeedSpotlight>
+          <FeedSpotlight ambientTarget={ambientSpotlightTarget}>
             {standalone ? (
               <div className="feed-route-header">
                 <div>

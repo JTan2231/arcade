@@ -19,6 +19,8 @@ type SpotlightTarget = {
 
 const ambientSpotlightRadiusX = 0.62;
 const ambientSpotlightRadiusY = 0.5;
+const ambientSpotlightWidthRatio = ambientSpotlightRadiusX * 2;
+const ambientSpotlightHeightRatio = ambientSpotlightRadiusY * 2;
 const focusSpotlightWidthRatio = 1.16;
 const focusSpotlightHeightRatio = 0.82;
 const minimumFocusSpotlightWidth = 440;
@@ -152,7 +154,14 @@ function drawSpotlight({
   context.putImageData(image, 0, 0);
 }
 
-function AmbientSpotlight() {
+function ambientSpotlightLayerSize() {
+  return {
+    width: window.innerWidth * ambientSpotlightWidthRatio,
+    height: window.innerHeight * ambientSpotlightHeightRatio,
+  };
+}
+
+function AmbientSpotlight({ target }: { target: HTMLElement | null }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -170,14 +179,15 @@ function AmbientSpotlight() {
 
       animationFrame = window.requestAnimationFrame(() => {
         animationFrame = null;
+        const { height, width } = ambientSpotlightLayerSize();
         drawSpotlight({
           canvas,
-          cssWidth: window.innerWidth,
-          cssHeight: window.innerHeight,
+          cssWidth: width,
+          cssHeight: height,
           originToken: "--color-feed-spotlight",
           endpointToken: "--color-feed-spotlight-transparent",
-          radiusX: ambientSpotlightRadiusX,
-          radiusY: ambientSpotlightRadiusY,
+          radiusX: 0.5,
+          radiusY: 0.5,
           maximumDevicePixelRatio: maxAmbientDevicePixelRatio,
         });
       });
@@ -201,6 +211,66 @@ function AmbientSpotlight() {
       }
     };
   }, []);
+
+  useLayoutEffect(() => {
+    const canvas = canvasRef.current;
+    if (canvas === null) {
+      return;
+    }
+
+    let animationFrame: number | null = null;
+
+    const updatePosition = () => {
+      animationFrame = null;
+      const { height, width } = ambientSpotlightLayerSize();
+      let centerX = window.innerWidth * 0.5;
+      let centerY = window.innerHeight * 0.5;
+
+      if (target !== null && target.isConnected) {
+        const bounds = target.getBoundingClientRect();
+        if (bounds.width > 0 && bounds.height > 0) {
+          centerX = bounds.left + bounds.width * 0.5;
+          centerY = bounds.top + bounds.height * 0.5;
+        }
+      }
+
+      canvas.style.transform = `translate3d(${centerX - width * 0.5}px, ${centerY - height * 0.5}px, 0)`;
+    };
+
+    const schedulePosition = () => {
+      if (animationFrame !== null) {
+        return;
+      }
+      animationFrame = window.requestAnimationFrame(updatePosition);
+    };
+
+    const layoutObserver = new ResizeObserver(schedulePosition);
+    for (let element: HTMLElement | null = target; element !== null; element = element.parentElement) {
+      layoutObserver.observe(element);
+    }
+    updatePosition();
+    document.addEventListener("scroll", schedulePosition, { capture: true, passive: true });
+    window.addEventListener("resize", schedulePosition);
+
+    const visualViewport = window.visualViewport;
+    if (visualViewport !== null && visualViewport !== undefined) {
+      visualViewport.addEventListener("scroll", schedulePosition);
+      visualViewport.addEventListener("resize", schedulePosition);
+    }
+
+    return () => {
+      layoutObserver.disconnect();
+      document.removeEventListener("scroll", schedulePosition, { capture: true });
+      window.removeEventListener("resize", schedulePosition);
+      if (visualViewport !== null && visualViewport !== undefined) {
+        visualViewport.removeEventListener("scroll", schedulePosition);
+        visualViewport.removeEventListener("resize", schedulePosition);
+      }
+      if (animationFrame !== null) {
+        window.cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [target]);
 
   return <canvas aria-hidden="true" className="feed-spotlight-canvas feed-spotlight-ambient-canvas" ref={canvasRef} />;
 }
@@ -341,7 +411,13 @@ function FocusedSpotlight({ target, tone }: { target: SpotlightTarget | null; to
   return <canvas aria-hidden="true" className={className} ref={canvasRef} />;
 }
 
-export function FeedSpotlight({ children }: { children: ReactNode }) {
+export function FeedSpotlight({
+  children,
+  ambientTarget = null,
+}: {
+  children: ReactNode;
+  ambientTarget?: HTMLElement | null;
+}) {
   const [targets, setTargets] = useState<ReadonlyMap<string, SpotlightTarget>>(() => new Map());
   const removalTimers = useRef(new Map<string, number>());
   const nextTargetOrder = useRef(0);
@@ -413,7 +489,7 @@ export function FeedSpotlight({ children }: { children: ReactNode }) {
 
   return (
     <FeedSpotlightContext.Provider value={context}>
-      <AmbientSpotlight />
+      <AmbientSpotlight target={ambientTarget} />
       <FocusedSpotlight target={postTarget} tone="post" />
       <FocusedSpotlight target={feedTarget} tone="feed" />
       {children}

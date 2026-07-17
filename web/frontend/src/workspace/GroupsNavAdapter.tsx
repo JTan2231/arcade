@@ -23,6 +23,7 @@ export function GroupsNavAdapter({
   selectedFeedDate,
   onNavigate,
   onToast,
+  onAmbientSpotlightTargetChange,
 }: {
   dashboardRef: DashboardActorRef | undefined;
   dashboardContext: DashboardContext | null;
@@ -34,6 +35,7 @@ export function GroupsNavAdapter({
   selectedFeedDate: string;
   onNavigate: Navigate;
   onToast: ToastCallback;
+  onAmbientSpotlightTargetChange: (target: HTMLElement | null) => void;
 }) {
   const currentUserId = dashboardContext?.currentUserId ?? "";
   const [memberFeeds, setMemberFeeds] = useState<DailyFeed[]>([]);
@@ -142,6 +144,7 @@ export function GroupsNavAdapter({
       }
       onDeleteFeed={(feedId) => dashboardRef?.send({ type: "FEED_DELETE_SUBMITTED", feedId })}
       onAddFeed={() => dashboardRef?.send({ type: "ADD_FEED_OPENED" })}
+      onAmbientSpotlightTargetChange={onAmbientSpotlightTargetChange}
     />
   );
 }

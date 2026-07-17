@@ -28,6 +28,7 @@ export function FeedSublist({
   onCopyPublicFeedLink,
   onDeleteFeed,
   onAddFeed,
+  onAmbientSpotlightTargetChange,
 }: {
   feeds: DailyFeed[];
   evidenceFormats: EvidenceFormat[];
@@ -52,6 +53,7 @@ export function FeedSublist({
   onCopyPublicFeedLink: (id: string) => void;
   onDeleteFeed: (id: string) => void;
   onAddFeed: () => void;
+  onAmbientSpotlightTargetChange: (target: HTMLElement | null) => void;
 }) {
   const [settingsFeedId, setSettingsFeedId] = useState<string | null>(null);
   const sublistClassName = `feed-sublist${selectedGroup ? " feed-sublist-selected" : ""}`;
@@ -136,6 +138,8 @@ export function FeedSublist({
                 type="button"
                 aria-label={feed.name}
                 onClick={() => onSelectFeed(feed.id)}
+                onMouseEnter={(event) => onAmbientSpotlightTargetChange(event.currentTarget)}
+                onMouseLeave={() => onAmbientSpotlightTargetChange(null)}
               >
                 <div className="title">{feed.name}</div>
                 <div className="meta">{!feed.enabled ? "Disabled" : ""}</div>

@@ -34,6 +34,7 @@ export type GroupsPanelProps = {
   onCopyPublicFeedLink: (id: string) => void;
   onDeleteFeed: (id: string) => void;
   onAddFeed: () => void;
+  onAmbientSpotlightTargetChange: (target: HTMLElement | null) => void;
 };
 
 export function GroupsPanel({
@@ -66,6 +67,7 @@ export function GroupsPanel({
   onCopyPublicFeedLink,
   onDeleteFeed,
   onAddFeed,
+  onAmbientSpotlightTargetChange,
 }: GroupsPanelProps) {
   const [name, setName] = useState("");
   const [adding, setAdding] = useState(false);
@@ -165,6 +167,8 @@ export function GroupsPanel({
                     type="button"
                     aria-label={group.name}
                     onClick={() => onSelectGroup(group.id)}
+                    onMouseEnter={(event) => onAmbientSpotlightTargetChange(event.currentTarget)}
+                    onMouseLeave={() => onAmbientSpotlightTargetChange(null)}
                   >
                     <div className="title">{group.name}</div>
                   </button>
@@ -196,6 +200,7 @@ export function GroupsPanel({
                   onCopyPublicFeedLink={onCopyPublicFeedLink}
                   onDeleteFeed={onDeleteFeed}
                   onAddFeed={onAddFeed}
+                  onAmbientSpotlightTargetChange={onAmbientSpotlightTargetChange}
                 />
               </div>
             );

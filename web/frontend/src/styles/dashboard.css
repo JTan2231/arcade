@@ -36,11 +36,13 @@
 }
 
 .feed-spotlight-ambient-canvas {
-  height: 100vh;
-  inset: 0;
+  left: 0;
   opacity: 1;
-  transition: opacity 1.26s cubic-bezier(0.2, 0, 0, 1);
-  width: 100vw;
+  top: 0;
+  transition:
+    opacity 1.26s cubic-bezier(0.2, 0, 0, 1),
+    transform 2.4s cubic-bezier(0.45, 0, 0.55, 1);
+  will-change: opacity, transform;
 }
 
 .feed-spotlight-ambient-canvas:has(~ .feed-spotlight-focus-canvas-visible) {

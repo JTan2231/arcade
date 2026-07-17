@@ -48,6 +48,7 @@ export function WorkspaceShell({
   const addFeedRef = dashboardSnapshot?.children["addFeed"] as AddFeedActorRef | undefined;
   const addFeedSnapshot = useSelector(addFeedRef, (childSnapshot) => childSnapshot);
   const [memberRouteTarget, setMemberRouteTarget] = useState<MemberRouteTarget | null>(null);
+  const [ambientSpotlightTarget, setAmbientSpotlightTarget] = useState<HTMLElement | null>(null);
   const memberRouteGroupRefreshRef = useRef<string | null>(null);
 
   const dashboardContext = dashboardSnapshot?.context ?? null;
@@ -311,6 +312,7 @@ export function WorkspaceShell({
           selectedFeedDate={selectedFeedDate}
           onNavigate={onNavigate}
           onToast={onToast}
+          onAmbientSpotlightTargetChange={setAmbientSpotlightTarget}
         />
       </div>
       <GroupDashboardAdapter
@@ -327,6 +329,7 @@ export function WorkspaceShell({
         selectedFeedDate={selectedFeedDate}
         currentUserId={currentUser?.id ?? null}
         onNavigate={onNavigate}
+        ambientSpotlightTarget={ambientSpotlightTarget}
       />
       <GroupSettingsAdapter
         dashboardRef={dashboardRef}

@@ -26,6 +26,7 @@ export function GroupDashboardAdapter({
   selectedFeedDate,
   currentUserId,
   onNavigate,
+  ambientSpotlightTarget,
 }: {
   dashboardRef: DashboardActorRef | undefined;
   addFeedRef: AddFeedActorRef | undefined;
@@ -40,6 +41,7 @@ export function GroupDashboardAdapter({
   selectedFeedDate: string;
   currentUserId: string | null;
   onNavigate: Navigate;
+  ambientSpotlightTarget: HTMLElement | null;
 }) {
   const loadFeedOutputSummaries = useCallback(
     (selectedDate: string, signal: AbortSignal) => {
@@ -103,6 +105,7 @@ export function GroupDashboardAdapter({
       loadFeedOutputSummaries={loadFeedOutputSummaries}
       selectedFeedId={selectedFeedId}
       selectedFeedDate={selectedFeedDate}
+      ambientSpotlightTarget={ambientSpotlightTarget}
       {...feedOutputProps}
       {...postsProps}
       {...metricsProps}
