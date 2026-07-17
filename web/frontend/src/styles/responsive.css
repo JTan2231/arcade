@@ -134,6 +134,7 @@
   .metric-judgment-grid,
   .group-settings-grid,
   .feed-settings-section,
+  .post-tag-manager-row,
   .group-member-row {
     grid-template-columns: minmax(0, 1fr);
   }

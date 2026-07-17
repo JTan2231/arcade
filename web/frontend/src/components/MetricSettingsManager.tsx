@@ -1,19 +1,8 @@
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import type {
-  CreateFeedMetricRequest,
-  DailyFeed,
-  FeedMetric,
-  MetricAggregation,
-  PatchFeedMetricRequest,
-} from "../types";
-import {
-  aggregationLabel,
-  aggregationsForMetricKey,
-  defaultAggregationForMetricKey,
-  metricKeyLabel,
-} from "./metricLabels";
-import { CreateMetricDialog } from "./CreateMetricDialog";
+import type { CreateFeedMetricRequest, DailyFeed, FeedMetric, PatchFeedMetricRequest } from "../types";
+import { CreateMetricDialog, EditMetricDialog } from "./CreateMetricDialog";
+import { aggregationLabel, metricKeyLabel } from "./metricLabels";
 
 type MetricSettingsManagerProps = {
   feeds: DailyFeed[];
@@ -49,6 +38,9 @@ export function MetricSettingsManager({
   const [createAwaitingResult, setCreateAwaitingResult] = useState(false);
   const [createSawSubmitting, setCreateSawSubmitting] = useState(false);
   const [createError, setCreateError] = useState("");
+  const [editAwaitingResult, setEditAwaitingResult] = useState(false);
+  const [editSawSubmitting, setEditSawSubmitting] = useState(false);
+  const [editError, setEditError] = useState("");
   const selectedFeed = feeds.find((feed) => feed.id === selectedFeedId) ?? null;
   const editingMetric =
     dialogMode === "edit" ? (metrics.find((metric) => metric.id === editingMetricId) ?? null) : null;
@@ -60,6 +52,9 @@ export function MetricSettingsManager({
     setCreateAwaitingResult(false);
     setCreateSawSubmitting(false);
     setCreateError("");
+    setEditAwaitingResult(false);
+    setEditSawSubmitting(false);
+    setEditError("");
   }, []);
 
   useEffect(() => {
@@ -86,12 +81,35 @@ export function MetricSettingsManager({
     setCreateSawSubmitting(false);
   }, [closeDialog, createAwaitingResult, createSawSubmitting, dialogMode, error, metricSubmitting]);
 
+  useEffect(() => {
+    if (dialogMode !== "edit" || !editAwaitingResult || editingMetricId === null) {
+      return;
+    }
+    if (updatingMetricId === editingMetricId) {
+      setEditSawSubmitting(true);
+      return;
+    }
+    if (!editSawSubmitting || updatingMetricId !== null) {
+      return;
+    }
+    if (error === "") {
+      closeDialog();
+      return;
+    }
+    setEditError(error);
+    setEditAwaitingResult(false);
+    setEditSawSubmitting(false);
+  }, [closeDialog, dialogMode, editAwaitingResult, editingMetricId, editSawSubmitting, error, updatingMetricId]);
+
   function openCreateDialog() {
     setCreateError("");
     setDialogMode("create");
   }
 
   function openEditDialog(metric: FeedMetric) {
+    setEditError("");
+    setEditAwaitingResult(false);
+    setEditSawSubmitting(false);
     setEditingMetricId(metric.id);
     setDialogMode("edit");
   }
@@ -107,10 +125,15 @@ export function MetricSettingsManager({
     <section className="metric-settings-manager" aria-label="Metric settings">
       <div className="section-header-row">
         <div>
-          <div className="section-title">Metric settings</div>
-          <div className="meta">{selectedFeed?.name ?? "No feed selected"}</div>
+          <div className="meta">{selectedFeed === null ? "No feed selected" : `Feed: ${selectedFeed.name}`}</div>
         </div>
-        <button className="secondary" type="button" disabled={!canAddMetric} onClick={openCreateDialog}>
+        <button
+          aria-haspopup="dialog"
+          className="secondary"
+          type="button"
+          disabled={!canAddMetric}
+          onClick={openCreateDialog}
+        >
           Add metric
         </button>
       </div>
@@ -167,6 +190,7 @@ export function MetricSettingsManager({
                   </div>
                   <div className="compact-actions">
                     <button
+                      aria-haspopup="dialog"
                       aria-label={`Edit ${metric.display_name}`}
                       className="secondary"
                       type="button"
@@ -186,9 +210,6 @@ export function MetricSettingsManager({
                     </button>
                   </div>
                 </div>
-                {metric.judgment_prompt !== undefined && metric.judgment_prompt !== "" ? (
-                  <div className="meta">{metric.judgment_prompt}</div>
-                ) : null}
               </div>
             );
           })}
@@ -209,132 +230,20 @@ export function MetricSettingsManager({
         />
       ) : null}
 
-      {dialogMode === "edit" && editingMetric !== null ? (
+      {dialogMode === "edit" && editingMetric !== null && selectedFeed !== null ? (
         <EditMetricDialog
+          feedName={selectedFeed.name}
           metric={editingMetric}
-          saving={updatingMetricId === editingMetric.id}
+          saving={updatingMetricId === editingMetric.id || editAwaitingResult}
+          submissionError={editError}
           onClose={closeDialog}
-          onUpdate={(metricId, payload) => {
-            onUpdateMetric(metricId, payload);
-            closeDialog();
+          onUpdate={(payload) => {
+            setEditError("");
+            setEditAwaitingResult(true);
+            onUpdateMetric(editingMetric.id, payload);
           }}
         />
       ) : null}
     </section>
-  );
-}
-
-function EditMetricDialog({
-  metric,
-  saving,
-  onClose,
-  onUpdate,
-}: {
-  metric: FeedMetric;
-  saving: boolean;
-  onClose: () => void;
-  onUpdate: (metricId: string, payload: PatchFeedMetricRequest) => void;
-}) {
-  const [displayName, setDisplayName] = useState(metric.display_name);
-  const [aggregation, setAggregation] = useState<MetricAggregation>(metric.aggregation);
-  const [judgmentPrompt, setJudgmentPrompt] = useState(metric.judgment_prompt ?? "");
-  const [validationError, setValidationError] = useState("");
-  const metricKey = metric.system_key;
-  const allowedAggregations = aggregationsForMetricKey(metricKey);
-
-  useEffect(() => {
-    if (!allowedAggregations.includes(aggregation)) {
-      setAggregation(defaultAggregationForMetricKey(metricKey));
-    }
-  }, [aggregation, allowedAggregations, metricKey]);
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const trimmedDisplayName = displayName.trim();
-    const trimmedPrompt = judgmentPrompt.trim();
-    if (trimmedDisplayName === "") {
-      setValidationError("Name is required");
-      return;
-    }
-    if (metricKey === "judged" && trimmedPrompt === "") {
-      setValidationError("Prompt is required");
-      return;
-    }
-    setValidationError("");
-
-    onUpdate(metric.id, {
-      display_name: trimmedDisplayName,
-      aggregation,
-      ...(metricKey === "judged" ? { judgment_prompt: trimmedPrompt } : {}),
-    });
-  }
-
-  return (
-    <div className="modal-backdrop" role="presentation">
-      <div className="modal-panel metric-dialog" role="dialog" aria-modal="true" aria-labelledby="metric-dialog-title">
-        <form className="metric-form" onSubmit={handleSubmit}>
-          <div className="modal-header">
-            <div>
-              <h2 id="metric-dialog-title">Edit metric</h2>
-              <div className="meta">{metricKeyLabel(metricKey)}</div>
-            </div>
-            <button className="secondary" type="button" onClick={onClose}>
-              Close
-            </button>
-          </div>
-
-          <div className="form-grid two-column">
-            <label>
-              Name
-              <input
-                value={displayName}
-                onChange={(event) => {
-                  setDisplayName(event.target.value);
-                  setValidationError("");
-                }}
-              />
-            </label>
-            <label>
-              Aggregation
-              <select value={aggregation} onChange={(event) => setAggregation(event.target.value as MetricAggregation)}>
-                {allowedAggregations.map((candidate) => (
-                  <option key={candidate} value={candidate}>
-                    {aggregationLabel(candidate)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          {metric.system_key === "judged" ? (
-            <label>
-              Prompt
-              <textarea
-                value={judgmentPrompt}
-                onChange={(event) => {
-                  setJudgmentPrompt(event.target.value);
-                  setValidationError("");
-                }}
-              />
-            </label>
-          ) : null}
-
-          {validationError ? (
-            <div className="form-error" role="alert">
-              {validationError}
-            </div>
-          ) : null}
-
-          <div className="output-actions">
-            <button className="secondary" type="button" disabled={saving} onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" disabled={saving}>
-              {saving ? "Saving..." : "Save"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
   );
 }

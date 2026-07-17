@@ -7,16 +7,6 @@ type ConstraintFieldProps = {
   onChange: (patch: Partial<EvidenceFormatDraft>) => void;
 };
 
-export function EvidenceFormatConstraintFields(props: ConstraintFieldProps) {
-  return (
-    <>
-      <EvidenceFormatLengthFields {...props} />
-      <EvidenceFormatLineFields {...props} />
-      <EvidenceFormatLineLengthFields {...props} />
-    </>
-  );
-}
-
 export function EvidenceFormatLengthFields({ draft, disabled = false, onChange }: ConstraintFieldProps) {
   return (
     <div className="form-grid two-column">

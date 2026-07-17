@@ -1,3 +1,5 @@
+import { useState, type ReactNode } from "react";
+
 import type {
   CreateEvidenceFormatRequest,
   CreateEvidenceFormatVersionRequest,
@@ -22,6 +24,8 @@ import { GroupMembersManager } from "./GroupMembersManager";
 import { GroupVisibilityControl } from "./GroupVisibilityControl";
 import { InviteLinksManager } from "./InviteLinksManager";
 import { PostTagManager } from "./PostTagManager";
+
+type GroupSettingsSectionID = "visibility" | "metrics" | "tags" | "formats" | "members" | "invites";
 
 export type GroupSettingsDialogProps = {
   group: Group;
@@ -126,6 +130,8 @@ export function GroupSettingsDialog({
   onClearCreatedInviteURL,
   onUpdateVisibility,
 }: GroupSettingsDialogProps) {
+  const [openSection, setOpenSection] = useState<GroupSettingsSectionID | null>(null);
+
   if (!canManageGroup(group)) {
     return null;
   }
@@ -149,70 +155,166 @@ export function GroupSettingsDialog({
         </div>
         {loading ? <div className="meta">Loading settings...</div> : null}
         <div className="group-settings-grid">
-          <GroupVisibilityControl group={group} saving={visibilitySaving} onUpdateVisibility={onUpdateVisibility} />
-          <MetricSettingsManager
-            deletingMetricId={deletingMetricId}
-            error={metricsError}
-            feeds={feeds}
-            metricSubmitting={metricSubmitting}
-            metrics={metrics}
-            metricsLoading={metricsLoading}
-            selectedFeedId={selectedFeedId}
-            updatingMetricId={updatingMetricId}
-            onCreateMetric={onCreateMetric}
-            onDeleteMetric={onDeleteMetric}
-            onSelectFeed={onSelectFeed}
-            onUpdateMetric={onUpdateMetric}
-          />
-          <PostTagManager
-            deletingTagId={deletingTagId}
-            error={tagError}
-            loading={loading}
-            saving={tagSaving}
-            tags={tags}
-            updatingTagId={updatingTagId}
-            onCreateTag={onCreateTag}
-            onDeleteTag={onDeleteTag}
-            onUpdateTag={onUpdateTag}
-          />
-          <EvidenceFormatManager
-            deletingFormatId={deletingFormatId}
-            error={formatError}
-            formats={formats}
-            groupName={group.name}
-            loading={loading}
-            saving={formatSaving}
-            updatingFormatId={updatingFormatId}
-            onClearError={onClearFormatError}
-            onCreateFormat={onCreateFormat}
-            onCreateFormatVersion={onCreateFormatVersion}
-            onDeleteFormat={onDeleteFormat}
-            onUpdateFormat={onUpdateFormat}
-          />
-          <GroupMembersManager
-            currentUserId={currentUserId}
-            error={membersError}
-            group={group}
-            loading={loading}
-            members={members}
-            removingUserId={removingMemberUserId}
-            onRemoveMember={onRemoveMember}
-          />
-          <InviteLinksManager
-            createdInviteURL={createdInviteURL}
-            creating={creatingInviteLink}
-            error={inviteLinksError}
-            links={inviteLinks}
-            loading={inviteLinksLoading}
-            revokingLinkId={revokingInviteLinkId}
-            onClearCreatedInviteURL={onClearCreatedInviteURL}
-            onCreateInviteLink={onCreateInviteLink}
-            onRevokeInviteLink={onRevokeInviteLink}
-          />
+          <GroupSettingsDisclosure
+            id="visibility"
+            open={openSection === "visibility"}
+            summary={group.visibility === "public" ? "Public" : "Private"}
+            title="Visibility"
+            onToggle={setOpenSection}
+          >
+            <GroupVisibilityControl group={group} saving={visibilitySaving} onUpdateVisibility={onUpdateVisibility} />
+          </GroupSettingsDisclosure>
+          <GroupSettingsDisclosure
+            id="metrics"
+            open={openSection === "metrics"}
+            summary={resourceCountSummary(metrics.length, "metric")}
+            title="Metrics"
+            onToggle={setOpenSection}
+          >
+            <MetricSettingsManager
+              deletingMetricId={deletingMetricId}
+              error={metricsError}
+              feeds={feeds}
+              metricSubmitting={metricSubmitting}
+              metrics={metrics}
+              metricsLoading={metricsLoading}
+              selectedFeedId={selectedFeedId}
+              updatingMetricId={updatingMetricId}
+              onCreateMetric={onCreateMetric}
+              onDeleteMetric={onDeleteMetric}
+              onSelectFeed={onSelectFeed}
+              onUpdateMetric={onUpdateMetric}
+            />
+          </GroupSettingsDisclosure>
+          <GroupSettingsDisclosure
+            id="tags"
+            open={openSection === "tags"}
+            summary={resourceCountSummary(tags.length, "tag")}
+            title="Post tags"
+            onToggle={setOpenSection}
+          >
+            <PostTagManager
+              deletingTagId={deletingTagId}
+              error={tagError}
+              loading={loading}
+              saving={tagSaving}
+              tags={tags}
+              updatingTagId={updatingTagId}
+              onCreateTag={onCreateTag}
+              onDeleteTag={onDeleteTag}
+              onUpdateTag={onUpdateTag}
+            />
+          </GroupSettingsDisclosure>
+          <GroupSettingsDisclosure
+            id="formats"
+            open={openSection === "formats"}
+            summary={resourceCountSummary(formats.length, "format")}
+            title="Post formats"
+            onToggle={setOpenSection}
+          >
+            <EvidenceFormatManager
+              deletingFormatId={deletingFormatId}
+              error={formatError}
+              formats={formats}
+              groupName={group.name}
+              loading={loading}
+              saving={formatSaving}
+              updatingFormatId={updatingFormatId}
+              onClearError={onClearFormatError}
+              onCreateFormat={onCreateFormat}
+              onCreateFormatVersion={onCreateFormatVersion}
+              onDeleteFormat={onDeleteFormat}
+              onUpdateFormat={onUpdateFormat}
+            />
+          </GroupSettingsDisclosure>
+          <GroupSettingsDisclosure
+            id="members"
+            open={openSection === "members"}
+            summary={resourceCountSummary(members.length, "member")}
+            title="Members"
+            onToggle={setOpenSection}
+          >
+            <GroupMembersManager
+              currentUserId={currentUserId}
+              error={membersError}
+              group={group}
+              loading={loading}
+              members={members}
+              removingUserId={removingMemberUserId}
+              onRemoveMember={onRemoveMember}
+            />
+          </GroupSettingsDisclosure>
+          <GroupSettingsDisclosure
+            id="invites"
+            open={openSection === "invites"}
+            summary={resourceCountSummary(inviteLinks.length, "link")}
+            title="Invite links"
+            onToggle={setOpenSection}
+          >
+            <InviteLinksManager
+              createdInviteURL={createdInviteURL}
+              creating={creatingInviteLink}
+              error={inviteLinksError}
+              groupName={group.name}
+              links={inviteLinks}
+              loading={inviteLinksLoading}
+              revokingLinkId={revokingInviteLinkId}
+              onClearCreatedInviteURL={onClearCreatedInviteURL}
+              onCreateInviteLink={onCreateInviteLink}
+              onRevokeInviteLink={onRevokeInviteLink}
+            />
+          </GroupSettingsDisclosure>
         </div>
       </section>
     </div>
   );
+}
+
+function GroupSettingsDisclosure({
+  id,
+  title,
+  summary,
+  open,
+  children,
+  onToggle,
+}: {
+  id: GroupSettingsSectionID;
+  title: string;
+  summary: string;
+  open: boolean;
+  children: ReactNode;
+  onToggle: (section: GroupSettingsSectionID | null) => void;
+}) {
+  const contentId = `group-settings-${id}`;
+  return (
+    <section className={`group-settings-disclosure ${open ? "group-settings-disclosure-open" : ""}`}>
+      <button
+        aria-controls={contentId}
+        aria-expanded={open}
+        aria-label={title}
+        className="group-settings-disclosure-toggle"
+        type="button"
+        onClick={() => onToggle(open ? null : id)}
+      >
+        <span className="group-settings-disclosure-copy">
+          <span className="section-title">{title}</span>
+          <span className="meta">{summary}</span>
+        </span>
+        <span aria-hidden="true" className="group-settings-disclosure-icon">
+          {open ? "−" : "+"}
+        </span>
+      </button>
+      {open ? (
+        <div className="group-settings-disclosure-content" id={contentId}>
+          {children}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function resourceCountSummary(count: number, singular: string): string {
+  return `${count} ${singular}${count === 1 ? "" : "s"}`;
 }
 
 function canManageGroup(group: Group): boolean {

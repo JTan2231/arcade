@@ -58,6 +58,11 @@ steps:
       role: button
       name: Settings
 
+  - within: Settings
+    click:
+      role: button
+      name: Post formats
+
   - within: Evidence formats
     click:
       role: button

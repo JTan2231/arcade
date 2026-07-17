@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type {
   CreateEvidenceFormatRequest,
@@ -6,15 +6,14 @@ import type {
   EvidenceFormat,
   PatchEvidenceFormatRequest,
 } from "../../types";
-import { CreateEvidenceFormatDialog } from "./CreateEvidenceFormatDialog";
-import { EvidenceFormatConstraintFields } from "./EvidenceFormatConstraintFields";
-import type { EvidenceFormatDraft } from "./evidenceFormatDraft";
-import {
-  buildVersionPayload,
-  formatConstraintSummary,
-  formatVersionToDraft,
-  versionPayload,
-} from "./evidenceFormatDraft";
+import { CreateEvidenceFormatDialog, EditEvidenceFormatDialog } from "./CreateEvidenceFormatDialog";
+import { type EvidenceFormatEditPayloads, formatConstraintSummary } from "./evidenceFormatDraft";
+
+type EditSubmission = EvidenceFormatEditPayloads & {
+  formatId: string;
+  phase: "metadata" | "version";
+  sawUpdating: boolean;
+};
 
 export function EvidenceFormatManager({
   groupName,
@@ -47,13 +46,26 @@ export function EvidenceFormatManager({
   const [createAwaitingResult, setCreateAwaitingResult] = useState(false);
   const [createSawSaving, setCreateSawSaving] = useState(false);
   const [createError, setCreateError] = useState("");
-  const canAddFormat = !loading && !saving;
+  const [editFormatId, setEditFormatId] = useState<string | null>(null);
+  const [editSubmission, setEditSubmission] = useState<EditSubmission | null>(null);
+  const [editError, setEditError] = useState("");
+  const editFormat = formats.find((format) => format.id === editFormatId);
+  const formatMutationActive =
+    saving || updatingFormatId !== null || deletingFormatId !== null || editSubmission !== null;
+  const canAddFormat = !loading && !formatMutationActive;
 
   const closeCreateDialog = useCallback(() => {
     setCreateOpen(false);
     setCreateAwaitingResult(false);
     setCreateSawSaving(false);
     setCreateError("");
+    onClearError();
+  }, [onClearError]);
+
+  const closeEditDialog = useCallback(() => {
+    setEditFormatId(null);
+    setEditSubmission(null);
+    setEditError("");
     onClearError();
   }, [onClearError]);
 
@@ -77,14 +89,64 @@ export function EvidenceFormatManager({
     setCreateSawSaving(false);
   }, [closeCreateDialog, createAwaitingResult, createOpen, createSawSaving, error, saving]);
 
+  useEffect(() => {
+    if (editFormatId === null || editSubmission === null) {
+      return;
+    }
+    if (updatingFormatId === editFormatId) {
+      if (!editSubmission.sawUpdating) {
+        setEditSubmission((current) => (current === null ? null : { ...current, sawUpdating: true }));
+      }
+      return;
+    }
+    if (!editSubmission.sawUpdating) {
+      return;
+    }
+    if (error !== "") {
+      setEditError(error);
+      setEditSubmission(null);
+      return;
+    }
+    if (editSubmission.phase === "metadata" && editSubmission.version !== undefined) {
+      const version = editSubmission.version;
+      setEditSubmission({ ...editSubmission, phase: "version", sawUpdating: false });
+      onCreateFormatVersion(editFormatId, version);
+      return;
+    }
+    closeEditDialog();
+  }, [closeEditDialog, editFormatId, editSubmission, error, onCreateFormatVersion, updatingFormatId]);
+
+  useEffect(() => {
+    if (editFormatId !== null && editFormat === undefined) {
+      closeEditDialog();
+    }
+  }, [closeEditDialog, editFormat, editFormatId]);
+
+  function beginEditSubmission(payloads: EvidenceFormatEditPayloads) {
+    if (editFormatId === null) {
+      return;
+    }
+    setEditError("");
+    onClearError();
+    if (payloads.metadata !== undefined) {
+      setEditSubmission({ ...payloads, formatId: editFormatId, phase: "metadata", sawUpdating: false });
+      onUpdateFormat(editFormatId, payloads.metadata);
+      return;
+    }
+    if (payloads.version !== undefined) {
+      setEditSubmission({ ...payloads, formatId: editFormatId, phase: "version", sawUpdating: false });
+      onCreateFormatVersion(editFormatId, payloads.version);
+    }
+  }
+
   return (
     <section className="evidence-format-manager" aria-label="Evidence formats">
       <div className="section-header-row">
         <div>
-          <div className="section-title">Post formats</div>
           <div className="meta">Reusable rules for member posts</div>
         </div>
         <button
+          aria-haspopup="dialog"
           className="secondary"
           type="button"
           disabled={!canAddFormat}
@@ -97,7 +159,7 @@ export function EvidenceFormatManager({
           Add format
         </button>
       </div>
-      {error !== "" && !createOpen ? (
+      {error !== "" && !createOpen && editFormatId === null ? (
         <div className="form-error" role="alert">
           {error}
         </div>
@@ -107,12 +169,18 @@ export function EvidenceFormatManager({
         {!loading && formats.length === 0 ? <div className="meta">No formats</div> : null}
         {formats.map((format) => (
           <EvidenceFormatManagerRow
+            disabled={formatMutationActive}
             deleting={deletingFormatId === format.id}
             format={format}
             key={format.id}
             updating={updatingFormatId === format.id}
-            onCreateFormatVersion={onCreateFormatVersion}
             onDeleteFormat={onDeleteFormat}
+            onEdit={() => {
+              setCreateOpen(false);
+              setEditError("");
+              onClearError();
+              setEditFormatId(format.id);
+            }}
             onUpdateFormat={onUpdateFormat}
           />
         ))}
@@ -134,81 +202,47 @@ export function EvidenceFormatManager({
           }}
         />
       ) : null}
+      {editFormat !== undefined ? (
+        <EditEvidenceFormatDialog
+          format={editFormat}
+          groupName={groupName}
+          saving={editSubmission !== null || updatingFormatId === editFormat.id}
+          submissionError={editError}
+          onClose={closeEditDialog}
+          onDraftChanged={() => {
+            setEditError("");
+            onClearError();
+          }}
+          onSave={beginEditSubmission}
+        />
+      ) : null}
     </section>
   );
 }
 
 function EvidenceFormatManagerRow({
   format,
+  disabled,
   updating,
   deleting,
   onUpdateFormat,
-  onCreateFormatVersion,
   onDeleteFormat,
+  onEdit,
 }: {
   format: EvidenceFormat;
+  disabled: boolean;
   updating: boolean;
   deleting: boolean;
   onUpdateFormat: (formatId: string, payload: PatchEvidenceFormatRequest) => void;
-  onCreateFormatVersion: (formatId: string, payload: CreateEvidenceFormatVersionRequest) => void;
   onDeleteFormat: (formatId: string) => void;
+  onEdit: () => void;
 }) {
-  const [name, setName] = useState(format.name);
-  const [description, setDescription] = useState(format.description ?? "");
-  const [draft, setDraft] = useState<EvidenceFormatDraft>(() => formatVersionToDraft(format.active_version));
-  const [formError, setFormError] = useState("");
   const archived = format.archived_at !== undefined;
   const busy = updating || deleting;
-  const metadataChanged = name.trim() !== format.name || description.trim() !== (format.description ?? "");
-  const constraintsChanged =
-    JSON.stringify(buildVersionPayload(draft)) !== JSON.stringify(versionPayload(format.active_version));
   const archiveBlocked = !archived && format.assigned_feed_count > 0;
 
-  useEffect(() => {
-    if (busy) {
-      return;
-    }
-    setName(format.name);
-    setDescription(format.description ?? "");
-    setDraft(formatVersionToDraft(format.active_version));
-  }, [busy, format]);
-
-  function updateDraft(patch: Partial<EvidenceFormatDraft>) {
-    setDraft((current) => ({ ...current, ...patch }));
-    setFormError("");
-  }
-
-  function handleSave(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const trimmedName = name.trim();
-    if (trimmedName === "") {
-      setFormError("Name is required");
-      return;
-    }
-    const metadataPayload: PatchEvidenceFormatRequest = {};
-    if (trimmedName !== format.name) {
-      metadataPayload.name = trimmedName;
-    }
-    const trimmedDescription = description.trim();
-    if (trimmedDescription !== (format.description ?? "")) {
-      metadataPayload.description = trimmedDescription === "" ? null : trimmedDescription;
-    }
-    const constraintsPayload = buildVersionPayload(draft);
-    if (typeof constraintsPayload === "string") {
-      setFormError(constraintsPayload);
-      return;
-    }
-    setFormError("");
-    if (Object.keys(metadataPayload).length > 0) {
-      onUpdateFormat(format.id, metadataPayload);
-    }
-    if (constraintsChanged) {
-      onCreateFormatVersion(format.id, constraintsPayload);
-    }
-  }
-
   return (
-    <form className={`evidence-format-row ${archived ? "archived" : ""}`} onSubmit={handleSave}>
+    <div className={`evidence-format-row ${archived ? "archived" : ""}`}>
       <div className="row-top">
         <div>
           <div className="title">{format.name}</div>
@@ -216,55 +250,46 @@ function EvidenceFormatManagerRow({
             {format.slug} · v{format.active_version.version_number} · {formatConstraintSummary(format.active_version)}
           </div>
         </div>
-        <div className="meta">{format.assigned_feed_count} feeds</div>
-      </div>
-      <div className="form-grid two-column">
-        <label>
-          Name
-          <input value={name} onChange={(event) => setName(event.target.value)} />
-        </label>
-        <label>
-          Description
-          <input value={description} onChange={(event) => setDescription(event.target.value)} />
-        </label>
-      </div>
-      <EvidenceFormatConstraintFields draft={draft} onChange={updateDraft} />
-      <div className="post-tag-manager-actions">
-        <button
-          type="submit"
-          className="secondary"
-          disabled={busy || (!metadataChanged && !constraintsChanged) || name.trim() === "" || archived}
-        >
-          Save
-        </button>
-        {archived ? (
-          <button
-            type="button"
-            className="secondary"
-            disabled={busy}
-            onClick={() => onUpdateFormat(format.id, { archived: false })}
-          >
-            Unarchive
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="danger"
-            disabled={busy || archiveBlocked}
-            title={archiveBlocked ? "Move feeds to another format before archiving." : undefined}
-            onClick={() => onDeleteFormat(format.id)}
-          >
-            Archive
-          </button>
-        )}
-      </div>
-      {archived ? <div className="meta">Archived</div> : null}
-      {archiveBlocked ? <div className="meta">Assigned feeds block archiving.</div> : null}
-      {formError !== "" ? (
-        <div className="form-error" role="alert">
-          {formError}
+        <div className="compact-actions">
+          {!archived ? (
+            <button
+              aria-haspopup="dialog"
+              aria-label={`Edit ${format.name}`}
+              className="secondary"
+              disabled={disabled || busy}
+              type="button"
+              onClick={onEdit}
+            >
+              Edit
+            </button>
+          ) : null}
+          {archived ? (
+            <button
+              type="button"
+              className="secondary"
+              disabled={disabled || busy}
+              onClick={() => onUpdateFormat(format.id, { archived: false })}
+            >
+              Unarchive
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="danger"
+              disabled={disabled || busy || archiveBlocked}
+              title={archiveBlocked ? "Move feeds to another format before archiving." : undefined}
+              onClick={() => onDeleteFormat(format.id)}
+            >
+              Archive
+            </button>
+          )}
         </div>
-      ) : null}
-    </form>
+      </div>
+      <div className="meta">
+        {format.assigned_feed_count} {format.assigned_feed_count === 1 ? "feed" : "feeds"}
+        {archived ? " · Archived" : ""}
+      </div>
+      {archiveBlocked ? <div className="meta">Assigned feeds block archiving.</div> : null}
+    </div>
   );
 }

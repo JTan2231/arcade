@@ -51,10 +51,6 @@
 
 .groups-panel:hover .group-tree,
 .groups-panel:focus-within .group-tree {
-  opacity: 0.5;
-}
-
-.groups-panel .group-tree:has(.modal-backdrop) {
   opacity: 1;
 }
 

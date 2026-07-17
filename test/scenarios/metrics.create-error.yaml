@@ -44,6 +44,11 @@ steps:
       role: button
       name: Settings
 
+  - within: Settings
+    click:
+      role: button
+      name: Metrics
+
   - within: Metric settings
     click:
       role: button

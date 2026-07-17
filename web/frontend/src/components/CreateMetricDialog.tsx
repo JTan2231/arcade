@@ -1,6 +1,12 @@
 import { FormEvent, useId, useState } from "react";
 
-import type { CreateFeedMetricRequest, MetricAggregation, SystemMetricKey } from "../types";
+import type {
+  CreateFeedMetricRequest,
+  FeedMetric,
+  MetricAggregation,
+  PatchFeedMetricRequest,
+  SystemMetricKey,
+} from "../types";
 import { CreateWizardDialog, CreateWizardStep } from "./CreateWizardDialog";
 import {
   aggregationLabel,
@@ -22,20 +28,93 @@ type CreateMetricDialogProps = {
 };
 
 export function CreateMetricDialog({ feedName, saving, submissionError, onClose, onCreate }: CreateMetricDialogProps) {
+  return (
+    <MetricWizardDialog
+      feedName={feedName}
+      mode="create"
+      saving={saving}
+      submissionError={submissionError}
+      onClose={onClose}
+      onCreate={onCreate}
+    />
+  );
+}
+
+type EditMetricDialogProps = {
+  feedName: string;
+  metric: FeedMetric;
+  saving: boolean;
+  submissionError: string;
+  onClose: () => void;
+  onUpdate: (payload: PatchFeedMetricRequest) => void;
+};
+
+export function EditMetricDialog({
+  feedName,
+  metric,
+  saving,
+  submissionError,
+  onClose,
+  onUpdate,
+}: EditMetricDialogProps) {
+  return (
+    <MetricWizardDialog
+      feedName={feedName}
+      metric={metric}
+      mode="edit"
+      saving={saving}
+      submissionError={submissionError}
+      onClose={onClose}
+      onUpdate={onUpdate}
+    />
+  );
+}
+
+type MetricWizardDialogProps = {
+  feedName: string;
+  saving: boolean;
+  submissionError: string;
+  onClose: () => void;
+} & (
+  | {
+      mode: "create";
+      onCreate: (payload: CreateFeedMetricRequest) => void;
+    }
+  | {
+      metric: FeedMetric;
+      mode: "edit";
+      onUpdate: (payload: PatchFeedMetricRequest) => void;
+    }
+);
+
+function MetricWizardDialog(props: MetricWizardDialogProps) {
+  const { feedName, saving, submissionError, onClose } = props;
+  const initialMetric = props.mode === "edit" ? props.metric : null;
+  const initialKind: MetricKind | null =
+    initialMetric === null ? null : initialMetric.system_key === "judged" ? "judged" : "system";
+  const initialSystemKey: SystemMetricKey | null =
+    initialMetric !== null && initialMetric.system_key !== "judged" ? initialMetric.system_key : null;
+  const initialSteps = metricSteps(initialKind, initialSystemKey);
   const stepLabelId = useId();
-  const [kind, setKind] = useState<MetricKind | null>(null);
-  const [systemKey, setSystemKey] = useState<SystemMetricKey | null>(null);
-  const [systemDisplayName, setSystemDisplayName] = useState("");
-  const [judgedDisplayName, setJudgedDisplayName] = useState("");
+  const [kind, setKind] = useState<MetricKind | null>(initialKind);
+  const [systemKey, setSystemKey] = useState<SystemMetricKey | null>(initialSystemKey);
+  const [systemDisplayName, setSystemDisplayName] = useState(
+    initialMetric !== null && initialMetric.system_key !== "judged" ? initialMetric.display_name : "",
+  );
+  const [judgedDisplayName, setJudgedDisplayName] = useState(
+    initialMetric?.system_key === "judged" ? initialMetric.display_name : "",
+  );
   const [systemAggregation, setSystemAggregation] = useState<MetricAggregation>(
-    defaultAggregationForMetricKey("post_count"),
+    initialMetric !== null && initialMetric.system_key !== "judged"
+      ? initialMetric.aggregation
+      : defaultAggregationForMetricKey("post_count"),
   );
   const [judgedAggregation, setJudgedAggregation] = useState<MetricAggregation>(
-    defaultAggregationForMetricKey("judged"),
+    initialMetric?.system_key === "judged" ? initialMetric.aggregation : defaultAggregationForMetricKey("judged"),
   );
-  const [judgmentPrompt, setJudgmentPrompt] = useState("");
+  const [judgmentPrompt, setJudgmentPrompt] = useState(initialMetric?.judgment_prompt ?? "");
   const [currentStep, setCurrentStep] = useState<MetricStep>("kind");
-  const [revealedSteps, setRevealedSteps] = useState<MetricStep[]>(["kind"]);
+  const [revealedSteps, setRevealedSteps] = useState<MetricStep[]>(props.mode === "edit" ? initialSteps : ["kind"]);
   const [validationError, setValidationError] = useState("");
 
   const steps = metricSteps(kind, systemKey);
@@ -113,11 +192,29 @@ export function CreateMetricDialog({ feedName, saving, submissionError, onClose,
       return;
     }
 
+    for (const step of steps) {
+      const draftError = validateStep(step, kind, systemKey, displayName, judgmentPrompt);
+      if (draftError !== "") {
+        setCurrentStep(step);
+        setValidationError(draftError);
+        return;
+      }
+    }
+
     const metricKey = kind === "judged" ? "judged" : systemKey;
     if (metricKey === null) {
       return;
     }
-    onCreate({
+    if (props.mode === "edit") {
+      props.onUpdate({
+        display_name: displayName.trim(),
+        aggregation,
+        ...(metricKey === "judged" ? { judgment_prompt: judgmentPrompt.trim() } : {}),
+      });
+      return;
+    }
+
+    props.onCreate({
       system_key: metricKey,
       display_name: displayName.trim(),
       aggregation,
@@ -135,15 +232,15 @@ export function CreateMetricDialog({ feedName, saving, submissionError, onClose,
 
   return (
     <CreateWizardDialog
-      actionLabel="Add metric"
+      actionLabel={props.mode === "edit" ? "Save metric" : "Add metric"}
       busy={saving}
-      busyLabel="Adding..."
+      busyLabel={props.mode === "edit" ? "Saving..." : "Adding..."}
       context={feedName}
       currentStep={currentStep}
       currentStepIndex={currentStepIndex}
       error={submissionError}
       stepCount={steps.length}
-      title="Add metric"
+      title={props.mode === "edit" ? "Edit metric" : "Add metric"}
       onBack={handleBack}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -161,7 +258,7 @@ export function CreateMetricDialog({ feedName, saving, submissionError, onClose,
             <button
               aria-pressed={kind === "system"}
               className="create-wizard-choice-option"
-              disabled={saving}
+              disabled={saving || props.mode === "edit"}
               type="button"
               onClick={() => chooseKind("system")}
             >
@@ -170,7 +267,7 @@ export function CreateMetricDialog({ feedName, saving, submissionError, onClose,
             <button
               aria-pressed={kind === "judged"}
               className="create-wizard-choice-option"
-              disabled={saving}
+              disabled={saving || props.mode === "edit"}
               type="button"
               onClick={() => chooseKind("judged")}
             >
@@ -179,7 +276,11 @@ export function CreateMetricDialog({ feedName, saving, submissionError, onClose,
           </div>
           {kind !== null ? (
             <div className="field-hint">
-              {kind === "system" ? "Calculated from feed activity." : "Scored by group owners and admins."}
+              {props.mode === "edit"
+                ? "The scoring method cannot be changed after creation."
+                : kind === "system"
+                  ? "Calculated from feed activity."
+                  : "Scored by group owners and admins."}
             </div>
           ) : null}
           {stepError("kind")}
@@ -197,7 +298,7 @@ export function CreateMetricDialog({ feedName, saving, submissionError, onClose,
         >
           <select
             aria-label="Calculation"
-            disabled={saving}
+            disabled={saving || props.mode === "edit"}
             value={systemKey ?? ""}
             onChange={(event) => chooseSystemKey(event.target.value as SystemMetricKey)}
           >
@@ -214,6 +315,9 @@ export function CreateMetricDialog({ feedName, saving, submissionError, onClose,
             <div className="metric-create-fixed-value">
               Combine values by <strong>{aggregationLabel(fixedAggregation)}</strong>
             </div>
+          ) : null}
+          {props.mode === "edit" ? (
+            <div className="field-hint">The calculation cannot be changed after creation.</div>
           ) : null}
           {stepError("metric")}
         </CreateWizardStep>
@@ -239,6 +343,7 @@ export function CreateMetricDialog({ feedName, saving, submissionError, onClose,
                 setSystemDisplayName(event.target.value);
               }
               setValidationError("");
+              activateStep("name");
             }}
           />
           {stepError("name")}
@@ -261,6 +366,7 @@ export function CreateMetricDialog({ feedName, saving, submissionError, onClose,
             onChange={(event) => {
               setJudgmentPrompt(event.target.value);
               setValidationError("");
+              activateStep("prompt");
             }}
           />
           {stepError("prompt")}
@@ -288,6 +394,7 @@ export function CreateMetricDialog({ feedName, saving, submissionError, onClose,
                 setSystemAggregation(nextAggregation);
               }
               setValidationError("");
+              activateStep("aggregation");
             }}
           >
             {allowedAggregations.map((candidate) => (

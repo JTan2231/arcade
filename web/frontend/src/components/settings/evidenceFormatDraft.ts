@@ -1,4 +1,9 @@
-import type { CreateEvidenceFormatRequest, CreateEvidenceFormatVersionRequest, EvidenceFormat } from "../../types";
+import type {
+  CreateEvidenceFormatRequest,
+  CreateEvidenceFormatVersionRequest,
+  EvidenceFormat,
+  PatchEvidenceFormatRequest,
+} from "../../types";
 
 export type EvidenceFormatDraft = {
   slug: string;
@@ -28,6 +33,11 @@ export const emptyFormatDraft: EvidenceFormatDraft = {
   lineMinChars: "",
   lineMaxChars: "",
   allowBlankLines: true,
+};
+
+export type EvidenceFormatEditPayloads = {
+  metadata?: PatchEvidenceFormatRequest;
+  version?: CreateEvidenceFormatVersionRequest;
 };
 
 export function buildFormatPayload(draft: EvidenceFormatDraft): CreateEvidenceFormatRequest | string {
@@ -103,7 +113,7 @@ export function validateFormatLineLength(draft: EvidenceFormatDraft): string {
   return "";
 }
 
-export function buildVersionPayload(draft: EvidenceFormatDraft): CreateEvidenceFormatVersionRequest | string {
+function buildVersionPayload(draft: EvidenceFormatDraft): CreateEvidenceFormatVersionRequest | string {
   const parsedMinChars = parsePositiveInteger(draft.minChars);
   const maxChars = parseOptionalPositiveInteger(draft.maxChars);
   const minLines = draft.lineMode === "range" ? parseOptionalPositiveInteger(draft.minLines) : undefined;
@@ -160,7 +170,7 @@ function parseOptionalPositiveInteger(value: string): number | "invalid" | undef
   return parsePositiveInteger(value);
 }
 
-export function formatVersionToDraft(version: EvidenceFormat["active_version"]): EvidenceFormatDraft {
+function formatVersionToDraft(version: EvidenceFormat["active_version"]): EvidenceFormatDraft {
   return {
     slug: "",
     name: "",
@@ -177,7 +187,49 @@ export function formatVersionToDraft(version: EvidenceFormat["active_version"]):
   };
 }
 
-export function versionPayload(version: EvidenceFormat["active_version"]): CreateEvidenceFormatVersionRequest {
+export function evidenceFormatToDraft(format: EvidenceFormat): EvidenceFormatDraft {
+  return {
+    ...formatVersionToDraft(format.active_version),
+    slug: format.slug,
+    name: format.name,
+    description: format.description ?? "",
+  };
+}
+
+export function buildFormatEditPayloads(
+  format: EvidenceFormat,
+  draft: EvidenceFormatDraft,
+): EvidenceFormatEditPayloads | string {
+  const identityError = validateFormatIdentity(draft);
+  if (identityError !== "") {
+    return identityError;
+  }
+  const version = buildVersionPayload(draft);
+  if (typeof version === "string") {
+    return version;
+  }
+
+  const metadata: PatchEvidenceFormatRequest = {};
+  const name = draft.name.trim();
+  if (name !== format.name) {
+    metadata.name = name;
+  }
+  const description = draft.description.trim();
+  if (description !== (format.description ?? "")) {
+    metadata.description = description === "" ? null : description;
+  }
+
+  return {
+    ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
+    ...(!sameVersionPayload(version, versionPayload(format.active_version)) ? { version } : {}),
+  };
+}
+
+export function formatEditHasChanges(payloads: EvidenceFormatEditPayloads | string): boolean {
+  return typeof payloads !== "string" && (payloads.metadata !== undefined || payloads.version !== undefined);
+}
+
+function versionPayload(version: EvidenceFormat["active_version"]): CreateEvidenceFormatVersionRequest {
   return {
     min_chars: version.min_chars,
     ...(version.max_chars !== undefined ? { max_chars: version.max_chars } : {}),
@@ -188,6 +240,13 @@ export function versionPayload(version: EvidenceFormat["active_version"]): Creat
     ...(version.line_max_chars !== undefined ? { line_max_chars: version.line_max_chars } : {}),
     allow_blank_lines: version.allow_blank_lines,
   };
+}
+
+function sameVersionPayload(
+  left: CreateEvidenceFormatVersionRequest,
+  right: CreateEvidenceFormatVersionRequest,
+): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 export function formatConstraintSummary(version: EvidenceFormat["active_version"]): string {

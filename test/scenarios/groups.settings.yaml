@@ -52,7 +52,13 @@ steps:
       role: button
       name: Settings
 
-  - select:
+  - within: Settings
+    click:
+      role: button
+      name: Visibility
+
+  - within: Group visibility
+    select:
       label: Visibility
       option: Private
 
@@ -65,23 +71,39 @@ steps:
       path: /api/public/groups/settings-group
       expectStatus: 404
 
-  - select:
+  - within: Group visibility
+    select:
       label: Visibility
       option: Public
 
   - expectStatus:
       text: Group visibility updated
 
+  - within: Settings
+    click:
+      role: button
+      name: Members
+
   - within: Group members
     expectVisible:
       text: Member One
 
+  - within: Settings
+    click:
+      role: button
+      name: Post tags
+
   - within: Post tags
+    click:
+      role: button
+      name: Add tag
+
+  - within: Add tag
     fill:
       label: Tag name
       value: Milestone
 
-  - within: Post tags
+  - within: Add tag
     click:
       role: button
       name: Add tag
@@ -97,6 +119,48 @@ steps:
       expectStatus: 200
       expectJson:
         - name: Milestone
+
+  - within: Post tags
+    expectHidden:
+      role: textbox
+      name: Tag name
+
+  - within: Post tags
+    click:
+      role: button
+      name: Edit Milestone
+
+  - within: Edit tag
+    expectValue:
+      label: Tag name
+      value: Milestone
+
+  - within: Edit tag
+    fill:
+      label: Tag name
+      value: Launch milestone
+
+  - within: Edit tag
+    click:
+      role: button
+      name: Save tag
+
+  - expectStatus:
+      text: Tag updated
+
+  - request:
+      id: list_updated_tags
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/post-tags?include_archived=true
+      expectStatus: 200
+      expectJson:
+        - name: Launch milestone
+
+  - within: Settings
+    click:
+      role: button
+      name: Members
 
   - within: Group members
     click:

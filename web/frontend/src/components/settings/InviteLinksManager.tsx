@@ -1,10 +1,10 @@
-import { FormEvent, useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { CreateGroupInviteLinkRequest, GroupInviteLink } from "../../types";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
+import { CreateInviteLinkDialog } from "./CreateInviteLinkDialog";
 
 export function InviteLinksManager({
+  groupName,
   links,
   loading,
   error,
@@ -15,6 +15,7 @@ export function InviteLinksManager({
   onRevokeInviteLink,
   onClearCreatedInviteURL,
 }: {
+  groupName: string;
   links: GroupInviteLink[];
   loading: boolean;
   error: string;
@@ -25,27 +26,49 @@ export function InviteLinksManager({
   onRevokeInviteLink: (linkId: string) => void;
   onClearCreatedInviteURL: () => void;
 }) {
-  const [label, setLabel] = useState("");
-  const [expiresInDays, setExpiresInDays] = useState("7");
-  const [maxUses, setMaxUses] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [awaitingCreateResult, setAwaitingCreateResult] = useState(false);
+  const [sawCreating, setSawCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const trimmedMaxUses = maxUses.trim();
-    const parsedMaxUses = trimmedMaxUses === "" ? undefined : Number.parseInt(trimmedMaxUses, 10);
-    const payload: CreateGroupInviteLinkRequest = {
-      expires_at: new Date(Date.now() + Number.parseInt(expiresInDays, 10) * DAY_MS).toISOString(),
-    };
-    const trimmedLabel = label.trim();
-    if (trimmedLabel !== "") {
-      payload.label = trimmedLabel;
+  useEffect(() => {
+    if (!createOpen || !awaitingCreateResult) {
+      return;
     }
-    if (parsedMaxUses !== undefined && Number.isFinite(parsedMaxUses)) {
-      payload.max_uses = parsedMaxUses;
+    if (createdInviteURL !== "") {
+      setCreateOpen(false);
+      setAwaitingCreateResult(false);
+      setSawCreating(false);
+      setCreateError("");
+      return;
     }
-    onCreateInviteLink(payload);
-    setLabel("");
-    setMaxUses("");
+    if (creating) {
+      setSawCreating(true);
+      return;
+    }
+    if (sawCreating && error !== "") {
+      setCreateError(error);
+      setAwaitingCreateResult(false);
+      setSawCreating(false);
+    }
+  }, [awaitingCreateResult, createOpen, createdInviteURL, creating, error, sawCreating]);
+
+  function openCreateDialog() {
+    onClearCreatedInviteURL();
+    setCreateError("");
+    setAwaitingCreateResult(false);
+    setSawCreating(false);
+    setCreateOpen(true);
+  }
+
+  function closeCreateDialog() {
+    if (creating) {
+      return;
+    }
+    setCreateOpen(false);
+    setAwaitingCreateResult(false);
+    setSawCreating(false);
+    setCreateError("");
   }
 
   async function copyCreatedInviteURL() {
@@ -57,36 +80,20 @@ export function InviteLinksManager({
 
   return (
     <section className="invite-links-section group-settings-invite-section" aria-label="Invite links">
-      <div className="section-title">Invite links</div>
-
-      <form className="invite-link-form" onSubmit={handleSubmit}>
-        <label>
-          Label
-          <input value={label} maxLength={120} onChange={(event) => setLabel(event.target.value)} />
-        </label>
-        <label>
-          Expires
-          <select value={expiresInDays} onChange={(event) => setExpiresInDays(event.target.value)}>
-            <option value="1">1 day</option>
-            <option value="7">7 days</option>
-            <option value="30">30 days</option>
-          </select>
-        </label>
-        <label>
-          Max uses
-          <input
-            inputMode="numeric"
-            min="1"
-            placeholder="Unlimited"
-            type="number"
-            value={maxUses}
-            onChange={(event) => setMaxUses(event.target.value)}
-          />
-        </label>
-        <button type="submit" disabled={creating}>
-          Create link
+      <div className="section-header-row">
+        <div>
+          <div className="meta">Create expiring links for new members.</div>
+        </div>
+        <button
+          aria-haspopup="dialog"
+          className="secondary"
+          type="button"
+          disabled={creating || loading}
+          onClick={openCreateDialog}
+        >
+          Add invite link
         </button>
-      </form>
+      </div>
 
       {createdInviteURL !== "" ? (
         <div className="created-invite-link">
@@ -108,7 +115,7 @@ export function InviteLinksManager({
         </div>
       ) : null}
 
-      {error ? (
+      {error && !createOpen ? (
         <div className="form-error" role="alert">
           {error}
         </div>
@@ -141,6 +148,19 @@ export function InviteLinksManager({
           );
         })}
       </div>
+      {createOpen ? (
+        <CreateInviteLinkDialog
+          groupName={groupName}
+          saving={creating || awaitingCreateResult}
+          submissionError={createError}
+          onClose={closeCreateDialog}
+          onCreate={(payload: CreateGroupInviteLinkRequest) => {
+            setCreateError("");
+            setAwaitingCreateResult(true);
+            onCreateInviteLink(payload);
+          }}
+        />
+      ) : null}
     </section>
   );
 }

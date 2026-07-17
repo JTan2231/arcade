@@ -11,7 +11,6 @@ export function GroupVisibilityControl({
 }) {
   return (
     <section className="group-visibility-section" aria-label="Group visibility">
-      <div className="section-title">Visibility</div>
       <label htmlFor="group-visibility-select">Visibility</label>
       <select
         id="group-visibility-select"

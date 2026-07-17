@@ -1,11 +1,15 @@
 import { FormEvent, useId, useState } from "react";
 
 import { CreateWizardDialog, CreateWizardStep } from "../CreateWizardDialog";
-import type { CreateEvidenceFormatRequest } from "../../types";
+import type { CreateEvidenceFormatRequest, EvidenceFormat } from "../../types";
 import {
+  buildFormatEditPayloads,
   buildFormatPayload,
+  evidenceFormatToDraft,
   emptyFormatDraft,
   type EvidenceFormatDraft,
+  type EvidenceFormatEditPayloads,
+  formatEditHasChanges,
   validateFormatIdentity,
   validateFormatLength,
   validateFormatLineLength,
@@ -36,10 +40,121 @@ export function CreateEvidenceFormatDialog({
   onCreate: (payload: CreateEvidenceFormatRequest) => void;
   onDraftChanged: () => void;
 }) {
+  return (
+    <EvidenceFormatWizardDialog
+      actionLabel={() => "Add format"}
+      busyLabel="Adding..."
+      context={groupName}
+      initialDraft={emptyFormatDraft}
+      saving={saving}
+      submissionError={submissionError}
+      submitDisabled={() => false}
+      title="Add format"
+      onClose={onClose}
+      onDraftChanged={onDraftChanged}
+      onSubmitDraft={(draft) => {
+        const payload = buildFormatPayload(draft);
+        if (typeof payload === "string") {
+          return payload;
+        }
+        onCreate(payload);
+        return undefined;
+      }}
+    />
+  );
+}
+
+export function EditEvidenceFormatDialog({
+  groupName,
+  format,
+  saving,
+  submissionError,
+  onClose,
+  onSave,
+  onDraftChanged,
+}: {
+  groupName: string;
+  format: EvidenceFormat;
+  saving: boolean;
+  submissionError: string;
+  onClose: () => void;
+  onSave: (payloads: EvidenceFormatEditPayloads) => void;
+  onDraftChanged: () => void;
+}) {
+  function payloadsFor(draft: EvidenceFormatDraft) {
+    return buildFormatEditPayloads(format, draft);
+  }
+
+  return (
+    <EvidenceFormatWizardDialog
+      actionLabel={(draft) => {
+        const payloads = payloadsFor(draft);
+        return typeof payloads !== "string" && payloads.version !== undefined ? "Publish version" : "Save format";
+      }}
+      busyLabel="Saving..."
+      context={`${groupName} · v${format.active_version.version_number}`}
+      finalHint="Changing constraints publishes a new immutable version. Existing posts keep the version that validated them."
+      initialDraft={evidenceFormatToDraft(format)}
+      initiallyRevealAll
+      lockSlug
+      saving={saving}
+      submissionError={submissionError}
+      submitDisabled={(draft) => {
+        const payloads = payloadsFor(draft);
+        return typeof payloads !== "string" && !formatEditHasChanges(payloads);
+      }}
+      title={`Edit ${format.name}`}
+      onClose={onClose}
+      onDraftChanged={onDraftChanged}
+      onSubmitDraft={(draft) => {
+        const payloads = payloadsFor(draft);
+        if (typeof payloads === "string") {
+          return payloads;
+        }
+        if (formatEditHasChanges(payloads)) {
+          onSave(payloads);
+        }
+        return undefined;
+      }}
+    />
+  );
+}
+
+function EvidenceFormatWizardDialog({
+  actionLabel,
+  busyLabel,
+  context,
+  finalHint,
+  initialDraft,
+  initiallyRevealAll = false,
+  lockSlug = false,
+  saving,
+  submissionError,
+  submitDisabled,
+  title,
+  onClose,
+  onDraftChanged,
+  onSubmitDraft,
+}: {
+  actionLabel: (draft: EvidenceFormatDraft) => string;
+  busyLabel: string;
+  context: string;
+  finalHint?: string;
+  initialDraft: EvidenceFormatDraft;
+  initiallyRevealAll?: boolean;
+  lockSlug?: boolean;
+  saving: boolean;
+  submissionError: string;
+  submitDisabled: (draft: EvidenceFormatDraft) => boolean;
+  title: string;
+  onClose: () => void;
+  onDraftChanged: () => void;
+  onSubmitDraft: (draft: EvidenceFormatDraft) => string | undefined;
+}) {
   const stepLabelId = useId();
-  const [draft, setDraft] = useState<EvidenceFormatDraft>(emptyFormatDraft);
+  const [draft, setDraft] = useState<EvidenceFormatDraft>(() => initialDraft);
   const [currentStep, setCurrentStep] = useState<FormatStep>("details");
-  const [revealedSteps, setRevealedSteps] = useState<FormatStep[]>(["details"]);
+  const [revealedSteps, setRevealedSteps] = useState<FormatStep[]>(initiallyRevealAll ? formatSteps : ["details"]);
   const [validationError, setValidationError] = useState("");
   const currentStepIndex = formatSteps.indexOf(currentStep);
   const visibleSteps = formatSteps.filter((step) => revealedSteps.includes(step));
@@ -85,14 +200,12 @@ export function CreateEvidenceFormatDialog({
       return;
     }
 
-    const payload = buildFormatPayload(draft);
-    if (typeof payload === "string") {
+    const submitError = onSubmitDraft(draft);
+    if (submitError !== undefined) {
       const invalidStep = firstInvalidStep(draft);
       setCurrentStep(invalidStep);
-      setValidationError(payload);
-      return;
+      setValidationError(submitError);
     }
-    onCreate(payload);
   }
 
   function stepError(step: FormatStep) {
@@ -105,15 +218,16 @@ export function CreateEvidenceFormatDialog({
 
   return (
     <CreateWizardDialog
-      actionLabel="Add format"
+      actionLabel={actionLabel(draft)}
       busy={saving}
-      busyLabel="Adding..."
-      context={groupName}
+      busyLabel={busyLabel}
+      context={context}
       currentStep={currentStep}
       currentStepIndex={currentStepIndex}
       error={submissionError}
       stepCount={formatSteps.length}
-      title="Add format"
+      submitDisabled={currentStepIndex === formatSteps.length - 1 && submitDisabled(draft)}
+      title={title}
       {...(currentStepIndex > 0 ? { onBack: handleBack } : {})}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -139,16 +253,18 @@ export function CreateEvidenceFormatDialog({
             <label>
               Slug
               <input
-                disabled={saving}
+                disabled={saving || lockSlug}
                 placeholder="daily-update"
                 value={draft.slug}
                 onChange={(event) => updateDraft({ slug: event.target.value })}
               />
             </label>
           </div>
+          {lockSlug ? <div className="field-hint">Slugs stay fixed after format creation.</div> : null}
           <label>
             Description
             <textarea
+              aria-label="Description"
               disabled={saving}
               value={draft.description}
               onChange={(event) => updateDraft({ description: event.target.value })}
@@ -203,6 +319,7 @@ export function CreateEvidenceFormatDialog({
         >
           <EvidenceFormatLineLengthFields disabled={saving} draft={draft} onChange={updateDraft} />
           <div className="field-hint">Both per-line limits are optional.</div>
+          {finalHint !== undefined ? <div className="field-hint">{finalHint}</div> : null}
           {stepError("line-length")}
         </CreateWizardStep>
       ) : null}

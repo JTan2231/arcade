@@ -1,0 +1,133 @@
+name: invite link creation follows the access policy wizard
+
+vars:
+  email: invite-wizard-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      client: browser
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Invite Wizard Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Invite Wizard Group
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+steps:
+  - visit: /
+
+  - within: Groups
+    click:
+      role: button
+      name: Group settings for Invite Wizard Group
+
+  - within: Groups
+    click:
+      role: button
+      name: Settings
+
+  - within: Settings
+    click:
+      role: button
+      name: Invite links
+
+  - within: Invite links
+    click:
+      role: button
+      name: Add invite link
+
+  - within: Create invite link
+    fill:
+      label: Link label
+      value: Summer cohort
+
+  - within: Create invite link
+    click:
+      role: button
+      name: Next
+
+  - within: Create invite link
+    select:
+      label: Expires after
+      option: 30 days
+
+  - within: Create invite link
+    click:
+      role: button
+      name: Next
+
+  - within: Create invite link
+    click:
+      role: button
+      name: Limited
+
+  - within: Create invite link
+    click:
+      role: button
+      name: Next
+
+  - within: Create invite link
+    expectAlert:
+      text: Maximum uses must be a positive whole number
+
+  - within: Create invite link
+    fill:
+      label: Maximum uses
+      value: 3
+
+  - within: Create invite link
+    click:
+      role: button
+      name: Next
+
+  - within: Create invite link
+    expectVisible:
+      text: Summer cohort
+
+  - within: Create invite link
+    expectVisible:
+      text: Expires after 30 days · 3 uses
+
+  - within: Create invite link
+    click:
+      role: button
+      name: Create link
+
+  - expectStatus:
+      text: Invite link created
+
+  - within: Invite links
+    expectVisible:
+      role: textbox
+      name: New invite link
+
+  - within: Invite links
+    expectVisible:
+      role: button
+      name: Copy link
+
+  - request:
+      id: list_links
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/invite-links
+      expectStatus: 200
+      expectJson:
+        - label: Summer cohort
+          max_uses: 3
+          use_count: 0

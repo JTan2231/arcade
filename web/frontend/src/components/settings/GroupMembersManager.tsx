@@ -19,7 +19,6 @@ export function GroupMembersManager({
 }) {
   return (
     <section className="group-members-manager" aria-label="Group members">
-      <div className="section-title">Group members</div>
       {error !== "" ? (
         <div className="form-error" role="alert">
           {error}

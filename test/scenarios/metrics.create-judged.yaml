@@ -44,6 +44,11 @@ steps:
       role: button
       name: Settings
 
+  - within: Settings
+    click:
+      role: button
+      name: Metrics
+
   - within: Metric settings
     click:
       role: button
@@ -97,5 +102,96 @@ steps:
       text: Helpfulness
 
   - within: Metric settings
-    expectVisible:
+    expectHidden:
       text: How useful is this post to other group members?
+
+  - within: Metric settings
+    click:
+      role: button
+      name: Edit Helpfulness
+
+  - within: Edit metric
+    expectDisabled:
+      role: button
+      name: Judged
+
+  - within: Edit metric
+    expectValue:
+      label: Metric name
+      value: Helpfulness
+
+  - within: Edit metric
+    expectValue:
+      label: Judging prompt
+      value: How useful is this post to other group members?
+
+  - within: Edit metric
+    expectValue:
+      label: Combine scores by
+      value: average
+
+  - within: Edit metric
+    fill:
+      label: Metric name
+      value: ""
+
+  - within: Edit metric
+    select:
+      label: Combine scores by
+      value: max
+
+  - within: Edit metric
+    click:
+      role: button
+      name: Save metric
+
+  - within: Edit metric
+    expectAlert:
+      text: Metric name is required
+
+  - within: Edit metric
+    fill:
+      label: Metric name
+      value: Practical value
+
+  - within: Edit metric
+    fill:
+      label: Judging prompt
+      value: How practical is this post for other group members?
+
+  - within: Edit metric
+    click:
+      role: button
+      name: Next
+
+  - within: Edit metric
+    click:
+      role: button
+      name: Save metric
+
+  - expectStatus:
+      text: Metric updated
+
+  - within: Metric settings
+    expectVisible:
+      text: Practical value
+
+  - within: Metric settings
+    click:
+      role: button
+      name: Edit Practical value
+
+  - within: Edit metric
+    expectValue:
+      label: Judging prompt
+      value: How practical is this post for other group members?
+
+  - within: Edit metric
+    expectValue:
+      label: Combine scores by
+      value: max
+
+  - within: Edit metric
+    click:
+      role: button
+      name: Close
