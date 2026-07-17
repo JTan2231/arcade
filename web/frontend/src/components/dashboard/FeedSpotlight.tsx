@@ -14,6 +14,7 @@ type SpotlightTarget = {
   element: HTMLElement;
   id: string;
   order: number;
+  strength: number;
   tone: FeedSpotlightTone;
 };
 
@@ -325,6 +326,7 @@ function FocusedSpotlight({ target, tone }: { target: SpotlightTarget | null; to
 
   const targetElement = target?.element ?? null;
   const targetActive = target?.active === true;
+  const targetStrength = clamp(target?.strength ?? 1, 0, 1);
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
@@ -408,7 +410,14 @@ function FocusedSpotlight({ target, tone }: { target: SpotlightTarget | null; to
     .filter(Boolean)
     .join(" ");
 
-  return <canvas aria-hidden="true" className={className} ref={canvasRef} />;
+  return (
+    <canvas
+      aria-hidden="true"
+      className={className}
+      ref={canvasRef}
+      style={{ opacity: visible ? targetStrength : 0 }}
+    />
+  );
 }
 
 export function FeedSpotlight({
@@ -422,7 +431,7 @@ export function FeedSpotlight({
   const removalTimers = useRef(new Map<string, number>());
   const nextTargetOrder = useRef(0);
 
-  const registerTarget = useCallback((id: string, element: HTMLElement, tone: FeedSpotlightTone) => {
+  const registerTarget = useCallback((id: string, element: HTMLElement, tone: FeedSpotlightTone, strength: number) => {
     const timer = removalTimers.current.get(id);
     if (timer !== undefined) {
       window.clearTimeout(timer);
@@ -431,12 +440,17 @@ export function FeedSpotlight({
 
     setTargets((current) => {
       const existing = current.get(id);
-      if (existing?.active === true && existing.element === element && existing.tone === tone) {
+      if (
+        existing?.active === true &&
+        existing.element === element &&
+        existing.tone === tone &&
+        existing.strength === strength
+      ) {
         return current;
       }
       nextTargetOrder.current += 1;
       const next = new Map(current);
-      next.set(id, { active: true, element, id, order: nextTargetOrder.current, tone });
+      next.set(id, { active: true, element, id, order: nextTargetOrder.current, strength, tone });
       return next;
     });
   }, []);

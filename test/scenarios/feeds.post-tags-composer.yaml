@@ -56,6 +56,21 @@ steps:
       name: Post
 
   - within: Posts
+    click:
+      role: button
+      name: Cancel
+
+  - within: Posts
+    expectHidden:
+      role: textbox
+      name: Content
+
+  - within: Posts
+    click:
+      role: button
+      name: Post
+
+  - within: Posts
     fill:
       label: Content
       value: Tagged from the composer.

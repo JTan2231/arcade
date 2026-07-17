@@ -1,4 +1,15 @@
-import { FormEvent, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+  type TransitionEvent,
+} from "react";
 
 import { highlightCodeBlock, prepareCodeBlock } from "../../syntaxHighlight";
 import type {
@@ -19,6 +30,11 @@ import { formatDateTime, sameStringSet, selectedActivePostTagIDs } from "./forma
 
 const EVIDENCE_PREVIEW_LINE_LIMIT = 6;
 const EVIDENCE_PREVIEW_HEIGHT = 93;
+const POST_COMPOSER_TRANSITION_MS = 1_260;
+const POST_COMPOSER_CLOSE_FALLBACK_MS = POST_COMPOSER_TRANSITION_MS + 100;
+const POST_COMPOSER_IDLE_SPOTLIGHT_STRENGTH = 0.3;
+
+type PostComposerPhase = "closed" | "opening" | "open" | "closing";
 
 export type CreateFeedPostPayload = {
   evidenceText: string;
@@ -78,7 +94,7 @@ export function FeedPostSection({
     payload: Omit<CreateFeedMetricJudgmentRequest, "post_id">,
   ) => void;
 }) {
-  const [formOpen, setFormOpen] = useState(false);
+  const [formPhase, setFormPhase] = useState<PostComposerPhase>("closed");
   const [evidenceText, setEvidenceText] = useState("");
   const [caption, setCaption] = useState("");
   const [formError, setFormError] = useState("");
@@ -88,14 +104,36 @@ export function FeedPostSection({
   const evidenceInputId = useId();
   const evidenceHintId = `${evidenceInputId}-hint`;
   const captionSpotlightTargetRef = useRef<HTMLTextAreaElement>(null);
+  const handledOwnPostIdRef = useRef<string | null>(null);
+  const postButtonRef = useRef<HTMLButtonElement>(null);
   const postFormSpotlightTargetRef = useRef<HTMLFormElement>(null);
+  const postsSectionRef = useRef<HTMLElement>(null);
+  const resetFormAfterCloseRef = useRef(false);
   const activePostTags = postTags.filter((tag) => tag.archived_at === undefined);
   const ownPost = currentUserId !== null ? (posts.find((post) => post.author_user_id === currentUserId) ?? null) : null;
   const postUnavailable = !canPost || disabled || loading || Boolean(ownPost);
   const postButtonTitle = !canPost ? "Active group membership required to post." : undefined;
   const contentHint = evidenceFormatConstraintSummary(evidenceFormat.active_version);
+  const formMounted = formPhase !== "closed";
+  const formOpen = formPhase === "opening" || formPhase === "open";
 
-  useFeedSpotlightTarget(`post-form-${postFormId}`, postFormSpotlightTargetRef, formOpen && contentFocused);
+  const finishPostFormClose = useCallback(() => {
+    setFormPhase("closed");
+    if (resetFormAfterCloseRef.current) {
+      resetFormAfterCloseRef.current = false;
+      setEvidenceText("");
+      setCaption("");
+      setFormError("");
+    }
+  }, []);
+
+  useFeedSpotlightTarget(
+    `post-form-${postFormId}`,
+    postFormSpotlightTargetRef,
+    formOpen && !captionFocused,
+    "post",
+    contentFocused ? 1 : POST_COMPOSER_IDLE_SPOTLIGHT_STRENGTH,
+  );
   useFeedSpotlightTarget(
     `post-caption-${postFormId}`,
     captionSpotlightTargetRef,
@@ -110,16 +148,88 @@ export function FeedPostSection({
   }, [captionsEnabled]);
 
   useEffect(() => {
-    if (ownPost === null || !formOpen || submitting) {
+    if (formPhase !== "opening") {
+      return undefined;
+    }
+
+    const animationFrame = window.requestAnimationFrame(() => {
+      setFormPhase((phase) => (phase === "opening" ? "open" : phase));
+    });
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [formPhase]);
+
+  useEffect(() => {
+    if (formPhase !== "closing") {
+      return undefined;
+    }
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const handleReducedMotionChange = (event: MediaQueryListEvent) => {
+      if (event.matches) {
+        finishPostFormClose();
+      }
+    };
+    const timer = window.setTimeout(finishPostFormClose, reducedMotion.matches ? 0 : POST_COMPOSER_CLOSE_FALLBACK_MS);
+    reducedMotion.addEventListener("change", handleReducedMotionChange);
+    return () => {
+      window.clearTimeout(timer);
+      reducedMotion.removeEventListener("change", handleReducedMotionChange);
+    };
+  }, [finishPostFormClose, formPhase]);
+
+  useEffect(() => {
+    if (ownPost === null) {
+      handledOwnPostIdRef.current = null;
+      return;
+    }
+    if (submitting || handledOwnPostIdRef.current === ownPost.id) {
       return;
     }
 
-    setEvidenceText("");
-    setCaption("");
+    handledOwnPostIdRef.current = ownPost.id;
+    resetFormAfterCloseRef.current = true;
     setContentFocused(false);
     setCaptionFocused(false);
-    setFormOpen(false);
-  }, [formOpen, ownPost, submitting]);
+    const activeElement = document.activeElement;
+    if (activeElement !== null && postFormSpotlightTargetRef.current?.contains(activeElement) === true) {
+      postsSectionRef.current?.focus({ preventScroll: true });
+    }
+    if (formMounted) {
+      setFormPhase("closing");
+    } else {
+      finishPostFormClose();
+    }
+  }, [finishPostFormClose, formMounted, ownPost, submitting]);
+
+  function togglePostForm() {
+    setContentFocused(false);
+    setCaptionFocused(false);
+    if (formOpen) {
+      setFormPhase("closing");
+      return;
+    }
+
+    if (resetFormAfterCloseRef.current) {
+      resetFormAfterCloseRef.current = false;
+      setEvidenceText("");
+      setCaption("");
+      setFormError("");
+    }
+    setFormPhase(formPhase === "closed" ? "opening" : "open");
+  }
+
+  function closePostForm() {
+    setContentFocused(false);
+    setCaptionFocused(false);
+    postButtonRef.current?.focus({ preventScroll: true });
+    setFormPhase("closing");
+  }
+
+  function handlePostFormTransitionEnd(event: TransitionEvent<HTMLFormElement>) {
+    if (event.currentTarget === event.target && event.propertyName === "opacity" && formPhase === "closing") {
+      finishPostFormClose();
+    }
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -135,7 +245,7 @@ export function FeedPostSection({
   }
 
   return (
-    <section className="feed-posts-section" aria-label="Posts">
+    <section className="feed-posts-section" aria-label="Posts" ref={postsSectionRef} tabIndex={-1}>
       {loading ? <div className="empty-state">Loading posts...</div> : null}
       {error !== "" ? (
         <div className="form-error" role="alert">
@@ -176,20 +286,25 @@ export function FeedPostSection({
             className="secondary feed-post-button"
             type="button"
             disabled={postUnavailable}
+            ref={postButtonRef}
             title={postButtonTitle}
-            onClick={() => {
-              setContentFocused(false);
-              setCaptionFocused(false);
-              setFormOpen((open) => !open);
-            }}
+            onClick={togglePostForm}
           >
             Post
           </button>
         </div>
       ) : null}
 
-      {formOpen ? (
-        <form className="feed-post-form" id={postFormId} ref={postFormSpotlightTargetRef} onSubmit={handleSubmit}>
+      {formMounted ? (
+        <form
+          aria-hidden={formPhase !== "open"}
+          className={`feed-post-form post-composer-form ${formPhase === "open" ? "post-composer-form-open" : ""}`}
+          id={postFormId}
+          inert={formPhase !== "open"}
+          ref={postFormSpotlightTargetRef}
+          onSubmit={handleSubmit}
+          onTransitionEnd={handlePostFormTransitionEnd}
+        >
           <label htmlFor={evidenceInputId}>Content</label>
           {contentHint === "" ? null : (
             <span id={evidenceHintId} className="field-hint">
@@ -229,15 +344,7 @@ export function FeedPostSection({
             </label>
           ) : null}
           <div className="output-actions">
-            <button
-              className="secondary"
-              type="button"
-              onClick={() => {
-                setContentFocused(false);
-                setCaptionFocused(false);
-                setFormOpen(false);
-              }}
-            >
+            <button className="secondary" type="button" onClick={closePostForm}>
               Cancel
             </button>
             <button type="submit" disabled={submitting || !evidenceText.trim()}>

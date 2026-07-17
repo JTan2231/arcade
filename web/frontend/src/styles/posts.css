@@ -53,6 +53,21 @@
   padding: 0;
 }
 
+.post-composer-form {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition:
+    opacity 1.26s cubic-bezier(0.2, 0, 0, 1),
+    transform 1.26s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.post-composer-form-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
 .evidence-textarea {
   background: color-mix(in srgb, var(--color-code-surface) 22%, transparent);
   border: 0;
