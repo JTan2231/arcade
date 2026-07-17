@@ -1,0 +1,176 @@
+.create-wizard-dialog {
+  color: var(--color-text);
+  height: min(620px, calc(100vh - 32px));
+  margin: auto;
+  max-height: calc(100vh - 32px);
+  overflow: hidden;
+  padding: 0;
+  width: min(620px, calc(100vw - 32px));
+}
+
+.create-wizard-dialog::backdrop {
+  background: var(--color-overlay);
+}
+
+.create-wizard-form {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100%;
+  min-height: 0;
+}
+
+.create-wizard-header {
+  border-bottom: 1px solid var(--color-border);
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px 14px;
+}
+
+.create-wizard-title-row,
+.create-wizard-context {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.create-wizard-title-row h2 {
+  font-size: 22px;
+  margin: 0;
+}
+
+.create-wizard-close-button {
+  font-size: 24px;
+  line-height: 1;
+  min-height: 34px;
+  min-width: 34px;
+  padding: 0;
+}
+
+.create-wizard-context {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.create-wizard-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 0 18px;
+}
+
+.create-wizard-step {
+  border-left: 2px solid var(--color-border);
+  display: grid;
+  gap: 10px;
+  padding: 14px 0 14px 14px;
+}
+
+.create-wizard-step + .create-wizard-step {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.create-wizard-step-current {
+  border-left-color: var(--color-accent-border-hover);
+}
+
+.create-wizard-step-heading {
+  align-items: baseline;
+  color: var(--color-text-muted);
+  display: grid;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 8px;
+  grid-template-columns: 20px minmax(0, 1fr);
+}
+
+.create-wizard-step-current .create-wizard-step-heading {
+  color: var(--color-text);
+}
+
+.create-wizard-step-heading span:first-child {
+  color: var(--color-icon-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.create-wizard-step-control {
+  display: grid;
+  gap: 6px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.create-wizard-step-complete input,
+.create-wizard-step-complete select,
+.create-wizard-step-complete textarea {
+  border-color: var(--color-border-subtle);
+  color: var(--color-text-muted);
+}
+
+.create-wizard-step-current input,
+.create-wizard-step-current select,
+.create-wizard-step-current textarea {
+  border-color: var(--color-accent-border);
+}
+
+.create-wizard-choice-control {
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  display: grid;
+  gap: 3px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  padding: 3px;
+}
+
+.create-wizard-choice-option {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-text-muted);
+  min-width: 0;
+}
+
+.create-wizard-choice-option:hover:where(:not(:disabled)) {
+  background: var(--color-surface-hover);
+  border-color: transparent;
+}
+
+.create-wizard-choice-option[aria-pressed="true"] {
+  background: var(--color-accent-surface);
+  border-color: var(--color-accent-border);
+  color: var(--color-text);
+}
+
+.create-wizard-choice-option[aria-pressed="true"]:hover:where(:not(:disabled)) {
+  background: var(--color-accent-surface-hover);
+  border-color: var(--color-accent-border-hover);
+}
+
+.create-wizard-step-complete .create-wizard-choice-option[aria-pressed="true"] {
+  background: var(--color-surface-muted);
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.create-wizard-step-error,
+.create-wizard-submission-error {
+  margin-top: 0;
+}
+
+.create-wizard-submission-error {
+  padding: 12px 0;
+}
+
+.create-wizard-footer {
+  align-items: center;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 14px 18px;
+}
+
+.create-wizard-footer-button {
+  min-width: 96px;
+}

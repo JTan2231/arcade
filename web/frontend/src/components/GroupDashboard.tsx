@@ -211,6 +211,7 @@ export function GroupDashboard({
           <AddFeedDialog
             feeds={feeds}
             formError={addFeedError}
+            groupName={group.name}
             evidenceFormats={addFeedEvidenceFormats}
             preview={addFeedPreview}
             previewLoading={addFeedPreviewLoading}

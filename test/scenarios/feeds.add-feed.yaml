@@ -48,13 +48,21 @@ before:
       json:
         name: Add Feed Source
         template: https://example.test/{slug}
+        fields:
+          - key: difficulty
+            label: Difficulty
+            value_type: number
+            is_array: false
+            display_order: 0
         items:
           - title: Alpha Warmup
             data:
               slug: alpha-warmup
+              difficulty: 800
           - title: Beta Warmup
             data:
               slug: beta-warmup
+              difficulty: 1200
       expectStatus: 201
       capture:
         source_id: $.id
@@ -77,31 +85,9 @@ steps:
       id: sources
 
   - within: Add feed
-    expectDisabled:
-      role: combobox
-      name: Source
-
-  - within: Add feed
-    expectDisabled:
-      role: button
-      name: Create
-
-  - releaseRequest: sources
-
-  - within: Add feed
-    expectEnabled:
-      role: combobox
-      name: Source
-
-  - within: Add feed
-    expectEnabled:
-      role: button
-      name: Create
-
-  - within: Add feed
     click:
       role: button
-      name: Preview
+      name: Next
 
   - within: Add feed
     expectAlert:
@@ -113,23 +99,91 @@ steps:
       value: Warmup Practice
 
   - within: Add feed
+    click:
+      role: button
+      name: Next
+
+  - within: Add feed
+    click:
+      role: button
+      name: Next
+
+  - within: Add feed
+    expectDisabled:
+      role: combobox
+      name: Source
+
+  - within: Add feed
+    expectDisabled:
+      role: button
+      name: Next
+
+  - releaseRequest: sources
+
+  - within: Add feed
+    expectEnabled:
+      role: combobox
+      name: Source
+
+  - within: Add feed
+    expectEnabled:
+      role: button
+      name: Next
+
+  - within: Add feed
     fill:
       label: Item count
       value: 1
+
+  - within: Filters
+    click:
+      role: button
+      name: Add filter
+
+  - within: Filters
+    fill:
+      label: Value
+      value: 800
+
+  - within: Add feed
+    click:
+      role: button
+      name: Next
+
+  - within: Add feed
+    click:
+      role: button
+      name: Next
+
+  - holdRequest:
+      id: preview
+      method: POST
+      path: /api/groups/*/daily-feeds/preview
+      times: 1
 
   - within: Add feed
     click:
       role: button
       name: Preview
 
+  - expectRequest:
+      id: preview
+
+  - within: Add feed
+    expectDisabled:
+      role: button
+      name: Add feed
+
+  - releaseRequest: preview
+
   - within: Preview
     expectVisible:
-      text: 1 selected, 2 eligible
+      text: 1 selected, 1 eligible
 
   - within: Add feed
     click:
       role: button
-      name: Create
+      name: Add feed
 
   - expectStatus:
       text: Feed created

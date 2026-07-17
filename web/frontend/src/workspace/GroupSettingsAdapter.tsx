@@ -88,6 +88,7 @@ export function GroupSettingsAdapter({
       visibilitySaving={updatingGroupVisibility}
       onClearCreatedInviteURL={inviteLinkProps.onClearCreatedInviteURL}
       onClose={() => dashboardRef?.send({ type: "GROUP_SETTINGS_CLOSED" })}
+      onClearFormatError={() => dashboardRef?.send({ type: "EVIDENCE_FORMAT_ERROR_CLEARED" })}
       onCreateMetric={(payload) => dashboardRef?.send({ type: "METRIC_CREATE_SUBMITTED", payload })}
       onCreateFormat={(payload) => dashboardRef?.send({ type: "EVIDENCE_FORMAT_CREATE_SUBMITTED", payload })}
       onCreateFormatVersion={(formatId, payload) =>

@@ -329,11 +329,17 @@ export const dashboardMachine = dashboardSetup.createMachine({
         context.selectedGroupId !== null && event.payload.slug.trim() !== "" && event.payload.name.trim() !== "",
       target: ".groupSelected.creatingEvidenceFormat",
       actions: assign(({ event }) => ({
+        evidenceFormatsError: "",
         evidenceFormatMutation: {
           kind: "create",
           payload: normalizeEvidenceFormatCreatePayload(event.payload),
         },
       })),
+    },
+    EVIDENCE_FORMAT_ERROR_CLEARED: {
+      actions: assign({
+        evidenceFormatsError: "",
+      }),
     },
     EVIDENCE_FORMAT_UPDATE_SUBMITTED: {
       guard: ({ context, event }) => context.evidenceFormats.some((format) => format.id === event.formatId),
@@ -1942,9 +1948,10 @@ function upsertEvidenceFormatOnDone() {
 }
 
 function clearEvidenceFormatMutationOnError() {
-  return assign<DashboardContext, ErrorActorEvent, undefined, DashboardEvent, never>({
+  return assign<DashboardContext, ErrorActorEvent, undefined, DashboardEvent, never>(({ event }) => ({
+    evidenceFormatsError: errorMessage(event.error),
     evidenceFormatMutation: null,
-  });
+  }));
 }
 
 function clearFeedFormatMutationOnError() {

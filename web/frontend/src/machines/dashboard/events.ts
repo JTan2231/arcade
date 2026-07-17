@@ -199,6 +199,7 @@ type DashboardUserEvent =
   | { type: "POST_TAG_UPDATE_SUBMITTED"; tagId: string; payload: PatchGroupPostTagRequest }
   | { type: "POST_TAG_DELETE_SUBMITTED"; tagId: string }
   | { type: "EVIDENCE_FORMAT_CREATE_SUBMITTED"; payload: CreateEvidenceFormatRequest }
+  | { type: "EVIDENCE_FORMAT_ERROR_CLEARED" }
   | { type: "EVIDENCE_FORMAT_UPDATE_SUBMITTED"; formatId: string; payload: PatchEvidenceFormatRequest }
   | { type: "EVIDENCE_FORMAT_VERSION_CREATE_SUBMITTED"; formatId: string; payload: CreateEvidenceFormatVersionRequest }
   | { type: "EVIDENCE_FORMAT_DELETE_SUBMITTED"; formatId: string }

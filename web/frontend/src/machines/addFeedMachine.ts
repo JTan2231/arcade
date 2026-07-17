@@ -19,6 +19,7 @@ export type AddFeedContext = {
   evidenceFormats: EvidenceFormat[];
   preview: DailyFeedPreview | null;
   error: string;
+  errorKind: "load" | "preview" | "create" | null;
   pendingPayload: CreateDailyFeedRequest | null;
 };
 
@@ -85,6 +86,7 @@ export const addFeedMachine = addFeedSetup.createMachine({
     evidenceFormats: [],
     preview: null,
     error: "",
+    errorKind: null,
     pendingPayload: null,
   }),
   initial: "loadingSources",
@@ -104,6 +106,7 @@ export const addFeedMachine = addFeedSetup.createMachine({
             sources: event.output.sources,
             evidenceFormats: event.output.evidenceFormats,
             error: "",
+            errorKind: null,
           })),
         },
         onError: [
@@ -117,6 +120,7 @@ export const addFeedMachine = addFeedSetup.createMachine({
               sources: [],
               evidenceFormats: [],
               error: errorMessage(event.error),
+              errorKind: "load",
             })),
           },
         ],
@@ -125,10 +129,10 @@ export const addFeedMachine = addFeedSetup.createMachine({
     editing: {
       on: {
         DRAFT_CHANGED: {
-          actions: assign({
+          actions: assign(({ context }) => ({
             preview: null,
-            error: "",
-          }),
+            ...(context.errorKind === "load" ? {} : { error: "", errorKind: null }),
+          })),
         },
         PREVIEW_SUBMITTED: {
           target: "previewing",
@@ -136,6 +140,7 @@ export const addFeedMachine = addFeedSetup.createMachine({
             pendingPayload: event.payload,
             preview: null,
             error: "",
+            errorKind: null,
           })),
         },
         CREATE_SUBMITTED: {
@@ -143,6 +148,7 @@ export const addFeedMachine = addFeedSetup.createMachine({
           actions: assign(({ event }) => ({
             pendingPayload: event.payload,
             error: "",
+            errorKind: null,
           })),
         },
       },
@@ -155,6 +161,7 @@ export const addFeedMachine = addFeedSetup.createMachine({
             pendingPayload: null,
             preview: null,
             error: "",
+            errorKind: null,
           }),
         },
       },
@@ -170,6 +177,7 @@ export const addFeedMachine = addFeedSetup.createMachine({
           actions: assign(({ event }) => ({
             preview: event.output,
             error: "",
+            errorKind: null,
             pendingPayload: null,
           })),
         },
@@ -183,6 +191,7 @@ export const addFeedMachine = addFeedSetup.createMachine({
             actions: assign(({ event }) => ({
               preview: null,
               error: errorMessage(event.error),
+              errorKind: "preview",
               pendingPayload: null,
             })),
           },
@@ -195,6 +204,7 @@ export const addFeedMachine = addFeedSetup.createMachine({
           actions: assign({
             preview: null,
             error: "",
+            errorKind: null,
           }),
         },
       },
@@ -218,6 +228,7 @@ export const addFeedMachine = addFeedSetup.createMachine({
             target: "editing",
             actions: assign(({ event }) => ({
               error: errorMessage(event.error),
+              errorKind: "create",
               pendingPayload: null,
             })),
           },

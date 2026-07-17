@@ -104,21 +104,21 @@
     max-height: calc(100vh - 20px);
   }
 
-  .metric-create-dialog {
+  .create-wizard-dialog {
     height: calc(100vh - 20px);
     max-height: calc(100vh - 20px);
     width: calc(100vw - 20px);
   }
 
-  .metric-create-header {
+  .create-wizard-header {
     padding: 14px;
   }
 
-  .metric-create-body {
+  .create-wizard-body {
     padding: 0 14px;
   }
 
-  .metric-create-footer {
+  .create-wizard-footer {
     padding: 12px 14px;
   }
 

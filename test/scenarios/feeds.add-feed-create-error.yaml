@@ -1,0 +1,117 @@
+name: add feed retains its draft after a create error
+
+vars:
+  email: add-feed-create-error-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      client: browser
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Add Feed Create Error Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Add Feed Create Error Group
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: create_source
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/catalog-sources
+      json:
+        name: Retry Source
+        template: https://example.test/{slug}
+        items:
+          - title: Retry Item
+            data:
+              slug: retry-item
+      expectStatus: 201
+
+steps:
+  - visit: /
+
+  - within: Feeds
+    click:
+      role: button
+      name: Add feed
+
+  - within: Add feed
+    fill:
+      label: Name
+      value: Retry practice
+
+  - within: Add feed
+    click:
+      role: button
+      name: Next
+
+  - within: Add feed
+    click:
+      role: button
+      name: Next
+
+  - within: Add feed
+    fill:
+      label: Item count
+      value: 1
+
+  - within: Add feed
+    click:
+      role: button
+      name: Next
+
+  - within: Add feed
+    click:
+      role: button
+      name: Next
+
+  - fulfillRequest:
+      method: POST
+      path: /api/groups/*/daily-feeds
+      status: 500
+      json:
+        error: Feed create failed
+
+  - within: Add feed
+    click:
+      role: button
+      name: Add feed
+
+  - within: Add feed
+    expectAlert:
+      text: Feed create failed
+
+  - within: Add feed
+    expectValue:
+      label: Name
+      value: Retry practice
+
+  - within: Add feed
+    expectValue:
+      label: Item count
+      value: 1
+
+  - within: Add feed
+    expectEnabled:
+      role: button
+      name: Add feed
+
+  - within: Add feed
+    click:
+      role: button
+      name: Close

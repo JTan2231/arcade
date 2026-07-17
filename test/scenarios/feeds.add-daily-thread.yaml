@@ -1,0 +1,97 @@
+name: add feed takes the shorter daily thread path
+
+vars:
+  email: add-thread-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      client: browser
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Add Thread Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Add Thread Group
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: list_default_feed
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds
+      expectStatus: 200
+      capture:
+        default_feed_id: $[0].id
+
+  - request:
+      id: delete_default_feed
+      client: browser
+      method: DELETE
+      path: /api/groups/{{group_id}}/daily-feeds/{{default_feed_id}}
+      expectStatus: 204
+
+steps:
+  - visit: /
+
+  - within: Feeds
+    click:
+      role: button
+      name: Add feed
+
+  - within: Add feed
+    click:
+      role: button
+      name: Daily thread
+
+  - within: Add feed
+    click:
+      role: button
+      name: Next
+
+  - within: Add feed
+    fill:
+      label: Name
+      value: Team check-in
+
+  - within: Add feed
+    click:
+      role: button
+      name: Next
+
+  - within: Add feed
+    click:
+      role: button
+      name: Next
+
+  - within: Add feed
+    expectHidden:
+      role: button
+      name: Preview
+
+  - within: Add feed
+    click:
+      role: button
+      name: Add feed
+
+  - expectStatus:
+      text: Feed created
+
+  - within: Feeds
+    expectPressed:
+      role: button
+      name: Team check-in
+      pressed: true

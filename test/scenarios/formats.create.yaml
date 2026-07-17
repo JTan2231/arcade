@@ -1,0 +1,181 @@
+name: post format creation follows the progressive rules flow
+
+vars:
+  email: format-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      client: browser
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Format Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Format Group
+      expectStatus: 201
+
+steps:
+  - visit: /
+
+  - within: Groups
+    click:
+      role: button
+      name: Add group
+
+  - within: Groups
+    click:
+      role: button
+      name: Group settings for Format Group
+
+  - within: Groups
+    click:
+      role: button
+      name: Settings
+
+  - within: Evidence formats
+    click:
+      role: button
+      name: Add format
+
+  - within: Add format
+    click:
+      role: button
+      name: Next
+
+  - within: Add format
+    expectAlert:
+      text: Slug is required
+
+  - within: Add format
+    fill:
+      label: Name
+      value: Daily update
+
+  - within: Add format
+    fill:
+      label: Slug
+      value: daily-update
+
+  - within: Add format
+    fill:
+      label: Description
+      value: A concise three-line daily update.
+
+  - within: Add format
+    click:
+      role: button
+      name: Next
+
+  - within: Add format
+    fill:
+      label: Min chars
+      value: 10
+
+  - within: Add format
+    fill:
+      label: Max chars
+      value: 5
+
+  - within: Add format
+    click:
+      role: button
+      name: Next
+
+  - within: Add format
+    expectAlert:
+      text: Max chars must be at least min chars
+
+  - within: Add format
+    fill:
+      label: Max chars
+      value: 500
+
+  - within: Add format
+    click:
+      role: button
+      name: Next
+
+  - within: Add format
+    fill:
+      label: Min lines
+      value: 5
+
+  - within: Add format
+    fill:
+      label: Max lines
+      value: 3
+
+  - within: Add format
+    click:
+      role: button
+      name: Next
+
+  - within: Add format
+    expectAlert:
+      text: Max lines must be at least min lines
+
+  - within: Add format
+    select:
+      label: Line count mode
+      value: exact
+
+  - within: Add format
+    click:
+      role: button
+      name: Next
+
+  - within: Add format
+    expectAlert:
+      text: Exact lines is required
+
+  - within: Add format
+    fill:
+      label: Exact lines
+      value: 3
+
+  - within: Add format
+    uncheck:
+      label: Blank lines
+
+  - within: Add format
+    click:
+      role: button
+      name: Next
+
+  - within: Add format
+    fill:
+      label: Line min chars
+      value: 2
+
+  - within: Add format
+    fill:
+      label: Line max chars
+      value: 200
+
+  - within: Add format
+    click:
+      role: button
+      name: Add format
+
+  - expectStatus:
+      text: Format added
+
+  - within: Evidence formats
+    expectVisible:
+      text: Daily update
+
+  - within: Evidence formats
+    expectVisible:
+      text: daily-update

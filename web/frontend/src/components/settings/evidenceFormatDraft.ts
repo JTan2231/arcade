@@ -31,24 +31,76 @@ export const emptyFormatDraft: EvidenceFormatDraft = {
 };
 
 export function buildFormatPayload(draft: EvidenceFormatDraft): CreateEvidenceFormatRequest | string {
+  const identityError = validateFormatIdentity(draft);
+  if (identityError !== "") {
+    return identityError;
+  }
   const version = buildVersionPayload(draft);
   if (typeof version === "string") {
     return version;
   }
   const slug = draft.slug.trim();
   const name = draft.name.trim();
-  if (slug === "") {
-    return "Slug is required";
-  }
-  if (name === "") {
-    return "Name is required";
-  }
   return {
     slug,
     name,
     ...(draft.description.trim() !== "" ? { description: draft.description.trim() } : {}),
     ...version,
   };
+}
+
+export function validateFormatIdentity(draft: EvidenceFormatDraft): string {
+  const slug = draft.slug.trim();
+  if (slug === "") {
+    return "Slug is required";
+  }
+  if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(slug)) {
+    return "Slug must use lowercase letters, numbers, and hyphens";
+  }
+  if (draft.name.trim() === "") {
+    return "Name is required";
+  }
+  return "";
+}
+
+export function validateFormatLength(draft: EvidenceFormatDraft): string {
+  const minChars = parsePositiveInteger(draft.minChars);
+  const maxChars = parseOptionalPositiveInteger(draft.maxChars);
+  if (minChars === "invalid" || maxChars === "invalid") {
+    return "Constraint values must be positive integers";
+  }
+  if (maxChars !== undefined && maxChars < (minChars ?? 1)) {
+    return "Max chars must be at least min chars";
+  }
+  return "";
+}
+
+export function validateFormatLines(draft: EvidenceFormatDraft): string {
+  const minLines = draft.lineMode === "range" ? parseOptionalPositiveInteger(draft.minLines) : undefined;
+  const maxLines = draft.lineMode === "range" ? parseOptionalPositiveInteger(draft.maxLines) : undefined;
+  const exactLines = draft.lineMode === "exact" ? parsePositiveInteger(draft.exactLines) : undefined;
+  if (minLines === "invalid" || maxLines === "invalid" || exactLines === "invalid") {
+    return "Constraint values must be positive integers";
+  }
+  if (draft.lineMode === "exact" && exactLines === undefined) {
+    return "Exact lines is required";
+  }
+  if (minLines !== undefined && maxLines !== undefined && maxLines < minLines) {
+    return "Max lines must be at least min lines";
+  }
+  return "";
+}
+
+export function validateFormatLineLength(draft: EvidenceFormatDraft): string {
+  const lineMinChars = parseOptionalPositiveInteger(draft.lineMinChars);
+  const lineMaxChars = parseOptionalPositiveInteger(draft.lineMaxChars);
+  if (lineMinChars === "invalid" || lineMaxChars === "invalid") {
+    return "Constraint values must be positive integers";
+  }
+  if (lineMinChars !== undefined && lineMaxChars !== undefined && lineMaxChars < lineMinChars) {
+    return "Line max chars must be at least line min chars";
+  }
+  return "";
 }
 
 export function buildVersionPayload(draft: EvidenceFormatDraft): CreateEvidenceFormatVersionRequest | string {

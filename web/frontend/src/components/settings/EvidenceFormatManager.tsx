@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 
 import type {
   CreateEvidenceFormatRequest,
@@ -6,17 +6,18 @@ import type {
   EvidenceFormat,
   PatchEvidenceFormatRequest,
 } from "../../types";
+import { CreateEvidenceFormatDialog } from "./CreateEvidenceFormatDialog";
+import { EvidenceFormatConstraintFields } from "./EvidenceFormatConstraintFields";
 import type { EvidenceFormatDraft } from "./evidenceFormatDraft";
 import {
-  buildFormatPayload,
   buildVersionPayload,
-  emptyFormatDraft,
   formatConstraintSummary,
   formatVersionToDraft,
   versionPayload,
 } from "./evidenceFormatDraft";
 
 export function EvidenceFormatManager({
+  groupName,
   formats,
   error,
   loading,
@@ -24,10 +25,12 @@ export function EvidenceFormatManager({
   updatingFormatId,
   deletingFormatId,
   onCreateFormat,
+  onClearError,
   onUpdateFormat,
   onCreateFormatVersion,
   onDeleteFormat,
 }: {
+  groupName: string;
   formats: EvidenceFormat[];
   error: string;
   loading: boolean;
@@ -35,61 +38,68 @@ export function EvidenceFormatManager({
   updatingFormatId: string | null;
   deletingFormatId: string | null;
   onCreateFormat: (payload: CreateEvidenceFormatRequest) => void;
+  onClearError: () => void;
   onUpdateFormat: (formatId: string, payload: PatchEvidenceFormatRequest) => void;
   onCreateFormatVersion: (formatId: string, payload: CreateEvidenceFormatVersionRequest) => void;
   onDeleteFormat: (formatId: string) => void;
 }) {
-  const [draft, setDraft] = useState<EvidenceFormatDraft>(emptyFormatDraft);
-  const [formError, setFormError] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createAwaitingResult, setCreateAwaitingResult] = useState(false);
+  const [createSawSaving, setCreateSawSaving] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const canAddFormat = !loading && !saving;
 
-  function updateDraft(patch: Partial<EvidenceFormatDraft>) {
-    setDraft((current) => ({ ...current, ...patch }));
-    setFormError("");
-  }
+  const closeCreateDialog = useCallback(() => {
+    setCreateOpen(false);
+    setCreateAwaitingResult(false);
+    setCreateSawSaving(false);
+    setCreateError("");
+    onClearError();
+  }, [onClearError]);
 
-  function handleCreate(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const payload = buildFormatPayload(draft);
-    if (typeof payload === "string") {
-      setFormError(payload);
+  useEffect(() => {
+    if (!createOpen || !createAwaitingResult) {
       return;
     }
-    setFormError("");
-    onCreateFormat(payload);
-    setDraft(emptyFormatDraft);
-  }
+    if (saving) {
+      setCreateSawSaving(true);
+      return;
+    }
+    if (!createSawSaving) {
+      return;
+    }
+    if (error === "") {
+      closeCreateDialog();
+      return;
+    }
+    setCreateError(error);
+    setCreateAwaitingResult(false);
+    setCreateSawSaving(false);
+  }, [closeCreateDialog, createAwaitingResult, createOpen, createSawSaving, error, saving]);
 
   return (
     <section className="evidence-format-manager" aria-label="Evidence formats">
-      <div className="section-title">Post formats</div>
-      {error !== "" ? (
-        <div className="form-error" role="alert">
-          {error}
+      <div className="section-header-row">
+        <div>
+          <div className="section-title">Post formats</div>
+          <div className="meta">Reusable rules for member posts</div>
         </div>
-      ) : null}
-      <form className="evidence-format-create-form" onSubmit={handleCreate}>
-        <div className="form-grid two-column">
-          <label>
-            Slug
-            <input value={draft.slug} onChange={(event) => updateDraft({ slug: event.target.value })} />
-          </label>
-          <label>
-            Name
-            <input value={draft.name} onChange={(event) => updateDraft({ name: event.target.value })} />
-          </label>
-        </div>
-        <label>
-          Description
-          <textarea value={draft.description} onChange={(event) => updateDraft({ description: event.target.value })} />
-        </label>
-        <EvidenceFormatConstraintFields draft={draft} onChange={updateDraft} />
-        <button type="submit" disabled={loading || saving || draft.slug.trim() === "" || draft.name.trim() === ""}>
+        <button
+          className="secondary"
+          type="button"
+          disabled={!canAddFormat}
+          onClick={() => {
+            setCreateError("");
+            onClearError();
+            setCreateOpen(true);
+          }}
+        >
           Add format
         </button>
-      </form>
-      {formError !== "" ? (
+      </div>
+      {error !== "" && !createOpen ? (
         <div className="form-error" role="alert">
-          {formError}
+          {error}
         </div>
       ) : null}
       <div className="evidence-format-list">
@@ -107,6 +117,23 @@ export function EvidenceFormatManager({
           />
         ))}
       </div>
+      {createOpen ? (
+        <CreateEvidenceFormatDialog
+          groupName={groupName}
+          saving={saving || createAwaitingResult}
+          submissionError={createError}
+          onClose={closeCreateDialog}
+          onDraftChanged={() => {
+            setCreateError("");
+            onClearError();
+          }}
+          onCreate={(payload) => {
+            setCreateError("");
+            setCreateAwaitingResult(true);
+            onCreateFormat(payload);
+          }}
+        />
+      ) : null}
     </section>
   );
 }
@@ -239,110 +266,5 @@ function EvidenceFormatManagerRow({
         </div>
       ) : null}
     </form>
-  );
-}
-
-function EvidenceFormatConstraintFields({
-  draft,
-  onChange,
-}: {
-  draft: EvidenceFormatDraft;
-  onChange: (patch: Partial<EvidenceFormatDraft>) => void;
-}) {
-  return (
-    <>
-      <div className="form-grid three-column">
-        <label>
-          Min chars
-          <input
-            min="1"
-            type="number"
-            value={draft.minChars}
-            onChange={(event) => onChange({ minChars: event.target.value })}
-          />
-        </label>
-        <label>
-          Max chars
-          <input
-            min="1"
-            type="number"
-            value={draft.maxChars}
-            onChange={(event) => onChange({ maxChars: event.target.value })}
-          />
-        </label>
-        <label className="checkbox-row status-checkbox">
-          <input
-            checked={draft.allowBlankLines}
-            type="checkbox"
-            onChange={(event) => onChange({ allowBlankLines: event.target.checked })}
-          />
-          Blank lines
-        </label>
-      </div>
-      <div className="form-grid three-column">
-        <label>
-          Line mode
-          <select
-            value={draft.lineMode}
-            onChange={(event) => onChange({ lineMode: event.target.value as "range" | "exact" })}
-          >
-            <option value="range">Range</option>
-            <option value="exact">Exact</option>
-          </select>
-        </label>
-        {draft.lineMode === "exact" ? (
-          <label>
-            Exact lines
-            <input
-              min="1"
-              type="number"
-              value={draft.exactLines}
-              onChange={(event) => onChange({ exactLines: event.target.value })}
-            />
-          </label>
-        ) : (
-          <>
-            <label>
-              Min lines
-              <input
-                min="1"
-                type="number"
-                value={draft.minLines}
-                onChange={(event) => onChange({ minLines: event.target.value })}
-              />
-            </label>
-            <label>
-              Max lines
-              <input
-                min="1"
-                type="number"
-                value={draft.maxLines}
-                onChange={(event) => onChange({ maxLines: event.target.value })}
-              />
-            </label>
-          </>
-        )}
-      </div>
-      <div className="form-grid two-column">
-        <label>
-          Line min chars
-          <input
-            min="1"
-            type="number"
-            value={draft.lineMinChars}
-            onChange={(event) => onChange({ lineMinChars: event.target.value })}
-          />
-        </label>
-        <label>
-          Line max chars
-          <input
-            min="1"
-            type="number"
-            value={draft.lineMaxChars}
-            onChange={(event) => onChange({ lineMaxChars: event.target.value })}
-          />
-        </label>
-      </div>
-    </>
   );
 }

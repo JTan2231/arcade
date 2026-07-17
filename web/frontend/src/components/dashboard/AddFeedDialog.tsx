@@ -1,5 +1,6 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useId, useState } from "react";
 
+import { CreateWizardDialog, CreateWizardStep } from "../CreateWizardDialog";
 import { formatDateLabel } from "../../dates";
 import { errorMessage } from "../../errors";
 import type {
@@ -21,7 +22,10 @@ import {
   operatorsForField,
 } from "./feedDraft";
 
+type FeedStep = "type" | "details" | "format" | "catalog" | "schedule" | "review";
+
 export function AddFeedDialog({
+  groupName,
   feeds,
   formError,
   evidenceFormats,
@@ -35,6 +39,7 @@ export function AddFeedDialog({
   onPreviewFeed,
   onCreateFeed,
 }: {
+  groupName: string;
   feeds: DailyFeed[];
   formError: string;
   evidenceFormats: EvidenceFormat[];
@@ -49,7 +54,10 @@ export function AddFeedDialog({
   onCreateFeed: (payload: CreateDailyFeedRequest) => void;
 }) {
   const canCreateDailyThread = !feeds.some((feed) => feed.kind === "daily_thread");
-  const [kind, setKind] = useState<FeedKind>("catalog_daily");
+  const initialKind: FeedKind | null = canCreateDailyThread ? null : "catalog_daily";
+  const initialStep: FeedStep = canCreateDailyThread ? "type" : "details";
+  const stepLabelId = useId();
+  const [kind, setKind] = useState<FeedKind | null>(initialKind);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [enabled, setEnabled] = useState(true);
@@ -60,6 +68,8 @@ export function AddFeedDialog({
   const [timezone, setTimezone] = useState(defaultTimezone);
   const [intervalSeconds, setIntervalSeconds] = useState("86400");
   const [filters, setFilters] = useState<DraftFilter[]>([]);
+  const [currentStep, setCurrentStep] = useState<FeedStep>(initialStep);
+  const [revealedSteps, setRevealedSteps] = useState<FeedStep[]>([initialStep]);
   const [validationError, setValidationError] = useState("");
 
   useEffect(() => {
@@ -85,33 +95,51 @@ export function AddFeedDialog({
     }
   }, [evidenceFormatId, evidenceFormats]);
 
-  const selectedSource = sources.find((source) => source.id === sourceId) || null;
-  const sourceFields = selectedSource?.fields || [];
+  const steps = feedSteps(kind, canCreateDailyThread);
+  const currentStepIndex = steps.indexOf(currentStep);
+  const visibleSteps = steps.filter((step) => revealedSteps.includes(step));
+  const selectedSource = sources.find((source) => source.id === sourceId) ?? null;
+  const sourceFields = selectedSource?.fields ?? [];
   const practice = kind === "catalog_daily";
-  const visibleError = validationError || formError;
+  const finalStep = currentStepIndex === steps.length - 1;
+  const submitDisabled =
+    (currentStep === "catalog" && (sourcesLoading || sourceId === "")) ||
+    (finalStep && (sourcesLoading || previewLoading));
 
   function markDraftChanged() {
     setValidationError("");
     onDraftChanged();
   }
 
-  function handleKindChange(nextKind: FeedKind) {
+  function chooseKind(nextKind: FeedKind) {
+    const changed = nextKind !== kind;
     setKind(nextKind);
-    markDraftChanged();
-    if (nextKind === "daily_thread") {
-      setFilters([]);
+    setCurrentStep("type");
+    setValidationError("");
+    if (changed) {
+      setRevealedSteps(["type"]);
+      if (nextKind === "daily_thread") {
+        setFilters([]);
+      }
+      onDraftChanged();
     }
   }
 
   function handleSourceChange(nextSourceId: string) {
+    const changed = nextSourceId !== sourceId;
     setSourceId(nextSourceId);
     setFilters([]);
     markDraftChanged();
+    if (changed) {
+      const catalogStepIndex = steps.indexOf("catalog");
+      setRevealedSteps(steps.slice(0, catalogStepIndex + 1));
+      setCurrentStep("catalog");
+    }
   }
 
   function handleAddFilter() {
     const field = sourceFields[0];
-    if (!field) {
+    if (field === undefined) {
       return;
     }
     setFilters((current) => [
@@ -138,9 +166,33 @@ export function AddFeedDialog({
     markDraftChanged();
   }
 
+  function activateStep(step: FeedStep) {
+    if (saving || step === currentStep) {
+      return;
+    }
+    setValidationError("");
+    setCurrentStep(step);
+  }
+
+  function revealStep(step: FeedStep) {
+    setRevealedSteps((current) => (current.includes(step) ? current : [...current, step]));
+    setCurrentStep(step);
+    setValidationError("");
+  }
+
+  function handleBack() {
+    const previousStep = steps[currentStepIndex - 1];
+    if (!saving && previousStep !== undefined) {
+      revealStep(previousStep);
+    }
+  }
+
   function buildPayload(): CreateDailyFeedRequest {
+    if (kind === null) {
+      throw new Error("Choose a feed type");
+    }
     const trimmedName = name.trim() || (kind === "daily_thread" ? "Daily Thread" : "");
-    if (!trimmedName) {
+    if (trimmedName === "") {
       throw new Error("Name is required");
     }
     const schedule = {
@@ -148,7 +200,7 @@ export function AddFeedDialog({
       timezone: timezone.trim() || "UTC",
       interval_seconds: Number(intervalSeconds),
     };
-    if (!Number.isFinite(schedule.interval_seconds) || schedule.interval_seconds < 1) {
+    if (!Number.isInteger(schedule.interval_seconds) || schedule.interval_seconds < 1) {
       throw new Error("Repeat interval is invalid");
     }
 
@@ -162,24 +214,37 @@ export function AddFeedDialog({
       payload.evidence_format_id = evidenceFormatId;
     }
     const trimmedDescription = description.trim();
-    if (trimmedDescription) {
+    if (trimmedDescription !== "") {
       payload.description = trimmedDescription;
     }
 
     if (kind === "daily_thread") {
       return payload;
     }
-    if (!sourceId) {
+    if (sourceId === "") {
       throw new Error("Source is required");
     }
     const parsedItemCount = Number(itemCount);
-    if (!Number.isInteger(parsedItemCount) || parsedItemCount < 1) {
-      throw new Error("Item count is invalid");
+    if (!Number.isInteger(parsedItemCount) || parsedItemCount < 1 || parsedItemCount > 50) {
+      throw new Error("Item count must be between 1 and 50");
     }
     payload.source_id = sourceId;
     payload.item_count = parsedItemCount;
     payload.filters = filters.map((filter) => draftFilterToRequest(filter, sourceFields));
     return payload;
+  }
+
+  function validateCurrentStep(): string {
+    return validateFeedStep(currentStep, {
+      filters,
+      intervalSeconds,
+      itemCount,
+      kind,
+      name,
+      sourceFields,
+      sourceId,
+      startsAt,
+    });
   }
 
   function handlePreview() {
@@ -188,60 +253,139 @@ export function AddFeedDialog({
     try {
       payload = buildPayload();
     } catch (error) {
-      setValidationError(errorMessage(error));
+      const message = errorMessage(error);
+      const invalidStep = firstInvalidFeedStep(steps, {
+        filters,
+        intervalSeconds,
+        itemCount,
+        kind,
+        name,
+        sourceFields,
+        sourceId,
+        startsAt,
+      });
+      setCurrentStep(invalidStep);
+      setValidationError(message);
       return;
     }
-    if (payload.kind !== "catalog_daily") {
-      return;
+    if (payload.kind === "catalog_daily") {
+      onPreviewFeed(payload);
     }
-
-    onPreviewFeed(payload);
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setValidationError("");
-    let payload: CreateDailyFeedRequest;
-    try {
-      payload = buildPayload();
-    } catch (error) {
-      setValidationError(errorMessage(error));
+    const error = validateCurrentStep();
+    if (error !== "") {
+      setValidationError(error);
       return;
     }
 
+    const nextStep = steps[currentStepIndex + 1];
+    if (nextStep !== undefined) {
+      revealStep(nextStep);
+      return;
+    }
+
+    let payload: CreateDailyFeedRequest;
+    try {
+      payload = buildPayload();
+    } catch (buildError) {
+      const invalidStep = firstInvalidFeedStep(steps, {
+        filters,
+        intervalSeconds,
+        itemCount,
+        kind,
+        name,
+        sourceFields,
+        sourceId,
+        startsAt,
+      });
+      setCurrentStep(invalidStep);
+      setValidationError(errorMessage(buildError));
+      return;
+    }
     onCreateFeed(payload);
   }
 
+  function stepError(step: FeedStep) {
+    return currentStep === step && validationError !== "" ? (
+      <div className="form-error create-wizard-step-error" role="alert">
+        {validationError}
+      </div>
+    ) : null;
+  }
+
   return (
-    <div className="modal-backdrop" role="presentation">
-      <div className="modal-panel add-feed-dialog" role="dialog" aria-modal="true" aria-labelledby="add-feed-title">
-        <form className="add-feed-form" onSubmit={handleSubmit}>
-          <div className="modal-header">
-            <div>
-              <h2 id="add-feed-title">Add feed</h2>
-              <div className="meta">{practice ? "Practice feed" : "Daily thread"}</div>
-            </div>
-            <button className="secondary" type="button" onClick={onClose}>
-              Close
+    <CreateWizardDialog
+      actionLabel="Add feed"
+      busy={saving}
+      busyLabel="Adding..."
+      context={groupName}
+      currentStep={currentStep}
+      currentStepIndex={currentStepIndex}
+      error={formError}
+      stepCount={steps.length}
+      submitDisabled={submitDisabled}
+      title="Add feed"
+      {...(currentStepIndex > 0 ? { onBack: handleBack } : {})}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+    >
+      {visibleSteps.includes("type") ? (
+        <CreateWizardStep
+          current={currentStep === "type"}
+          labelId={`${stepLabelId}-type`}
+          number={steps.indexOf("type") + 1}
+          step="type"
+          title="Feed type"
+          onActivate={activateStep}
+        >
+          <div aria-labelledby={`${stepLabelId}-type`} className="create-wizard-choice-control" role="group">
+            <button
+              aria-pressed={kind === "catalog_daily"}
+              className="create-wizard-choice-option"
+              disabled={saving}
+              type="button"
+              onClick={() => chooseKind("catalog_daily")}
+            >
+              Practice feed
+            </button>
+            <button
+              aria-pressed={kind === "daily_thread"}
+              className="create-wizard-choice-option"
+              disabled={saving}
+              type="button"
+              onClick={() => chooseKind("daily_thread")}
+            >
+              Daily thread
             </button>
           </div>
-
-          {canCreateDailyThread ? (
-            <label>
-              Type
-              <select value={kind} onChange={(event) => handleKindChange(event.target.value as FeedKind)}>
-                <option value="catalog_daily">Practice feed</option>
-                <option value="daily_thread">Daily thread</option>
-              </select>
-            </label>
+          {kind !== null ? (
+            <div className="field-hint">
+              {practice ? "Selects scheduled items from a catalog." : "A shared recurring space without catalog items."}
+            </div>
           ) : null}
+          {stepError("type")}
+        </CreateWizardStep>
+      ) : null}
 
+      {visibleSteps.includes("details") ? (
+        <CreateWizardStep
+          current={currentStep === "details"}
+          labelId={`${stepLabelId}-details`}
+          number={steps.indexOf("details") + 1}
+          step="details"
+          title="Feed details"
+          onActivate={activateStep}
+        >
           <div className="form-grid two-column">
             <label>
               Name
               <input
-                value={name}
+                disabled={saving}
                 placeholder={practice ? "Daily Practice" : "Daily Thread"}
+                value={name}
                 onChange={(event) => {
                   setName(event.target.value);
                   markDraftChanged();
@@ -251,6 +395,7 @@ export function AddFeedDialog({
             <label className="checkbox-row status-checkbox">
               <input
                 checked={enabled}
+                disabled={saving}
                 type="checkbox"
                 onChange={(event) => {
                   setEnabled(event.target.checked);
@@ -260,11 +405,34 @@ export function AddFeedDialog({
               Active
             </label>
           </div>
+          <label>
+            Description
+            <textarea
+              disabled={saving}
+              value={description}
+              onChange={(event) => {
+                setDescription(event.target.value);
+                markDraftChanged();
+              }}
+            />
+          </label>
+          {stepError("details")}
+        </CreateWizardStep>
+      ) : null}
 
+      {visibleSteps.includes("format") ? (
+        <CreateWizardStep
+          current={currentStep === "format"}
+          labelId={`${stepLabelId}-format`}
+          number={steps.indexOf("format") + 1}
+          step="format"
+          title="Post format"
+          onActivate={activateStep}
+        >
           <label>
             Post format
             <select
-              disabled={!evidenceFormats.length}
+              disabled={saving || evidenceFormats.length === 0}
               value={evidenceFormatId}
               onChange={(event) => {
                 setEvidenceFormatId(event.target.value);
@@ -278,59 +446,108 @@ export function AddFeedDialog({
               ))}
             </select>
           </label>
+          {sourcesLoading ? (
+            <div className="field-hint">Loading post formats...</div>
+          ) : evidenceFormats.length === 0 ? (
+            <div className="field-hint">The group default will be used.</div>
+          ) : (
+            <div className="field-hint">Controls the text rules for member posts.</div>
+          )}
+          {stepError("format")}
+        </CreateWizardStep>
+      ) : null}
 
-          <label>
-            Description
-            <textarea
-              value={description}
-              onChange={(event) => {
-                setDescription(event.target.value);
-                markDraftChanged();
-              }}
-            />
-          </label>
-
-          {practice ? (
-            <>
-              <div className="form-grid two-column">
-                <label>
-                  Source
-                  <select
-                    disabled={sourcesLoading || !sources.length}
-                    value={sourceId}
-                    onChange={(event) => handleSourceChange(event.target.value)}
-                  >
-                    {sources.map((source) => (
-                      <option value={source.id} key={source.id}>
-                        {source.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Item count
-                  <input
-                    min="1"
-                    step="1"
-                    type="number"
-                    value={itemCount}
-                    onChange={(event) => {
-                      setItemCount(event.target.value);
-                      markDraftChanged();
-                    }}
-                  />
-                </label>
-              </div>
-              {!sourcesLoading && !sources.length ? (
-                <div className="empty-state">No catalog sources available.</div>
-              ) : null}
-            </>
+      {visibleSteps.includes("catalog") ? (
+        <CreateWizardStep
+          current={currentStep === "catalog"}
+          labelId={`${stepLabelId}-catalog`}
+          number={steps.indexOf("catalog") + 1}
+          step="catalog"
+          title="Catalog setup"
+          onActivate={activateStep}
+        >
+          <div className="form-grid two-column">
+            <label>
+              Source
+              <select
+                disabled={saving || sourcesLoading || sources.length === 0}
+                value={sourceId}
+                onChange={(event) => handleSourceChange(event.target.value)}
+              >
+                {sources.map((source) => (
+                  <option value={source.id} key={source.id}>
+                    {source.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Item count
+              <input
+                disabled={saving}
+                max="50"
+                min="1"
+                step="1"
+                type="number"
+                value={itemCount}
+                onChange={(event) => {
+                  setItemCount(event.target.value);
+                  markDraftChanged();
+                }}
+              />
+            </label>
+          </div>
+          {sourcesLoading ? <div className="empty-state">Loading catalog sources...</div> : null}
+          {!sourcesLoading && sources.length === 0 ? (
+            <div className="empty-state">No catalog sources available.</div>
           ) : null}
+          <section className="feed-filters-section" aria-label="Filters">
+            <div className="section-header-row">
+              <div className="title">Filters</div>
+              <button
+                className="secondary"
+                type="button"
+                disabled={saving || sourceFields.length === 0}
+                onClick={handleAddFilter}
+              >
+                Add filter
+              </button>
+            </div>
+            {filters.length > 0 ? (
+              <div className="stack">
+                {filters.map((filter) => (
+                  <FilterEditor
+                    disabled={saving}
+                    fields={sourceFields}
+                    filter={filter}
+                    key={filter.id}
+                    onChange={(patch) => updateFilter(filter.id, patch)}
+                    onRemove={() => removeFilter(filter.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state">No filters.</div>
+            )}
+          </section>
+          {stepError("catalog")}
+        </CreateWizardStep>
+      ) : null}
 
+      {visibleSteps.includes("schedule") ? (
+        <CreateWizardStep
+          current={currentStep === "schedule"}
+          labelId={`${stepLabelId}-schedule`}
+          number={steps.indexOf("schedule") + 1}
+          step="schedule"
+          title="Schedule"
+          onActivate={activateStep}
+        >
           <div className="form-grid three-column">
             <label>
               Start time
               <input
+                disabled={saving}
                 type="datetime-local"
                 value={startsAt}
                 onChange={(event) => {
@@ -342,6 +559,7 @@ export function AddFeedDialog({
             <label>
               Timezone
               <input
+                disabled={saving}
                 value={timezone}
                 onChange={(event) => {
                   setTimezone(event.target.value);
@@ -352,6 +570,7 @@ export function AddFeedDialog({
             <label>
               Repeat
               <select
+                disabled={saving}
                 value={intervalSeconds}
                 onChange={(event) => {
                   setIntervalSeconds(event.target.value);
@@ -364,72 +583,126 @@ export function AddFeedDialog({
               </select>
             </label>
           </div>
+          {stepError("schedule")}
+        </CreateWizardStep>
+      ) : null}
 
-          {practice ? (
-            <section className="feed-filters-section" aria-label="Filters">
-              <div className="section-header-row">
-                <div className="title">Filters</div>
-                <button className="secondary" type="button" disabled={!sourceFields.length} onClick={handleAddFilter}>
-                  Add filter
-                </button>
-              </div>
-              {filters.length ? (
-                <div className="stack">
-                  {filters.map((filter) => (
-                    <FilterEditor
-                      fields={sourceFields}
-                      filter={filter}
-                      key={filter.id}
-                      onChange={(patch) => updateFilter(filter.id, patch)}
-                      onRemove={() => removeFilter(filter.id)}
-                    />
-                  ))}
+      {visibleSteps.includes("review") ? (
+        <CreateWizardStep
+          current={currentStep === "review"}
+          labelId={`${stepLabelId}-review`}
+          number={steps.indexOf("review") + 1}
+          step="review"
+          title="Review and preview"
+          onActivate={activateStep}
+        >
+          <div className="preview-panel">
+            <div className="row-top">
+              <div>
+                <div className="title">{name.trim() || "Untitled practice feed"}</div>
+                <div className="meta">
+                  {selectedSource?.name ?? "No source"} · {itemCount || "0"} items
                 </div>
-              ) : (
-                <div className="empty-state">No filters.</div>
-              )}
-            </section>
-          ) : null}
-
-          {preview ? <PreviewPanel preview={preview} /> : null}
-
-          {visibleError ? (
-            <div className="form-error" role="alert">
-              {visibleError}
-            </div>
-          ) : null}
-
-          <div className="output-actions">
-            {practice ? (
-              <button className="secondary" type="button" disabled={previewLoading || saving} onClick={handlePreview}>
+              </div>
+              <button
+                className="secondary"
+                type="button"
+                disabled={previewLoading || saving || sourcesLoading || sourceId === ""}
+                onClick={handlePreview}
+              >
                 {previewLoading ? "Previewing..." : "Preview"}
               </button>
-            ) : null}
-            <button className="secondary" type="button" disabled={saving} onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" disabled={saving || (practice && !sourceId)}>
-              {saving ? "Creating..." : "Create"}
-            </button>
+            </div>
+            {preview === null ? <div className="field-hint">Preview is optional before adding the feed.</div> : null}
           </div>
-        </form>
-      </div>
-    </div>
+          {preview !== null ? <PreviewPanel preview={preview} /> : null}
+          {stepError("review")}
+        </CreateWizardStep>
+      ) : null}
+    </CreateWizardDialog>
   );
 }
 
+type FeedValidationDraft = {
+  filters: DraftFilter[];
+  intervalSeconds: string;
+  itemCount: string;
+  kind: FeedKind | null;
+  name: string;
+  sourceFields: CatalogSourceField[];
+  sourceId: string;
+  startsAt: string;
+};
+
+function feedSteps(kind: FeedKind | null, canCreateDailyThread: boolean): FeedStep[] {
+  const steps: FeedStep[] = [];
+  if (canCreateDailyThread) {
+    steps.push("type");
+  }
+  steps.push("details", "format");
+  if (kind !== "daily_thread") {
+    steps.push("catalog");
+  }
+  steps.push("schedule");
+  if (kind !== "daily_thread") {
+    steps.push("review");
+  }
+  return steps;
+}
+
+function validateFeedStep(step: FeedStep, draft: FeedValidationDraft): string {
+  if (step === "type" && draft.kind === null) {
+    return "Choose a feed type";
+  }
+  if (step === "details" && draft.kind === "catalog_daily" && draft.name.trim() === "") {
+    return "Name is required";
+  }
+  if (step === "catalog") {
+    if (draft.sourceId === "") {
+      return "Source is required";
+    }
+    const parsedItemCount = Number(draft.itemCount);
+    if (!Number.isInteger(parsedItemCount) || parsedItemCount < 1 || parsedItemCount > 50) {
+      return "Item count must be between 1 and 50";
+    }
+    try {
+      draft.filters.forEach((filter) => draftFilterToRequest(filter, draft.sourceFields));
+    } catch (error) {
+      return errorMessage(error);
+    }
+  }
+  if (step === "schedule") {
+    try {
+      localInputToISOString(draft.startsAt);
+    } catch (error) {
+      return errorMessage(error);
+    }
+    const parsedInterval = Number(draft.intervalSeconds);
+    if (!Number.isInteger(parsedInterval) || parsedInterval < 1) {
+      return "Repeat interval is invalid";
+    }
+  }
+  return "";
+}
+
+function firstInvalidFeedStep(steps: FeedStep[], draft: FeedValidationDraft): FeedStep {
+  return steps.find((step) => validateFeedStep(step, draft) !== "") ?? steps[steps.length - 1] ?? "details";
+}
+
 function FilterEditor({
+  disabled,
   fields,
   filter,
   onChange,
   onRemove,
 }: {
+  disabled: boolean;
   fields: CatalogSourceField[];
   filter: DraftFilter;
   onChange: (patch: Partial<DraftFilter>) => void;
   onRemove: () => void;
 }) {
-  const field = fields.find((candidate) => candidate.id === filter.fieldId) || fields[0] || null;
+  const field = fields.find((candidate) => candidate.id === filter.fieldId) ?? fields[0] ?? null;
   const operators = field ? operatorsForField(field) : [];
   const currentOp = operators.some((operator) => operator.value === filter.op)
     ? filter.op
@@ -450,7 +723,7 @@ function FilterEditor({
     <div className="filter-row">
       <label>
         Field
-        <select value={filter.fieldId} onChange={(event) => handleFieldChange(event.target.value)}>
+        <select disabled={disabled} value={filter.fieldId} onChange={(event) => handleFieldChange(event.target.value)}>
           {fields.map((candidate) => (
             <option value={candidate.id} key={candidate.id}>
               {candidate.label}
@@ -460,7 +733,7 @@ function FilterEditor({
       </label>
       <label>
         Operator
-        <select value={currentOp} onChange={(event) => onChange({ op: event.target.value })}>
+        <select disabled={disabled} value={currentOp} onChange={(event) => onChange({ op: event.target.value })}>
           {operators.map((operator) => (
             <option value={operator.value} key={operator.value}>
               {operator.label}
@@ -468,8 +741,8 @@ function FilterEditor({
           ))}
         </select>
       </label>
-      <FilterValueInput field={field} filter={{ ...filter, op: currentOp }} onChange={onChange} />
-      <button className="secondary filter-remove-button" type="button" onClick={onRemove}>
+      <FilterValueInput disabled={disabled} field={field} filter={{ ...filter, op: currentOp }} onChange={onChange} />
+      <button className="secondary filter-remove-button" type="button" disabled={disabled} onClick={onRemove}>
         Remove
       </button>
     </div>
@@ -477,15 +750,17 @@ function FilterEditor({
 }
 
 function FilterValueInput({
+  disabled,
   field,
   filter,
   onChange,
 }: {
+  disabled: boolean;
   field: CatalogSourceField | null;
   filter: DraftFilter;
   onChange: (patch: Partial<DraftFilter>) => void;
 }) {
-  if (!field) {
+  if (field === null) {
     return <div />;
   }
   if (field.value_type === "number") {
@@ -495,6 +770,7 @@ function FilterValueInput({
           <label>
             Min
             <input
+              disabled={disabled}
               type="number"
               value={filter.numberValue}
               onChange={(event) => onChange({ numberValue: event.target.value })}
@@ -503,6 +779,7 @@ function FilterValueInput({
           <label>
             Max
             <input
+              disabled={disabled}
               type="number"
               value={filter.numberMaxValue}
               onChange={(event) => onChange({ numberMaxValue: event.target.value })}
@@ -515,6 +792,7 @@ function FilterValueInput({
       <label>
         Value
         <input
+          disabled={disabled}
           type="number"
           value={filter.numberValue}
           onChange={(event) => onChange({ numberValue: event.target.value })}
@@ -526,7 +804,11 @@ function FilterValueInput({
   return (
     <label>
       Value
-      <input value={filter.textValue} onChange={(event) => onChange({ textValue: event.target.value })} />
+      <input
+        disabled={disabled}
+        value={filter.textValue}
+        onChange={(event) => onChange({ textValue: event.target.value })}
+      />
     </label>
   );
 }
@@ -544,7 +826,7 @@ function PreviewPanel({ preview }: { preview: DailyFeedPreview }) {
         </div>
         <div className="meta">{formatDateLabel(preview.output.date)}</div>
       </div>
-      {items.length ? (
+      {items.length > 0 ? (
         <div className="stack preview-items">
           {items.map((item) => (
             <div className="row preview-item" key={`${item.position}-${item.item.id}`}>

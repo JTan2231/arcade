@@ -60,9 +60,33 @@ steps:
       text: Catalog source load failed
 
   - within: Add feed
+    fill:
+      label: Name
+      value: Unavailable practice
+
+  - within: Add feed
+    expectAlert:
+      text: Catalog source load failed
+
+  - within: Add feed
+    click:
+      role: button
+      name: Next
+
+  - within: Add feed
+    click:
+      role: button
+      name: Next
+
+  - within: Add feed
+    expectDisabled:
+      role: combobox
+      name: Source
+
+  - within: Add feed
     expectDisabled:
       role: button
-      name: Create
+      name: Next
 
   - within: Add feed
     click:

@@ -43,25 +43,19 @@
 .group-tree {
   display: grid;
   gap: 2px;
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  pointer-events: none;
-  transition:
-    max-height 140ms ease,
-    opacity 120ms ease,
-    visibility 0s linear 140ms;
-  visibility: hidden;
+  max-height: 72vh;
+  opacity: 0.15;
+  overflow: hidden auto;
+  transition: opacity 120ms ease;
 }
 
 .groups-panel:hover .group-tree,
 .groups-panel:focus-within .group-tree {
-  max-height: 72vh;
+  opacity: 0.5;
+}
+
+.groups-panel .group-tree:has(.modal-backdrop) {
   opacity: 1;
-  overflow: hidden auto;
-  pointer-events: auto;
-  transition-delay: 0s;
-  visibility: visible;
 }
 
 .group-tree-node {

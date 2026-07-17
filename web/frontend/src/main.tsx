@@ -11,6 +11,7 @@ import "./styles/public.css";
 import "./styles/groups.css";
 import "./styles/settings.css";
 import "./styles/dashboard.css";
+import "./styles/create-wizard.css";
 import "./styles/metrics.css";
 import "./styles/posts.css";
 import "./styles/output.css";

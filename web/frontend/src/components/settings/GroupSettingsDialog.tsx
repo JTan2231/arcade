@@ -64,6 +64,7 @@ export type GroupSettingsDialogProps = {
   onUpdateTag: (tagId: string, payload: PatchGroupPostTagRequest) => void;
   onDeleteTag: (tagId: string) => void;
   onCreateFormat: (payload: CreateEvidenceFormatRequest) => void;
+  onClearFormatError: () => void;
   onUpdateFormat: (formatId: string, payload: PatchEvidenceFormatRequest) => void;
   onCreateFormatVersion: (formatId: string, payload: CreateEvidenceFormatVersionRequest) => void;
   onDeleteFormat: (formatId: string) => void;
@@ -115,6 +116,7 @@ export function GroupSettingsDialog({
   onUpdateTag,
   onDeleteTag,
   onCreateFormat,
+  onClearFormatError,
   onUpdateFormat,
   onCreateFormatVersion,
   onDeleteFormat,
@@ -177,9 +179,11 @@ export function GroupSettingsDialog({
             deletingFormatId={deletingFormatId}
             error={formatError}
             formats={formats}
+            groupName={group.name}
             loading={loading}
             saving={formatSaving}
             updatingFormatId={updatingFormatId}
+            onClearError={onClearFormatError}
             onCreateFormat={onCreateFormat}
             onCreateFormatVersion={onCreateFormatVersion}
             onDeleteFormat={onDeleteFormat}

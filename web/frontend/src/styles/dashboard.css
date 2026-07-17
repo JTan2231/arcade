@@ -85,11 +85,6 @@
   width: 180px;
 }
 
-.add-feed-form {
-  display: grid;
-  gap: 12px;
-}
-
 .form-grid {
   display: grid;
   gap: 10px;
