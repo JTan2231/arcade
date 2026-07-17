@@ -70,6 +70,64 @@
   z-index: 10;
 }
 
+.page-scroll-controls {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  box-shadow: var(--shadow-popover);
+  display: grid;
+  overflow: hidden;
+  position: fixed;
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  z-index: 10;
+}
+
+body:has([aria-modal="true"]) .page-scroll-controls {
+  visibility: hidden;
+}
+
+.page-scroll-button {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--color-text-muted);
+  height: 32px;
+  min-height: 32px;
+  min-width: 32px;
+  padding: 0;
+  width: 32px;
+}
+
+.page-scroll-button + .page-scroll-button {
+  border-top: 1px solid var(--color-border);
+}
+
+.page-scroll-button:hover:where(:not(:disabled)) {
+  background: var(--color-surface-muted);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.page-scroll-button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -3px;
+  position: relative;
+  z-index: 1;
+}
+
+.page-scroll-button:disabled {
+  color: var(--color-icon-muted);
+  cursor: default;
+  opacity: 0.42;
+}
+
+.page-scroll-icon {
+  display: block;
+  height: 16px;
+  width: 16px;
+}
+
 .sidebar-stack {
   gap: 16px;
   align-content: start;

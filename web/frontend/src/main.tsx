@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import App from "./App";
+import { PageScrollControls } from "./components/PageScrollControls";
 import { assertPaletteValid, createArcadePalette, installCssTokens } from "./palette";
 import "./styles/tokens.css";
 import "./styles/base.css";
@@ -31,5 +32,6 @@ if (!root) {
 createRoot(root).render(
   <StrictMode>
     <App />
+    <PageScrollControls contentRoot={root} />
   </StrictMode>,
 );

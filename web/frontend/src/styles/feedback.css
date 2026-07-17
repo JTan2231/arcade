@@ -16,7 +16,7 @@
 .toast {
   background: var(--color-toast);
   border-radius: 8px;
-  bottom: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   box-shadow: var(--shadow-toast);
   color: var(--color-inverse-text);
   max-width: min(420px, calc(100vw - 32px));
@@ -24,9 +24,14 @@
   padding: 10px 12px;
   pointer-events: none;
   position: fixed;
-  right: 16px;
+  right: calc(16px + env(safe-area-inset-right, 0px));
   transform: translateY(8px);
   transition: 160ms ease;
+  z-index: 10;
+}
+
+body:has(.page-scroll-controls) .toast {
+  bottom: calc(90px + env(safe-area-inset-bottom, 0px));
 }
 
 .toast-visible {

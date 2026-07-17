@@ -169,6 +169,11 @@ steps:
       role: button
       name: Group B Practice
 
+  - within: Selected feed output
+    click:
+      role: button
+      name: Feed output choices
+
   - within: Feeds
     expectVisible:
       role: button

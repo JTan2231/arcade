@@ -182,7 +182,6 @@ export function GroupsPanel({
                   loading={selected ? feedsLoading : false}
                   error={selected ? feedsError : ""}
                   manage={selected && canManageGroup(group)}
-                  selectedGroup={selected}
                   selectedFeedId={selected ? selectedFeedId : null}
                   pendingToggleFeedId={selected ? pendingToggleFeedId : null}
                   pendingFeedCaptionsFeedId={selected ? pendingFeedCaptionsFeedId : null}

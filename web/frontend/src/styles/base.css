@@ -2,6 +2,14 @@
   box-sizing: border-box;
 }
 
+html {
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar {
+  display: none;
+}
+
 .visually-hidden {
   border: 0;
   clip-path: inset(50%);

@@ -73,31 +73,9 @@
 
   display: grid;
   gap: 1px;
-  margin: 0 0 0 10px;
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  padding-left: 18px;
-  pointer-events: none;
-  position: relative;
-  transition:
-    max-height 140ms ease,
-    margin 140ms ease,
-    opacity 120ms ease,
-    visibility 0s linear 140ms;
-  visibility: hidden;
-}
-
-.feed-sublist-selected,
-.groups-panel:hover .feed-sublist,
-.groups-panel:focus-within .feed-sublist {
   margin: 2px 0 8px 10px;
-  max-height: 540px;
-  opacity: 1;
-  overflow: hidden auto;
-  pointer-events: auto;
-  transition-delay: 0s;
-  visibility: visible;
+  padding-left: 18px;
+  position: relative;
 }
 
 .feed-sublist::before {

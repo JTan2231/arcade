@@ -47,6 +47,20 @@
 }
 
 @media (width <= 720px) {
+  .page-scroll-controls {
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    right: calc(10px + env(safe-area-inset-right, 0px));
+  }
+
+  .toast {
+    max-width: min(420px, calc(100vw - 20px));
+    right: calc(10px + env(safe-area-inset-right, 0px));
+  }
+
+  body:has(.page-scroll-controls) .toast {
+    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  }
+
   .app-header {
     padding: 14px;
   }

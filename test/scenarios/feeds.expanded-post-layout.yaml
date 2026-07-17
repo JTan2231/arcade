@@ -97,6 +97,42 @@ before:
           alpha line 10
           alpha line 11
           alpha line 12
+          alpha line 13
+          alpha line 14
+          alpha line 15
+          alpha line 16
+          alpha line 17
+          alpha line 18
+          alpha line 19
+          alpha line 20
+          alpha line 21
+          alpha line 22
+          alpha line 23
+          alpha line 24
+          alpha line 25
+          alpha line 26
+          alpha line 27
+          alpha line 28
+          alpha line 29
+          alpha line 30
+          alpha line 31
+          alpha line 32
+          alpha line 33
+          alpha line 34
+          alpha line 35
+          alpha line 36
+          alpha line 37
+          alpha line 38
+          alpha line 39
+          alpha line 40
+          alpha line 41
+          alpha line 42
+          alpha line 43
+          alpha line 44
+          alpha line 45
+          alpha line 46
+          alpha line 47
+          alpha line 48
         caption: Expanded first post caption.
       expectStatus: 201
       capture:
@@ -141,22 +177,74 @@ before:
 steps:
   - visit: /f/{{feed_id}}/{{today}}
 
+  - expectHidden:
+      role: button
+      name: Scroll up
+
+  - expectHidden:
+      role: button
+      name: Scroll down
+
   - within: Posts
     click:
       role: button
       name: Expand content
+
+  - wait: 1500
 
   - within: Posts
     expectVisible:
       role: button
       name: Collapse content
 
+  - expectDisabled:
+      role: button
+      name: Scroll up
+
+  - expectEnabled:
+      role: button
+      name: Scroll down
+
+  - click:
+      role: button
+      name: Scroll down
+
+  - expectEnabled:
+      role: button
+      name: Scroll up
+
+  - expectDisabled:
+      role: button
+      name: Scroll down
+
+  - click:
+      role: button
+      name: Scroll up
+
+  - expectDisabled:
+      role: button
+      name: Scroll up
+
+  - expectEnabled:
+      role: button
+      name: Scroll down
+
   - within: Posts
     click:
       role: button
       name: Collapse content
 
+  - wait: 1500
+
   - within: Posts
     expectVisible:
       role: button
       name: Expand content
+
+  - expectHidden:
+      role: button
+      name: Scroll up
+
+  - expectHidden:
+      role: button
+      name: Scroll down
