@@ -971,6 +971,29 @@ func (s *Server) listActiveGroupMembers(ctx context.Context, groupID string) ([]
 	return members, rows.Err()
 }
 
+func (s *Server) activeGroupMemberJoinTimes(ctx context.Context, groupID string) (map[string]*time.Time, error) {
+	rows, err := s.db.Query(ctx, `
+		select user_id::text, joined_at
+		from group_memberships
+		where group_id = $1 and status = 'active'
+	`, groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	joinTimes := map[string]*time.Time{}
+	for rows.Next() {
+		var userID string
+		var joinedAt sql.NullTime
+		if err := rows.Scan(&userID, &joinedAt); err != nil {
+			return nil, err
+		}
+		joinTimes[userID] = nullTimePtr(joinedAt)
+	}
+	return joinTimes, rows.Err()
+}
+
 func (s *Server) computeMetricSamples(ctx context.Context, input metricComputationInput) ([]metricSample, error) {
 	if input.Metric.SystemKey == feedMetricKeyJudged {
 		return s.computeJudgedMetricSamples(ctx, input)
@@ -1077,15 +1100,19 @@ func computeAveragePostLengthMetricSamples(ctx context.Context, s *Server, input
 }
 
 func computeMissedDaysMetricSamples(ctx context.Context, s *Server, input metricComputationInput) ([]metricSample, error) {
-	dates, err := scheduledFeedDates(input.Feed.Schedule, input.From, input.To)
+	windows, err := scheduledFeedDateWindows(input.Feed.Schedule, input.From, input.To)
 	if err != nil {
 		return nil, err
 	}
-	if len(dates) == 0 {
+	if len(windows) == 0 {
 		return []metricSample{}, nil
 	}
 
 	members, err := s.listActiveGroupMembers(ctx, input.GroupID)
+	if err != nil {
+		return nil, err
+	}
+	joinTimes, err := s.activeGroupMemberJoinTimes(ctx, input.GroupID)
 	if err != nil {
 		return nil, err
 	}
@@ -1096,7 +1123,8 @@ func computeMissedDaysMetricSamples(ctx context.Context, s *Server, input metric
 
 	samples := []metricSample{}
 	for _, member := range members {
-		for _, date := range dates {
+		for _, window := range scheduledFeedWindowsSinceJoin(windows, joinTimes[member.ID]) {
+			date := window.Date
 			key := member.ID + "\x00" + date.Format(dailyFeedDateLayout)
 			if posted[key] {
 				continue
@@ -1124,6 +1152,10 @@ func computeCurrentStreakMetricSamples(ctx context.Context, s *Server, input met
 	if err != nil {
 		return nil, err
 	}
+	joinTimes, err := s.activeGroupMemberJoinTimes(ctx, input.GroupID)
+	if err != nil {
+		return nil, err
+	}
 	posted, err := s.feedTimelyPostDateSet(ctx, input.GroupID, input.Feed.ID, windows)
 	if err != nil {
 		return nil, err
@@ -1136,7 +1168,8 @@ func computeCurrentStreakMetricSamples(ctx context.Context, s *Server, input met
 	latestDate := windows[len(windows)-1].Date
 	samples := make([]metricSample, 0, len(members))
 	for _, member := range members {
-		streak := currentStreakForMember(member.ID, windows, posted, now)
+		memberWindows := scheduledFeedWindowsSinceJoin(windows, joinTimes[member.ID])
+		streak := currentStreakForMember(member.ID, memberWindows, posted, now)
 		samples = append(samples, metricSample{
 			UserID: member.ID,
 			Value:  float64(streak),
@@ -1436,6 +1469,18 @@ func scheduledFeedDateWindows(schedule DailyFeedSchedule, from time.Time, to tim
 		return windows[i].Date.Before(windows[j].Date)
 	})
 	return windows, nil
+}
+
+func scheduledFeedWindowsSinceJoin(windows []scheduledFeedDateWindow, joinedAt *time.Time) []scheduledFeedDateWindow {
+	if joinedAt == nil {
+		return windows
+	}
+	for index, window := range windows {
+		if window.EndsAt.After(*joinedAt) {
+			return windows[index:]
+		}
+	}
+	return windows[len(windows):]
 }
 
 func currentStreakForMember(memberID string, windows []scheduledFeedDateWindow, posted map[string]bool, now time.Time) int {

@@ -68,6 +68,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /api/groups/{group_id}", s.handleGetGroup)
 	mux.HandleFunc("PATCH /api/groups/{group_id}", s.handlePatchGroup)
 	mux.HandleFunc("DELETE /api/groups/{group_id}", s.handleDeleteGroup)
+	mux.HandleFunc("POST /api/groups/{group_id}/join", s.handleJoinGroup)
 	mux.HandleFunc("GET /api/groups/{group_id}/members", s.handleListGroupMembers)
 	mux.HandleFunc("POST /api/groups/{group_id}/members", s.handleAddGroupMember)
 	mux.HandleFunc("PATCH /api/groups/{group_id}/members/{user_id}", s.handlePatchGroupMember)

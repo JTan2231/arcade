@@ -25,6 +25,7 @@ type Group struct {
 	Slug            string    `json:"slug"`
 	Description     *string   `json:"description,omitempty"`
 	Visibility      string    `json:"visibility"`
+	JoinPolicy      string    `json:"join_policy"`
 	CreatedByUserID string    `json:"created_by_user_id"`
 	MyRole          *string   `json:"my_role,omitempty"`
 	MyStatus        *string   `json:"my_status,omitempty"`
@@ -38,6 +39,7 @@ type PublicGroup struct {
 	Slug        string            `json:"slug"`
 	Description *string           `json:"description,omitempty"`
 	Visibility  string            `json:"visibility"`
+	JoinPolicy  string            `json:"join_policy"`
 	Feeds       []PublicGroupFeed `json:"feeds"`
 	CreatedAt   time.Time         `json:"created_at"`
 	UpdatedAt   time.Time         `json:"updated_at"`
@@ -62,6 +64,7 @@ type PublicParentGroup struct {
 	Name       string `json:"name"`
 	Slug       string `json:"slug"`
 	Visibility string `json:"visibility"`
+	JoinPolicy string `json:"join_policy"`
 }
 
 type GroupMember struct {

@@ -67,7 +67,7 @@ import type {
   MetricInput,
   ToggleFeedInput,
   UpdateEvidenceFormatInput,
-  UpdateGroupVisibilityInput,
+  UpdateGroupAccessInput,
   UpdateJudgmentInput,
   UpdateMetricInput,
   UpdatePostInput,
@@ -85,7 +85,7 @@ export const dashboardActors = {
     queryCache.touched(["user", input.currentUserId, "groups"]);
     return group;
   }),
-  updateGroupVisibility: fromPromise<Group, UpdateGroupVisibilityInput>(async ({ input, signal }) => {
+  updateGroupAccess: fromPromise<Group, UpdateGroupAccessInput>(async ({ input, signal }) => {
     const group = await updateGroup(input.groupId, input.payload, { signal });
     queryCache.touched(["user", input.currentUserId, "groups"]);
     queryCache.touched(["user", input.currentUserId, "group", input.groupId]);

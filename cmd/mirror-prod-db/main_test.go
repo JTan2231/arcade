@@ -165,6 +165,34 @@ func TestGroupDailyFeedsMirrorColumnsMatchCurrentSchema(t *testing.T) {
 	}
 }
 
+func TestGroupsMirrorColumnsIncludeJoinPolicy(t *testing.T) {
+	var columns []string
+	for _, table := range mirrorTables {
+		if table.name == "groups" {
+			columns = table.columns
+			break
+		}
+	}
+	if columns == nil {
+		t.Fatal("groups is not mirrored")
+	}
+
+	want := []string{
+		"id",
+		"name",
+		"slug",
+		"description",
+		"visibility",
+		"join_policy",
+		"created_by_user_id",
+		"created_at",
+		"updated_at",
+	}
+	if strings.Join(columns, ",") != strings.Join(want, ",") {
+		t.Fatalf("groups columns = %#v, want %#v", columns, want)
+	}
+}
+
 func TestUserSelectSQLCanPreserveProductionAuth(t *testing.T) {
 	query := userSelectSQL(mirrorOptions{preserveUserAuth: true})
 

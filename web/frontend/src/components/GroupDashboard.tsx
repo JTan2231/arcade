@@ -12,6 +12,7 @@ import type {
   GroupPostTag,
   MetricLeaderboard,
 } from "../types";
+import type { ReactNode } from "react";
 
 import { AddFeedDialog } from "./dashboard/AddFeedDialog";
 import { FeedOutput, type LoadFeedOutputSummaries } from "./dashboard/FeedOutput";
@@ -75,6 +76,7 @@ export type GroupDashboardProps = {
   standalone?: boolean;
   onSelectFeed?: (feedId: string) => void;
   ambientSpotlightTarget?: HTMLElement | null;
+  postAccessPrompt?: ReactNode;
 };
 
 export function GroupDashboard({
@@ -124,6 +126,7 @@ export function GroupDashboard({
   standalone = false,
   onSelectFeed,
   ambientSpotlightTarget = null,
+  postAccessPrompt,
 }: GroupDashboardProps) {
   if (!group) {
     return (
@@ -206,6 +209,7 @@ export function GroupDashboard({
               onUpdateFeedPost={onUpdateFeedPost}
               onDeleteFeedPost={onDeleteFeedPost}
               onCreateMetricJudgment={onCreateMetricJudgment}
+              postAccessPrompt={postAccessPrompt}
             />
           </FeedSpotlight>
         </section>

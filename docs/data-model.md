@@ -202,24 +202,29 @@ schedules. Schedule-based metrics such as `missed_days` and `current_streak`
 generate expected feed dates from `group_daily_feeds.schedule_starts_at`,
 `schedule_timezone`, and `schedule_interval_seconds`; they do not infer expected
 dates from `group_daily_feed_instances`, because instances are only created
-after durable member content exists. `current_streak` only credits posts created
-while that feed date's scheduled output was the latest output; retroactive posts
-to older outputs do not extend the streak.
+after durable member content exists. Schedule-based metrics ignore feed cycles
+that ended before an active member's `joined_at`; the cycle containing the join
+remains eligible. `current_streak` only credits posts created while that feed
+date's scheduled output was the latest output; retroactive posts to older
+outputs do not extend the streak.
 
 ## Groups And Divisions
 
 `groups` represents a social or team scope. Group slugs are globally unique.
 Visibility defaults to `public` and is constrained to `public` or `private`.
-Invite links are separate group-owned rows; invite state is not a group
-visibility mode. Group visibility is the only public/private content setting:
-when a group is public, its enabled feeds and non-deleted posts are public; when
-a group is private, public group, feed, and post routes return 404.
+Joining defaults to `invite_only` and is constrained to `invite_only` or `open`;
+only public groups may use open joining. Invite links and joining policy are
+separate from visibility. When a group is public, its enabled feeds and
+non-deleted posts are public; when a group is private, public group, feed, and
+post routes return 404.
 
 `group_memberships` connects users to groups with a role and lifecycle status.
 Roles are `owner`, `admin`, or `member`; statuses are `active`, `removed`, or
-`left`. A user has at most one membership row per group. Invite-link joins
-activate a membership directly and record `invited_by_user_id`, `invited_at`,
-and `invite_link_id` for accountability.
+`left`. A user has at most one membership row per group. Invite-link joins and
+authenticated self-joins into public open groups activate a membership directly.
+Invite-link joins record `invited_by_user_id`, `invited_at`, and `invite_link_id`
+for accountability. A removed membership remains as a durable tombstone and
+cannot self-join an open group.
 
 `group_invite_links` stores owner/admin-created admission links for a group.
 Only a SHA-256 hash of the raw token is stored. Each link records its creator,

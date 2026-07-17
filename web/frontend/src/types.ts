@@ -21,6 +21,7 @@ export type Group = {
   slug: string;
   description?: string;
   visibility: Visibility;
+  join_policy: JoinPolicy;
   created_by_user_id: string;
   my_role?: "owner" | "admin" | "member";
   my_status?: "active" | "removed" | "left";
@@ -30,12 +31,15 @@ export type Group = {
 
 export type Visibility = "public" | "private";
 
+export type JoinPolicy = "invite_only" | "open";
+
 export type PublicGroup = {
   id: string;
   name: string;
   slug: string;
   description?: string;
   visibility: "public";
+  join_policy: JoinPolicy;
   feeds: PublicGroupFeed[];
   created_at: string;
   updated_at: string;
@@ -60,6 +64,7 @@ type PublicParentGroup = {
   name: string;
   slug: string;
   visibility: Visibility;
+  join_policy: JoinPolicy;
 };
 
 export type GroupMember = {
@@ -532,6 +537,7 @@ export type PatchGroupRequest = {
   slug?: string;
   description?: string | null;
   visibility?: Visibility;
+  join_policy?: JoinPolicy;
 };
 
 export type PublicRoute =

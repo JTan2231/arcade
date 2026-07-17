@@ -57,6 +57,21 @@ export function feedPath(feedId: string, date: string | null = null): string {
   return date === null || date === "" ? `/f/${encodedFeedId}` : `/f/${encodedFeedId}/${encodeURIComponent(date)}`;
 }
 
+export function publicRoutePath(route: PublicRoute): string {
+  switch (route.kind) {
+    case "group":
+      return `/g/${encodeURIComponent(route.slug)}`;
+    case "feed":
+      return feedPath(route.feedId, route.date);
+    case "post":
+      return `/p/${encodeURIComponent(route.postId)}`;
+  }
+}
+
+export function signInPath(returnPath: string): string {
+  return `/?return_to=${encodeURIComponent(returnPath)}`;
+}
+
 export function publicRouteCacheKey(route: PublicRoute): string {
   switch (route.kind) {
     case "group":

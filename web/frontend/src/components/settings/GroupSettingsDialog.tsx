@@ -13,6 +13,7 @@ import type {
   GroupInviteLink,
   GroupMember,
   GroupPostTag,
+  JoinPolicy,
   PatchEvidenceFormatRequest,
   PatchFeedMetricRequest,
   PatchGroupPostTagRequest,
@@ -25,7 +26,7 @@ import { GroupVisibilityControl } from "./GroupVisibilityControl";
 import { InviteLinksManager } from "./InviteLinksManager";
 import { PostTagManager } from "./PostTagManager";
 
-type GroupSettingsSectionID = "visibility" | "metrics" | "tags" | "formats" | "members" | "invites";
+type GroupSettingsSectionID = "access" | "metrics" | "tags" | "formats" | "members" | "invites";
 
 export type GroupSettingsDialogProps = {
   group: Group;
@@ -58,7 +59,7 @@ export type GroupSettingsDialogProps = {
   creatingInviteLink: boolean;
   revokingInviteLinkId: string | null;
   createdInviteURL: string;
-  visibilitySaving: boolean;
+  accessSaving: boolean;
   onClose: () => void;
   onSelectFeed: (feedId: string) => void;
   onCreateMetric: (payload: CreateFeedMetricRequest) => void;
@@ -76,7 +77,7 @@ export type GroupSettingsDialogProps = {
   onCreateInviteLink: (payload: CreateGroupInviteLinkRequest) => void;
   onRevokeInviteLink: (linkId: string) => void;
   onClearCreatedInviteURL: () => void;
-  onUpdateVisibility: (visibility: Visibility) => void;
+  onUpdateAccess: (visibility: Visibility, joinPolicy: JoinPolicy) => void;
 };
 
 export function GroupSettingsDialog({
@@ -110,7 +111,7 @@ export function GroupSettingsDialog({
   creatingInviteLink,
   revokingInviteLinkId,
   createdInviteURL,
-  visibilitySaving,
+  accessSaving,
   onClose,
   onSelectFeed,
   onCreateMetric,
@@ -128,7 +129,7 @@ export function GroupSettingsDialog({
   onCreateInviteLink,
   onRevokeInviteLink,
   onClearCreatedInviteURL,
-  onUpdateVisibility,
+  onUpdateAccess,
 }: GroupSettingsDialogProps) {
   const [openSection, setOpenSection] = useState<GroupSettingsSectionID | null>(null);
 
@@ -156,13 +157,13 @@ export function GroupSettingsDialog({
         {loading ? <div className="meta">Loading settings...</div> : null}
         <div className="group-settings-grid">
           <GroupSettingsDisclosure
-            id="visibility"
-            open={openSection === "visibility"}
-            summary={group.visibility === "public" ? "Public" : "Private"}
-            title="Visibility"
+            id="access"
+            open={openSection === "access"}
+            summary={group.visibility === "private" ? "Private" : group.join_policy === "open" ? "Open" : "Public"}
+            title="Access"
             onToggle={setOpenSection}
           >
-            <GroupVisibilityControl group={group} saving={visibilitySaving} onUpdateVisibility={onUpdateVisibility} />
+            <GroupVisibilityControl group={group} saving={accessSaving} onUpdateAccess={onUpdateAccess} />
           </GroupSettingsDisclosure>
           <GroupSettingsDisclosure
             id="metrics"

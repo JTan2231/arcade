@@ -98,6 +98,21 @@ func validGroupVisibility(visibility string) bool {
 	}
 }
 
+func validGroupJoinPolicy(joinPolicy string) bool {
+	switch joinPolicy {
+	case "invite_only", "open":
+		return true
+	default:
+		return false
+	}
+}
+
+func validGroupAccessSettings(visibility string, joinPolicy string) bool {
+	return validGroupVisibility(visibility) &&
+		validGroupJoinPolicy(joinPolicy) &&
+		(joinPolicy != "open" || visibility == "public")
+}
+
 type groupMemberState struct {
 	Role   string
 	Status string

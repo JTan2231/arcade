@@ -68,6 +68,7 @@ export function FeedPostSection({
   onUpdateFeedPost,
   onDeleteFeedPost,
   onCreateMetricJudgment,
+  postAccessPrompt,
 }: {
   disabled: boolean;
   captionsEnabled: boolean;
@@ -93,6 +94,7 @@ export function FeedPostSection({
     postId: string,
     payload: Omit<CreateFeedMetricJudgmentRequest, "post_id">,
   ) => void;
+  postAccessPrompt?: ReactNode;
 }) {
   const [formPhase, setFormPhase] = useState<PostComposerPhase>("closed");
   const [evidenceText, setEvidenceText] = useState("");
@@ -280,18 +282,22 @@ export function FeedPostSection({
 
       {ownPost === null ? (
         <div className="feed-posts-header">
-          <button
-            aria-controls={postFormId}
-            aria-expanded={formOpen}
-            className="secondary feed-post-button"
-            type="button"
-            disabled={postUnavailable}
-            ref={postButtonRef}
-            title={postButtonTitle}
-            onClick={togglePostForm}
-          >
-            Post
-          </button>
+          {!canPost && postAccessPrompt !== undefined ? (
+            postAccessPrompt
+          ) : (
+            <button
+              aria-controls={postFormId}
+              aria-expanded={formOpen}
+              className="secondary feed-post-button"
+              type="button"
+              disabled={postUnavailable}
+              ref={postButtonRef}
+              title={postButtonTitle}
+              onClick={togglePostForm}
+            >
+              Post
+            </button>
+          )}
         </div>
       ) : null}
 

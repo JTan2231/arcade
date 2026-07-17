@@ -48,7 +48,7 @@ export function GroupSettingsAdapter({
   const deletingEvidenceFormatId = evidenceFormatMutation?.kind === "delete" ? evidenceFormatMutation.formatId : null;
   const groupMemberMutation = dashboardContext.groupMemberMutation;
   const removingMemberUserId = groupMemberMutation?.userId ?? null;
-  const updatingGroupVisibility = dashboardContext.groupVisibilityMutation !== null;
+  const updatingGroupAccess = dashboardContext.groupAccessMutation !== null;
   const metricMutation = dashboardContext.metricMutation;
   const updatingMetricId = metricMutation?.kind === "update" ? metricMutation.metricId : null;
   const deletingMetricId = metricMutation?.kind === "delete" ? metricMutation.metricId : null;
@@ -85,7 +85,7 @@ export function GroupSettingsAdapter({
       updatingFormatId={updatingEvidenceFormatId}
       updatingMetricId={updatingMetricId}
       updatingTagId={updatingPostTagId}
-      visibilitySaving={updatingGroupVisibility}
+      accessSaving={updatingGroupAccess}
       onClearCreatedInviteURL={inviteLinkProps.onClearCreatedInviteURL}
       onClose={() => dashboardRef?.send({ type: "GROUP_SETTINGS_CLOSED" })}
       onClearFormatError={() => dashboardRef?.send({ type: "EVIDENCE_FORMAT_ERROR_CLEARED" })}
@@ -105,8 +105,13 @@ export function GroupSettingsAdapter({
         onNavigate(feedPath(feedId));
         dashboardRef?.send({ type: "FEED_SELECTED", feedId });
       }}
-      onUpdateVisibility={(visibility) =>
-        dashboardRef?.send({ type: "GROUP_VISIBILITY_CHANGED", groupId: selectedGroup.id, visibility })
+      onUpdateAccess={(visibility, joinPolicy) =>
+        dashboardRef?.send({
+          type: "GROUP_ACCESS_CHANGED",
+          groupId: selectedGroup.id,
+          visibility,
+          joinPolicy,
+        })
       }
       onUpdateMetric={(metricId, payload) => dashboardRef?.send({ type: "METRIC_UPDATE_SUBMITTED", metricId, payload })}
       onUpdateFormat={(formatId, payload) =>

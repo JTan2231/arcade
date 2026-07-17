@@ -16,6 +16,7 @@ export default function App() {
   const { context } = snapshot;
   const dashboardRef = snapshot.children["dashboard"] as DashboardActorRef | undefined;
   const appNavigationPathRef = useRef<string | null>(null);
+  const authReturnPathRef = useRef<string | null>(readAuthReturnPath());
 
   const checkingSession = snapshot.matches("checkingSession");
   const signedOut = snapshot.matches("signedOut");
@@ -58,6 +59,15 @@ export default function App() {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
+
+  useEffect(() => {
+    if (!signedIn || authReturnPathRef.current === null) {
+      return;
+    }
+    const returnPath = authReturnPathRef.current;
+    authReturnPathRef.current = null;
+    setAppPath(returnPath, "replace");
+  }, [setAppPath, signedIn]);
 
   useEffect(() => {
     if (context.toastMessage === null) {
@@ -144,4 +154,16 @@ export default function App() {
       <Toast message={context.toastMessage} />
     </>
   );
+}
+
+function readAuthReturnPath(): string | null {
+  const value = new URLSearchParams(window.location.search).get("return_to");
+  if (value === null || !value.startsWith("/") || value.startsWith("//")) {
+    return null;
+  }
+
+  const segments = value.split("/").filter(Boolean);
+  const validGroupOrPost = (segments[0] === "g" || segments[0] === "p") && segments.length === 2;
+  const validFeed = segments[0] === "f" && (segments.length === 2 || segments.length === 3);
+  return validGroupOrPost || validFeed ? value : null;
 }

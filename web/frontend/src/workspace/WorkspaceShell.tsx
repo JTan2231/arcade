@@ -292,7 +292,19 @@ export function WorkspaceShell({
   const publicRouteUsesWorkspace = groupRouteUsesWorkspace || memberRouteUsesWorkspace;
 
   if (publicRoute !== null && !publicRouteUsesWorkspace) {
-    return <PublicRouteAdapter onNavigate={onNavigate} route={publicRoute} signedIn={signedIn} />;
+    return (
+      <PublicRouteAdapter
+        currentUserId={currentUserId}
+        onGroupJoined={(group) => {
+          dashboardRef?.send({ type: "GROUPS_REFRESH_REQUESTED", preferredGroupId: group.id });
+          onToast(`Joined ${group.name}`);
+        }}
+        onNavigate={onNavigate}
+        onUnauthorized={onUnauthorized}
+        route={publicRoute}
+        signedIn={signedIn}
+      />
+    );
   }
 
   return (

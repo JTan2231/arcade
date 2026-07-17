@@ -13,6 +13,7 @@ import type {
   GroupFeedPost,
   GroupMember,
   GroupPostTag,
+  JoinPolicy,
   MetricLeaderboard,
   PatchEvidenceFormatRequest,
   PatchFeedMetricRequest,
@@ -105,9 +106,10 @@ export type GroupMemberMutation = {
   userId: string;
 };
 
-export type GroupVisibilityMutation = {
+export type GroupAccessMutation = {
   groupId: string;
   visibility: Visibility;
+  joinPolicy: JoinPolicy;
 };
 
 export type MetricMutation =
@@ -153,7 +155,7 @@ export type DashboardContext = {
   groupMembers: GroupMember[];
   groupMembersError: string;
   groupSettingsOpen: boolean;
-  groupVisibilityMutation: GroupVisibilityMutation | null;
+  groupAccessMutation: GroupAccessMutation | null;
   posts: GroupFeedPost[];
   postsError: string;
 
@@ -189,7 +191,7 @@ type DashboardUserEvent =
   | { type: "GROUP_SELECTED"; groupId: string }
   | { type: "GROUP_SETTINGS_OPENED"; groupId: string }
   | { type: "GROUP_SETTINGS_CLOSED" }
-  | { type: "GROUP_VISIBILITY_CHANGED"; groupId: string; visibility: Visibility }
+  | { type: "GROUP_ACCESS_CHANGED"; groupId: string; visibility: Visibility; joinPolicy: JoinPolicy }
   | { type: "GROUP_DELETE_SUBMITTED"; groupId: string }
   | { type: "FEED_SELECTED"; feedId: string }
   | { type: "FEED_DATE_CHANGED"; date: string }
@@ -274,7 +276,7 @@ export type ChangeFeedScheduleInput = FeedInput & {
   schedule: DailyFeedSchedule;
 };
 
-export type UpdateGroupVisibilityInput = UserScopedInput & {
+export type UpdateGroupAccessInput = UserScopedInput & {
   groupId: string;
   payload: PatchGroupRequest;
 };

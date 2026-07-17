@@ -1,0 +1,273 @@
+name: open group lets a visitor join and post
+
+vars:
+  owner_email: open-group-owner@example.test
+  member_email: open-group-member@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      client: browser
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Open Group Owner
+        email: "{{owner_email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+      capture:
+        owner_id: $.id
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Open Posting Group
+      expectStatus: 201
+      expectJson:
+        visibility: public
+        join_policy: invite_only
+      capture:
+        group_id: $.id
+
+  - request:
+      id: list_feeds
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds
+      expectStatus: 200
+      expectJson:
+        - name: Daily Thread
+      capture:
+        feed_id: $[0].id
+
+steps:
+  - visit: /
+
+  - within: Groups
+    click:
+      role: button
+      name: Group settings for Open Posting Group
+
+  - within: Groups
+    click:
+      role: button
+      name: Settings
+
+  - within: Settings
+    click:
+      role: button
+      name: Access
+
+  - within: Group access
+    expectValue:
+      label: Who can view and post?
+      value: public
+
+  - within: Group access
+    select:
+      label: Who can view and post?
+      option: Open
+
+  - expectStatus:
+      text: Group access updated
+
+  - request:
+      id: open_group
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}
+      expectStatus: 200
+      expectJson:
+        visibility: public
+        join_policy: open
+
+  - request:
+      id: logout_owner
+      client: browser
+      method: POST
+      path: /api/auth/logout
+      expectStatus: 204
+
+  - request:
+      id: signup_member
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Open Group Member
+        email: "{{member_email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+      capture:
+        member_id: $.id
+
+  - visit: /g/open-posting-group
+
+  - within: Posts
+    expectVisible:
+      text: Sign in, then join this open group as a member.
+
+  - within: Posts
+    click:
+      role: link
+      name: Sign in to post
+
+  - within: Authentication
+    fill:
+      label: Username
+      value: "{{member_email}}"
+
+  - within: Authentication
+    fill:
+      label: Password
+      value: "{{password}}"
+
+  - within: Authentication
+    click:
+      role: button
+      name: Login
+
+  - expectStatus:
+      text: Signed in
+
+  - within: Posts
+    expectVisible:
+      text: You’ll join this open group as a member.
+
+  - within: Posts
+    click:
+      role: button
+      name: Join to post
+
+  - expectStatus:
+      text: Joined Open Posting Group
+
+  - within: Groups
+    expectVisible:
+      role: button
+      name: Open Posting Group
+
+  - within: Posts
+    click:
+      role: button
+      name: Post
+
+  - within: Posts
+    fill:
+      label: Content
+      value: Joined this open group and shared a public update.
+
+  - within: Posts
+    click:
+      role: button
+      name: Submit
+
+  - expectStatus:
+      text: Post submitted
+
+  - within: Posts
+    expectVisible:
+      text: Joined this open group and shared a public update.
+
+  - request:
+      id: list_members
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/members
+      expectStatus: 200
+      expectJson:
+        - user_id: "{{owner_id}}"
+          role: owner
+          status: active
+        - user_id: "{{member_id}}"
+          role: member
+          status: active
+
+  - request:
+      id: list_posts
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{today}}/posts
+      expectStatus: 200
+      expectJson:
+        - author_user_id: "{{member_id}}"
+          evidence_text: Joined this open group and shared a public update.
+
+  - request:
+      id: logout_member
+      client: browser
+      method: POST
+      path: /api/auth/logout
+      expectStatus: 204
+
+  - request:
+      id: login_owner
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{owner_email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: remove_member
+      client: browser
+      method: DELETE
+      path: /api/groups/{{group_id}}/members/{{member_id}}
+      expectStatus: 204
+
+  - visit: /g/open-posting-group
+
+  - within: Groups
+    click:
+      role: button
+      name: Group settings for Open Posting Group
+
+  - within: Groups
+    click:
+      role: button
+      name: Settings
+
+  - within: Settings
+    click:
+      role: button
+      name: Members
+
+  - within: Group members
+    expectHidden:
+      text: Open Group Member
+
+  - request:
+      id: logout_owner_again
+      client: browser
+      method: POST
+      path: /api/auth/logout
+      expectStatus: 204
+
+  - request:
+      id: login_removed_member
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{member_email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: reject_removed_member_rejoin
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/join
+      json: {}
+      expectStatus: 403
+      expectJson:
+        error: removed members cannot rejoin this group

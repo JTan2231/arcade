@@ -1,0 +1,146 @@
+name: joining from a public post preserves its feed and date
+
+vars:
+  owner_email: open-post-owner@example.test
+  visitor_email: open-post-visitor@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      client: browser
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Open Post Owner
+        email: "{{owner_email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Open Post Route Group
+        join_policy: open
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: create_source
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/catalog-sources
+      json:
+        name: Open Post Route Source
+        template: https://example.test/{slug}
+        items:
+          - title: Target Feed Item
+            data:
+              slug: target-feed-item
+      expectStatus: 201
+      capture:
+        source_id: $.id
+
+  - request:
+      id: create_target_feed
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds
+      json:
+        name: Target Practice
+        kind: catalog_daily
+        enabled: true
+        source_id: "{{source_id}}"
+        item_count: 1
+        schedule:
+          starts_at: "{{today}}T00:00:00Z"
+          timezone: UTC
+          interval_seconds: 86400
+      expectStatus: 201
+      capture:
+        target_feed_id: $.id
+
+  - request:
+      id: create_owner_post
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{target_feed_id}}/outputs/{{today}}/posts
+      json:
+        evidence_text: Owner post on the target feed.
+      expectStatus: 201
+      capture:
+        post_id: $.id
+
+  - request:
+      id: logout_owner
+      client: browser
+      method: POST
+      path: /api/auth/logout
+      expectStatus: 204
+
+  - request:
+      id: signup_visitor
+      client: browser
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Open Post Visitor
+        email: "{{visitor_email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+steps:
+  - visit: /p/{{post_id}}
+
+  - within: Selected feed output
+    expectVisible:
+      text: Target Practice
+
+  - within: Selected feed output
+    expectVisible:
+      text: Target Feed Item
+
+  - within: Posts
+    expectVisible:
+      text: Owner post on the target feed.
+
+  - within: Posts
+    click:
+      role: button
+      name: Join to post
+
+  - expectStatus:
+      text: Joined Open Post Route Group
+
+  - within: Selected feed output
+    expectVisible:
+      text: Target Practice
+
+  - within: Selected feed output
+    expectVisible:
+      text: Target Feed Item
+
+  - within: Posts
+    expectVisible:
+      text: Owner post on the target feed.
+
+  - within: Posts
+    expectEnabled:
+      role: button
+      name: Post
+
+  - request:
+      id: joined_group
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}
+      expectStatus: 200
+      expectJson:
+        my_role: member
+        my_status: active

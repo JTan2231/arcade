@@ -55,15 +55,15 @@ steps:
   - within: Settings
     click:
       role: button
-      name: Visibility
+      name: Access
 
-  - within: Group visibility
+  - within: Group access
     select:
-      label: Visibility
+      label: Who can view and post?
       option: Private
 
   - expectStatus:
-      text: Group visibility updated
+      text: Group access updated
 
   - request:
       id: private_group_public_read
@@ -71,13 +71,13 @@ steps:
       path: /api/public/groups/settings-group
       expectStatus: 404
 
-  - within: Group visibility
+  - within: Group access
     select:
-      label: Visibility
+      label: Who can view and post?
       option: Public
 
   - expectStatus:
-      text: Group visibility updated
+      text: Group access updated
 
   - within: Settings
     click:

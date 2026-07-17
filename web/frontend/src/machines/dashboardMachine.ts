@@ -38,7 +38,7 @@ import type {
   FeedFormatMutation,
   FeedScheduleMutation,
   GroupMemberMutation,
-  GroupVisibilityMutation,
+  GroupAccessMutation,
   JudgmentMutation,
   MetricMutation,
   PostMutation,
@@ -116,14 +116,19 @@ export const dashboardMachine = dashboardSetup.createMachine({
         groupSettingsOpen: false,
       }),
     },
-    GROUP_VISIBILITY_CHANGED: {
+    GROUP_ACCESS_CHANGED: {
       guard: ({ context, event }) =>
-        context.groups.some((group) => group.id === event.groupId && group.visibility !== event.visibility),
-      target: ".groupSelected.updatingGroupVisibility",
+        context.groups.some(
+          (group) =>
+            group.id === event.groupId &&
+            (group.visibility !== event.visibility || group.join_policy !== event.joinPolicy),
+        ),
+      target: ".groupSelected.updatingGroupAccess",
       actions: assign(({ event }) => ({
-        groupVisibilityMutation: {
+        groupAccessMutation: {
           groupId: event.groupId,
           visibility: event.visibility,
+          joinPolicy: event.joinPolicy,
         },
       })),
     },
@@ -1363,16 +1368,17 @@ export const dashboardMachine = dashboardSetup.createMachine({
             onError: groupMemberMutationErrorTransitions(),
           },
         },
-        updatingGroupVisibility: {
+        updatingGroupAccess: {
           invoke: {
-            src: "updateGroupVisibility",
+            src: "updateGroupAccess",
             input: ({ context }) => {
-              const mutation = requireGroupVisibilityMutation(context);
+              const mutation = requireGroupAccessMutation(context);
               return {
                 currentUserId: context.currentUserId,
                 groupId: mutation.groupId,
                 payload: {
                   visibility: mutation.visibility,
+                  join_policy: mutation.joinPolicy,
                 },
               };
             },
@@ -1383,9 +1389,9 @@ export const dashboardMachine = dashboardSetup.createMachine({
                 actions: [
                   assign(({ context, event }) => ({
                     groups: context.groups.map((group) => (group.id === event.output.id ? event.output : group)),
-                    groupVisibilityMutation: null,
+                    groupAccessMutation: null,
                   })),
-                  sendToastToParent("Group visibility updated"),
+                  sendToastToParent("Group access updated"),
                 ],
               },
               {
@@ -1393,13 +1399,13 @@ export const dashboardMachine = dashboardSetup.createMachine({
                 actions: [
                   assign(({ context, event }) => ({
                     groups: context.groups.map((group) => (group.id === event.output.id ? event.output : group)),
-                    groupVisibilityMutation: null,
+                    groupAccessMutation: null,
                   })),
-                  sendToastToParent("Group visibility updated"),
+                  sendToastToParent("Group access updated"),
                 ],
               },
             ],
-            onError: groupVisibilityMutationErrorTransitions(),
+            onError: groupAccessMutationErrorTransitions(),
           },
         },
         togglingFeed: {
@@ -1892,17 +1898,17 @@ function groupMemberMutationErrorTransitions() {
   ] as const;
 }
 
-function groupVisibilityMutationErrorTransitions() {
+function groupAccessMutationErrorTransitions() {
   return [
     unauthorizedToParentTransition(),
     {
       target: "feedSelected.ready",
       guard: { type: "hasRestorableFeed" },
-      actions: [clearGroupVisibilityMutationOnError(), sendErrorToastToParent()],
+      actions: [clearGroupAccessMutationOnError(), sendErrorToastToParent()],
     },
     {
       target: "noFeed",
-      actions: [clearGroupVisibilityMutationOnError(), sendErrorToastToParent()],
+      actions: [clearGroupAccessMutationOnError(), sendErrorToastToParent()],
     },
   ] as const;
 }
@@ -2031,9 +2037,9 @@ function clearGroupMemberMutationOnError() {
   });
 }
 
-function clearGroupVisibilityMutationOnError() {
+function clearGroupAccessMutationOnError() {
   return assign<DashboardContext, ErrorActorEvent, undefined, DashboardEvent, never>({
-    groupVisibilityMutation: null,
+    groupAccessMutation: null,
   });
 }
 
@@ -2186,11 +2192,11 @@ function requireGroupMemberMutation(context: DashboardContext): GroupMemberMutat
   return context.groupMemberMutation;
 }
 
-function requireGroupVisibilityMutation(context: DashboardContext): GroupVisibilityMutation {
-  if (context.groupVisibilityMutation === null) {
-    throw new Error("Group visibility mutation is missing");
+function requireGroupAccessMutation(context: DashboardContext): GroupAccessMutation {
+  if (context.groupAccessMutation === null) {
+    throw new Error("Group access mutation is missing");
   }
-  return context.groupVisibilityMutation;
+  return context.groupAccessMutation;
 }
 
 function requireMetricMutation<TKind extends MetricMutation["kind"]>(

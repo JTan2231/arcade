@@ -176,8 +176,8 @@ it prevents a signed-out screen from reusing public data that may have been made
 stale by authenticated mutations.
 
 Mutations that affect public pages must touch public keys in addition to private
-member keys. Group visibility, feed enablement, feed output refreshes, posts,
-post tags, and evidence formats can all alter public route rendering.
+member keys. Group access, feed enablement, feed output refreshes, posts, post
+tags, and evidence formats can all alter public route rendering.
 
 ## Current Query Catalog
 
@@ -212,11 +212,12 @@ when public routes can observe the change.
 
 Current mutation patterns:
 
-- Groups: creation touches the authenticated group list. Visibility updates and
+- Groups: creation touches the authenticated group list. Access updates and
   deletion touch the group list, the group subtree, and public data.
 - Group membership: member removal touches group members and invite links,
   because removing a link creator can make their links invalid. Accepting an
-  invite link touches the invitee's group list.
+  invite link or self-joining an open group touches the joining user's group
+  list and member-route feed lookup.
 - Feeds: add, toggle, caption availability changes, schedule changes, format
   changes, and deletion touch group feeds, affected feed subtrees,
   `meDailyFeeds`, and affected public feed data.

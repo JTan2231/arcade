@@ -139,6 +139,9 @@ The current daily feed model follows these rules:
   groups. The authenticated group list contains the signed-in user's active
   memberships; public group discovery and signed-out-safe rendering use
   `/api/public/...` routes instead.
+- Group joining is either invite-only or open. Any authenticated user may
+  self-join a public open group as an active member, after which the existing
+  member feed and post routes apply. Removed members cannot self-join again.
 - Group post tags are a group-managed vocabulary. Owners and admins create,
   rename, archive, and unarchive tag definitions under
   `/api/groups/{group_id}/post-tags`; post authors can attach active tags to
@@ -204,9 +207,15 @@ The browser app source lives in `web/frontend`:
   contrast and hierarchy validation, gamut-safe serialization, and the CSS
   custom-property bridge.
 - `src/components` contains the auth, group list, dashboard, and toast views.
-- Group settings include invite-link management. Owners and admins create,
-  inspect, and revoke expiring links; the `/join/{token}` route previews a link
-  for signed-out users and redeems it after authentication.
+- Group settings expose Private, Public, and Open access presets. Private maps
+  to private visibility with invite-only joining, Public maps to public
+  visibility with invite-only joining, and Open maps to public visibility with
+  open joining. Owners and admins can also create, inspect, and revoke expiring
+  invite links; the `/join/{token}` route previews a link for signed-out users
+  and redeems it after authentication.
+- Public Open group, feed, and post pages offer a sign-in or self-join action.
+  A successful self-join refreshes the authenticated group list and continues
+  through the existing member workspace and post composer.
 - The selected feed dashboard includes a metric and leaderboard section. Judged
   metrics show prompt-driven score controls on post cards for group owners and
   admins.

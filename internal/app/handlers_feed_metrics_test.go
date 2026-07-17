@@ -73,6 +73,59 @@ func TestScheduledFeedDatesUsesFeedCadence(t *testing.T) {
 	}
 }
 
+func TestScheduledFeedWindowsSinceJoinIncludesCycleContainingJoin(t *testing.T) {
+	start := time.Date(2026, 6, 1, 8, 0, 0, 0, time.UTC)
+	windows := []scheduledFeedDateWindow{
+		{Date: start, StartsAt: start, EndsAt: start.Add(24 * time.Hour)},
+		{Date: start.Add(24 * time.Hour), StartsAt: start.Add(24 * time.Hour), EndsAt: start.Add(48 * time.Hour)},
+		{Date: start.Add(48 * time.Hour), StartsAt: start.Add(48 * time.Hour), EndsAt: start.Add(72 * time.Hour)},
+	}
+	joinedAt := start.Add(36 * time.Hour)
+
+	got := scheduledFeedWindowsSinceJoin(windows, &joinedAt)
+	if len(got) != 2 || !got[0].StartsAt.Equal(start.Add(24*time.Hour)) {
+		t.Fatalf("windows after join = %#v, want the cycle containing joined_at and later cycles", got)
+	}
+}
+
+func TestScheduledFeedWindowsSinceJoinIncludesCycleAtExactJoinTime(t *testing.T) {
+	start := time.Date(2026, 6, 1, 8, 0, 0, 0, time.UTC)
+	windows := []scheduledFeedDateWindow{
+		{Date: start, StartsAt: start, EndsAt: start.Add(24 * time.Hour)},
+		{Date: start.Add(24 * time.Hour), StartsAt: start.Add(24 * time.Hour), EndsAt: start.Add(48 * time.Hour)},
+	}
+	joinedAt := start.Add(24 * time.Hour)
+
+	got := scheduledFeedWindowsSinceJoin(windows, &joinedAt)
+	if len(got) != 1 || !got[0].StartsAt.Equal(joinedAt) {
+		t.Fatalf("windows after join = %#v, want the cycle beginning at joined_at", got)
+	}
+}
+
+func TestCurrentStreakDoesNotIncludePreJoinPosts(t *testing.T) {
+	start := time.Date(2026, 6, 1, 8, 0, 0, 0, time.UTC)
+	windows := []scheduledFeedDateWindow{
+		{Date: start, StartsAt: start, EndsAt: start.Add(24 * time.Hour)},
+		{Date: start.Add(24 * time.Hour), StartsAt: start.Add(24 * time.Hour), EndsAt: start.Add(48 * time.Hour)},
+		{Date: start.Add(48 * time.Hour), StartsAt: start.Add(48 * time.Hour), EndsAt: start.Add(72 * time.Hour)},
+	}
+	posted := map[string]bool{}
+	for _, window := range windows {
+		posted[metricPostDateKey("ana", window.Date)] = true
+	}
+	joinedAt := windows[2].StartsAt
+
+	got := currentStreakForMember(
+		"ana",
+		scheduledFeedWindowsSinceJoin(windows, &joinedAt),
+		posted,
+		windows[2].StartsAt.Add(time.Hour),
+	)
+	if got != 1 {
+		t.Fatalf("streak = %d, want 1", got)
+	}
+}
+
 func TestCurrentStreakIgnoresUnclosedMissingDailyCycle(t *testing.T) {
 	location, err := time.LoadLocation("America/Chicago")
 	if err != nil {

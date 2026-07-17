@@ -46,6 +46,7 @@ export function FeedOutput({
   onUpdateFeedPost,
   onDeleteFeedPost,
   onCreateMetricJudgment,
+  postAccessPrompt,
 }: {
   feed: DailyFeed | null;
   selectedFeedDate: string;
@@ -75,6 +76,7 @@ export function FeedOutput({
     postId: string,
     payload: Omit<CreateFeedMetricJudgmentRequest, "post_id">,
   ) => void;
+  postAccessPrompt?: ReactNode;
 }) {
   if (!feed) {
     return <div className="empty-state">Select a feed to view its daily output.</div>;
@@ -145,6 +147,7 @@ export function FeedOutput({
       onUpdateFeedPost={onUpdateFeedPost}
       onDeleteFeedPost={onDeleteFeedPost}
       onCreateMetricJudgment={onCreateMetricJudgment}
+      postAccessPrompt={postAccessPrompt}
     />
   );
 }
@@ -204,6 +207,7 @@ function LoadedFeedOutput({
   onUpdateFeedPost,
   onDeleteFeedPost,
   onCreateMetricJudgment,
+  postAccessPrompt,
 }: {
   feed: DailyFeed;
   selectedFeedDate: string;
@@ -231,6 +235,7 @@ function LoadedFeedOutput({
     postId: string,
     payload: Omit<CreateFeedMetricJudgmentRequest, "post_id">,
   ) => void;
+  postAccessPrompt?: ReactNode;
 }) {
   const items = output.items;
   const isDailyThread = feed.kind === "daily_thread";
@@ -285,6 +290,7 @@ function LoadedFeedOutput({
         onUpdateFeedPost={onUpdateFeedPost}
         onDeleteFeedPost={onDeleteFeedPost}
         onCreateMetricJudgment={onCreateMetricJudgment}
+        postAccessPrompt={postAccessPrompt}
       />
     </>
   );

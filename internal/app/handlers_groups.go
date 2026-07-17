@@ -24,6 +24,7 @@ func (s *Server) handleListGroups(w http.ResponseWriter, r *http.Request) {
 			g.slug,
 			g.description,
 			g.visibility,
+			g.join_policy,
 			g.created_by_user_id::text,
 			gm.role,
 			gm.status,
@@ -69,6 +70,7 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 		Slug        string  `json:"slug"`
 		Description *string `json:"description"`
 		Visibility  string  `json:"visibility"`
+		JoinPolicy  string  `json:"join_policy"`
 	}
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON request")
@@ -86,8 +88,19 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 	if req.Visibility == "" {
 		req.Visibility = "public"
 	}
+	if req.JoinPolicy == "" {
+		req.JoinPolicy = "invite_only"
+	}
 	if !validGroupVisibility(req.Visibility) {
 		writeError(w, http.StatusBadRequest, "visibility must be public or private")
+		return
+	}
+	if !validGroupJoinPolicy(req.JoinPolicy) {
+		writeError(w, http.StatusBadRequest, "join_policy must be invite_only or open")
+		return
+	}
+	if !validGroupAccessSettings(req.Visibility, req.JoinPolicy) {
+		writeError(w, http.StatusBadRequest, "open groups must have public visibility")
 		return
 	}
 
@@ -100,10 +113,10 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 
 	var groupID string
 	err = tx.QueryRow(r.Context(), `
-		insert into groups (name, slug, description, visibility, created_by_user_id)
-		values ($1, $2, $3, $4, $5)
+		insert into groups (name, slug, description, visibility, join_policy, created_by_user_id)
+		values ($1, $2, $3, $4, $5, $6)
 		returning id::text
-	`, req.Name, req.Slug, req.Description, req.Visibility, current.ID).Scan(&groupID)
+	`, req.Name, req.Slug, req.Description, req.Visibility, req.JoinPolicy, current.ID).Scan(&groupID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -214,6 +227,7 @@ func (s *Server) handlePatchGroup(w http.ResponseWriter, r *http.Request) {
 		Slug        *string `json:"slug"`
 		Description *string `json:"description"`
 		Visibility  *string `json:"visibility"`
+		JoinPolicy  *string `json:"join_policy"`
 	}
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON request")
@@ -223,26 +237,72 @@ func (s *Server) handlePatchGroup(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "visibility must be public or private")
 		return
 	}
+	if req.JoinPolicy != nil && !validGroupJoinPolicy(*req.JoinPolicy) {
+		writeError(w, http.StatusBadRequest, "join_policy must be invite_only or open")
+		return
+	}
 
 	var slug any
 	if req.Slug != nil {
 		slug = slugify(*req.Slug)
 	}
 
-	tag, err := s.db.Exec(r.Context(), `
+	tx, err := s.db.Begin(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	var currentVisibility string
+	var currentJoinPolicy string
+	err = tx.QueryRow(r.Context(), `
+		select visibility, join_policy
+		from groups
+		where id = $1
+		for update
+	`, groupID).Scan(&currentVisibility, &currentJoinPolicy)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "group not found")
+		return
+	}
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	finalVisibility := currentVisibility
+	if req.Visibility != nil {
+		finalVisibility = *req.Visibility
+	}
+	finalJoinPolicy := currentJoinPolicy
+	if req.JoinPolicy != nil {
+		finalJoinPolicy = *req.JoinPolicy
+	}
+	if !validGroupAccessSettings(finalVisibility, finalJoinPolicy) {
+		writeError(w, http.StatusBadRequest, "open groups must have public visibility")
+		return
+	}
+
+	tag, err := tx.Exec(r.Context(), `
 		update groups
 		set name = coalesce($2, name),
 		    slug = coalesce($3, slug),
 		    description = coalesce($4, description),
-		    visibility = coalesce($5, visibility)
+		    visibility = coalesce($5, visibility),
+		    join_policy = coalesce($6, join_policy)
 		where id = $1
-	`, groupID, req.Name, slug, req.Description, req.Visibility)
+	`, groupID, req.Name, slug, req.Description, req.Visibility, req.JoinPolicy)
 	if err != nil {
 		handleError(w, err)
 		return
 	}
 	if tag.RowsAffected() == 0 {
 		writeError(w, http.StatusNotFound, "group not found")
+		return
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		handleError(w, err)
 		return
 	}
 
@@ -252,6 +312,104 @@ func (s *Server) handlePatchGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, group)
+}
+
+func (s *Server) handleJoinGroup(w http.ResponseWriter, r *http.Request) {
+	current, err := requireUser(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	groupID := r.PathValue("group_id")
+	if err := s.joinOpenGroup(r.Context(), groupID, current.ID); err != nil {
+		handleError(w, err)
+		return
+	}
+
+	group, err := s.getGroup(r.Context(), groupID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, group)
+}
+
+func (s *Server) joinOpenGroup(ctx context.Context, groupID string, userID string) error {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	var visibility string
+	var joinPolicy string
+	err = tx.QueryRow(ctx, `
+		select visibility, join_policy
+		from groups
+		where id = $1
+		for update
+	`, groupID).Scan(&visibility, &joinPolicy)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return errNotFound("group")
+	}
+	if err != nil {
+		return err
+	}
+	if visibility != "public" {
+		return errNotFound("group")
+	}
+	if joinPolicy != "open" {
+		return forbidden("group is not open to join")
+	}
+
+	for {
+		member, err := groupMemberStateForUpdate(ctx, tx, groupID, userID)
+		if err == nil {
+			switch member.Status {
+			case "active":
+				return tx.Commit(ctx)
+			case "removed":
+				return forbidden("removed members cannot rejoin this group")
+			case "left":
+				tag, err := tx.Exec(ctx, `
+					update group_memberships
+					set role = 'member',
+					    status = 'active',
+					    joined_at = now()
+					where group_id = $1
+					  and user_id = $2
+					  and status = 'left'
+				`, groupID, userID)
+				if err != nil {
+					return err
+				}
+				if tag.RowsAffected() != 1 {
+					return statusError{status: http.StatusConflict, message: "group membership changed while joining"}
+				}
+				return tx.Commit(ctx)
+			default:
+				return statusError{status: http.StatusConflict, message: "group membership cannot be activated"}
+			}
+		}
+		if !isStatusNotFound(err) {
+			return err
+		}
+
+		tag, err := tx.Exec(ctx, `
+			insert into group_memberships (group_id, user_id, role, status, joined_at)
+			values ($1, $2, 'member', 'active', now())
+			on conflict (group_id, user_id) do nothing
+		`, groupID, userID)
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() == 1 {
+			return tx.Commit(ctx)
+		}
+		// A concurrent membership insert won the unique-key race. Lock and
+		// evaluate that durable state on the next pass.
+	}
 }
 
 func (s *Server) handleDeleteGroup(w http.ResponseWriter, r *http.Request) {
@@ -538,7 +696,8 @@ func (s *Server) handleDeleteGroupMember(w http.ResponseWriter, r *http.Request)
 	}
 
 	tag, err := s.db.Exec(r.Context(), `
-		delete from group_memberships
+		update group_memberships
+		set status = 'removed'
 		where group_id = $1 and user_id = $2
 	`, groupID, targetUserID)
 	if err != nil {
@@ -564,6 +723,7 @@ func (s *Server) getGroup(ctx context.Context, groupID string) (Group, error) {
 			g.slug,
 			g.description,
 			g.visibility,
+			g.join_policy,
 			g.created_by_user_id::text,
 			gm.role,
 			gm.status,
@@ -590,6 +750,7 @@ func scanGroup(row pgx.Row) (Group, error) {
 		&group.Slug,
 		&description,
 		&group.Visibility,
+		&group.JoinPolicy,
 		&group.CreatedByUserID,
 		&role,
 		&status,
@@ -628,6 +789,7 @@ func (s *Server) listGroupMembers(ctx context.Context, groupID string) ([]GroupM
 		left join users inviter on inviter.id = gm.invited_by_user_id
 		left join group_invite_links link on link.id = gm.invite_link_id
 		where gm.group_id = $1
+		  and gm.status <> 'removed'
 		order by
 			case gm.role when 'owner' then 0 when 'admin' then 1 else 2 end,
 			u.display_name

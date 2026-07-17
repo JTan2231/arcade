@@ -71,10 +71,10 @@ func (s *Server) getPublicGroup(ctx context.Context, slug string) (PublicGroup, 
 	var group PublicGroup
 	var description sql.NullString
 	err := s.db.QueryRow(ctx, `
-		select id::text, name, slug, description, visibility, created_at, updated_at
+		select id::text, name, slug, description, visibility, join_policy, created_at, updated_at
 		from groups
 		where slug = $1 and visibility = 'public'
-	`, slug).Scan(&group.ID, &group.Name, &group.Slug, &description, &group.Visibility, &group.CreatedAt, &group.UpdatedAt)
+	`, slug).Scan(&group.ID, &group.Name, &group.Slug, &description, &group.Visibility, &group.JoinPolicy, &group.CreatedAt, &group.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return PublicGroup{}, errNotFound("group")
 	}
@@ -253,10 +253,10 @@ func (s *Server) getDailyFeedByID(ctx context.Context, feedID string) (DailyFeed
 func (s *Server) getPublicParentGroup(ctx context.Context, groupID string) (PublicParentGroup, error) {
 	var group PublicParentGroup
 	err := s.db.QueryRow(ctx, `
-		select id::text, name, slug, visibility
+		select id::text, name, slug, visibility, join_policy
 		from groups
 		where id = $1
-	`, groupID).Scan(&group.ID, &group.Name, &group.Slug, &group.Visibility)
+	`, groupID).Scan(&group.ID, &group.Name, &group.Slug, &group.Visibility, &group.JoinPolicy)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return PublicParentGroup{}, errNotFound("group")
 	}
@@ -381,6 +381,7 @@ func publicPostSelectSQL() string {
 			g.name,
 			g.slug,
 			g.visibility,
+			g.join_policy,
 			f.id::text,
 			f.name,
 			i.feed_date,
@@ -440,6 +441,7 @@ func scanPublicPost(row pgx.Row) (PublicPost, error) {
 		&post.Group.Name,
 		&post.Group.Slug,
 		&post.Group.Visibility,
+		&post.Group.JoinPolicy,
 		&post.Feed.ID,
 		&post.Feed.Name,
 		&feedDate,

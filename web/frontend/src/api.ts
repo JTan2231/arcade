@@ -139,6 +139,14 @@ export function updateGroup(groupID: string, payload: PatchGroupRequest, options
   });
 }
 
+export function joinGroup(groupID: string, options: APIOptions = {}): Promise<Group> {
+  return api<Group>(`/api/groups/${encodeURIComponent(groupID)}/join`, {
+    ...options,
+    method: "POST",
+    body: "{}",
+  });
+}
+
 export function deleteGroup(groupID: string, options: APIOptions = {}): Promise<null> {
   return api<null>(`/api/groups/${encodeURIComponent(groupID)}`, {
     ...options,

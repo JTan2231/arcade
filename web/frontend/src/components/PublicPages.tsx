@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
-import { isNotFound } from "../api";
+import { isNotFound, isUnauthorized, joinGroup } from "../api";
 import { queries } from "../cache/queries";
 import { queryCache } from "../cache/queryCache";
 import { errorMessage } from "../errors";
-import { feedPath } from "../routes";
+import { feedPath, publicRoutePath, signInPath } from "../routes";
 import type {
   DailyFeed,
   DailyFeedOutput,
@@ -24,7 +24,10 @@ import { GroupDashboard } from "./GroupDashboard";
 export type PublicPageProps = {
   route: PublicRoute;
   signedIn: boolean;
+  currentUserId: string | null;
   onNavigate: (path: string, mode?: "push" | "replace") => void;
+  onGroupJoined: ((group: Group) => void) | undefined;
+  onUnauthorized: (() => void) | undefined;
 };
 
 type LoadState<T> =
@@ -32,6 +35,11 @@ type LoadState<T> =
   | { status: "ready"; data: T }
   | { status: "not-found" }
   | { status: "error"; message: string };
+
+type PublicPageActionProps = Pick<
+  PublicPageProps,
+  "currentUserId" | "onGroupJoined" | "onNavigate" | "onUnauthorized" | "route" | "signedIn"
+>;
 
 type PublicDashboardData = {
   group: Group;
@@ -45,26 +53,66 @@ type PublicDashboardData = {
 const EMPTY_POSTS: GroupFeedPost[] = [];
 const EMPTY_POST_TAGS: GroupPostTag[] = [];
 
-export function PublicPage({ route, signedIn, onNavigate }: PublicPageProps) {
+export function PublicPage({
+  route,
+  signedIn,
+  currentUserId,
+  onNavigate,
+  onGroupJoined,
+  onUnauthorized,
+}: PublicPageProps) {
   switch (route.kind) {
     case "group":
-      return <PublicGroupPage onNavigate={onNavigate} signedIn={signedIn} slug={route.slug} />;
+      return (
+        <PublicGroupPage
+          currentUserId={currentUserId}
+          onGroupJoined={onGroupJoined}
+          onNavigate={onNavigate}
+          onUnauthorized={onUnauthorized}
+          route={route}
+          signedIn={signedIn}
+          slug={route.slug}
+        />
+      );
     case "feed":
-      return <PublicFeedPage date={route.date} feedId={route.feedId} onNavigate={onNavigate} signedIn={signedIn} />;
+      return (
+        <PublicFeedPage
+          currentUserId={currentUserId}
+          date={route.date}
+          feedId={route.feedId}
+          onGroupJoined={onGroupJoined}
+          onNavigate={onNavigate}
+          onUnauthorized={onUnauthorized}
+          route={route}
+          signedIn={signedIn}
+        />
+      );
     case "post":
-      return <PublicPostPage onNavigate={onNavigate} postId={route.postId} signedIn={signedIn} />;
+      return (
+        <PublicPostPage
+          currentUserId={currentUserId}
+          onGroupJoined={onGroupJoined}
+          onNavigate={onNavigate}
+          onUnauthorized={onUnauthorized}
+          postId={route.postId}
+          route={route}
+          signedIn={signedIn}
+        />
+      );
   }
 }
 
 function PublicGroupPage({
   slug,
   signedIn,
+  currentUserId,
   onNavigate,
+  onGroupJoined,
+  onUnauthorized,
+  route,
 }: {
   slug: string;
-  signedIn: boolean;
-  onNavigate: (path: string, mode?: "push" | "replace") => void;
-}) {
+} & PublicPageActionProps) {
   const [state, setState] = useState<LoadState<PublicDashboardData>>({ status: "loading" });
 
   useEffect(() => {
@@ -104,20 +152,32 @@ function PublicGroupPage({
     return () => controller.abort();
   }, [slug]);
 
-  return <PublicDashboardView onNavigate={onNavigate} signedIn={signedIn} state={state} />;
+  return (
+    <PublicDashboardView
+      currentUserId={currentUserId}
+      onGroupJoined={onGroupJoined}
+      onNavigate={onNavigate}
+      onUnauthorized={onUnauthorized}
+      route={route}
+      signedIn={signedIn}
+      state={state}
+    />
+  );
 }
 
 function PublicFeedPage({
   feedId,
   date,
   signedIn,
+  currentUserId,
   onNavigate,
+  onGroupJoined,
+  onUnauthorized,
+  route,
 }: {
   feedId: string;
   date: string | null;
-  signedIn: boolean;
-  onNavigate: (path: string, mode?: "push" | "replace") => void;
-}) {
+} & PublicPageActionProps) {
   const [state, setState] = useState<LoadState<PublicDashboardData>>({ status: "loading" });
 
   useEffect(() => {
@@ -142,18 +202,30 @@ function PublicFeedPage({
     return () => controller.abort();
   }, [date, feedId]);
 
-  return <PublicDashboardView onNavigate={onNavigate} signedIn={signedIn} state={state} />;
+  return (
+    <PublicDashboardView
+      currentUserId={currentUserId}
+      onGroupJoined={onGroupJoined}
+      onNavigate={onNavigate}
+      onUnauthorized={onUnauthorized}
+      route={route}
+      signedIn={signedIn}
+      state={state}
+    />
+  );
 }
 
 function PublicPostPage({
   postId,
   signedIn,
+  currentUserId,
   onNavigate,
+  onGroupJoined,
+  onUnauthorized,
+  route,
 }: {
   postId: string;
-  signedIn: boolean;
-  onNavigate: (path: string, mode?: "push" | "replace") => void;
-}) {
+} & PublicPageActionProps) {
   const [state, setState] = useState<LoadState<PublicDashboardData>>({ status: "loading" });
 
   useEffect(() => {
@@ -191,19 +263,34 @@ function PublicPostPage({
     return () => controller.abort();
   }, [postId]);
 
-  return <PublicDashboardView onNavigate={onNavigate} signedIn={signedIn} state={state} />;
+  return (
+    <PublicDashboardView
+      currentUserId={currentUserId}
+      onGroupJoined={onGroupJoined}
+      onNavigate={onNavigate}
+      onUnauthorized={onUnauthorized}
+      route={route}
+      signedIn={signedIn}
+      state={state}
+    />
+  );
 }
 
 function PublicDashboardView({
   state,
   signedIn,
+  currentUserId,
   onNavigate,
-}: {
+  onGroupJoined,
+  onUnauthorized,
+  route,
+}: PublicPageActionProps & {
   state: LoadState<PublicDashboardData>;
-  signedIn: boolean;
-  onNavigate: (path: string, mode?: "push" | "replace") => void;
 }) {
+  const [joining, setJoining] = useState(false);
+  const [joinError, setJoinError] = useState("");
   const selectedFeedId = state.status === "ready" ? state.data.selectedFeedId : null;
+  const group = state.status === "ready" ? state.data.group : null;
   const loadFeedOutputSummaries = useCallback(
     (selectedDate: string, signal: AbortSignal) => {
       if (selectedFeedId === null) {
@@ -214,8 +301,67 @@ function PublicDashboardView({
     [selectedFeedId],
   );
 
+  async function handleJoin() {
+    if (group === null || currentUserId === null || joining) {
+      return;
+    }
+
+    setJoining(true);
+    setJoinError("");
+    try {
+      const joinedGroup = await joinGroup(group.id);
+      queryCache.touched(["user", currentUserId, "groups"]);
+      queryCache.touched(["user", currentUserId, "group", group.id]);
+      queryCache.touched(["user", currentUserId, "me", "daily-feeds"]);
+      queryCache.touched(["anon", "public", "group", group.slug]);
+      if (selectedFeedId !== null) {
+        queryCache.touched(["anon", "public", "feed", selectedFeedId]);
+      }
+      if (route.kind === "post") {
+        queryCache.touched(["user", currentUserId, "me", "feed-post-route", route.postId]);
+        queryCache.touched(["anon", "public", "post", route.postId]);
+      }
+      onGroupJoined?.(joinedGroup);
+    } catch (error) {
+      setJoining(false);
+      if (isUnauthorized(error)) {
+        onUnauthorized?.();
+        return;
+      }
+      setJoinError(errorMessage(error));
+    }
+  }
+
+  const postAccessPrompt =
+    group?.join_policy === "open" ? (
+      <div className="post-access-status">
+        {signedIn ? (
+          <button
+            className="secondary feed-post-button"
+            disabled={joining || currentUserId === null}
+            type="button"
+            onClick={() => void handleJoin()}
+          >
+            {joining ? "Joining..." : "Join to post"}
+          </button>
+        ) : (
+          <a className="post-access-link" href={signInPath(publicRoutePath(route))}>
+            Sign in to post
+          </a>
+        )}
+        <span className="meta">
+          {signedIn ? "You’ll join this open group as a member." : "Sign in, then join this open group as a member."}
+        </span>
+        {joinError !== "" ? (
+          <span className="form-error" role="alert">
+            {joinError}
+          </span>
+        ) : null}
+      </div>
+    ) : undefined;
+
   return (
-    <PublicShell signedIn={signedIn}>
+    <PublicShell returnPath={publicRoutePath(route)} signedIn={signedIn}>
       {state.status === "loading" ? <PublicStatusPanel>Loading...</PublicStatusPanel> : null}
       {state.status === "not-found" ? <PublicStatusPanel>This public page was not found.</PublicStatusPanel> : null}
       {state.status === "error" ? (
@@ -265,6 +411,7 @@ function PublicDashboardView({
           outputError=""
           outputLoading={false}
           postSubmitting={false}
+          postAccessPrompt={postAccessPrompt}
           postTags={EMPTY_POST_TAGS}
           posts={state.data.posts}
           postsError=""
@@ -281,7 +428,15 @@ function PublicDashboardView({
   );
 }
 
-function PublicShell({ children, signedIn }: { children: ReactNode; signedIn: boolean }) {
+function PublicShell({
+  children,
+  signedIn,
+  returnPath,
+}: {
+  children: ReactNode;
+  signedIn: boolean;
+  returnPath: string;
+}) {
   return (
     <>
       <header className="app-header">
@@ -293,7 +448,7 @@ function PublicShell({ children, signedIn }: { children: ReactNode; signedIn: bo
           </h1>
           <div className="header-user">Public view</div>
         </div>
-        <a className="header-link-button" href="/">
+        <a className="header-link-button" href={signedIn ? "/" : signInPath(returnPath)}>
           {signedIn ? "Open app" : "Sign in"}
         </a>
       </header>
@@ -370,6 +525,7 @@ function publicGroupToGroup(group: PublicGroup): Group {
     name: group.name,
     slug: group.slug,
     visibility: group.visibility,
+    join_policy: group.join_policy,
     created_by_user_id: "",
     created_at: group.created_at,
     updated_at: group.updated_at,
@@ -390,6 +546,7 @@ function publicParentGroupToGroup(group: PublicFeed["group"], createdAt: string,
     name: group.name,
     slug: group.slug,
     visibility: group.visibility,
+    join_policy: group.join_policy,
     created_by_user_id: "",
     created_at: createdAt,
     updated_at: updatedAt,

@@ -32,7 +32,7 @@ export function resetSelectedGroupContext(): Omit<
     groupMembers: [],
     groupMembersError: "",
     groupSettingsOpen: false,
-    groupVisibilityMutation: null,
+    groupAccessMutation: null,
     posts: [],
     postsError: "",
     ...resetMetricContext(),
