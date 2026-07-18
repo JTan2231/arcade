@@ -36,6 +36,8 @@ erDiagram
 
     groups ||--o{ group_daily_feeds : owns
     groups ||--o{ group_evidence_formats : defines
+    groups ||--o{ group_post_card_palettes : defines
+    group_post_card_palettes ||--o{ group_evidence_formats : styles
     group_evidence_formats ||--o{ group_evidence_format_versions : versions
     group_evidence_formats ||--o{ group_daily_feeds : validates
     catalog_sources ||--o{ group_daily_feeds : powers
@@ -69,7 +71,9 @@ erDiagram
 `users` stores local account credentials and profile data. Email is normalized
 before storage and enforced uniquely by `lower(email)`. Passwords are stored as
 hashes only; plaintext passwords are never persisted. `username` remains for
-compatibility and display URLs, but login uses email.
+compatibility and display URLs, but login uses email. The private user record
+also stores `theme_preference` as `system`, `dark`, or `light`; this viewer-owned
+setting is not part of a group palette and is not exposed through `PublicUser`.
 
 `user_sessions` stores cookie-backed sessions. Only a SHA-256 hash of the raw
 session token is stored; the browser receives the raw token in the
@@ -180,10 +184,29 @@ keys keeping it consistent with `group_daily_feeds`.
 
 `group_evidence_formats` stores group-owned reusable post evidence format names.
 Each format has a stable group-local slug, display name, optional description,
-archive timestamp, and creator/updater audit fields. Format names and slugs are
-unique within a group. Archiving hides a format from new feed assignments and
-post creation while preserving historical post references. Every group has a
-`plain-text` format.
+archive timestamp, mutable display appearance, and creator/updater audit fields.
+The appearance consists of `content_typeface` (`monospace` or `serif`) and a
+group-owned `content_card_palette_id`. Format names and slugs are unique within a
+group. Archiving hides a format from new feed assignments and post creation
+while preserving historical post references. Every group has a `plain-text`
+format, initially using the monospace typeface and its Chalkboard palette.
+
+`group_post_card_palettes` stores reusable, group-owned card color intent. Each
+palette uses the versioned `arcade-pigment-v1` material model: a surface hue in
+`0..359`, surface colorfulness in `0..100`, and an optional accent hue and
+colorfulness pair with the same ranges. Concrete dim, bright, border, and
+spotlight colors are derived by the frontend for the active viewer theme; they
+are not persisted as fixed display colors. Each group has one locked
+`chalkboard` system palette, seeded with surface `167/95` and accent `173/74`.
+Custom palettes carry an optimistic-concurrency `revision` and are soft
+archived. An active evidence format prevents its palette from being archived;
+archived formats and historical posts retain and hydrate their archived palette.
+
+Appearance is deliberately mutable metadata, not an evidence-format constraint.
+Changing a format's typeface or palette does not insert a
+`group_evidence_format_versions` row. Because posts retain the format through
+their immutable constraint version, current palette edits restyle both current
+and historical posts that use that format.
 
 `group_evidence_format_versions` stores immutable validation constraints for an
 evidence format. The latest `version_number` is the active version used by new

@@ -3,12 +3,15 @@ import type {
   CreateEvidenceFormatVersionRequest,
   EvidenceFormat,
   PatchEvidenceFormatRequest,
+  PostContentTypeface,
 } from "../../types";
 
 export type EvidenceFormatDraft = {
   slug: string;
   name: string;
   description: string;
+  contentTypeface: PostContentTypeface;
+  contentCardPaletteId: string;
   minChars: string;
   maxChars: string;
   lineMode: "range" | "exact";
@@ -24,6 +27,8 @@ export const emptyFormatDraft: EvidenceFormatDraft = {
   slug: "",
   name: "",
   description: "",
+  contentTypeface: "monospace",
+  contentCardPaletteId: "",
   minChars: "1",
   maxChars: "",
   lineMode: "range",
@@ -45,6 +50,10 @@ export function buildFormatPayload(draft: EvidenceFormatDraft): CreateEvidenceFo
   if (identityError !== "") {
     return identityError;
   }
+  const appearanceError = validateFormatAppearance(draft);
+  if (appearanceError !== "") {
+    return appearanceError;
+  }
   const version = buildVersionPayload(draft);
   if (typeof version === "string") {
     return version;
@@ -55,8 +64,14 @@ export function buildFormatPayload(draft: EvidenceFormatDraft): CreateEvidenceFo
     slug,
     name,
     ...(draft.description.trim() !== "" ? { description: draft.description.trim() } : {}),
+    content_typeface: draft.contentTypeface,
+    content_card_palette_id: draft.contentCardPaletteId,
     ...version,
   };
+}
+
+export function validateFormatAppearance(draft: EvidenceFormatDraft): string {
+  return draft.contentCardPaletteId === "" ? "Card palette is required" : "";
 }
 
 export function validateFormatIdentity(draft: EvidenceFormatDraft): string {
@@ -175,6 +190,8 @@ function formatVersionToDraft(version: EvidenceFormat["active_version"]): Eviden
     slug: "",
     name: "",
     description: "",
+    contentTypeface: "monospace",
+    contentCardPaletteId: "",
     minChars: String(version.min_chars),
     maxChars: version.max_chars?.toString() ?? "",
     lineMode: version.exact_lines !== undefined ? "exact" : "range",
@@ -193,6 +210,8 @@ export function evidenceFormatToDraft(format: EvidenceFormat): EvidenceFormatDra
     slug: format.slug,
     name: format.name,
     description: format.description ?? "",
+    contentTypeface: format.content_typeface,
+    contentCardPaletteId: format.content_card_palette_id,
   };
 }
 
@@ -203,6 +222,10 @@ export function buildFormatEditPayloads(
   const identityError = validateFormatIdentity(draft);
   if (identityError !== "") {
     return identityError;
+  }
+  const appearanceError = validateFormatAppearance(draft);
+  if (appearanceError !== "") {
+    return appearanceError;
   }
   const version = buildVersionPayload(draft);
   if (typeof version === "string") {
@@ -217,6 +240,12 @@ export function buildFormatEditPayloads(
   const description = draft.description.trim();
   if (description !== (format.description ?? "")) {
     metadata.description = description === "" ? null : description;
+  }
+  if (draft.contentTypeface !== format.content_typeface) {
+    metadata.content_typeface = draft.contentTypeface;
+  }
+  if (draft.contentCardPaletteId !== format.content_card_palette_id) {
+    metadata.content_card_palette_id = draft.contentCardPaletteId;
   }
 
   return {

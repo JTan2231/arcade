@@ -1,9 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import "@fontsource/fanwood-text/400.css";
 
 import App from "./App";
 import { PageScrollControls } from "./components/PageScrollControls";
-import { assertPaletteValid, createArcadePalette, installCssTokens } from "./palette";
+import { initializeViewerTheme } from "./theme";
 import "./styles/tokens.css";
 import "./styles/base.css";
 import "./styles/layout.css";
@@ -19,9 +20,7 @@ import "./styles/output.css";
 import "./styles/feedback.css";
 import "./styles/responsive.css";
 
-const palette = createArcadePalette();
-assertPaletteValid(palette.validation);
-installCssTokens(palette.tokens);
+initializeViewerTheme();
 
 const root = document.getElementById("root");
 

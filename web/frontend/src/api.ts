@@ -7,6 +7,7 @@ import type {
   CreateFeedMetricRequest,
   CreateGroupFeedPostRequest,
   CreateGroupInviteLinkRequest,
+  CreatePostCardPaletteRequest,
   CreateGroupPostTagRequest,
   CreateGroupRequest,
   DailyFeed,
@@ -35,6 +36,8 @@ import type {
   PatchGroupRequest,
   PatchGroupFeedPostRequest,
   PatchGroupPostTagRequest,
+  PatchPostCardPaletteRequest,
+  PostCardPalette,
   PublicFeed,
   PublicGroup,
   PublicPost,
@@ -42,6 +45,7 @@ import type {
   UpsertDailyFeedEventRequest,
   User,
 } from "./types";
+import { publishPostFormatAppearance, publishPostFormatAppearances } from "./postFormatAppearances";
 
 type APIErrorBody = {
   error?: string;
@@ -120,6 +124,17 @@ export function logout(options: APIOptions = {}): Promise<null> {
     ...options,
     method: "POST",
     body: "{}",
+  });
+}
+
+export function updateThemePreference(
+  themePreference: User["theme_preference"],
+  options: APIOptions = {},
+): Promise<User> {
+  return api<User>("/api/me", {
+    ...options,
+    method: "PATCH",
+    body: JSON.stringify({ theme_preference: themePreference }),
   });
 }
 
@@ -393,7 +408,12 @@ export function listGroupEvidenceFormats(
   options: APIOptions = {},
 ): Promise<EvidenceFormat[]> {
   const query = params.includeArchived === true ? "?include_archived=true" : "";
-  return api<EvidenceFormat[]>(`/api/groups/${encodeURIComponent(groupID)}/evidence-formats${query}`, options);
+  return api<EvidenceFormat[]>(`/api/groups/${encodeURIComponent(groupID)}/evidence-formats${query}`, options).then(
+    (formats) => {
+      publishPostFormatAppearances(formats);
+      return formats;
+    },
+  );
 }
 
 export function createGroupEvidenceFormat(
@@ -405,6 +425,9 @@ export function createGroupEvidenceFormat(
     ...options,
     method: "POST",
     body: JSON.stringify(payload),
+  }).then((format) => {
+    publishPostFormatAppearance(format);
+    return format;
   });
 }
 
@@ -416,7 +439,10 @@ export function getGroupEvidenceFormat(
   return api<EvidenceFormat>(
     `/api/groups/${encodeURIComponent(groupID)}/evidence-formats/${encodeURIComponent(formatID)}`,
     options,
-  );
+  ).then((format) => {
+    publishPostFormatAppearance(format);
+    return format;
+  });
 }
 
 export function updateGroupEvidenceFormat(
@@ -432,7 +458,10 @@ export function updateGroupEvidenceFormat(
       method: "PATCH",
       body: JSON.stringify(payload),
     },
-  );
+  ).then((format) => {
+    publishPostFormatAppearance(format);
+    return format;
+  });
 }
 
 export function createGroupEvidenceFormatVersion(
@@ -448,7 +477,10 @@ export function createGroupEvidenceFormatVersion(
       method: "POST",
       body: JSON.stringify(payload),
     },
-  );
+  ).then((format) => {
+    publishPostFormatAppearance(format);
+    return format;
+  });
 }
 
 export function deleteGroupEvidenceFormat(groupID: string, formatID: string, options: APIOptions = {}): Promise<null> {
@@ -456,6 +488,43 @@ export function deleteGroupEvidenceFormat(groupID: string, formatID: string, opt
     ...options,
     method: "DELETE",
   });
+}
+
+export function listGroupPostCardPalettes(
+  groupID: string,
+  params: { includeArchived?: boolean } = {},
+  options: APIOptions = {},
+): Promise<PostCardPalette[]> {
+  const query = params.includeArchived === true ? "?include_archived=true" : "";
+  return api<PostCardPalette[]>(`/api/groups/${encodeURIComponent(groupID)}/post-card-palettes${query}`, options);
+}
+
+export function createGroupPostCardPalette(
+  groupID: string,
+  payload: CreatePostCardPaletteRequest,
+  options: APIOptions = {},
+): Promise<PostCardPalette> {
+  return api<PostCardPalette>(`/api/groups/${encodeURIComponent(groupID)}/post-card-palettes`, {
+    ...options,
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateGroupPostCardPalette(
+  groupID: string,
+  paletteID: string,
+  payload: PatchPostCardPaletteRequest,
+  options: APIOptions = {},
+): Promise<PostCardPalette> {
+  return api<PostCardPalette>(
+    `/api/groups/${encodeURIComponent(groupID)}/post-card-palettes/${encodeURIComponent(paletteID)}`,
+    {
+      ...options,
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export function createGroupPostTag(

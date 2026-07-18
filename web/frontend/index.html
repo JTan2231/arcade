@@ -3,6 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      try {
+        const storedPreference = localStorage.getItem("arcade.viewer-theme");
+        const preference = ["system", "dark", "light"].includes(storedPreference) ? storedPreference : "system";
+        const theme =
+          preference === "system"
+            ? matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark"
+            : preference === "light"
+              ? "light"
+              : "dark";
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+      } catch {
+        const theme = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+      }
+    </script>
     <title>Arcade</title>
   </head>
   <body>

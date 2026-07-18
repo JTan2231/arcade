@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import type {
   CreateEvidenceFormatRequest,
@@ -20,13 +20,16 @@ import type {
   Visibility,
 } from "../../types";
 import { MetricSettingsManager } from "../MetricSettingsManager";
+import { CardPaletteManager } from "./CardPaletteManager";
 import { EvidenceFormatManager } from "./EvidenceFormatManager";
 import { GroupMembersManager } from "./GroupMembersManager";
 import { GroupVisibilityControl } from "./GroupVisibilityControl";
 import { InviteLinksManager } from "./InviteLinksManager";
+import { derivePostCardPaletteUsage } from "./postCardPaletteUsage";
 import { PostTagManager } from "./PostTagManager";
+import { usePostCardPalettes } from "./usePostCardPalettes";
 
-type GroupSettingsSectionID = "access" | "metrics" | "tags" | "formats" | "members" | "invites";
+type GroupSettingsSectionID = "access" | "metrics" | "tags" | "palettes" | "formats" | "members" | "invites";
 
 export type GroupSettingsDialogProps = {
   group: Group;
@@ -132,6 +135,12 @@ export function GroupSettingsDialog({
   onUpdateAccess,
 }: GroupSettingsDialogProps) {
   const [openSection, setOpenSection] = useState<GroupSettingsSectionID | null>(null);
+  const cardPalettes = usePostCardPalettes(group.id);
+  const palettesWithCurrentUsage = useMemo(
+    () => derivePostCardPaletteUsage(cardPalettes.palettes, formats),
+    [cardPalettes.palettes, formats],
+  );
+  const currentCardPalettes = { ...cardPalettes, palettes: palettesWithCurrentUsage };
 
   if (!canManageGroup(group)) {
     return null;
@@ -207,6 +216,18 @@ export function GroupSettingsDialog({
             />
           </GroupSettingsDisclosure>
           <GroupSettingsDisclosure
+            id="palettes"
+            open={openSection === "palettes"}
+            summary={resourceCountSummary(
+              palettesWithCurrentUsage.filter((palette) => palette.archived_at === undefined).length,
+              "palette",
+            )}
+            title="Card palettes"
+            onToggle={setOpenSection}
+          >
+            <CardPaletteManager collection={currentCardPalettes} groupName={group.name} />
+          </GroupSettingsDisclosure>
+          <GroupSettingsDisclosure
             id="formats"
             open={openSection === "formats"}
             summary={resourceCountSummary(formats.length, "format")}
@@ -219,6 +240,8 @@ export function GroupSettingsDialog({
               formats={formats}
               groupName={group.name}
               loading={loading}
+              palettes={palettesWithCurrentUsage}
+              palettesLoading={cardPalettes.loading}
               saving={formatSaving}
               updatingFormatId={updatingFormatId}
               onClearError={onClearFormatError}

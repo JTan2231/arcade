@@ -1,0 +1,141 @@
+name: viewer theme preference switches and persists
+
+vars:
+  email: theme-viewer@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_viewer
+      client: browser
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Theme Viewer
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Theme Group
+      expectStatus: 201
+
+steps:
+  - visit: /
+
+  - expectValue:
+      label: Theme
+      value: system
+
+  - select:
+      label: Theme
+      value: dark
+
+  - expectEnabled:
+      role: combobox
+      name: Theme
+
+  - expectValue:
+      label: Theme
+      value: dark
+
+  - request:
+      client: browser
+      method: GET
+      path: /api/me
+      expectStatus: 200
+      expectJson:
+        theme_preference: dark
+
+  - visit: /
+
+  - expectValue:
+      label: Theme
+      value: dark
+
+  - select:
+      label: Theme
+      value: light
+
+  - expectEnabled:
+      role: combobox
+      name: Theme
+
+  - request:
+      client: browser
+      method: GET
+      path: /api/me
+      expectStatus: 200
+      expectJson:
+        theme_preference: light
+
+  - request:
+      client: browser
+      method: POST
+      path: /api/auth/logout
+      json: {}
+      expectStatus: 204
+
+  - visit: /
+
+  - expectValue:
+      label: Theme
+      value: light
+
+  - select:
+      label: Theme
+      value: dark
+
+  - visit: /
+
+  - expectValue:
+      label: Theme
+      value: dark
+
+  - request:
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - visit: /
+
+  - expectValue:
+      label: Theme
+      value: light
+
+  - select:
+      label: Theme
+      value: system
+
+  - expectEnabled:
+      role: combobox
+      name: Theme
+
+  - expectValue:
+      label: Theme
+      value: system
+
+  - request:
+      client: browser
+      method: GET
+      path: /api/me
+      expectStatus: 200
+      expectJson:
+        theme_preference: system
+
+  - visit: /
+
+  - expectValue:
+      label: Theme
+      value: system

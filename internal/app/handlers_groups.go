@@ -130,7 +130,13 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	evidenceFormatID, err := createPlainTextEvidenceFormat(r.Context(), tx, groupID, current.ID)
+	postCardPaletteID, err := createChalkboardPostCardPalette(r.Context(), tx, groupID, current.ID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	evidenceFormatID, err := createPlainTextEvidenceFormat(r.Context(), tx, groupID, postCardPaletteID, current.ID)
 	if err != nil {
 		handleError(w, err)
 		return

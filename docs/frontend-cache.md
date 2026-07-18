@@ -161,6 +161,34 @@ resource family. For example, `feedPosts` depends on the group post-tag prefix,
 not on one specific archive mode, because post responses can display archived
 tags attached to historical posts.
 
+## Live Post Appearance Overlays
+
+Post appearance is mutable even when the cached post and its constraint version
+are historical. Two small in-memory overlays keep that display-only state fresh
+without rewriting post data or refetching every feed:
+
+- `postFormatAppearances.ts` is keyed by format id and accepts only format
+  responses whose RFC3339 `updated_at` instant is at least as new as the stored
+  value. Its comparator preserves PostgreSQL's sub-millisecond precision. The
+  overlay carries the current typeface and palette assignment.
+- `postCardPalettes.ts` is keyed by palette id and accepts only summaries whose
+  `revision` is at least as new as the stored value. It carries the current
+  scene-independent material intent.
+
+Evidence-format reads and mutations publish into the format overlay. Palette
+manager reads and successful palette mutations publish into the palette
+overlay. Post and composer renderers first resolve their embedded format through
+the format overlay, then resolve that format's embedded palette through the
+palette overlay. Only appearance is overlaid: evidence text, post metadata, and
+the immutable format version used for validation continue to come from the
+normal query response.
+
+Palette management endpoints use `Cache-Control: private, no-store` and are not
+entries in `queryCache`; the settings hook owns those reads. Both overlays are
+per-runtime and disappear on reload. They deliberately do not provide cross-tab
+or cross-user real-time synchronization. A reload or later fresh query obtains
+the authoritative current appearance from the backend.
+
 ## Auth And Public Data
 
 Auth transitions clear cache namespaces:

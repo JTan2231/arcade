@@ -128,7 +128,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	var avatarURL sql.NullString
 	var passwordHash string
 	err = s.db.QueryRow(r.Context(), `
-		select id::text, email, username, display_name, avatar_url, password_hash, created_at, updated_at
+		select id::text, email, username, display_name, avatar_url, theme_preference, password_hash, created_at, updated_at
 		from users
 		where lower(email) = lower($1)
 	`, email).Scan(
@@ -137,6 +137,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		&user.Username,
 		&user.DisplayName,
 		&avatarURL,
+		&user.ThemePreference,
 		&passwordHash,
 		&user.CreatedAt,
 		&user.UpdatedAt,
@@ -262,6 +263,7 @@ func (s *Server) authenticateRequest(ctx context.Context, r *http.Request) (User
 			u.username,
 			u.display_name,
 			u.avatar_url,
+			u.theme_preference,
 			u.created_at,
 			u.updated_at
 		from user_sessions us
@@ -276,6 +278,7 @@ func (s *Server) authenticateRequest(ctx context.Context, r *http.Request) (User
 		&user.Username,
 		&user.DisplayName,
 		&avatarURL,
+		&user.ThemePreference,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -317,13 +320,14 @@ func (s *Server) createSignupUser(ctx context.Context, email string, displayName
 		err := s.db.QueryRow(ctx, `
 			insert into users (email, username, display_name, password_hash)
 			values ($1, $2, $3, $4)
-			returning id::text, email, username, display_name, avatar_url, created_at, updated_at
+			returning id::text, email, username, display_name, avatar_url, theme_preference, created_at, updated_at
 		`, email, username, displayName, passwordHash).Scan(
 			&user.ID,
 			&user.Email,
 			&user.Username,
 			&user.DisplayName,
 			&avatarURL,
+			&user.ThemePreference,
 			&user.CreatedAt,
 			&user.UpdatedAt,
 		)

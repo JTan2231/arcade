@@ -11,6 +11,7 @@ type Rgba = {
 
 type SpotlightTarget = {
   active: boolean;
+  appearanceKey: string;
   element: HTMLElement;
   id: string;
   order: number;
@@ -89,6 +90,7 @@ function drawSpotlight({
   radiusY,
   maximumDevicePixelRatio,
   intensity = 1,
+  styleElement = document.documentElement,
 }: {
   canvas: HTMLCanvasElement;
   cssWidth: number;
@@ -99,13 +101,14 @@ function drawSpotlight({
   radiusY: number;
   maximumDevicePixelRatio: number;
   intensity?: number;
+  styleElement?: Element;
 }) {
   const context = canvas.getContext("2d");
   if (context === null) {
     return;
   }
 
-  const style = getComputedStyle(document.documentElement);
+  const style = getComputedStyle(styleElement);
   const origin = parseColor(style.getPropertyValue(originToken).trim());
   const endpoint = parseColor(style.getPropertyValue(endpointToken).trim());
   if (origin === null || endpoint === null) {
@@ -197,6 +200,9 @@ function AmbientSpotlight({ target }: { target: HTMLElement | null }) {
     scheduleDraw();
     window.addEventListener("resize", scheduleDraw);
 
+    const themeObserver = new MutationObserver(scheduleDraw);
+    themeObserver.observe(document.documentElement, { attributes: true });
+
     const visualViewport = window.visualViewport;
     if (visualViewport !== null && visualViewport !== undefined) {
       visualViewport.addEventListener("resize", scheduleDraw);
@@ -204,6 +210,7 @@ function AmbientSpotlight({ target }: { target: HTMLElement | null }) {
 
     return () => {
       window.removeEventListener("resize", scheduleDraw);
+      themeObserver.disconnect();
       if (visualViewport !== null && visualViewport !== undefined) {
         visualViewport.removeEventListener("resize", scheduleDraw);
       }
@@ -284,6 +291,10 @@ function FocusedSpotlight({ target, tone }: { target: SpotlightTarget | null; to
   const originToken = feedTone ? "--color-feed-spotlight" : "--color-post-spotlight";
   const endpointToken = feedTone ? "--color-feed-spotlight-transparent" : "--color-post-spotlight-transparent";
   const intensity = feedTone ? focusedFeedSpotlightIntensity : 1;
+  const targetElement = target?.element ?? null;
+  const targetAppearanceKey = target?.appearanceKey ?? "";
+  const targetActive = target?.active === true;
+  const targetStrength = clamp(target?.strength ?? 1, 0, 1);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -299,17 +310,24 @@ function FocusedSpotlight({ target, tone }: { target: SpotlightTarget | null; to
         canvas,
         cssWidth: width,
         cssHeight: height,
-        originToken,
-        endpointToken,
+        originToken: feedTone ? originToken : "--post-card-spotlight",
+        endpointToken: feedTone ? endpointToken : "--post-card-spotlight-transparent",
         radiusX: 0.5,
         radiusY: 0.5,
         maximumDevicePixelRatio: maxPostDevicePixelRatio,
         intensity,
+        styleElement: feedTone || targetElement === null ? document.documentElement : targetElement,
       });
     };
 
     draw();
     window.addEventListener("resize", draw);
+
+    const themeObserver = new MutationObserver(draw);
+    themeObserver.observe(document.documentElement, { attributes: true });
+    if (!feedTone && targetElement !== null) {
+      themeObserver.observe(targetElement, { attributeFilter: ["class", "style"], attributes: true });
+    }
 
     const visualViewport = window.visualViewport;
     if (visualViewport !== null && visualViewport !== undefined) {
@@ -318,15 +336,12 @@ function FocusedSpotlight({ target, tone }: { target: SpotlightTarget | null; to
 
     return () => {
       window.removeEventListener("resize", draw);
+      themeObserver.disconnect();
       if (visualViewport !== null && visualViewport !== undefined) {
         visualViewport.removeEventListener("resize", draw);
       }
     };
-  }, [endpointToken, intensity, originToken]);
-
-  const targetElement = target?.element ?? null;
-  const targetActive = target?.active === true;
-  const targetStrength = clamp(target?.strength ?? 1, 0, 1);
+  }, [endpointToken, feedTone, intensity, originToken, targetAppearanceKey, targetElement]);
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
@@ -431,29 +446,33 @@ export function FeedSpotlight({
   const removalTimers = useRef(new Map<string, number>());
   const nextTargetOrder = useRef(0);
 
-  const registerTarget = useCallback((id: string, element: HTMLElement, tone: FeedSpotlightTone, strength: number) => {
-    const timer = removalTimers.current.get(id);
-    if (timer !== undefined) {
-      window.clearTimeout(timer);
-      removalTimers.current.delete(id);
-    }
-
-    setTargets((current) => {
-      const existing = current.get(id);
-      if (
-        existing?.active === true &&
-        existing.element === element &&
-        existing.tone === tone &&
-        existing.strength === strength
-      ) {
-        return current;
+  const registerTarget = useCallback(
+    (id: string, element: HTMLElement, tone: FeedSpotlightTone, strength: number, appearanceKey: string) => {
+      const timer = removalTimers.current.get(id);
+      if (timer !== undefined) {
+        window.clearTimeout(timer);
+        removalTimers.current.delete(id);
       }
-      nextTargetOrder.current += 1;
-      const next = new Map(current);
-      next.set(id, { active: true, element, id, order: nextTargetOrder.current, strength, tone });
-      return next;
-    });
-  }, []);
+
+      setTargets((current) => {
+        const existing = current.get(id);
+        if (
+          existing?.active === true &&
+          existing.element === element &&
+          existing.tone === tone &&
+          existing.strength === strength &&
+          existing.appearanceKey === appearanceKey
+        ) {
+          return current;
+        }
+        nextTargetOrder.current += 1;
+        const next = new Map(current);
+        next.set(id, { active: true, appearanceKey, element, id, order: nextTargetOrder.current, strength, tone });
+        return next;
+      });
+    },
+    [],
+  );
 
   const releaseTarget = useCallback((id: string, element: HTMLElement) => {
     setTargets((current) => {

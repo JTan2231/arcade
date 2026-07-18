@@ -70,6 +70,27 @@
   z-index: 10;
 }
 
+.theme-preference-control {
+  position: fixed;
+  top: 16px;
+  z-index: 10;
+}
+
+.theme-preference-control.signed-in {
+  right: 88px;
+}
+
+.theme-preference-control.signed-out {
+  right: 16px;
+}
+
+.theme-preference-control select {
+  font-size: 13px;
+  min-height: 30px;
+  padding-block: 0;
+  width: auto;
+}
+
 .page-scroll-controls {
   background: var(--color-surface);
   border: 1px solid var(--color-border);

@@ -776,17 +776,7 @@ func dailyFeedSelectSQL() string {
 			f.source_id::text,
 			cs.name,
 			f.item_count,
-			ef.id::text,
-			ef.group_id::text,
-			ef.slug,
-			ef.name,
-			ef.description,
-			ef.archived_at,
-			ef.created_by_user_id::text,
-			ef.updated_by_user_id::text,
-			ef.created_at,
-			ef.updated_at,
-			coalesce(ef_feed_counts.assigned_feed_count, 0),
+			` + evidenceFormatSelectColumns("ef", "ef_palette", "coalesce(ef_feed_counts.assigned_feed_count, 0)") + `,
 			` + evidenceFormatVersionSelectColumns("efv") + `,
 			f.schedule_starts_at,
 			f.schedule_timezone,
@@ -798,6 +788,9 @@ func dailyFeedSelectSQL() string {
 		join groups g on g.id = f.group_id
 		left join catalog_sources cs on cs.id = f.source_id
 		join group_evidence_formats ef on ef.id = f.evidence_format_id and ef.group_id = f.group_id
+		join group_post_card_palettes ef_palette
+		  on ef_palette.id = ef.content_card_palette_id
+		 and ef_palette.group_id = ef.group_id
 		join lateral (
 			select *
 			from group_evidence_format_versions

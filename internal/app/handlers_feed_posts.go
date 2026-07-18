@@ -561,17 +561,7 @@ func groupFeedPostSelect() string {
 			u.display_name,
 			u.avatar_url,
 			p.evidence_text,
-			fmt.id::text,
-			fmt.group_id::text,
-			fmt.slug,
-			fmt.name,
-			fmt.description,
-			fmt.archived_at,
-			fmt.created_by_user_id::text,
-			fmt.updated_by_user_id::text,
-			fmt.created_at,
-			fmt.updated_at,
-			coalesce(fmt_feed_counts.assigned_feed_count, 0),
+			` + evidenceFormatSelectColumns("fmt", "fmt_palette", "coalesce(fmt_feed_counts.assigned_feed_count, 0)") + `,
 			` + evidenceFormatVersionSelectColumns("av") + `,
 			` + evidenceFormatVersionSelectColumns("v") + `,
 			p.caption,
@@ -583,6 +573,9 @@ func groupFeedPostSelect() string {
 		join users u on u.id = p.author_user_id
 		join group_evidence_format_versions v on v.id = p.evidence_format_version_id and v.group_id = p.group_id
 		join group_evidence_formats fmt on fmt.id = v.format_id and fmt.group_id = v.group_id
+		join group_post_card_palettes fmt_palette
+		  on fmt_palette.id = fmt.content_card_palette_id
+		 and fmt_palette.group_id = fmt.group_id
 		join lateral (
 			select *
 			from group_evidence_format_versions

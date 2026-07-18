@@ -42,6 +42,40 @@ export {
   renderToken,
   specularShape,
 } from "./render";
+export {
+  cardPaletteCssProperties,
+  canonicalizeCardPaletteIntent,
+  cardPaletteTokenNames,
+  chalkboardCardPaletteIntent,
+  compileCardPalette,
+  compileCardPaletteForProfile,
+  compileCardPalettePair,
+  defaultCardPaletteTokens,
+  installCardPaletteCssProperties,
+  renderCardPaletteWheelColor,
+} from "./cardPalette";
+export type {
+  CanonicalCardPaletteIntent,
+  CardPaletteCssProperties,
+  CardPaletteIntent,
+  CardPaletteTokenName,
+  CardPaletteValidation,
+  CompiledCardPalette,
+  CompiledCardPalettePair,
+} from "./cardPalette";
+export {
+  arcadeDarkProfile,
+  arcadeLightColorTargets,
+  arcadeLightPaletteValidation,
+  arcadeLightProfile,
+  arcadeLightScene,
+  arcadeThemeProfiles,
+  createArcadeLightPalette,
+  getActiveThemeProfile,
+  getThemeProfile,
+  setActiveThemeProfileMode,
+} from "./themeProfiles";
+export type { ThemeMode, ThemeProfile, ThemeProfileId } from "./themeProfiles";
 export type {
   ChromaResponse,
   ColorRecipeMap,

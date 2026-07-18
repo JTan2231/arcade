@@ -57,6 +57,7 @@ var mirrorTables = []mirrorTable{
 			"updated_at",
 			"email",
 			"password_hash",
+			"theme_preference",
 		},
 		selectSQL: userSelectSQL,
 	},
@@ -117,6 +118,26 @@ var mirrorTables = []mirrorTable{
 		},
 	},
 	{
+		name: "group_post_card_palettes",
+		columns: []string{
+			"id",
+			"group_id",
+			"system_key",
+			"name",
+			"material_model",
+			"surface_hue",
+			"surface_colorfulness",
+			"accent_hue",
+			"accent_colorfulness",
+			"archived_at",
+			"revision",
+			"created_by_user_id",
+			"updated_by_user_id",
+			"created_at",
+			"updated_at",
+		},
+	},
+	{
 		name: "group_evidence_formats",
 		columns: []string{
 			"id",
@@ -129,6 +150,8 @@ var mirrorTables = []mirrorTable{
 			"updated_by_user_id",
 			"created_at",
 			"updated_at",
+			"content_typeface",
+			"content_card_palette_id",
 		},
 	},
 	{
@@ -846,7 +869,7 @@ func userSelectSQL(opts mirrorOptions) string {
 	}
 
 	return fmt.Sprintf(
-		`select id, username, display_name, avatar_url, created_at, updated_at, %s as email, %s as password_hash from %s`,
+		`select id, username, display_name, avatar_url, created_at, updated_at, %s as email, %s as password_hash, theme_preference from %s`,
 		email,
 		passwordHash,
 		qualifiedTableName("users"),

@@ -5,6 +5,7 @@ import type {
   CreateEvidenceFormatVersionRequest,
   EvidenceFormat,
   PatchEvidenceFormatRequest,
+  PostCardPalette,
 } from "../../types";
 import { CreateEvidenceFormatDialog, EditEvidenceFormatDialog } from "./CreateEvidenceFormatDialog";
 import { type EvidenceFormatEditPayloads, formatConstraintSummary } from "./evidenceFormatDraft";
@@ -18,6 +19,8 @@ type EditSubmission = EvidenceFormatEditPayloads & {
 export function EvidenceFormatManager({
   groupName,
   formats,
+  palettes,
+  palettesLoading,
   error,
   loading,
   saving,
@@ -31,6 +34,8 @@ export function EvidenceFormatManager({
 }: {
   groupName: string;
   formats: EvidenceFormat[];
+  palettes: PostCardPalette[];
+  palettesLoading: boolean;
   error: string;
   loading: boolean;
   saving: boolean;
@@ -52,7 +57,11 @@ export function EvidenceFormatManager({
   const editFormat = formats.find((format) => format.id === editFormatId);
   const formatMutationActive =
     saving || updatingFormatId !== null || deletingFormatId !== null || editSubmission !== null;
-  const canAddFormat = !loading && !formatMutationActive;
+  const canAddFormat =
+    !loading &&
+    !palettesLoading &&
+    palettes.some((palette) => palette.archived_at === undefined) &&
+    !formatMutationActive;
 
   const closeCreateDialog = useCallback(() => {
     setCreateOpen(false);
@@ -140,10 +149,10 @@ export function EvidenceFormatManager({
   }
 
   return (
-    <section className="evidence-format-manager" aria-label="Evidence formats">
+    <section className="evidence-format-manager" aria-label="Post formats">
       <div className="section-header-row">
         <div>
-          <div className="meta">Reusable rules for member posts</div>
+          <div className="meta">Reusable appearance and rules for member posts</div>
         </div>
         <button
           aria-haspopup="dialog"
@@ -172,6 +181,7 @@ export function EvidenceFormatManager({
             disabled={formatMutationActive}
             deleting={deletingFormatId === format.id}
             format={format}
+            palette={palettes.find((palette) => palette.id === format.content_card_palette_id)}
             key={format.id}
             updating={updatingFormatId === format.id}
             onDeleteFormat={onDeleteFormat}
@@ -188,6 +198,7 @@ export function EvidenceFormatManager({
       {createOpen ? (
         <CreateEvidenceFormatDialog
           groupName={groupName}
+          palettes={palettes}
           saving={saving || createAwaitingResult}
           submissionError={createError}
           onClose={closeCreateDialog}
@@ -206,6 +217,7 @@ export function EvidenceFormatManager({
         <EditEvidenceFormatDialog
           format={editFormat}
           groupName={groupName}
+          palettes={palettes}
           saving={editSubmission !== null || updatingFormatId === editFormat.id}
           submissionError={editError}
           onClose={closeEditDialog}
@@ -222,6 +234,7 @@ export function EvidenceFormatManager({
 
 function EvidenceFormatManagerRow({
   format,
+  palette,
   disabled,
   updating,
   deleting,
@@ -230,6 +243,7 @@ function EvidenceFormatManagerRow({
   onEdit,
 }: {
   format: EvidenceFormat;
+  palette: PostCardPalette | undefined;
   disabled: boolean;
   updating: boolean;
   deleting: boolean;
@@ -251,20 +265,19 @@ function EvidenceFormatManagerRow({
           </div>
         </div>
         <div className="compact-actions">
-          {!archived ? (
-            <button
-              aria-haspopup="dialog"
-              aria-label={`Edit ${format.name}`}
-              className="secondary"
-              disabled={disabled || busy}
-              type="button"
-              onClick={onEdit}
-            >
-              Edit
-            </button>
-          ) : null}
+          <button
+            aria-haspopup="dialog"
+            aria-label={`Edit ${format.name}`}
+            className="secondary"
+            disabled={disabled || busy}
+            type="button"
+            onClick={onEdit}
+          >
+            Edit
+          </button>
           {archived ? (
             <button
+              aria-label={`Unarchive ${format.name}`}
               type="button"
               className="secondary"
               disabled={disabled || busy}
@@ -274,6 +287,7 @@ function EvidenceFormatManagerRow({
             </button>
           ) : (
             <button
+              aria-label={`Archive ${format.name}`}
               type="button"
               className="danger"
               disabled={disabled || busy || archiveBlocked}
@@ -288,6 +302,10 @@ function EvidenceFormatManagerRow({
       <div className="meta">
         {format.assigned_feed_count} {format.assigned_feed_count === 1 ? "feed" : "feeds"}
         {archived ? " · Archived" : ""}
+      </div>
+      <div className="meta">
+        {format.content_typeface === "serif" ? "Serif · Fanwood Text" : "Monospace"} ·{" "}
+        {palette?.name ?? format.content_card_palette.name}
       </div>
       {archiveBlocked ? <div className="meta">Assigned feeds block archiving.</div> : null}
     </div>

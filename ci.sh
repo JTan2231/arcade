@@ -130,6 +130,9 @@ run_frontend() {
 	section "Frontend: linting CSS"
 	(cd web/frontend && bun run lint:css) || return 1
 
+	section "Frontend: running tests"
+	(cd web/frontend && bun run test) || return 1
+
 	section "Frontend: checking unused code"
 	(cd web/frontend && bun run check:dead) || return 1
 

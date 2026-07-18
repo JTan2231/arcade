@@ -3,13 +3,14 @@ package app
 import "time"
 
 type User struct {
-	ID          string    `json:"id"`
-	Email       string    `json:"email"`
-	Username    string    `json:"username"`
-	DisplayName string    `json:"display_name"`
-	AvatarURL   *string   `json:"avatar_url,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID              string    `json:"id"`
+	Email           string    `json:"email"`
+	Username        string    `json:"username"`
+	DisplayName     string    `json:"display_name"`
+	AvatarURL       *string   `json:"avatar_url,omitempty"`
+	ThemePreference string    `json:"theme_preference"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
 }
 
 type PublicUser struct {
@@ -348,19 +349,50 @@ type GroupPostTag struct {
 	UpdatedAt       time.Time  `json:"updated_at"`
 }
 
+type PostCardMaterialIntent struct {
+	Model               string `json:"model"`
+	SurfaceHue          int    `json:"surface_hue"`
+	SurfaceColorfulness int    `json:"surface_colorfulness"`
+	AccentHue           *int   `json:"accent_hue,omitempty"`
+	AccentColorfulness  *int   `json:"accent_colorfulness,omitempty"`
+}
+
+type PostCardPaletteSummary struct {
+	ID             string                 `json:"id"`
+	SystemKey      *string                `json:"system_key,omitempty"`
+	Name           string                 `json:"name"`
+	MaterialIntent PostCardMaterialIntent `json:"material_intent"`
+	ArchivedAt     *time.Time             `json:"archived_at,omitempty"`
+	Revision       int64                  `json:"revision"`
+}
+
+type GroupPostCardPalette struct {
+	PostCardPaletteSummary
+	GroupID             string    `json:"group_id"`
+	ActiveFormatCount   int       `json:"active_format_count"`
+	ArchivedFormatCount int       `json:"archived_format_count"`
+	CreatedByUserID     *string   `json:"created_by_user_id,omitempty"`
+	UpdatedByUserID     *string   `json:"updated_by_user_id,omitempty"`
+	CreatedAt           time.Time `json:"created_at"`
+	UpdatedAt           time.Time `json:"updated_at"`
+}
+
 type EvidenceFormat struct {
-	ID                string                `json:"id"`
-	GroupID           string                `json:"group_id,omitempty"`
-	Slug              string                `json:"slug"`
-	Name              string                `json:"name"`
-	Description       *string               `json:"description,omitempty"`
-	ArchivedAt        *time.Time            `json:"archived_at,omitempty"`
-	CreatedByUserID   *string               `json:"created_by_user_id,omitempty"`
-	UpdatedByUserID   *string               `json:"updated_by_user_id,omitempty"`
-	ActiveVersion     EvidenceFormatVersion `json:"active_version"`
-	AssignedFeedCount int                   `json:"assigned_feed_count"`
-	CreatedAt         time.Time             `json:"created_at"`
-	UpdatedAt         time.Time             `json:"updated_at"`
+	ID                   string                 `json:"id"`
+	GroupID              string                 `json:"group_id,omitempty"`
+	Slug                 string                 `json:"slug"`
+	Name                 string                 `json:"name"`
+	Description          *string                `json:"description,omitempty"`
+	ContentTypeface      string                 `json:"content_typeface"`
+	ContentCardPaletteID string                 `json:"content_card_palette_id"`
+	ContentCardPalette   PostCardPaletteSummary `json:"content_card_palette"`
+	ArchivedAt           *time.Time             `json:"archived_at,omitempty"`
+	CreatedByUserID      *string                `json:"created_by_user_id,omitempty"`
+	UpdatedByUserID      *string                `json:"updated_by_user_id,omitempty"`
+	ActiveVersion        EvidenceFormatVersion  `json:"active_version"`
+	AssignedFeedCount    int                    `json:"assigned_feed_count"`
+	CreatedAt            time.Time              `json:"created_at"`
+	UpdatedAt            time.Time              `json:"updated_at"`
 }
 
 type EvidenceFormatVersion struct {

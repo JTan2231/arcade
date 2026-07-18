@@ -19,23 +19,27 @@ const defaultEvidenceFormatSlug = "plain-text"
 var evidenceFormatSlugPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*[a-z0-9]$`)
 
 type createEvidenceFormatRequest struct {
-	Slug            string  `json:"slug"`
-	Name            string  `json:"name"`
-	Description     *string `json:"description"`
-	MinChars        *int    `json:"min_chars"`
-	MaxChars        *int    `json:"max_chars"`
-	MinLines        *int    `json:"min_lines"`
-	MaxLines        *int    `json:"max_lines"`
-	ExactLines      *int    `json:"exact_lines"`
-	LineMinChars    *int    `json:"line_min_chars"`
-	LineMaxChars    *int    `json:"line_max_chars"`
-	AllowBlankLines *bool   `json:"allow_blank_lines"`
+	Slug                 string  `json:"slug"`
+	Name                 string  `json:"name"`
+	Description          *string `json:"description"`
+	ContentTypeface      string  `json:"content_typeface"`
+	ContentCardPaletteID string  `json:"content_card_palette_id"`
+	MinChars             *int    `json:"min_chars"`
+	MaxChars             *int    `json:"max_chars"`
+	MinLines             *int    `json:"min_lines"`
+	MaxLines             *int    `json:"max_lines"`
+	ExactLines           *int    `json:"exact_lines"`
+	LineMinChars         *int    `json:"line_min_chars"`
+	LineMaxChars         *int    `json:"line_max_chars"`
+	AllowBlankLines      *bool   `json:"allow_blank_lines"`
 }
 
 type patchEvidenceFormatRequest struct {
-	Name        optionalStringField         `json:"name"`
-	Description optionalNullableStringField `json:"description"`
-	Archived    optionalBoolField           `json:"archived"`
+	Name                 optionalStringField         `json:"name"`
+	Description          optionalNullableStringField `json:"description"`
+	ContentTypeface      optionalStringField         `json:"content_typeface"`
+	ContentCardPaletteID optionalStringField         `json:"content_card_palette_id"`
+	Archived             optionalBoolField           `json:"archived"`
 }
 
 type createEvidenceFormatVersionRequest struct {
@@ -50,17 +54,21 @@ type createEvidenceFormatVersionRequest struct {
 }
 
 type normalizedEvidenceFormatInput struct {
-	Slug        string
-	Name        string
-	Description *string
-	Constraints normalizedEvidenceFormatConstraints
+	Slug                 string
+	Name                 string
+	Description          *string
+	ContentTypeface      string
+	ContentCardPaletteID string
+	Constraints          normalizedEvidenceFormatConstraints
 }
 
 type normalizedEvidenceFormatPatch struct {
-	Name           *string
-	DescriptionSet bool
-	Description    *string
-	Archived       *bool
+	Name                 *string
+	DescriptionSet       bool
+	Description          *string
+	ContentTypeface      *string
+	ContentCardPaletteID *string
+	Archived             *bool
 }
 
 type normalizedEvidenceFormatConstraints struct {
@@ -137,6 +145,18 @@ func (s *Server) handleCreateGroupEvidenceFormat(w http.ResponseWriter, r *http.
 	}
 	defer tx.Rollback(r.Context())
 
+	paletteID, err := resolveActivePostCardPaletteID(
+		r.Context(),
+		tx,
+		groupID,
+		input.ContentCardPaletteID,
+		true,
+	)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
 	var formatID string
 	err = tx.QueryRow(r.Context(), `
 		insert into group_evidence_formats (
@@ -144,12 +164,14 @@ func (s *Server) handleCreateGroupEvidenceFormat(w http.ResponseWriter, r *http.
 			slug,
 			name,
 			description,
+			content_typeface,
+			content_card_palette_id,
 			created_by_user_id,
 			updated_by_user_id
 		)
-		values ($1, $2, $3, $4, $5, $5)
+		values ($1, $2, $3, $4, $5, $6, $7, $7)
 		returning id::text
-	`, groupID, input.Slug, input.Name, input.Description, current.ID).Scan(&formatID)
+	`, groupID, input.Slug, input.Name, input.Description, input.ContentTypeface, paletteID, current.ID).Scan(&formatID)
 	if err != nil {
 		handleEvidenceFormatWriteError(w, err)
 		return
@@ -252,30 +274,84 @@ func (s *Server) handlePatchGroupEvidenceFormat(w http.ResponseWriter, r *http.R
 	}
 
 	formatID := r.PathValue("format_id")
+	tx, err := s.db.Begin(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	var currentArchivedAt sql.NullTime
+	var currentPaletteID string
+	err = tx.QueryRow(r.Context(), `
+		select archived_at, content_card_palette_id::text
+		from group_evidence_formats
+		where group_id = $1 and id = $2
+		for update
+	`, groupID, formatID).Scan(&currentArchivedAt, &currentPaletteID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		handleError(w, errNotFound("evidence format"))
+		return
+	}
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
 	if patch.Archived != nil && *patch.Archived {
-		if err := s.ensureEvidenceFormatNotAssigned(r.Context(), groupID, formatID); err != nil {
+		if err := ensureEvidenceFormatNotAssigned(r.Context(), tx, groupID, formatID); err != nil {
 			handleError(w, err)
 			return
 		}
 	}
 
-	tag, err := s.db.Exec(r.Context(), `
+	paletteID := currentPaletteID
+	if patch.ContentCardPaletteID != nil || (patch.Archived != nil && !*patch.Archived) {
+		rawPaletteID := currentPaletteID
+		if patch.ContentCardPaletteID != nil {
+			rawPaletteID = *patch.ContentCardPaletteID
+		}
+		paletteID, err = resolveActivePostCardPaletteID(r.Context(), tx, groupID, rawPaletteID, false)
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+	}
+
+	tag, err := tx.Exec(r.Context(), `
 		update group_evidence_formats
 		set name = coalesce($3, name),
 		    description = case when $4 then $5::text else description end,
+		    content_typeface = coalesce($6, content_typeface),
+		    content_card_palette_id = $7,
 		    archived_at = case
-		        when $6 then case when $7 then coalesce(archived_at, now()) else null end
+		        when $8 then case when $9 then coalesce(archived_at, now()) else null end
 		        else archived_at
 		    end,
-		    updated_by_user_id = $8
+		    updated_by_user_id = $10
 		where group_id = $1 and id = $2
-	`, groupID, formatID, patch.Name, patch.DescriptionSet, patch.Description, patch.Archived != nil, patch.Archived != nil && *patch.Archived, current.ID)
+	`,
+		groupID,
+		formatID,
+		patch.Name,
+		patch.DescriptionSet,
+		patch.Description,
+		patch.ContentTypeface,
+		paletteID,
+		patch.Archived != nil,
+		patch.Archived != nil && *patch.Archived,
+		current.ID,
+	)
 	if err != nil {
 		handleEvidenceFormatWriteError(w, err)
 		return
 	}
 	if tag.RowsAffected() == 0 {
 		handleError(w, errNotFound("evidence format"))
+		return
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		handleError(w, err)
 		return
 	}
 
@@ -450,16 +526,26 @@ func normalizeCreateEvidenceFormatRequest(req createEvidenceFormatRequest) (norm
 	if err != nil {
 		return normalizedEvidenceFormatInput{}, err
 	}
+	contentTypeface, err := normalizeContentTypeface(req.ContentTypeface, true)
+	if err != nil {
+		return normalizedEvidenceFormatInput{}, err
+	}
+	contentCardPaletteID := strings.TrimSpace(req.ContentCardPaletteID)
+	if contentCardPaletteID != "" && !uuidStringPattern.MatchString(contentCardPaletteID) {
+		return normalizedEvidenceFormatInput{}, badRequest("content_card_palette_id must be a UUID string")
+	}
 	return normalizedEvidenceFormatInput{
-		Slug:        slug,
-		Name:        name,
-		Description: trimOptionalString(req.Description),
-		Constraints: constraints,
+		Slug:                 slug,
+		Name:                 name,
+		Description:          trimOptionalString(req.Description),
+		ContentTypeface:      contentTypeface,
+		ContentCardPaletteID: contentCardPaletteID,
+		Constraints:          constraints,
 	}, nil
 }
 
 func normalizePatchEvidenceFormatRequest(req patchEvidenceFormatRequest) (normalizedEvidenceFormatPatch, error) {
-	if !req.Name.Set && !req.Description.Set && !req.Archived.Set {
+	if !req.Name.Set && !req.Description.Set && !req.ContentTypeface.Set && !req.ContentCardPaletteID.Set && !req.Archived.Set {
 		return normalizedEvidenceFormatPatch{}, badRequest("at least one field is required")
 	}
 
@@ -475,10 +561,35 @@ func normalizePatchEvidenceFormatRequest(req patchEvidenceFormatRequest) (normal
 		patch.DescriptionSet = true
 		patch.Description = trimOptionalString(req.Description.Value)
 	}
+	if req.ContentTypeface.Set {
+		contentTypeface, err := normalizeContentTypeface(req.ContentTypeface.Value, false)
+		if err != nil {
+			return normalizedEvidenceFormatPatch{}, err
+		}
+		patch.ContentTypeface = &contentTypeface
+	}
+	if req.ContentCardPaletteID.Set {
+		paletteID := strings.TrimSpace(req.ContentCardPaletteID.Value)
+		if !uuidStringPattern.MatchString(paletteID) {
+			return normalizedEvidenceFormatPatch{}, badRequest("content_card_palette_id must be a UUID string")
+		}
+		patch.ContentCardPaletteID = &paletteID
+	}
 	if req.Archived.Set {
 		patch.Archived = &req.Archived.Value
 	}
 	return patch, nil
+}
+
+func normalizeContentTypeface(raw string, useDefault bool) (string, error) {
+	value := strings.TrimSpace(raw)
+	if value == "" && useDefault {
+		return "monospace", nil
+	}
+	if value != "monospace" && value != "serif" {
+		return "", badRequest("content_typeface must be monospace or serif")
+	}
+	return value, nil
 }
 
 func normalizeEvidenceFormatName(name string) (string, error) {
@@ -626,8 +737,17 @@ func (s *Server) getGroupEvidenceFormat(ctx context.Context, groupID string, for
 }
 
 func (s *Server) ensureEvidenceFormatNotAssigned(ctx context.Context, groupID string, formatID string) error {
+	return ensureEvidenceFormatNotAssigned(ctx, s.db, groupID, formatID)
+}
+
+func ensureEvidenceFormatNotAssigned(
+	ctx context.Context,
+	querier postCardPaletteRowQuerier,
+	groupID string,
+	formatID string,
+) error {
 	var assignedCount int
-	err := s.db.QueryRow(ctx, `
+	err := querier.QueryRow(ctx, `
 		select count(*)::integer
 		from group_daily_feeds
 		where group_id = $1 and evidence_format_id = $2
@@ -704,7 +824,13 @@ func (s *Server) activeEvidenceFormatVersionForFeed(ctx context.Context, groupID
 	return version, err
 }
 
-func createPlainTextEvidenceFormat(ctx context.Context, tx pgx.Tx, groupID string, userID string) (string, error) {
+func createPlainTextEvidenceFormat(
+	ctx context.Context,
+	tx pgx.Tx,
+	groupID string,
+	postCardPaletteID string,
+	userID string,
+) (string, error) {
 	var formatID string
 	if err := tx.QueryRow(ctx, `
 		insert into group_evidence_formats (
@@ -712,12 +838,14 @@ func createPlainTextEvidenceFormat(ctx context.Context, tx pgx.Tx, groupID strin
 			slug,
 			name,
 			description,
+			content_typeface,
+			content_card_palette_id,
 			created_by_user_id,
 			updated_by_user_id
 		)
-		values ($1, $2, 'Plain text', null, $3, $3)
+		values ($1, $2, 'Plain text', null, 'monospace', $3, $4, $4)
 		returning id::text
-	`, groupID, defaultEvidenceFormatSlug, userID).Scan(&formatID); err != nil {
+	`, groupID, defaultEvidenceFormatSlug, postCardPaletteID, userID).Scan(&formatID); err != nil {
 		return "", err
 	}
 
@@ -746,20 +874,12 @@ func createPlainTextEvidenceFormat(ctx context.Context, tx pgx.Tx, groupID strin
 
 func evidenceFormatSelectSQL() string {
 	return `
-		select
-			fmt.id::text,
-			fmt.group_id::text,
-			fmt.slug,
-			fmt.name,
-			fmt.description,
-			fmt.archived_at,
-			fmt.created_by_user_id::text,
-			fmt.updated_by_user_id::text,
-			fmt.created_at,
-			fmt.updated_at,
-			coalesce(feed_counts.assigned_feed_count, 0),
+		select ` + evidenceFormatSelectColumns("fmt", "palette", "coalesce(feed_counts.assigned_feed_count, 0)") + `,
 			` + evidenceFormatVersionSelectColumns("v") + `
 		from group_evidence_formats fmt
+		join group_post_card_palettes palette
+		  on palette.id = fmt.content_card_palette_id
+		 and palette.group_id = fmt.group_id
 		join lateral (
 			select *
 			from group_evidence_format_versions
@@ -775,6 +895,25 @@ func evidenceFormatSelectSQL() string {
 			  and f.evidence_format_id = fmt.id
 		) feed_counts on true
 	`
+}
+
+func evidenceFormatSelectColumns(formatAlias string, paletteAlias string, assignedFeedCount string) string {
+	return strings.Join([]string{
+		formatAlias + ".id::text",
+		formatAlias + ".group_id::text",
+		formatAlias + ".slug",
+		formatAlias + ".name",
+		formatAlias + ".description",
+		formatAlias + ".content_typeface",
+		formatAlias + ".content_card_palette_id::text",
+		postCardPaletteSummarySelectColumns(paletteAlias),
+		formatAlias + ".archived_at",
+		formatAlias + ".created_by_user_id::text",
+		formatAlias + ".updated_by_user_id::text",
+		formatAlias + ".created_at",
+		formatAlias + ".updated_at",
+		assignedFeedCount,
+	}, ", ")
 }
 
 func evidenceFormatVersionSelectColumns(alias string) string {
@@ -811,13 +950,18 @@ func scanEvidenceFormatDest(format *EvidenceFormat) []any {
 		&format.Slug,
 		&format.Name,
 		newNullStringScanner(&format.Description),
+		&format.ContentTypeface,
+		&format.ContentCardPaletteID,
+	}
+	dest = append(dest, scanPostCardPaletteSummaryDest(&format.ContentCardPalette)...)
+	dest = append(dest,
 		newNullTimeScanner(&format.ArchivedAt),
 		newNullStringScanner(&format.CreatedByUserID),
 		newNullStringScanner(&format.UpdatedByUserID),
 		&format.CreatedAt,
 		&format.UpdatedAt,
 		&format.AssignedFeedCount,
-	}
+	)
 	return append(dest, scanEvidenceFormatVersionDest(&format.ActiveVersion)...)
 }
 

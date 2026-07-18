@@ -3,7 +3,13 @@ import { createContext, useContext, useLayoutEffect, type RefObject } from "reac
 export type FeedSpotlightTone = "feed" | "post";
 
 type FeedSpotlightContextValue = {
-  registerTarget: (id: string, element: HTMLElement, tone: FeedSpotlightTone, strength: number) => void;
+  registerTarget: (
+    id: string,
+    element: HTMLElement,
+    tone: FeedSpotlightTone,
+    strength: number,
+    appearanceKey: string,
+  ) => void;
   releaseTarget: (id: string, element: HTMLElement) => void;
 };
 
@@ -15,6 +21,7 @@ export function useFeedSpotlightTarget(
   active: boolean,
   tone: FeedSpotlightTone = "post",
   strength = 1,
+  appearanceKey = "",
 ) {
   const spotlight = useContext(FeedSpotlightContext);
   const normalizedStrength = Number.isFinite(strength) ? Math.min(1, Math.max(0, strength)) : 1;
@@ -25,7 +32,7 @@ export function useFeedSpotlightTarget(
       return;
     }
 
-    spotlight.registerTarget(id, element, tone, normalizedStrength);
+    spotlight.registerTarget(id, element, tone, normalizedStrength, appearanceKey);
     return () => spotlight.releaseTarget(id, element);
-  }, [active, id, normalizedStrength, spotlight, targetRef, tone]);
+  }, [active, appearanceKey, id, normalizedStrength, spotlight, targetRef, tone]);
 }

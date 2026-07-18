@@ -6,18 +6,29 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
   type RefObject,
   type TransitionEvent,
 } from "react";
 
 import { highlightCodeBlock, prepareCodeBlock } from "../../syntaxHighlight";
+import { compileCardPalette } from "../../palette";
+import {
+  resolvePostFormatAppearance,
+  useLivePostFormatAppearances,
+  type PostFormatAppearance,
+} from "../../postFormatAppearances";
+import { resolvePostCardPalette, useLivePostCardPalettes } from "../../postCardPalettes";
+import { useViewerTheme } from "../../theme";
 import type {
   CreateFeedMetricJudgmentRequest,
   EvidenceFormat,
   FeedMetric,
   GroupFeedPost,
   GroupPostTag,
+  PostCardPaletteSummary,
+  PostContentTypeface,
 } from "../../types";
 import {
   evidenceFormatConstraintSummary,
@@ -29,7 +40,7 @@ import { useFeedSpotlightTarget } from "./feedSpotlightContext";
 import { formatDateTime, sameStringSet, selectedActivePostTagIDs } from "./format";
 
 const EVIDENCE_PREVIEW_LINE_LIMIT = 6;
-const EVIDENCE_PREVIEW_HEIGHT = 93;
+const EVIDENCE_PREVIEW_FALLBACK_HEIGHT = 93;
 const POST_COMPOSER_TRANSITION_MS = 1_260;
 const POST_COMPOSER_CLOSE_FALLBACK_MS = POST_COMPOSER_TRANSITION_MS + 100;
 const POST_COMPOSER_IDLE_SPOTLIGHT_STRENGTH = 0.3;
@@ -102,6 +113,9 @@ export function FeedPostSection({
   const [formError, setFormError] = useState("");
   const [contentFocused, setContentFocused] = useState(false);
   const [captionFocused, setCaptionFocused] = useState(false);
+  const viewerTheme = useViewerTheme();
+  const liveFormatAppearances = useLivePostFormatAppearances();
+  const livePalettes = useLivePostCardPalettes();
   const postFormId = useId();
   const evidenceInputId = useId();
   const evidenceHintId = `${evidenceInputId}-hint`;
@@ -118,6 +132,10 @@ export function FeedPostSection({
   const contentHint = evidenceFormatConstraintSummary(evidenceFormat.active_version);
   const formMounted = formPhase !== "closed";
   const formOpen = formPhase === "opening" || formPhase === "open";
+  const composerFormatAppearance = resolvePostFormatAppearance(evidenceFormat, liveFormatAppearances);
+  const composerPalette = resolvePostCardPalette(composerFormatAppearance.contentCardPalette, livePalettes);
+  const composerAppearanceStyle = postCardAppearanceStyle(composerPalette);
+  const composerAppearanceKey = postCardAppearanceKey(composerPalette, viewerTheme.profileId);
 
   const finishPostFormClose = useCallback(() => {
     setFormPhase("closed");
@@ -135,6 +153,7 @@ export function FeedPostSection({
     formOpen && !captionFocused,
     "post",
     contentFocused ? 1 : POST_COMPOSER_IDLE_SPOTLIGHT_STRENGTH,
+    composerAppearanceKey,
   );
   useFeedSpotlightTarget(
     `post-caption-${postFormId}`,
@@ -269,6 +288,9 @@ export function FeedPostSection({
               judgedMetrics={judgedMetrics}
               canJudge={canJudge && currentUserId !== post.author_user_id}
               judging={judgingPostId === post.id}
+              liveFormatAppearances={liveFormatAppearances}
+              livePalettes={livePalettes}
+              themeProfileId={viewerTheme.profileId}
               onUpdateFeedPost={onUpdateFeedPost}
               onDeleteFeedPost={onDeleteFeedPost}
               onCreateMetricJudgment={onCreateMetricJudgment}
@@ -304,10 +326,13 @@ export function FeedPostSection({
       {formMounted ? (
         <form
           aria-hidden={formPhase !== "open"}
-          className={`feed-post-form post-composer-form ${formPhase === "open" ? "post-composer-form-open" : ""}`}
+          className={`feed-post-form post-card-palette post-content-typeface-${composerFormatAppearance.contentTypeface} post-composer-form ${
+            formPhase === "open" ? "post-composer-form-open" : ""
+          }`}
           id={postFormId}
           inert={formPhase !== "open"}
           ref={postFormSpotlightTargetRef}
+          style={composerAppearanceStyle}
           onSubmit={handleSubmit}
           onTransitionEnd={handlePostFormTransitionEnd}
         >
@@ -320,6 +345,7 @@ export function FeedPostSection({
           <textarea
             id={evidenceInputId}
             className="evidence-textarea"
+            disabled={formPhase !== "open"}
             required
             aria-describedby={contentHint === "" ? undefined : evidenceHintId}
             value={evidenceText}
@@ -338,6 +364,7 @@ export function FeedPostSection({
               Caption
               <textarea
                 className="caption-textarea"
+                disabled={formPhase !== "open"}
                 ref={captionSpotlightTargetRef}
                 value={caption}
                 onChange={(event) => setCaption(event.target.value)}
@@ -379,6 +406,9 @@ function FeedPostCard({
   judgedMetrics,
   canJudge,
   judging,
+  liveFormatAppearances,
+  livePalettes,
+  themeProfileId,
   onUpdateFeedPost,
   onDeleteFeedPost,
   onCreateMetricJudgment,
@@ -393,6 +423,9 @@ function FeedPostCard({
   judgedMetrics: FeedMetric[];
   canJudge: boolean;
   judging: boolean;
+  liveFormatAppearances: ReadonlyMap<string, PostFormatAppearance>;
+  livePalettes: ReadonlyMap<string, PostCardPaletteSummary>;
+  themeProfileId: string;
   onUpdateFeedPost: (postId: string, payload: UpdateFeedPostPayload) => void;
   onDeleteFeedPost: (postId: string) => void;
   onCreateMetricJudgment: (
@@ -411,6 +444,7 @@ function FeedPostCard({
   const [contentFocused, setContentFocused] = useState(false);
   const [captionFocused, setCaptionFocused] = useState(false);
   const [evidenceContentHeight, setEvidenceContentHeight] = useState<number | null>(null);
+  const [evidencePreviewHeight, setEvidencePreviewHeight] = useState(EVIDENCE_PREVIEW_FALLBACK_HEIGHT);
   const evidenceInputId = useId();
   const evidenceHintId = `${evidenceInputId}-hint`;
   const evidenceContentId = useId();
@@ -419,6 +453,7 @@ function FeedPostCard({
   const collapseEvidenceButtonRef = useRef<HTMLButtonElement>(null);
   const editSpotlightTargetRef = useRef<HTMLFormElement>(null);
   const evidenceLayoutRef = useRef<HTMLDivElement>(null);
+  const evidenceRenderRef = useRef<HTMLElement>(null);
   const expandEvidenceButtonRef = useRef<HTMLButtonElement>(null);
   const pendingEvidenceFocusRef = useRef<"collapse" | "expand" | null>(null);
   const spotlightTargetRef = useRef<HTMLDivElement>(null);
@@ -429,17 +464,29 @@ function FeedPostCard({
     caption: string;
     seenSaving: boolean;
   } | null>(null);
-  const evidencePreview = prepareEvidencePreview(post.evidence_text);
-  const evidenceCollapsed = evidencePreview.hasPreview && !evidenceExpanded;
+  const formatAppearance = resolvePostFormatAppearance(post.evidence_format, liveFormatAppearances);
+  const evidencePreview = prepareEvidencePreview(post.evidence_text, formatAppearance.contentTypeface);
+  const [evidenceHasPreview, setEvidenceHasPreview] = useState(evidencePreview.hasLogicalPreview);
+  const evidenceCollapsed = evidenceHasPreview && !evidenceExpanded;
   const contentHint = evidenceFormatConstraintSummary(post.evidence_format_version);
-  const evidenceRevealHeight = evidencePreview.hasPreview
+  const evidenceRevealHeight = evidenceHasPreview
     ? evidenceCollapsed
-      ? EVIDENCE_PREVIEW_HEIGHT
+      ? evidencePreviewHeight
       : (evidenceContentHeight ?? "auto")
     : "auto";
+  const cardPalette = resolvePostCardPalette(formatAppearance.contentCardPalette, livePalettes);
+  const appearanceStyle = postCardAppearanceStyle(cardPalette);
+  const appearanceKey = postCardAppearanceKey(cardPalette, themeProfileId);
 
-  useFeedSpotlightTarget(post.id, spotlightTargetRef, evidenceExpanded && !editing);
-  useFeedSpotlightTarget(`${post.id}-edit`, editSpotlightTargetRef, editing && contentFocused);
+  useFeedSpotlightTarget(post.id, spotlightTargetRef, evidenceExpanded && !editing, "post", 1, appearanceKey);
+  useFeedSpotlightTarget(
+    `${post.id}-edit`,
+    editSpotlightTargetRef,
+    editing && contentFocused,
+    "post",
+    1,
+    appearanceKey,
+  );
   useFeedSpotlightTarget(
     `${post.id}-caption-edit`,
     captionSpotlightTargetRef,
@@ -454,10 +501,6 @@ function FeedPostCard({
   }, [captionsEnabled]);
 
   useLayoutEffect(() => {
-    if (!evidencePreview.hasPreview) {
-      return undefined;
-    }
-
     const content = evidenceLayoutRef.current;
     if (content === null) {
       return undefined;
@@ -476,7 +519,42 @@ function FeedPostCard({
     const observer = new ResizeObserver(measure);
     observer.observe(content);
     return () => observer.disconnect();
-  }, [editing, evidenceExpanded, evidencePreview.hasPreview, post.caption, post.evidence_text]);
+  }, [editing, evidenceExpanded, evidenceHasPreview, post.caption, post.evidence_text]);
+
+  useLayoutEffect(() => {
+    const content = evidenceRenderRef.current;
+    if (content === null) {
+      return undefined;
+    }
+
+    const measure = () => {
+      const style = getComputedStyle(content);
+      const lineHeight = Number.parseFloat(style.lineHeight);
+      const verticalChrome =
+        Number.parseFloat(style.paddingTop) +
+        Number.parseFloat(style.paddingBottom) +
+        Number.parseFloat(style.borderTopWidth) +
+        Number.parseFloat(style.borderBottomWidth);
+      const previewThreshold =
+        (Number.isFinite(lineHeight) ? lineHeight : 19) * EVIDENCE_PREVIEW_LINE_LIMIT +
+        (Number.isFinite(verticalChrome) ? verticalChrome : 0);
+      const layout = evidenceLayoutRef.current;
+      const contentOffset =
+        layout === null ? 0 : Math.max(0, content.getBoundingClientRect().top - layout.getBoundingClientRect().top);
+      const nextPreviewHeight = Math.ceil(contentOffset + previewThreshold);
+      const nextHasPreview = content.scrollHeight > previewThreshold + 0.5;
+      setEvidencePreviewHeight((current) => (current === nextPreviewHeight ? current : nextPreviewHeight));
+      setEvidenceHasPreview((current) => (current === nextHasPreview ? current : nextHasPreview));
+      if (!nextHasPreview) {
+        setEvidenceExpanded(false);
+      }
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [formatAppearance.contentTypeface, post.evidence_text]);
 
   useLayoutEffect(() => {
     const pendingFocus = pendingEvidenceFocusRef.current;
@@ -700,7 +778,10 @@ function FeedPostCard({
     ) : null;
 
   return (
-    <article className="row feed-post-card">
+    <article
+      className={`row feed-post-card post-card-palette post-content-typeface-${formatAppearance.contentTypeface}`}
+      style={appearanceStyle}
+    >
       {editing ? <div className="post-card-header">{byline}</div> : null}
 
       {tagMenuOpen && !editing ? (
@@ -793,7 +874,10 @@ function FeedPostCard({
                     collapseButtonRef={collapseEvidenceButtonRef}
                     contentId={evidenceContentId}
                     expanded={evidenceExpanded}
+                    hasPreview={evidenceHasPreview}
                     preview={evidencePreview}
+                    renderRef={evidenceRenderRef}
+                    typeface={formatAppearance.contentTypeface}
                     onCollapse={collapseEvidence}
                   />
                 </div>
@@ -1000,14 +1084,28 @@ function MetricJudgmentForm({
   );
 }
 
-function prepareEvidencePreview(value: string) {
-  const preparedCode = prepareCodeBlock(value);
+function prepareEvidencePreview(value: string, typeface: PostContentTypeface) {
+  const preparedCode =
+    typeface === "monospace"
+      ? prepareCodeBlock(value)
+      : {
+          code: value,
+          languageHint: null,
+        };
   const lines = preparedCode.code.split(/\r?\n/);
   return {
     preparedCode,
     collapsedCode: lines.slice(0, EVIDENCE_PREVIEW_LINE_LIMIT).join("\n"),
-    hasPreview: lines.length > EVIDENCE_PREVIEW_LINE_LIMIT,
+    hasLogicalPreview: lines.length > EVIDENCE_PREVIEW_LINE_LIMIT,
   };
+}
+
+function postCardAppearanceStyle(palette: PostCardPaletteSummary): CSSProperties {
+  return compileCardPalette(palette.material_intent).tokens as CSSProperties;
+}
+
+function postCardAppearanceKey(palette: PostCardPaletteSummary, themeProfileId: string): string {
+  return `${themeProfileId}:${palette.id}:${palette.revision}`;
 }
 
 function EvidenceCodeBlock({
@@ -1015,20 +1113,29 @@ function EvidenceCodeBlock({
   collapseButtonRef,
   contentId,
   expanded,
+  hasPreview,
   preview,
+  renderRef,
+  typeface,
   onCollapse,
 }: {
   collapsed: boolean;
   collapseButtonRef: RefObject<HTMLButtonElement | null>;
   contentId: string;
   expanded: boolean;
+  hasPreview: boolean;
   preview: ReturnType<typeof prepareEvidencePreview>;
+  renderRef: RefObject<HTMLElement | null>;
+  typeface: PostContentTypeface;
   onCollapse: () => void;
 }) {
   const [copied, setCopied] = useState(false);
   const controlsVisible = !collapsed;
   const displayText = preview.preparedCode.code;
-  const highlightedCode = highlightCodeBlock(displayText, preview.preparedCode.code, preview.preparedCode.languageHint);
+  const highlightedCode =
+    typeface === "monospace"
+      ? highlightCodeBlock(displayText, preview.preparedCode.code, preview.preparedCode.languageHint)
+      : null;
   const codeClassName =
     highlightedCode === null ? undefined : `post-evidence-code-content language-${highlightedCode.language}`;
   const codeNode =
@@ -1036,6 +1143,30 @@ function EvidenceCodeBlock({
       <code className="post-evidence-code-content">{displayText}</code>
     ) : (
       <code className={codeClassName} dangerouslySetInnerHTML={{ __html: highlightedCode.html }} />
+    );
+  const contentNode =
+    typeface === "monospace" ? (
+      <pre
+        className={controlsVisible ? "post-evidence-code has-controls" : "post-evidence-code"}
+        ref={renderRef as RefObject<HTMLPreElement | null>}
+      >
+        <span aria-hidden={collapsed ? true : undefined}>{codeNode}</span>
+        {collapsed ? <code className="visually-hidden">{preview.collapsedCode}</code> : null}
+      </pre>
+    ) : (
+      <div
+        className={
+          controlsVisible
+            ? "post-evidence-code post-evidence-text has-controls"
+            : "post-evidence-code post-evidence-text"
+        }
+        ref={renderRef as RefObject<HTMLDivElement | null>}
+      >
+        <span aria-hidden={collapsed ? true : undefined} className="post-evidence-text-content">
+          {displayText}
+        </span>
+        {collapsed ? <span className="visually-hidden">{preview.collapsedCode}</span> : null}
+      </div>
     );
 
   useEffect(() => {
@@ -1063,17 +1194,10 @@ function EvidenceCodeBlock({
 
   return (
     <div className="post-evidence-code-wrap">
-      <pre className={controlsVisible ? "post-evidence-code has-controls" : "post-evidence-code"}>
-        <span aria-hidden={collapsed ? true : undefined}>{codeNode}</span>
-        {collapsed ? <code className="visually-hidden">{preview.collapsedCode}</code> : null}
-      </pre>
+      {contentNode}
       {controlsVisible ? (
-        <div
-          className={`post-evidence-controls ${
-            preview.hasPreview && expanded ? "post-evidence-controls-revealed" : ""
-          }`}
-        >
-          {preview.hasPreview && expanded ? (
+        <div className={`post-evidence-controls ${hasPreview && expanded ? "post-evidence-controls-revealed" : ""}`}>
+          {hasPreview && expanded ? (
             <button
               aria-controls={contentId}
               aria-expanded={true}

@@ -37,6 +37,27 @@ func TestNormalizeCreateEvidenceFormatRequest(t *testing.T) {
 	if input.Constraints.AllowBlankLines {
 		t.Fatal("allow blank lines was not normalized")
 	}
+	if input.ContentTypeface != "monospace" {
+		t.Fatalf("content typeface = %q", input.ContentTypeface)
+	}
+}
+
+func TestNormalizeEvidenceFormatAppearance(t *testing.T) {
+	input, err := normalizeCreateEvidenceFormatRequest(createEvidenceFormatRequest{
+		Slug:            "essay",
+		Name:            "Essay",
+		ContentTypeface: "serif",
+	})
+	if err != nil {
+		t.Fatalf("normalizeCreateEvidenceFormatRequest returned error: %v", err)
+	}
+	if input.ContentTypeface != "serif" {
+		t.Fatalf("content typeface = %q", input.ContentTypeface)
+	}
+
+	if _, err := normalizeContentTypeface("sans", false); err == nil {
+		t.Fatal("expected unsupported typeface to be rejected")
+	}
 }
 
 func TestNormalizeCreateEvidenceFormatRequestRejectsInvalidSlug(t *testing.T) {

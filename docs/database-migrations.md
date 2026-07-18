@@ -88,6 +88,30 @@ against Postgres.
 - Keep data-destructive changes explicit and narrow. If rows must be deleted or
   rewritten, document the reason in SQL comments near the statement.
 
+## Post Appearance Migration
+
+`023_post_appearance.sql` illustrates the populated-table sequence used for
+post appearance data:
+
+1. Existing users receive `theme_preference = 'dark'`, preserving the
+   pre-migration presentation, and the column default is then changed to
+   `system` for newly created users.
+2. `group_post_card_palettes` is created and one locked Chalkboard row is seeded
+   for every existing group.
+3. Evidence-format appearance columns are added, existing formats are backfilled
+   to their group's Chalkboard palette, and only then is the palette reference
+   made non-null with its group-scoped composite foreign key.
+4. The evidence-format `updated_at` trigger is disabled only around the migration
+   backfill so an operational schema upgrade does not make every existing format
+   appear user-edited. The migration transaction restores the trigger before it
+   commits.
+
+New-group creation performs the same dependency order in one transaction:
+create the group, create its Chalkboard palette, create the default `plain-text`
+format referencing that palette, then create the default daily feed. Production
+database mirroring likewise copies palettes before evidence formats so the
+foreign key remains satisfiable.
+
 ## Operations
 
 There is no separate migration command today; deploying a new binary runs any

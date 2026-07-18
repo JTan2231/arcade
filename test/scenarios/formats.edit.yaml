@@ -71,16 +71,16 @@ steps:
       role: button
       name: Post formats
 
-  - within: Evidence formats
+  - within: Post formats
     expectVisible:
       text: weekly-reflection · v1 · 12-500 chars · 2-4 lines · no blanks
 
-  - within: Evidence formats
+  - within: Post formats
     expectHidden:
       role: textbox
       name: Name
 
-  - within: Evidence formats
+  - within: Post formats
     click:
       role: button
       name: Edit Weekly reflection
@@ -112,6 +112,21 @@ steps:
   - fill:
       label: Description
       value: A guided weekly retrospective.
+
+  - within: Edit Weekly reflection
+    click:
+      role: button
+      name: Next
+
+  - within: Edit Weekly reflection
+    expectVisible:
+      role: combobox
+      name: Card palette
+
+  - within: Edit Weekly reflection
+    click:
+      role: button
+      name: Serif Fanwood Text
 
   - within: Edit Weekly reflection
     click:
@@ -180,11 +195,11 @@ steps:
   - expectStatus:
       text: Format rules updated
 
-  - within: Evidence formats
+  - within: Post formats
     expectVisible:
       text: Weekly retrospective
 
-  - within: Evidence formats
+  - within: Post formats
     expectVisible:
       text: weekly-reflection · v2 · 12-650 chars · 2-4 lines · no blanks
 
@@ -197,6 +212,7 @@ steps:
       expectJson:
         name: Weekly retrospective
         description: A guided weekly retrospective.
+        content_typeface: serif
         active_version:
           version_number: 2
           min_chars: 12
@@ -206,3 +222,26 @@ steps:
           line_min_chars: 3
           line_max_chars: 200
           allow_blank_lines: false
+
+  - within: Post formats
+    click:
+      role: button
+      name: Archive Weekly retrospective
+
+  - within: Post formats
+    expectVisible:
+      text: Archived
+
+  - within: Post formats
+    expectVisible:
+      role: button
+      name: Edit Weekly retrospective
+
+  - within: Post formats
+    click:
+      role: button
+      name: Unarchive Weekly retrospective
+
+  - within: Post formats
+    expectHidden:
+      text: Archived

@@ -1,7 +1,7 @@
 import { FormEvent, useId, useState } from "react";
 
 import { CreateWizardDialog, CreateWizardStep } from "../CreateWizardDialog";
-import type { CreateEvidenceFormatRequest, EvidenceFormat } from "../../types";
+import type { CreateEvidenceFormatRequest, EvidenceFormat, PostCardPalette } from "../../types";
 import {
   buildFormatEditPayloads,
   buildFormatPayload,
@@ -11,6 +11,7 @@ import {
   type EvidenceFormatEditPayloads,
   formatEditHasChanges,
   validateFormatIdentity,
+  validateFormatAppearance,
   validateFormatLength,
   validateFormatLineLength,
   validateFormatLines,
@@ -20,13 +21,15 @@ import {
   EvidenceFormatLineFields,
   EvidenceFormatLineLengthFields,
 } from "./EvidenceFormatConstraintFields";
+import { CardPalettePreviewPair } from "./CardPalettePreview";
 
-type FormatStep = "details" | "length" | "lines" | "line-length";
+type FormatStep = "details" | "appearance" | "length" | "lines" | "line-length";
 
-const formatSteps: FormatStep[] = ["details", "length", "lines", "line-length"];
+const formatSteps: FormatStep[] = ["details", "appearance", "length", "lines", "line-length"];
 
 export function CreateEvidenceFormatDialog({
   groupName,
+  palettes,
   saving,
   submissionError,
   onClose,
@@ -34,6 +37,7 @@ export function CreateEvidenceFormatDialog({
   onDraftChanged,
 }: {
   groupName: string;
+  palettes: PostCardPalette[];
   saving: boolean;
   submissionError: string;
   onClose: () => void;
@@ -45,7 +49,8 @@ export function CreateEvidenceFormatDialog({
       actionLabel={() => "Add format"}
       busyLabel="Adding..."
       context={groupName}
-      initialDraft={emptyFormatDraft}
+      initialDraft={{ ...emptyFormatDraft, contentCardPaletteId: defaultPaletteId(palettes) }}
+      palettes={palettes}
       saving={saving}
       submissionError={submissionError}
       submitDisabled={() => false}
@@ -67,6 +72,7 @@ export function CreateEvidenceFormatDialog({
 export function EditEvidenceFormatDialog({
   groupName,
   format,
+  palettes,
   saving,
   submissionError,
   onClose,
@@ -75,6 +81,7 @@ export function EditEvidenceFormatDialog({
 }: {
   groupName: string;
   format: EvidenceFormat;
+  palettes: PostCardPalette[];
   saving: boolean;
   submissionError: string;
   onClose: () => void;
@@ -95,6 +102,7 @@ export function EditEvidenceFormatDialog({
       context={`${groupName} · v${format.active_version.version_number}`}
       finalHint="Changing constraints publishes a new immutable version. Existing posts keep the version that validated them."
       initialDraft={evidenceFormatToDraft(format)}
+      palettes={palettes}
       initiallyRevealAll
       lockSlug
       saving={saving}
@@ -126,6 +134,7 @@ function EvidenceFormatWizardDialog({
   context,
   finalHint,
   initialDraft,
+  palettes,
   initiallyRevealAll = false,
   lockSlug = false,
   saving,
@@ -141,6 +150,7 @@ function EvidenceFormatWizardDialog({
   context: string;
   finalHint?: string;
   initialDraft: EvidenceFormatDraft;
+  palettes: PostCardPalette[];
   initiallyRevealAll?: boolean;
   lockSlug?: boolean;
   saving: boolean;
@@ -158,6 +168,7 @@ function EvidenceFormatWizardDialog({
   const [validationError, setValidationError] = useState("");
   const currentStepIndex = formatSteps.indexOf(currentStep);
   const visibleSteps = formatSteps.filter((step) => revealedSteps.includes(step));
+  const selectedPalette = palettes.find((palette) => palette.id === draft.contentCardPaletteId);
 
   function updateDraft(patch: Partial<EvidenceFormatDraft>) {
     setDraft((current) => ({ ...current, ...patch }));
@@ -274,6 +285,70 @@ function EvidenceFormatWizardDialog({
         </CreateWizardStep>
       ) : null}
 
+      {visibleSteps.includes("appearance") ? (
+        <CreateWizardStep
+          current={currentStep === "appearance"}
+          labelId={`${stepLabelId}-appearance`}
+          number={formatSteps.indexOf("appearance") + 1}
+          step="appearance"
+          title="Appearance"
+          onActivate={activateStep}
+        >
+          <fieldset className="format-appearance-fieldset">
+            <legend>Typeface</legend>
+            <div className="create-wizard-choice-control">
+              <button
+                aria-pressed={draft.contentTypeface === "monospace"}
+                className="create-wizard-choice-option format-typeface-option format-typeface-option-monospace"
+                disabled={saving}
+                type="button"
+                onClick={() => updateDraft({ contentTypeface: "monospace" })}
+              >
+                <span>Monospace</span>
+                <span className="meta">Code-like and aligned</span>
+              </button>
+              <button
+                aria-pressed={draft.contentTypeface === "serif"}
+                className="create-wizard-choice-option format-typeface-option format-typeface-option-serif"
+                disabled={saving}
+                type="button"
+                onClick={() => updateDraft({ contentTypeface: "serif" })}
+              >
+                <span>Serif</span>
+                <span className="meta">Fanwood Text</span>
+              </button>
+            </div>
+          </fieldset>
+          <label>
+            Card palette
+            <select
+              aria-label="Card palette"
+              disabled={saving}
+              value={draft.contentCardPaletteId}
+              onChange={(event) => updateDraft({ contentCardPaletteId: event.target.value })}
+            >
+              <option value="" disabled>
+                Select a palette
+              </option>
+              {selectablePalettes(palettes, draft.contentCardPaletteId).map((palette) => (
+                <option key={palette.id} value={palette.id}>
+                  {palette.name}
+                  {palette.archived_at !== undefined ? " (Archived)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          {selectedPalette !== undefined ? (
+            <CardPalettePreviewPair materialIntent={selectedPalette.material_intent} typeface={draft.contentTypeface} />
+          ) : null}
+          <div className="field-hint">
+            Appearance is live: changing it updates existing posts that use this format. Rules remain versioned
+            separately.
+          </div>
+          {stepError("appearance")}
+        </CreateWizardStep>
+      ) : null}
+
       {visibleSteps.includes("length") ? (
         <CreateWizardStep
           current={currentStep === "length"}
@@ -331,6 +406,9 @@ function validateStep(step: FormatStep, draft: EvidenceFormatDraft): string {
   if (step === "details") {
     return validateFormatIdentity(draft);
   }
+  if (step === "appearance") {
+    return validateFormatAppearance(draft);
+  }
   if (step === "length") {
     return validateFormatLength(draft);
   }
@@ -338,6 +416,18 @@ function validateStep(step: FormatStep, draft: EvidenceFormatDraft): string {
     return validateFormatLines(draft);
   }
   return validateFormatLineLength(draft);
+}
+
+function defaultPaletteId(palettes: PostCardPalette[]): string {
+  return (
+    palettes.find((palette) => palette.archived_at === undefined && palette.system_key === "chalkboard")?.id ??
+    palettes.find((palette) => palette.archived_at === undefined)?.id ??
+    ""
+  );
+}
+
+function selectablePalettes(palettes: PostCardPalette[], selectedPaletteId: string): PostCardPalette[] {
+  return palettes.filter((palette) => palette.archived_at === undefined || palette.id === selectedPaletteId);
 }
 
 function firstInvalidStep(draft: EvidenceFormatDraft): FormatStep {

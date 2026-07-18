@@ -112,6 +112,13 @@ func TestUserSelectSQLCanSetSharedLocalPassword(t *testing.T) {
 	}
 }
 
+func TestUserSelectSQLIncludesThemePreference(t *testing.T) {
+	query := userSelectSQL(mirrorOptions{})
+	if !strings.Contains(query, "theme_preference") {
+		t.Fatalf("user select missing theme_preference in %s", query)
+	}
+}
+
 func TestCopyValueOverrideSetsSharedLocalPassword(t *testing.T) {
 	values := []any{"id", "username", "display", nil, "created", "updated", "email", "disabled"}
 	override := copyValueOverride(mirrorTable{name: "users"}, mirrorOptions{localPassword: "hashed-local-password"})
@@ -191,6 +198,71 @@ func TestGroupsMirrorColumnsIncludeJoinPolicy(t *testing.T) {
 	if strings.Join(columns, ",") != strings.Join(want, ",") {
 		t.Fatalf("groups columns = %#v, want %#v", columns, want)
 	}
+}
+
+func TestPostAppearanceMirrorTablesMatchCurrentSchema(t *testing.T) {
+	paletteTableIndex := mirrorTableIndex("group_post_card_palettes")
+	formatTableIndex := mirrorTableIndex("group_evidence_formats")
+	if paletteTableIndex < 0 || formatTableIndex < 0 {
+		t.Fatalf("post appearance mirror tables missing: palettes=%d formats=%d", paletteTableIndex, formatTableIndex)
+	}
+	if paletteTableIndex >= formatTableIndex {
+		t.Fatalf("group_post_card_palettes must be mirrored before group_evidence_formats")
+	}
+
+	paletteColumns := mirrorTableColumns("group_post_card_palettes")
+	wantPalettes := []string{
+		"id",
+		"group_id",
+		"system_key",
+		"name",
+		"material_model",
+		"surface_hue",
+		"surface_colorfulness",
+		"accent_hue",
+		"accent_colorfulness",
+		"archived_at",
+		"revision",
+		"created_by_user_id",
+		"updated_by_user_id",
+		"created_at",
+		"updated_at",
+	}
+	if strings.Join(paletteColumns, ",") != strings.Join(wantPalettes, ",") {
+		t.Fatalf("group_post_card_palettes columns = %#v, want %#v", paletteColumns, wantPalettes)
+	}
+
+	formatColumns := mirrorTableColumns("group_evidence_formats")
+	if !containsString(formatColumns, "content_typeface") || !containsString(formatColumns, "content_card_palette_id") {
+		t.Fatalf("group_evidence_formats appearance columns missing from %#v", formatColumns)
+	}
+}
+
+func mirrorTableIndex(name string) int {
+	for index, table := range mirrorTables {
+		if table.name == name {
+			return index
+		}
+	}
+	return -1
+}
+
+func mirrorTableColumns(name string) []string {
+	for _, table := range mirrorTables {
+		if table.name == name {
+			return table.columns
+		}
+	}
+	return nil
+}
+
+func containsString(values []string, want string) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
 }
 
 func TestUserSelectSQLCanPreserveProductionAuth(t *testing.T) {

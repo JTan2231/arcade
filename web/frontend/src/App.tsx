@@ -4,11 +4,13 @@ import { useMachine } from "@xstate/react";
 import { AuthView } from "./components/AuthView";
 import { InviteJoinView } from "./components/InviteJoinView";
 import { Toast } from "./components/Toast";
+import { ThemePreferenceControl } from "./components/ThemePreferenceControl";
 import { appMachine } from "./machines/appMachine";
 import { groupPath, readAppRoute, type AppRoute } from "./routes";
 import { PublicRouteAdapter } from "./workspace/PublicRouteAdapter";
 import { WorkspaceShell } from "./workspace/WorkspaceShell";
 import type { DashboardActorRef } from "./workspace/types";
+import { applyViewerThemePreference } from "./theme";
 
 export default function App() {
   const [route, setRoute] = useState<AppRoute>(() => readAppRoute());
@@ -50,6 +52,16 @@ export default function App() {
     send({ type: "UNAUTHORIZED" });
   }, [send]);
 
+  const themeControl = (
+    <ThemePreferenceControl
+      key={context.user?.id ?? "signed-out"}
+      currentUser={context.user}
+      disabled={checkingSession}
+      onError={requestToast}
+      onUserUpdated={(user) => send({ type: "USER_UPDATED", user })}
+    />
+  );
+
   useEffect(() => {
     function handlePopState() {
       appNavigationPathRef.current = null;
@@ -78,10 +90,17 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [context.toastMessage, send]);
 
+  useEffect(() => {
+    if (context.user !== null) {
+      applyViewerThemePreference(context.user.theme_preference);
+    }
+  }, [context.user]);
+
   if (publicRoute !== null && !signedIn) {
     return (
       <>
         <PublicRouteAdapter onNavigate={setAppPath} route={publicRoute} signedIn={signedIn} />
+        {themeControl}
         <Toast message={context.toastMessage} />
       </>
     );
@@ -95,6 +114,7 @@ export default function App() {
             <div className="empty-state">Checking session...</div>
           </section>
         </main>
+        {themeControl}
         <Toast message={context.toastMessage} />
       </>
     );
@@ -118,6 +138,7 @@ export default function App() {
           onToast={requestToast}
           onUnauthorized={handleUnauthorized}
         />
+        {themeControl}
         <Toast message={context.toastMessage} />
       </>
     );
@@ -133,6 +154,7 @@ export default function App() {
           onLogin={(payload) => send({ type: "LOGIN_SUBMITTED", payload })}
           onSignup={(payload) => send({ type: "SIGNUP_SUBMITTED", payload })}
         />
+        {themeControl}
         <Toast message={context.toastMessage} />
       </>
     );
@@ -151,6 +173,7 @@ export default function App() {
         onToast={requestToast}
         onUnauthorized={handleUnauthorized}
       />
+      {themeControl}
       <Toast message={context.toastMessage} />
     </>
   );

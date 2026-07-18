@@ -25,9 +25,10 @@ func (s *Server) handleGetMe(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handlePatchMe(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Username    *string `json:"username"`
-		DisplayName *string `json:"display_name"`
-		AvatarURL   *string `json:"avatar_url"`
+		Username        *string `json:"username"`
+		DisplayName     *string `json:"display_name"`
+		AvatarURL       *string `json:"avatar_url"`
+		ThemePreference *string `json:"theme_preference"`
 	}
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON request")
@@ -42,6 +43,7 @@ func (s *Server) handlePatchMe(w http.ResponseWriter, r *http.Request) {
 
 	username := current.Username
 	displayName := current.DisplayName
+	themePreference := current.ThemePreference
 	var avatarURL any
 	if req.Username != nil {
 		username = slugify(*req.Username)
@@ -52,6 +54,13 @@ func (s *Server) handlePatchMe(w http.ResponseWriter, r *http.Request) {
 	if req.AvatarURL != nil && *req.AvatarURL != "" {
 		avatarURL = *req.AvatarURL
 	}
+	if req.ThemePreference != nil {
+		themePreference = *req.ThemePreference
+		if !validThemePreference(themePreference) {
+			writeError(w, http.StatusBadRequest, "theme_preference must be system, dark, or light")
+			return
+		}
+	}
 
 	var user User
 	var avatar sql.NullString
@@ -59,15 +68,17 @@ func (s *Server) handlePatchMe(w http.ResponseWriter, r *http.Request) {
 		update users
 		set username = $2,
 		    display_name = $3,
-		    avatar_url = coalesce($4, avatar_url)
+		    avatar_url = coalesce($4, avatar_url),
+		    theme_preference = $5
 		where id = $1
-		returning id::text, email, username, display_name, avatar_url, created_at, updated_at
-	`, current.ID, username, displayName, avatarURL).Scan(
+		returning id::text, email, username, display_name, avatar_url, theme_preference, created_at, updated_at
+	`, current.ID, username, displayName, avatarURL, themePreference).Scan(
 		&user.ID,
 		&user.Email,
 		&user.Username,
 		&user.DisplayName,
 		&avatar,
+		&user.ThemePreference,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -83,7 +94,7 @@ func (s *Server) getUser(ctx context.Context, userID string) (User, error) {
 	var user User
 	var avatarURL sql.NullString
 	err := s.db.QueryRow(ctx, `
-		select id::text, email, username, display_name, avatar_url, created_at, updated_at
+		select id::text, email, username, display_name, avatar_url, theme_preference, created_at, updated_at
 		from users
 		where id = $1
 	`, userID).Scan(
@@ -92,6 +103,7 @@ func (s *Server) getUser(ctx context.Context, userID string) (User, error) {
 		&user.Username,
 		&user.DisplayName,
 		&avatarURL,
+		&user.ThemePreference,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -103,4 +115,8 @@ func (s *Server) getUser(ctx context.Context, userID string) (User, error) {
 	}
 	user.AvatarURL = nullStringPtr(avatarURL)
 	return user, nil
+}
+
+func validThemePreference(value string) bool {
+	return value == "system" || value == "dark" || value == "light"
 }

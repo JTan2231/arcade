@@ -1,9 +1,12 @@
+export type ThemePreference = "system" | "dark" | "light";
+
 export type User = {
   id: string;
   email: string;
   username: string;
   display_name: string;
   avatar_url?: string;
+  theme_preference: ThemePreference;
   created_at: string;
   updated_at: string;
 };
@@ -438,12 +441,54 @@ export type EvidenceFormatVersion = {
   created_at: string;
 };
 
+export type PostContentTypeface = "monospace" | "serif";
+
+export type PostCardPaletteMaterialIntent = {
+  model: "arcade-pigment-v1";
+  surface_hue: number;
+  surface_colorfulness: number;
+} & ({ accent_hue: number; accent_colorfulness: number } | { accent_hue?: never; accent_colorfulness?: never });
+
+export type PostCardPaletteSummary = {
+  id: string;
+  system_key?: string;
+  name: string;
+  material_intent: PostCardPaletteMaterialIntent;
+  archived_at?: string;
+  revision: number;
+};
+
+export type PostCardPalette = PostCardPaletteSummary & {
+  group_id: string;
+  active_format_count: number;
+  archived_format_count: number;
+  created_by_user_id?: string;
+  updated_by_user_id?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreatePostCardPaletteRequest = {
+  name: string;
+  material_intent: PostCardPaletteMaterialIntent;
+};
+
+export type PatchPostCardPaletteRequest = {
+  expected_revision: number;
+  name?: string;
+  material_intent?: PostCardPaletteMaterialIntent;
+  archived?: boolean;
+};
+
 export type EvidenceFormat = {
   id: string;
   group_id?: string;
   slug: string;
   name: string;
   description?: string;
+  content_typeface: PostContentTypeface;
+  content_card_palette_id: string;
+  content_card_palette: PostCardPaletteSummary;
   archived_at?: string;
   active_version: EvidenceFormatVersion;
   assigned_feed_count: number;
@@ -457,6 +502,8 @@ export type CreateEvidenceFormatRequest = {
   slug: string;
   name: string;
   description?: string;
+  content_typeface: PostContentTypeface;
+  content_card_palette_id: string;
   min_chars?: number;
   max_chars?: number;
   min_lines?: number;
@@ -481,6 +528,8 @@ export type CreateEvidenceFormatVersionRequest = {
 export type PatchEvidenceFormatRequest = {
   name?: string;
   description?: string | null;
+  content_typeface?: PostContentTypeface;
+  content_card_palette_id?: string;
   archived?: boolean;
 };
 

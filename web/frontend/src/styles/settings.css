@@ -8,6 +8,325 @@
   gap: 8px;
 }
 
+.card-palette-manager,
+.card-palette-list {
+  display: grid;
+  gap: 8px;
+}
+
+.card-palette-row {
+  align-items: center;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 8px;
+}
+
+.card-palette-row.archived {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.card-palette-row-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.card-palette-row-copy .title {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.card-palette-badge {
+  background: var(--color-accent-badge-surface);
+  border: 1px solid var(--color-accent-badge-border);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 3px 6px;
+  text-transform: uppercase;
+}
+
+.card-palette-thumbnail {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 38px;
+  overflow: hidden;
+  width: 52px;
+}
+
+.card-palette-thumbnail span {
+  display: block;
+}
+
+.card-palette-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.card-palette-row-note {
+  grid-column: 2 / -1;
+}
+
+.card-palette-editor-dialog {
+  color: var(--color-text);
+  height: min(760px, calc(100vh - 32px));
+  margin: auto;
+  max-height: calc(100vh - 32px);
+  overflow: hidden;
+  padding: 0;
+  width: min(920px, calc(100vw - 32px));
+}
+
+.card-palette-editor-dialog::backdrop {
+  background: var(--color-overlay);
+}
+
+.card-palette-editor-form {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100%;
+  min-height: 0;
+}
+
+.card-palette-editor-header,
+.card-palette-editor-footer {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 14px 18px;
+}
+
+.card-palette-editor-header {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.card-palette-editor-header h2 {
+  font-size: 22px;
+  margin: 0 0 2px;
+}
+
+.card-palette-editor-header .icon-button {
+  font-size: 24px;
+  line-height: 1;
+  min-width: 34px;
+}
+
+.card-palette-editor-body {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(360px, 1.2fr);
+  min-height: 0;
+  overflow: auto;
+  padding: 18px;
+}
+
+.card-palette-editor-controls,
+.card-palette-editor-preview {
+  align-content: start;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.card-palette-editor-footer {
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+.card-palette-target-control {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.card-palette-target-option[aria-pressed="true"] {
+  background: var(--color-accent-surface);
+  border-color: var(--color-accent-border);
+}
+
+.card-palette-wheel-control,
+.card-palette-wheel-sliders {
+  display: grid;
+  gap: 10px;
+}
+
+.card-palette-wheel-label {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.card-palette-wheel-field {
+  aspect-ratio: 1;
+  cursor: crosshair;
+  justify-self: center;
+  max-width: 280px;
+  position: relative;
+  touch-action: none;
+  width: 100%;
+}
+
+.card-palette-wheel-field-disabled {
+  cursor: progress;
+  opacity: 0.72;
+}
+
+.card-palette-wheel-canvas {
+  border-radius: 50%;
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.card-palette-wheel-handle {
+  border: 2px solid var(--color-text);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--color-page);
+  height: 14px;
+  pointer-events: none;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 14px;
+}
+
+.card-palette-range-label {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.card-palette-range-label output {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.card-palette-wheel-sliders input {
+  min-height: 24px;
+  padding: 0;
+}
+
+.card-palette-accent-toggle {
+  color: var(--color-text);
+}
+
+.card-palette-preview-pair {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.card-palette-preview {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 10px;
+}
+
+.card-palette-preview-mode {
+  color: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.card-palette-preview-spotlight {
+  background: radial-gradient(circle, var(--post-card-spotlight), var(--post-card-spotlight-transparent) 72%);
+  padding: 14px 6px;
+}
+
+.card-palette-preview-card {
+  background: var(--post-card-surface);
+  border: 1px solid var(--post-card-border);
+  color: var(--post-card-text);
+  min-height: 112px;
+  padding: 12px;
+  position: relative;
+}
+
+.card-palette-preview-card.post-content-typeface-monospace {
+  font-family: var(--font-post-code);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.card-palette-preview-card.post-content-typeface-serif {
+  font-family: var(--font-post-serif);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.card-palette-preview-content {
+  padding-right: 36px;
+}
+
+.card-palette-preview-keyword {
+  color: var(--post-card-syntax-keyword);
+  font-weight: 700;
+}
+
+.card-palette-preview-comment {
+  color: var(--post-card-syntax-comment);
+  font-style: italic;
+}
+
+.card-palette-preview-card-controls {
+  background: var(--post-card-control-surface);
+  border: 1px solid var(--post-card-control-border);
+  color: var(--post-card-control-text);
+  display: flex;
+  font-family: var(--font-post-code);
+  font-size: 10px;
+  position: absolute;
+  right: 6px;
+  top: 6px;
+}
+
+.card-palette-preview-card-controls span {
+  display: grid;
+  height: 22px;
+  place-items: center;
+  width: 22px;
+}
+
+.card-palette-preview-card-controls span + span {
+  border-left: 1px solid var(--post-card-control-border);
+}
+
+.card-palette-preview-warning {
+  color: var(--color-danger);
+  font-size: 11px;
+}
+
+.card-palette-impact-note {
+  background: var(--color-accent-surface);
+  border: 1px solid var(--color-accent-border);
+  border-radius: 7px;
+  color: var(--color-text);
+  font-size: 13px;
+  padding: 10px;
+}
+
+.card-palette-editor-error {
+  grid-column: 1 / -1;
+}
+
 .created-invite-link {
   background: var(--color-surface-subtle);
   border: 1px solid var(--color-border);

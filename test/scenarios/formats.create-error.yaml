@@ -63,7 +63,7 @@ steps:
       role: button
       name: Post formats
 
-  - within: Evidence formats
+  - within: Post formats
     click:
       role: button
       name: Add format
@@ -77,6 +77,11 @@ steps:
     fill:
       label: Slug
       value: retry-format
+
+  - within: Add format
+    click:
+      role: button
+      name: Next
 
   - within: Add format
     click:
@@ -149,15 +154,20 @@ steps:
   - within: Add format
     click:
       role: button
+      name: Next
+
+  - within: Add format
+    click:
+      role: button
       name: Add format
 
   - expectStatus:
       text: Format added
 
-  - within: Evidence formats
+  - within: Post formats
     expectVisible:
       text: Retry format
 
-  - within: Evidence formats
+  - within: Post formats
     expectVisible:
       text: retry-format-new

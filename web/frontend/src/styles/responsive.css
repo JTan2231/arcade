@@ -128,6 +128,26 @@
     width: calc(100vw - 20px);
   }
 
+  .card-palette-editor-dialog {
+    height: calc(100vh - 20px);
+    max-height: calc(100vh - 20px);
+    width: calc(100vw - 20px);
+  }
+
+  .card-palette-editor-body,
+  .card-palette-preview-pair,
+  .card-palette-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .card-palette-row-actions {
+    justify-content: flex-start;
+  }
+
+  .card-palette-row-note {
+    grid-column: auto;
+  }
+
   .create-wizard-header {
     padding: 14px;
   }

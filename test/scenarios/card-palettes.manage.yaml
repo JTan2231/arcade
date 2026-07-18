@@ -1,0 +1,176 @@
+name: card palettes support visual creation and lifecycle management
+
+vars:
+  email: palette-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      client: browser
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Palette Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Palette Group
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+steps:
+  - visit: /
+
+  - within: Groups
+    click:
+      role: button
+      name: Group settings for Palette Group
+
+  - within: Groups
+    click:
+      role: button
+      name: Settings
+
+  - within: Settings
+    click:
+      role: button
+      name: Card palettes
+
+  - within: Card palettes
+    expectVisible:
+      text: Chalkboard
+
+  - within: Card palettes
+    expectVisible:
+      text: Built-in
+
+  - within: Card palettes
+    click:
+      role: button
+      name: Duplicate Chalkboard
+
+  - within: Add card palette
+    expectValue:
+      label: Name
+      value: Chalkboard copy
+
+  - within: Add card palette
+    expectVisible:
+      text: Dark
+
+  - within: Add card palette
+    expectVisible:
+      text: Light
+
+  - within: Add card palette
+    fill:
+      label: Name
+      value: Ocean paper
+
+  - within: Add card palette
+    fill:
+      label: Surface hue
+      value: 210
+
+  - within: Add card palette
+    fill:
+      label: Surface color intensity
+      value: 72
+
+  - within: Add card palette
+    uncheck:
+      label: Use a separate accent for the border and spotlight
+
+  - within: Add card palette
+    click:
+      role: button
+      name: Add palette
+
+  - within: Card palettes
+    expectVisible:
+      text: Ocean paper
+
+  - request:
+      id: list_created_palettes
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/post-card-palettes?include_archived=true
+      expectStatus: 200
+      expectJson:
+        - name: Chalkboard
+        - name: Ocean paper
+          material_intent:
+            model: arcade-pigment-v1
+            surface_hue: 210
+            surface_colorfulness: 72
+
+  - within: Card palettes
+    click:
+      role: button
+      name: Edit Ocean paper
+
+  - within: Edit Ocean paper
+    fill:
+      label: Name
+      value: Ocean note
+
+  - within: Edit Ocean paper
+    click:
+      role: button
+      name: Save palette
+
+  - within: Card palettes
+    expectVisible:
+      text: Ocean note
+
+  - within: Card palettes
+    click:
+      role: button
+      name: Archive
+
+  - within: Card palettes
+    expectVisible:
+      text: Archived
+
+  - within: Card palettes
+    expectVisible:
+      role: button
+      name: Edit Ocean note
+
+  - within: Card palettes
+    click:
+      role: button
+      name: Edit Ocean note
+
+  - within: Edit Ocean note
+    fill:
+      label: Name
+      value: Ocean archive
+
+  - within: Edit Ocean note
+    click:
+      role: button
+      name: Save palette
+
+  - within: Card palettes
+    expectVisible:
+      text: Ocean archive
+
+  - within: Card palettes
+    click:
+      role: button
+      name: Restore
+
+  - within: Card palettes
+    expectHidden:
+      text: Archived

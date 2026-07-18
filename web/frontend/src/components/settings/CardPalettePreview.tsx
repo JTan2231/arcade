@@ -1,0 +1,74 @@
+import { useMemo, type CSSProperties } from "react";
+
+import {
+  arcadeDarkProfile,
+  arcadeLightProfile,
+  compileCardPalettePair,
+  type CompiledCardPalette,
+  type ThemeProfile,
+} from "../../palette";
+import type { PostCardPaletteMaterialIntent, PostContentTypeface } from "../../types";
+
+export function CardPalettePreviewPair({
+  materialIntent,
+  typeface = "monospace",
+}: {
+  materialIntent: PostCardPaletteMaterialIntent;
+  typeface?: PostContentTypeface;
+}) {
+  const pair = useMemo(() => compileCardPalettePair(materialIntent), [materialIntent]);
+  return (
+    <div className="card-palette-preview-pair">
+      <CardPalettePreview compiled={pair.dark} label="Dark" profile={arcadeDarkProfile} typeface={typeface} />
+      <CardPalettePreview compiled={pair.light} label="Light" profile={arcadeLightProfile} typeface={typeface} />
+    </div>
+  );
+}
+
+export function CardPaletteThumbnail({ materialIntent }: { materialIntent: PostCardPaletteMaterialIntent }) {
+  const pair = useMemo(() => compileCardPalettePair(materialIntent), [materialIntent]);
+  return (
+    <span aria-hidden="true" className="card-palette-thumbnail">
+      <span style={{ background: pair.dark.tokens["--post-card-surface"] }} />
+      <span style={{ background: pair.light.tokens["--post-card-surface"] }} />
+    </span>
+  );
+}
+
+function CardPalettePreview({
+  compiled,
+  label,
+  profile,
+  typeface,
+}: {
+  compiled: CompiledCardPalette;
+  label: string;
+  profile: ThemeProfile;
+  typeface: PostContentTypeface;
+}) {
+  const style = {
+    ...compiled.tokens,
+    background: profile.palette.tokens["--color-page"],
+    color: profile.palette.tokens["--color-text-muted"],
+  } as CSSProperties;
+
+  return (
+    <section className="card-palette-preview" style={style}>
+      <div className="card-palette-preview-mode">{label}</div>
+      <div className="card-palette-preview-spotlight">
+        <div className={`card-palette-preview-card post-content-typeface-${typeface}`}>
+          <div className="card-palette-preview-card-controls" aria-hidden="true">
+            <span>⌃</span>
+            <span>□</span>
+          </div>
+          <div className="card-palette-preview-content">
+            <span className="card-palette-preview-keyword">make</span> a small promise
+            <br />
+            <span className="card-palette-preview-comment">// then keep it daily</span>
+          </div>
+        </div>
+      </div>
+      {!compiled.validation.valid ? <div className="card-palette-preview-warning">Needs adjustment</div> : null}
+    </section>
+  );
+}
