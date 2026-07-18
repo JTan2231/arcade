@@ -1,0 +1,17 @@
+{
+  "name": "arcade-aozora-dom-extract",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pinned Chromium DOM extraction and Text Fragment verification worker for the Aozora catalogue builder",
+  "scripts": {
+    "start": "node extract.mjs",
+    "test": "node --test --test-concurrency=1 test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "playwright": "1.61.1"
+  }
+}

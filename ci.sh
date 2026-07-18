@@ -41,6 +41,7 @@ configure_ci_caches() {
 
 	mkdir -p \
 		"$ci_cache_dir/bun" \
+		"$ci_cache_dir/npm" \
 		"$ci_cache_dir/go-build" \
 		"$ci_cache_dir/go-mod" \
 		"$ci_cache_dir/go-tmp" \
@@ -88,8 +89,8 @@ cleanup() {
 
 usage() {
 	cat <<'EOF'
-Usage: ./ci.sh [all|frontend|backend|runctl|scenarios|e2e|test|generated-docs]
-       ./ci.sh [--all|--frontend|--backend|--runctl|--scenarios|--e2e|--test|--generated-docs]
+Usage: ./ci.sh [all|frontend|backend|runctl|aozora|scenarios|e2e|test|generated-docs]
+       ./ci.sh [--all|--frontend|--backend|--runctl|--aozora|--scenarios|--e2e|--test|--generated-docs]
 
 Runs all CI checks by default in an isolated temporary worktree.
 EOF
@@ -197,6 +198,29 @@ run_runctl() {
 	(cd tools/runctl && go test ./...) || return 1
 }
 
+run_aozora_worker() {
+	require_command node || return 1
+	require_command npm || return 1
+	require_command go || return 1
+
+	section "Aozora worker: installing pinned dependencies"
+	(cd tools/aozora-dom-extract && npm ci --cache "$ci_cache_dir/npm" --prefer-offline) || return 1
+
+	section "Aozora worker: installing pinned Chromium"
+	(cd tools/aozora-dom-extract && npx --no-install playwright install chromium) || return 1
+
+	section "Aozora worker: checking JavaScript syntax"
+	find tools/aozora-dom-extract -type f -name '*.mjs' ! -path '*/node_modules/*' -print | sort | while IFS= read -r file; do
+		node --check "$file" || exit 1
+	done || return 1
+
+	section "Aozora worker: running browser and matcher tests"
+	(cd tools/aozora-dom-extract && npm test) || return 1
+
+	section "Aozora worker: checking the Go/JSONL protocol integration"
+	AOZORA_BROWSER_WORKER_TEST=1 go test ./internal/aozoracatalog -run '^TestBrowserExtractorProtocolIntegration$' || return 1
+}
+
 run_scenarios() {
 	require_command bun || return 1
 
@@ -259,6 +283,9 @@ if [ "$#" -eq 1 ]; then
 	runctl | run | devtools | --runctl | --run | --devtools)
 		target="runctl"
 		;;
+	aozora | aozora-worker | --aozora | --aozora-worker)
+		target="aozora"
+		;;
 	scenarios | scenario | --scenarios | --scenario)
 		target="scenarios"
 		;;
@@ -290,6 +317,7 @@ configure_ci_caches || exit 1
 frontend_status=0
 backend_status=0
 runctl_status=0
+aozora_status=0
 scenarios_status=0
 e2e_status=0
 generated_docs_status=0
@@ -298,6 +326,7 @@ generated_docs_blocked_by_frontend=0
 run_frontend_checks=0
 run_backend_checks=0
 run_runctl_checks=0
+run_aozora_checks=0
 run_scenario_checks=0
 run_e2e_checks=0
 run_generated_docs_checks=0
@@ -307,6 +336,7 @@ all)
 	run_frontend_checks=1
 	run_backend_checks=1
 	run_runctl_checks=1
+	run_aozora_checks=1
 	run_scenario_checks=1
 	run_e2e_checks=1
 	run_generated_docs_checks=1
@@ -320,6 +350,9 @@ backend)
 	;;
 runctl)
 	run_runctl_checks=1
+	;;
+aozora)
+	run_aozora_checks=1
 	;;
 scenarios)
 	run_scenario_checks=1
@@ -343,6 +376,10 @@ fi
 
 if [ "$run_runctl_checks" -eq 1 ]; then
 	run_runctl || runctl_status=$?
+fi
+
+if [ "$run_aozora_checks" -eq 1 ]; then
+	run_aozora_worker || aozora_status=$?
 fi
 
 if [ "$run_scenario_checks" -eq 1 ]; then
@@ -398,6 +435,16 @@ else
 	printf 'Run controller: skipped\n'
 fi
 
+if [ "$run_aozora_checks" -eq 1 ]; then
+	if [ "$aozora_status" -eq 0 ]; then
+		printf 'Aozora worker: passed\n'
+	else
+		printf 'Aozora worker: failed\n' >&2
+	fi
+else
+	printf 'Aozora worker: skipped\n'
+fi
+
 if [ "$run_scenario_checks" -eq 1 ]; then
 	if [ "$scenarios_status" -eq 0 ]; then
 		printf 'Scenarios: passed\n'
@@ -432,7 +479,7 @@ else
 	printf 'Generated docs: skipped\n'
 fi
 
-if [ "$frontend_status" -ne 0 ] || [ "$backend_status" -ne 0 ] || [ "$runctl_status" -ne 0 ] || [ "$scenarios_status" -ne 0 ] || [ "$e2e_status" -ne 0 ] || [ "$generated_docs_status" -ne 0 ]; then
+if [ "$frontend_status" -ne 0 ] || [ "$backend_status" -ne 0 ] || [ "$runctl_status" -ne 0 ] || [ "$aozora_status" -ne 0 ] || [ "$scenarios_status" -ne 0 ] || [ "$e2e_status" -ne 0 ] || [ "$generated_docs_status" -ne 0 ]; then
 	exit 1
 fi
 

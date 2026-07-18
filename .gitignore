@@ -5,4 +5,5 @@ web/static/*
 test/node_modules/
 test/artifacts/
 test/bun.lockb
+tools/aozora-dom-extract/node_modules/
 .arcade/

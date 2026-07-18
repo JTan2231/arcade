@@ -71,6 +71,13 @@ command `go run ./cmd/codeforces-catalog-import` fetches or reads the raw
 Codeforces response, converts it to normalized JSONL, validates it, and can
 upload the result with the same token.
 
+The Aozora catalogue helper is `go run ./cmd/aozora-catalog`. Its extraction
+worker under `tools/aozora-dom-extract` uses pinned Node and Playwright
+dependencies to decode local Shift-JIS/UTF-8 reading pages in Chromium,
+construct DOM-backed Text Fragment selectors, and validate them before Go
+formats the upload artifact. These dependencies are development/build tooling;
+they are not Arcade server runtime dependencies.
+
 Production group/feed/source data can be mirrored into the local database with
 `scripts/mirror-prod-to-local.sh`. The wrapper runs `go run
 ./cmd/mirror-prod-db`, connects to production in read-only mode, runs local

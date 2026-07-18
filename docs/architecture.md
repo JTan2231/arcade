@@ -8,6 +8,9 @@ Arcade is organized as one deployable Go binary with an embedded static frontend
 cmd/arcade
   main.go                 Process entrypoint and server lifecycle.
 
+cmd/aozora-catalog
+  main.go                 Aozora 100-document catalogue build/upload CLI.
+
 internal/app
   config.go              Environment configuration.
   server.go              Server construction, route registration, shared helpers.
@@ -19,11 +22,24 @@ internal/migrations
   migrations.go          Embedded SQL migration runner.
   *.sql                  Ordered Postgres migrations and seed data.
 
+internal/aozoracatalog
+  *.go                   Corpus inventory, stable identities, browser-worker
+                         client, pair projection, JSONL publication, and upload.
+
 web
   static.go              Embedded static filesystem.
   static/                Generated Vite build output embedded by Go.
   frontend/              React, TypeScript, Vite, and Bun frontend source.
+
+tools/aozora-dom-extract
+  extract.mjs            Long-lived local-only Chromium extraction worker.
+  text-fragments/        Pinned Text Fragment matcher implementation.
 ```
+
+The Aozora worker is offline build tooling, not part of the Arcade server
+process. The Go command starts it once, sends selected local documents over a
+JSONL subprocess protocol, and stops it before publishing the validated
+catalogue artifact.
 
 ## Startup Flow
 

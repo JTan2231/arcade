@@ -93,6 +93,24 @@ mode the caller owns server lifecycle and database state.
 Useful narrowing options are `--within NAME`, `--role ROLE`, `--after-step N`,
 `--all`, and `--json`.
 
+## Aozora Catalogue Worker
+
+The browser extraction and pinned Text Fragment matcher tests live under
+`tools/aozora-dom-extract/test`. They cover UTF-8 and Shift-JIS decoding,
+ruby/notes/line-break/gaiji handling, repeated and ambiguous text, contextual
+selectors, canonical delimiter escaping, cross-inline DOM ranges, native
+fragment navigation samples, and the Aozora regression fixture.
+
+Run the focused suite through the repository validator:
+
+```sh
+./ci.sh aozora
+```
+
+`./ci.sh all` also installs the worker's locked npm dependencies and runs this
+suite. Go-side inventory, identity, projection, artifact, digest, and upload
+tests remain part of the backend suite.
+
 ## App And Database Lifecycle
 
 `src/appServer.ts` is the production-style local app launcher used when
