@@ -100,7 +100,7 @@ Found 2 occurrences.
 
 ## onChange
 
-Found 70 occurrences.
+Found 69 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
@@ -149,8 +149,7 @@ Found 70 occurrences.
 | unknown | no enclosing accessible region | Item count | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/groups/FeedEventsDialog.tsx:520](../../web/frontend/src/components/groups/FeedEventsDialog.tsx#L520) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;CatalogFiltersEditor&gt; | [web/frontend/src/components/groups/FeedEventsDialog.tsx:531](../../web/frontend/src/components/groups/FeedEventsDialog.tsx#L531) |
 | unknown | no enclosing accessible region | Name | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/CardPaletteEditorDialog.tsx:122](../../web/frontend/src/components/settings/CardPaletteEditorDialog.tsx#L122) |
-| unknown | no enclosing accessible region | Accent / Surface | component prop label (distance 0) | Component &lt;CardPaletteWheel&gt; | [web/frontend/src/components/settings/CardPaletteEditorDialog.tsx:152](../../web/frontend/src/components/settings/CardPaletteEditorDialog.tsx#L152) |
-| unknown | no enclosing accessible region | Use a separate accent for the border and spotlight | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/CardPaletteEditorDialog.tsx:165](../../web/frontend/src/components/settings/CardPaletteEditorDialog.tsx#L165) |
+| unknown | no enclosing accessible region | Accent / Surface | component prop label (distance 0) | Component &lt;CardPaletteWheel&gt; | [web/frontend/src/components/settings/CardPaletteEditorDialog.tsx:189](../../web/frontend/src/components/settings/CardPaletteEditorDialog.tsx#L189) |
 | unknown | no enclosing accessible region | {label} hue {value.hue} ° | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/CardPaletteWheel.tsx:84](../../web/frontend/src/components/settings/CardPaletteWheel.tsx#L84) |
 | unknown | no enclosing accessible region | {label} color intensity {value.colorfulness} % | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/CardPaletteWheel.tsx:99](../../web/frontend/src/components/settings/CardPaletteWheel.tsx#L99) |
 | unknown | no enclosing accessible region | Name | parent label (distance 1) | DOM &lt;input&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:261](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L261) |
@@ -247,7 +246,7 @@ Found 1 occurrence.
 
 ## onClick
 
-Found 81 occurrences.
+Found 83 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
@@ -257,11 +256,11 @@ Found 81 occurrences.
 | Authentication | grandparent section label (distance 2) | Login | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/AuthView.tsx:56](../../web/frontend/src/components/AuthView.tsx#L56) |
 | Authentication | grandparent section label (distance 2) | Signup | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/AuthView.tsx:65](../../web/frontend/src/components/AuthView.tsx#L65) |
 | Captions | parent section label (distance 1) | Disable captions / Enable captions | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:170](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L170) |
-| Card palettes | grandparent section label (distance 2) | Add palette | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CardPaletteManager.tsx:47](../../web/frontend/src/components/settings/CardPaletteManager.tsx#L47) |
-| Card palettes | ancestor section label (distance 4) | {`Edit ${palette.name}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CardPaletteManager.tsx:91](../../web/frontend/src/components/settings/CardPaletteManager.tsx#L91) |
-| Card palettes | ancestor section label (distance 4) | {`Duplicate ${palette.name}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CardPaletteManager.tsx:109](../../web/frontend/src/components/settings/CardPaletteManager.tsx#L109) |
-| Card palettes | ancestor section label (distance 4) | Restore | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CardPaletteManager.tsx:118](../../web/frontend/src/components/settings/CardPaletteManager.tsx#L118) |
-| Card palettes | ancestor section label (distance 4) | Archive | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CardPaletteManager.tsx:134](../../web/frontend/src/components/settings/CardPaletteManager.tsx#L134) |
+| Card palettes | grandparent section label (distance 2) | Add palette | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CardPaletteManager.tsx:48](../../web/frontend/src/components/settings/CardPaletteManager.tsx#L48) |
+| Card palettes | ancestor section label (distance 4) | {`Edit ${palette.name}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CardPaletteManager.tsx:96](../../web/frontend/src/components/settings/CardPaletteManager.tsx#L96) |
+| Card palettes | ancestor section label (distance 4) | {`Duplicate ${palette.name}`} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CardPaletteManager.tsx:114](../../web/frontend/src/components/settings/CardPaletteManager.tsx#L114) |
+| Card palettes | ancestor section label (distance 4) | Restore | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CardPaletteManager.tsx:123](../../web/frontend/src/components/settings/CardPaletteManager.tsx#L123) |
+| Card palettes | ancestor section label (distance 4) | Archive | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CardPaletteManager.tsx:139](../../web/frontend/src/components/settings/CardPaletteManager.tsx#L139) |
 | Current generation | parent section label (distance 1) | Refresh | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:129](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L129) |
 | Delete feed | parent section label (distance 1) | Delete | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:233](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L233) |
 | Events | parent section label (distance 1) | Manage | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/groups/FeedSettingsDialog.tsx:138](../../web/frontend/src/components/groups/FeedSettingsDialog.tsx#L138) |
@@ -321,9 +320,11 @@ Found 81 occurrences.
 | unknown | no enclosing accessible region | {label} | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/RowActionMenu.tsx:53](../../web/frontend/src/components/RowActionMenu.tsx#L53) |
 | unknown | no enclosing accessible region | {action.label} | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/RowActionMenu.tsx:69](../../web/frontend/src/components/RowActionMenu.tsx#L69) |
 | unknown | no enclosing accessible region | Close | self aria-label (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CardPaletteEditorDialog.tsx:110](../../web/frontend/src/components/settings/CardPaletteEditorDialog.tsx#L110) |
-| unknown | no enclosing accessible region | Surface | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CardPaletteEditorDialog.tsx:131](../../web/frontend/src/components/settings/CardPaletteEditorDialog.tsx#L131) |
-| unknown | no enclosing accessible region | Accent | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CardPaletteEditorDialog.tsx:141](../../web/frontend/src/components/settings/CardPaletteEditorDialog.tsx#L141) |
-| unknown | no enclosing accessible region | Cancel | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CardPaletteEditorDialog.tsx:200](../../web/frontend/src/components/settings/CardPaletteEditorDialog.tsx#L200) |
+| unknown | no enclosing accessible region | Follow surface | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CardPaletteEditorDialog.tsx:133](../../web/frontend/src/components/settings/CardPaletteEditorDialog.tsx#L133) |
+| unknown | no enclosing accessible region | Custom accent | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CardPaletteEditorDialog.tsx:147](../../web/frontend/src/components/settings/CardPaletteEditorDialog.tsx#L147) |
+| unknown | no enclosing accessible region | Surface | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CardPaletteEditorDialog.tsx:169](../../web/frontend/src/components/settings/CardPaletteEditorDialog.tsx#L169) |
+| unknown | no enclosing accessible region | Accent | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CardPaletteEditorDialog.tsx:178](../../web/frontend/src/components/settings/CardPaletteEditorDialog.tsx#L178) |
+| unknown | no enclosing accessible region | Cancel | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CardPaletteEditorDialog.tsx:223](../../web/frontend/src/components/settings/CardPaletteEditorDialog.tsx#L223) |
 | unknown | no enclosing accessible region | Monospace Code-like and aligned | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:305](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L305) |
 | unknown | no enclosing accessible region | Serif Fanwood Text | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx:315](../../web/frontend/src/components/settings/CreateEvidenceFormatDialog.tsx#L315) |
 | unknown | no enclosing accessible region | Unlimited | self text (distance 0) | DOM &lt;button&gt; | [web/frontend/src/components/settings/CreateInviteLinkDialog.tsx:173](../../web/frontend/src/components/settings/CreateInviteLinkDialog.tsx#L173) |
@@ -339,7 +340,7 @@ Found 24 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Card palettes | parent section label (distance 1) | Card palettes | region fallback (parent section label (distance 1)) | Component &lt;CardPaletteEditorDialog&gt; | [web/frontend/src/components/settings/CardPaletteManager.tsx:161](../../web/frontend/src/components/settings/CardPaletteManager.tsx#L161) |
+| Card palettes | parent section label (distance 1) | Card palettes | region fallback (parent section label (distance 1)) | Component &lt;CardPaletteEditorDialog&gt; | [web/frontend/src/components/settings/CardPaletteManager.tsx:166](../../web/frontend/src/components/settings/CardPaletteManager.tsx#L166) |
 | Feeds | grandparent section label (distance 2) | Feeds | region fallback (grandparent section label (distance 2)) | Component &lt;FeedSettingsDialog&gt; | [web/frontend/src/components/groups/FeedSublist.tsx:153](../../web/frontend/src/components/groups/FeedSublist.tsx#L153) |
 | Invite links | parent section label (distance 1) | Invite links | region fallback (parent section label (distance 1)) | Component &lt;CreateInviteLinkDialog&gt; | [web/frontend/src/components/settings/InviteLinksManager.tsx:156](../../web/frontend/src/components/settings/InviteLinksManager.tsx#L156) |
 | Metric settings | parent section label (distance 1) | Metric settings | region fallback (parent section label (distance 1)) | Component &lt;CreateMetricDialog&gt; | [web/frontend/src/components/MetricSettingsManager.tsx:224](../../web/frontend/src/components/MetricSettingsManager.tsx#L224) |
@@ -569,7 +570,7 @@ Found 8 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Card palettes | parent section label (distance 1) | Card palettes | region fallback (parent section label (distance 1)) | Component &lt;CardPaletteEditorDialog&gt; | [web/frontend/src/components/settings/CardPaletteManager.tsx:165](../../web/frontend/src/components/settings/CardPaletteManager.tsx#L165) |
+| Card palettes | parent section label (distance 1) | Card palettes | region fallback (parent section label (distance 1)) | Component &lt;CardPaletteEditorDialog&gt; | [web/frontend/src/components/settings/CardPaletteManager.tsx:170](../../web/frontend/src/components/settings/CardPaletteManager.tsx#L170) |
 | Post formats | parent section label (distance 1) | Post formats | region fallback (parent section label (distance 1)) | Component &lt;CreateEvidenceFormatDialog&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:205](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L205) |
 | Post formats | parent section label (distance 1) | Post formats | region fallback (parent section label (distance 1)) | Component &lt;EditEvidenceFormatDialog&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:224](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L224) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;AddFeedDialog&gt; | [web/frontend/src/components/GroupDashboard.tsx:229](../../web/frontend/src/components/GroupDashboard.tsx#L229) |
@@ -821,7 +822,7 @@ Found 4 occurrences.
 
 | Region | Region relationship | Nearest label | Label relationship | Target | Source |
 | --- | --- | --- | --- | --- | --- |
-| Card palettes | parent section label (distance 1) | Card palettes | region fallback (parent section label (distance 1)) | Component &lt;CardPaletteEditorDialog&gt; | [web/frontend/src/components/settings/CardPaletteManager.tsx:166](../../web/frontend/src/components/settings/CardPaletteManager.tsx#L166) |
+| Card palettes | parent section label (distance 1) | Card palettes | region fallback (parent section label (distance 1)) | Component &lt;CardPaletteEditorDialog&gt; | [web/frontend/src/components/settings/CardPaletteManager.tsx:171](../../web/frontend/src/components/settings/CardPaletteManager.tsx#L171) |
 | Post formats | parent section label (distance 1) | Post formats | region fallback (parent section label (distance 1)) | Component &lt;EditEvidenceFormatDialog&gt; | [web/frontend/src/components/settings/EvidenceFormatManager.tsx:228](../../web/frontend/src/components/settings/EvidenceFormatManager.tsx#L228) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FeedEventEditorDialog&gt; | [web/frontend/src/components/groups/FeedEventsDialog.tsx:75](../../web/frontend/src/components/groups/FeedEventsDialog.tsx#L75) |
 | unknown | no enclosing accessible region | unknown | no nearby accessible label | Component &lt;FeedEventsDialog&gt; | [web/frontend/src/workspace/FeedEventsAdapter.tsx:48](../../web/frontend/src/workspace/FeedEventsAdapter.tsx#L48) |

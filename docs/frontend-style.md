@@ -124,7 +124,12 @@ CSS colors. The `arcade-pigment-v1` model contains surface hue and
 colorfulness, plus an optional explicit accent hue and colorfulness. Hue is an
 integer from 0 through 359; colorfulness is an integer from 0 through 100. If
 the accent pair is absent, the compiler derives a coordinated accent from the
-surface.
+surface. That accent supplies the author highlight and post-action emphasis,
+contributes to the border treatment, and sets the focused post spotlight hue.
+The primary Add palette action starts with this surface-linked derived accent,
+so moving the surface also moves those coordinated roles. Duplicate preserves
+the source palette's complete intent, including an explicit independent accent
+when it has one.
 
 `src/palette/cardPalette.ts` compiles that intent once per theme profile into a
 complete scoped token set: surface and dim surface, border and dim border,

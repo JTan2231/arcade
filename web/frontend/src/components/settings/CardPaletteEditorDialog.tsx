@@ -122,17 +122,54 @@ export function CardPaletteEditorDialog({
                 onChange={(event) => updateDraft({ name: event.target.value })}
               />
             </label>
-            <div className="card-palette-target-control" role="group" aria-label="Material to edit">
-              <button
-                aria-pressed={editingTarget === "surface"}
-                className="secondary card-palette-target-option"
-                disabled={saving}
-                type="button"
-                onClick={() => setEditingTarget("surface")}
-              >
-                Surface
-              </button>
-              {draft.accentEnabled ? (
+            <div className="card-palette-accent-mode">
+              <div className="card-palette-wheel-label">Accent behavior</div>
+              <div className="card-palette-accent-options" role="group" aria-label="Accent behavior">
+                <button
+                  aria-pressed={!draft.accentEnabled}
+                  className="secondary card-palette-accent-option"
+                  disabled={saving}
+                  type="button"
+                  onClick={() => {
+                    if (draft.accentEnabled) {
+                      updateDraft({ accentEnabled: false });
+                    }
+                    setEditingTarget("surface");
+                  }}
+                >
+                  Follow surface
+                </button>
+                <button
+                  aria-pressed={draft.accentEnabled}
+                  className="secondary card-palette-accent-option"
+                  disabled={saving}
+                  type="button"
+                  onClick={() => {
+                    if (!draft.accentEnabled) {
+                      updateDraft({ accentEnabled: true });
+                    }
+                    setEditingTarget("accent");
+                  }}
+                >
+                  Custom accent
+                </button>
+              </div>
+              <div className="field-hint">
+                Follow surface keeps author names, actions, borders, and the spotlight coordinated. Custom accent lets
+                those elements use a separate color.
+              </div>
+            </div>
+            {draft.accentEnabled ? (
+              <div className="card-palette-target-control" role="group" aria-label="Material to edit">
+                <button
+                  aria-pressed={editingTarget === "surface"}
+                  className="secondary card-palette-target-option"
+                  disabled={saving}
+                  type="button"
+                  onClick={() => setEditingTarget("surface")}
+                >
+                  Surface
+                </button>
                 <button
                   aria-pressed={editingTarget === "accent"}
                   className="secondary card-palette-target-option"
@@ -142,8 +179,8 @@ export function CardPaletteEditorDialog({
                 >
                   Accent
                 </button>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
             <CardPaletteWheel
               disabled={saving}
               drawWheel={drawCanonicalCardPaletteWheel}
@@ -157,22 +194,8 @@ export function CardPaletteEditorDialog({
                 }
               }}
             />
-            <label className="checkbox-row card-palette-accent-toggle">
-              <input
-                checked={draft.accentEnabled}
-                disabled={saving}
-                type="checkbox"
-                onChange={(event) => {
-                  const enabled = event.target.checked;
-                  updateDraft({ accentEnabled: enabled });
-                  setEditingTarget(enabled ? "accent" : "surface");
-                }}
-              />
-              Use a separate accent for the border and spotlight
-            </label>
             <div className="field-hint">
-              The wheel chooses material hue and color intensity. Arcade derives depth, ink, borders, and spotlight for
-              each viewer mode.
+              The wheel chooses material hue and color intensity. Arcade derives depth and ink for each viewer mode.
             </div>
           </div>
           <div className="card-palette-editor-preview">

@@ -37,6 +37,16 @@ export function materialIntentFromDraft(draft: PostCardPaletteDraft): PostCardPa
   };
 }
 
+export function materialIntentWithDerivedAccent(
+  materialIntent: PostCardPaletteMaterialIntent,
+): PostCardPaletteMaterialIntent {
+  return {
+    model: materialIntent.model,
+    surface_hue: materialIntent.surface_hue,
+    surface_colorfulness: materialIntent.surface_colorfulness,
+  };
+}
+
 export function validatePostCardPaletteDraft(draft: PostCardPaletteDraft): string {
   if (draft.name.trim() === "") {
     return "Name is required";

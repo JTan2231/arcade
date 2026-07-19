@@ -56,6 +56,10 @@ function CardPalettePreview({
     <section className="card-palette-preview" style={style}>
       <div className="card-palette-preview-mode">{label}</div>
       <div className="card-palette-preview-spotlight">
+        <div className="card-palette-preview-byline">
+          <span className="card-palette-preview-author">Author name</span>
+          <span className="card-palette-preview-time">Today · 3:33 PM</span>
+        </div>
         <div className={`card-palette-preview-card post-content-typeface-${typeface}`}>
           <div className="card-palette-preview-card-controls" aria-hidden="true">
             <span>⌃</span>

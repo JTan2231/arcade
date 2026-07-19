@@ -2,7 +2,12 @@ import { describe, expect, test } from "bun:test";
 
 import type { EvidenceFormat, PostCardPalette } from "../../types";
 import { buildFormatEditPayloads, buildFormatPayload, evidenceFormatToDraft } from "./evidenceFormatDraft";
-import { materialIntentFromDraft, postCardPaletteDraft, validatePostCardPaletteDraft } from "./postCardPaletteDraft";
+import {
+  materialIntentFromDraft,
+  materialIntentWithDerivedAccent,
+  postCardPaletteDraft,
+  validatePostCardPaletteDraft,
+} from "./postCardPaletteDraft";
 import { derivePostCardPaletteUsage } from "./postCardPaletteUsage";
 import { sortPostCardPalettes } from "./usePostCardPalettes";
 
@@ -45,6 +50,20 @@ describe("Post Format appearance drafts", () => {
 });
 
 describe("Card palette settings", () => {
+  test("starts a new palette with an accent derived from its surface", () => {
+    expect(materialIntentWithDerivedAccent(palette.material_intent)).toEqual({
+      model: "arcade-pigment-v1",
+      surface_hue: 167,
+      surface_colorfulness: 95,
+    });
+  });
+
+  test("preserves the complete material intent when duplicating a palette", () => {
+    const draft = postCardPaletteDraft("Chalkboard copy", palette.material_intent);
+
+    expect(materialIntentFromDraft(draft)).toEqual(palette.material_intent);
+  });
+
   test("omits the optional accent as a complete pair", () => {
     const draft = postCardPaletteDraft("Soft green", palette.material_intent);
     const intent = materialIntentFromDraft({ ...draft, accentEnabled: false });

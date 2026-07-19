@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { PostCardPalette } from "../../types";
 import { CardPaletteEditorDialog, type CardPaletteEditorInitialValue } from "./CardPaletteEditorDialog";
 import { CardPaletteThumbnail } from "./CardPalettePreview";
+import { materialIntentWithDerivedAccent } from "./postCardPaletteDraft";
 import type { PostCardPaletteCollection } from "./usePostCardPalettes";
 
 type EditorState =
@@ -47,7 +48,11 @@ export function CardPaletteManager({
           onClick={() => {
             const source = activePalettes.find((palette) => palette.system_key === "chalkboard") ?? activePalettes[0];
             if (source !== undefined) {
-              openCreate(source);
+              collection.clearError();
+              setEditor({
+                mode: "create",
+                initial: { name: "", materialIntent: materialIntentWithDerivedAccent(source.material_intent) },
+              });
             }
           }}
         >

@@ -67,8 +67,9 @@ steps:
       value: 72
 
   - within: Add card palette
-    uncheck:
-      label: Use a separate accent for the border and spotlight
+    click:
+      role: button
+      name: Follow surface
 
   - within: Add card palette
     click:

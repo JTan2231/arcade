@@ -153,6 +153,18 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.card-palette-accent-mode {
+  display: grid;
+  gap: 6px;
+}
+
+.card-palette-accent-options {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.card-palette-accent-option[aria-pressed="true"],
 .card-palette-target-option[aria-pressed="true"] {
   background: var(--color-accent-surface);
   border-color: var(--color-accent-border);
@@ -219,10 +231,6 @@
   padding: 0;
 }
 
-.card-palette-accent-toggle {
-  color: var(--color-text);
-}
-
 .card-palette-preview-pair {
   display: grid;
   gap: 10px;
@@ -249,6 +257,27 @@
 .card-palette-preview-spotlight {
   background: radial-gradient(circle, var(--post-card-spotlight), var(--post-card-spotlight-transparent) 72%);
   padding: 14px 6px;
+}
+
+.card-palette-preview-byline {
+  display: grid;
+  gap: 1px;
+  margin-bottom: 7px;
+}
+
+.card-palette-preview-author {
+  color: var(--post-card-accent);
+  font-family: var(--font-post-meta);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.12;
+}
+
+.card-palette-preview-time {
+  color: var(--post-card-muted);
+  font-family: var(--font-post-meta);
+  font-size: 9px;
+  font-weight: 600;
 }
 
 .card-palette-preview-card {

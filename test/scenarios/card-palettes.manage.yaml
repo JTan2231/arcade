@@ -57,6 +57,22 @@ steps:
   - within: Card palettes
     click:
       role: button
+      name: Add palette
+
+  - within: Add card palette
+    expectPressed:
+      role: button
+      name: Follow surface
+      pressed: true
+
+  - within: Add card palette
+    click:
+      role: button
+      name: Close
+
+  - within: Card palettes
+    click:
+      role: button
       name: Duplicate Chalkboard
 
   - within: Add card palette
@@ -71,6 +87,12 @@ steps:
   - within: Add card palette
     expectVisible:
       text: Light
+
+  - within: Add card palette
+    expectPressed:
+      role: button
+      name: Custom accent
+      pressed: true
 
   - within: Add card palette
     fill:
@@ -88,8 +110,15 @@ steps:
       value: 72
 
   - within: Add card palette
-    uncheck:
-      label: Use a separate accent for the border and spotlight
+    click:
+      role: button
+      name: Follow surface
+
+  - within: Add card palette
+    expectPressed:
+      role: button
+      name: Follow surface
+      pressed: true
 
   - within: Add card palette
     click:
