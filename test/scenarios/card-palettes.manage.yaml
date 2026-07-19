@@ -82,11 +82,17 @@ steps:
 
   - within: Add card palette
     expectVisible:
-      text: Dark
+      text: Author name
 
   - within: Add card palette
-    expectVisible:
+    expectHidden:
       text: Light
+      exact: true
+
+  - within: Add card palette
+    expectHidden:
+      text: Dark
+      exact: true
 
   - within: Add card palette
     expectPressed:

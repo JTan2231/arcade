@@ -13,6 +13,9 @@ import {
 
 export type ViewerThemePreference = ThemePreference;
 
+// Keep preferences dormant until every profile is ready for users.
+export const viewerThemePreferencesEnabled = false;
+
 type ViewerThemeSnapshot = Readonly<{
   preference: ViewerThemePreference;
   profileId: ThemeProfileId;
@@ -20,7 +23,7 @@ type ViewerThemeSnapshot = Readonly<{
 }>;
 
 const viewerThemeStorageKey = "arcade.viewer-theme";
-const defaultViewerThemePreference: ViewerThemePreference = "system";
+const defaultViewerThemePreference: ViewerThemePreference = "dark";
 
 const listeners = new Set<() => void>();
 let mediaQuery: MediaQueryList | null = null;
@@ -50,20 +53,22 @@ function resolveViewerTheme(preference: ViewerThemePreference): ThemeMode {
 }
 
 function installResolvedTheme(preference: ViewerThemePreference, resolvedTheme: ThemeMode) {
-  const profile = getThemeProfile(resolvedTheme);
+  const activePreference = viewerThemePreferencesEnabled ? preference : "dark";
+  const activeTheme = viewerThemePreferencesEnabled ? resolvedTheme : "dark";
+  const profile = getThemeProfile(activeTheme);
   assertPaletteValid(profile.palette.validation);
-  setActiveThemeProfileMode(resolvedTheme);
+  setActiveThemeProfileMode(activeTheme);
 
   if (typeof document !== "undefined") {
     const root = document.documentElement;
     installCssTokens(profile.palette.tokens, root);
-    installCssTokens(defaultCardPaletteTokens(resolvedTheme), root);
-    root.dataset["theme"] = resolvedTheme;
+    installCssTokens(defaultCardPaletteTokens(activeTheme), root);
+    root.dataset["theme"] = activeTheme;
     root.dataset["themeProfile"] = profile.id;
     root.style.colorScheme = profile.colorScheme;
   }
 
-  const next = Object.freeze({ preference, profileId: profile.id, resolvedTheme });
+  const next = Object.freeze({ preference: activePreference, profileId: profile.id, resolvedTheme: activeTheme });
   if (
     snapshot.preference === next.preference &&
     snapshot.profileId === next.profileId &&
@@ -143,8 +148,12 @@ function storeViewerThemePreference(preference: ViewerThemePreference) {
 }
 
 export function initializeViewerTheme() {
-  const preference = readStoredViewerThemePreference();
   initialized = true;
+  if (!viewerThemePreferencesEnabled) {
+    return installResolvedTheme("dark", "dark");
+  }
+
+  const preference = readStoredViewerThemePreference();
   updateStorageSubscription();
   updateMediaQuerySubscription(preference);
   return installResolvedTheme(preference, resolveViewerTheme(preference));
@@ -155,6 +164,10 @@ export function applyViewerThemePreference(preference: ViewerThemePreference) {
     throw new Error(`Unsupported viewer theme preference ${JSON.stringify(preference)}`);
   }
   initialized = true;
+  if (!viewerThemePreferencesEnabled) {
+    return installResolvedTheme("dark", "dark");
+  }
+
   storeViewerThemePreference(preference);
   updateMediaQuerySubscription(preference);
   return installResolvedTheme(preference, resolveViewerTheme(preference));

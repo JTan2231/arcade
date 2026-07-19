@@ -209,13 +209,10 @@ steps:
       role: button
       name: Close
 
-  - within: Feed cycle
-    expectVisible:
-      text: Core Round
-
-  - within: Feed cycle
-    expectVisible:
-      text: Day 1 of 3
+  - within: Selected feed output
+    expectHidden:
+      role: region
+      name: Feed cycle
 
   - within: Feeds
     click:

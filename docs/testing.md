@@ -315,10 +315,10 @@ Cycle behavior is split across three focused scenarios:
   summaries, permanent Event cutoff, a later non-overlapping run, scheduled-run
   deletion, and preservation of historical Cycles across both transitions.
 - `feeds.cycles-ui.yaml` exercises the accessible owner workflow from feed
-  settings through configuration, complete-Cycle preview, save, member
-  provenance, and whole-Cycle refresh. It also verifies the ended-run summary,
-  retained generated history, permanent removal of Event management, and
-  restored baseline refresh and cadence controls.
+  settings through configuration, complete-Cycle preview, save, hidden feed
+  announcement, and whole-Cycle refresh. It also verifies the ended-run
+  summary, retained generated history, permanent removal of Event management,
+  and restored baseline refresh and cadence controls.
 
 The API scenarios assert both responses and relational persistence. This is
 important for preview and failure cases: a correct error response is not enough

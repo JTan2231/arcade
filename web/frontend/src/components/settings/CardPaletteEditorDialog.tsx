@@ -77,7 +77,7 @@ export function CardPaletteEditorDialog({
       return;
     }
     if (!renderingValid) {
-      setValidationError("Choose a material that stays distinct and readable in both viewer modes");
+      setValidationError("Choose a material that stays distinct and readable");
       return;
     }
     void onSave({ name: draft.name.trim(), materialIntent });
@@ -195,7 +195,7 @@ export function CardPaletteEditorDialog({
               }}
             />
             <div className="field-hint">
-              The wheel chooses material hue and color intensity. Arcade derives depth and ink for each viewer mode.
+              The wheel chooses material hue and color intensity. Arcade derives the card depth and ink.
             </div>
           </div>
           <div className="card-palette-editor-preview">

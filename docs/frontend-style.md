@@ -1,17 +1,20 @@
 # Frontend Style
 
-Arcade has versioned dark and light theme profiles. The active executable source
-of truth is the generated palette under `web/frontend/src/palette`. The dark
-`:root` block and light `:root[data-theme="light"]` block in
-`web/frontend/src/styles/tokens.css` remain the complete first-paint and
-runtime-failure fallbacks.
+Arcade retains versioned dark and light theme profiles, but all user-facing
+surfaces currently initialize the dark profile and theme selection is disabled.
+The inactive profile and preference implementation remain in the codebase for
+future work and palette validation. The active executable source of truth is the
+generated palette under `web/frontend/src/palette`. The dark `:root` block and
+light `:root[data-theme="light"]` block in `web/frontend/src/styles/tokens.css`
+remain complete runtime-failure fallbacks.
 
-`src/main.tsx` initializes `src/theme.ts`, which resolves the persisted
-System/Dark/Light preference, validates the selected profile, and installs all
-59 semantic color, shadow, and glow variables before React mounts. Component
-CSS continues to consume only those semantic variables. Post-card palettes add
-scoped `--post-card-*` roles compiled from versioned material intent; they do
-not replace the global code tokens.
+`src/main.tsx` initializes `src/theme.ts`, which currently installs the dark
+profile's 59 semantic color, shadow, and glow variables before React mounts.
+Component CSS continues to consume only those semantic variables. Post-card
+palettes add scoped `--post-card-*` roles compiled from versioned material
+intent; they do not replace the global code tokens. User-facing post-card
+previews render only the active dark profile while validation continues to
+check both retained profiles.
 
 ## Theme Profiles
 
@@ -20,10 +23,10 @@ not replace the global code tokens.
 materials, targets, validation, and snapshot. Do not substitute only a scene
 while retaining another profile's materials or validation.
 
-Viewer preference is `system`, `dark`, or `light` and is managed by
-`src/theme.ts`. Palette intent is scene-independent: the active profile compiles
-the same hue/colorfulness coordinates into its own card surface, border,
-foreground, control, syntax, and spotlight roles.
+The dormant viewer preference is `system`, `dark`, or `light` and remains
+implemented in `src/theme.ts`. Palette intent is scene-independent: each
+profile compiles the same hue/colorfulness coordinates into its own card
+surface, border, foreground, control, syntax, and spotlight roles.
 
 ## Color Direction
 

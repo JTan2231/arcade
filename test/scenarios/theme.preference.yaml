@@ -1,4 +1,4 @@
-name: viewer theme preference switches and persists
+name: viewer theme selection stays hidden while preferences are dormant
 
 vars:
   email: theme-viewer@example.test
@@ -29,51 +29,25 @@ before:
 steps:
   - visit: /
 
-  - expectValue:
-      label: Theme
-      value: system
-
-  - select:
-      label: Theme
-      value: dark
-
-  - expectEnabled:
-      role: combobox
-      name: Theme
-
-  - expectValue:
-      label: Theme
-      value: dark
-
-  - request:
-      client: browser
-      method: GET
-      path: /api/me
-      expectStatus: 200
-      expectJson:
-        theme_preference: dark
-
-  - visit: /
-
-  - expectValue:
-      label: Theme
-      value: dark
-
-  - select:
-      label: Theme
-      value: light
-
-  - expectEnabled:
+  - expectHidden:
       role: combobox
       name: Theme
 
   - request:
       client: browser
-      method: GET
+      method: PATCH
       path: /api/me
+      json:
+        theme_preference: light
       expectStatus: 200
       expectJson:
         theme_preference: light
+
+  - visit: /
+
+  - expectHidden:
+      role: combobox
+      name: Theme
 
   - request:
       client: browser
@@ -84,58 +58,6 @@ steps:
 
   - visit: /
 
-  - expectValue:
-      label: Theme
-      value: light
-
-  - select:
-      label: Theme
-      value: dark
-
-  - visit: /
-
-  - expectValue:
-      label: Theme
-      value: dark
-
-  - request:
-      client: browser
-      method: POST
-      path: /api/auth/login
-      json:
-        email: "{{email}}"
-        password: "{{password}}"
-        remember_me: false
-      expectStatus: 200
-
-  - visit: /
-
-  - expectValue:
-      label: Theme
-      value: light
-
-  - select:
-      label: Theme
-      value: system
-
-  - expectEnabled:
+  - expectHidden:
       role: combobox
       name: Theme
-
-  - expectValue:
-      label: Theme
-      value: system
-
-  - request:
-      client: browser
-      method: GET
-      path: /api/me
-      expectStatus: 200
-      expectJson:
-        theme_preference: system
-
-  - visit: /
-
-  - expectValue:
-      label: Theme
-      value: system

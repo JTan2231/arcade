@@ -10,7 +10,7 @@ import { groupPath, readAppRoute, type AppRoute } from "./routes";
 import { PublicRouteAdapter } from "./workspace/PublicRouteAdapter";
 import { WorkspaceShell } from "./workspace/WorkspaceShell";
 import type { DashboardActorRef } from "./workspace/types";
-import { applyViewerThemePreference } from "./theme";
+import { applyViewerThemePreference, viewerThemePreferencesEnabled } from "./theme";
 
 export default function App() {
   const [route, setRoute] = useState<AppRoute>(() => readAppRoute());
@@ -52,7 +52,7 @@ export default function App() {
     send({ type: "UNAUTHORIZED" });
   }, [send]);
 
-  const themeControl = (
+  const themeControl = viewerThemePreferencesEnabled ? (
     <ThemePreferenceControl
       key={context.user?.id ?? "signed-out"}
       currentUser={context.user}
@@ -60,7 +60,7 @@ export default function App() {
       onError={requestToast}
       onUserUpdated={(user) => send({ type: "USER_UPDATED", user })}
     />
-  );
+  ) : null;
 
   useEffect(() => {
     function handlePopState() {
@@ -91,7 +91,7 @@ export default function App() {
   }, [context.toastMessage, send]);
 
   useEffect(() => {
-    if (context.user !== null) {
+    if (viewerThemePreferencesEnabled && context.user !== null) {
       applyViewerThemePreference(context.user.theme_preference);
     }
   }, [context.user]);
