@@ -43,6 +43,7 @@ import type {
   MetricLeaderboard,
 } from "../../types";
 import { addFeedMachine } from "../addFeedMachine";
+import { feedCyclesMachine } from "../feedCyclesMachine";
 import { feedEventsMachine } from "../feedEventsMachine";
 import type {
   ChangeFeedCaptionsInput,
@@ -78,6 +79,7 @@ import type {
 
 export const dashboardActors = {
   addFeedMachine,
+  feedCyclesMachine,
   feedEventsMachine,
   listGroups: fromPromise<Group[], UserScopedInput>(({ input, signal }) =>
     queryCache.read(queries.groups, input.currentUserId, { signal }),

@@ -13,6 +13,7 @@ export function FeedSettingsDialog({
   onChangeFeedFormat,
   onChangeFeedSchedule,
   onRefreshGeneration,
+  onManageCycles,
   onManageEvents,
   onDeleteFeed,
 }: {
@@ -25,6 +26,7 @@ export function FeedSettingsDialog({
   onChangeFeedFormat: (evidenceFormatId: string) => void;
   onChangeFeedSchedule: (schedule: DailyFeedSchedule) => void;
   onRefreshGeneration: () => void;
+  onManageCycles: () => void;
   onManageEvents: () => void;
   onDeleteFeed: () => void;
 }) {
@@ -40,11 +42,13 @@ export function FeedSettingsDialog({
     : [feed.evidence_format, ...activeFormats];
   const selectedTimezone = timezone.trim() || "UTC";
   const selectedIntervalSeconds = Number(intervalSeconds);
+  const cycleOutputsManaged = feed.cycle_settings !== undefined && feed.cycle_settings.status !== "ended";
   const scheduleChanged =
     startsAt !== initialStartsAt ||
     selectedTimezone !== feed.schedule.timezone ||
     (Number.isFinite(selectedIntervalSeconds) && selectedIntervalSeconds !== feed.schedule.interval_seconds);
   const scheduleSubmittable =
+    !cycleOutputsManaged &&
     scheduleChanged &&
     startsAt.trim() !== "" &&
     Number.isFinite(selectedIntervalSeconds) &&
@@ -121,24 +125,50 @@ export function FeedSettingsDialog({
           </section>
           {feed.kind === "catalog_daily" ? (
             <>
-              <section className="feed-settings-section" aria-label="Current generation">
+              <section className="feed-settings-section" aria-label="Cycles">
                 <div>
-                  <div className="section-title">Current generation</div>
-                  <div className="meta">Reroll today's generated items.</div>
+                  <div className="section-title">Cycles</div>
+                  <div className="meta">
+                    {feed.schedule.interval_seconds < 86400
+                      ? "Cycles require a daily or slower cadence."
+                      : feed.cycle_settings === undefined
+                        ? "Rotate ordered configurations across generated cycles."
+                        : feed.cycle_settings.status === "ended"
+                          ? "Cycles ended; generated history remains available."
+                          : `Configured from ${feed.cycle_settings.starts_on}.`}
+                  </div>
                 </div>
-                <button className="secondary" disabled={mutating} type="button" onClick={onRefreshGeneration}>
-                  Refresh
-                </button>
-              </section>
-              <section className="feed-settings-section" aria-label="Events">
-                <div>
-                  <div className="section-title">Events</div>
-                  <div className="meta">Schedule temporary item counts and filters.</div>
-                </div>
-                <button className="secondary" disabled={mutating} type="button" onClick={onManageEvents}>
+                <button
+                  className="secondary"
+                  disabled={mutating || (feed.schedule.interval_seconds < 86400 && feed.cycle_settings === undefined)}
+                  type="button"
+                  onClick={onManageCycles}
+                >
                   Manage
                 </button>
               </section>
+              {!cycleOutputsManaged ? (
+                <section className="feed-settings-section" aria-label="Current generation">
+                  <div>
+                    <div className="section-title">Current generation</div>
+                    <div className="meta">Reroll today's generated items.</div>
+                  </div>
+                  <button className="secondary" disabled={mutating} type="button" onClick={onRefreshGeneration}>
+                    Refresh
+                  </button>
+                </section>
+              ) : null}
+              {feed.cycle_settings === undefined ? (
+                <section className="feed-settings-section" aria-label="Events">
+                  <div>
+                    <div className="section-title">Events</div>
+                    <div className="meta">Schedule temporary item counts and filters.</div>
+                  </div>
+                  <button className="secondary" disabled={mutating} type="button" onClick={onManageEvents}>
+                    Manage
+                  </button>
+                </section>
+              ) : null}
             </>
           ) : null}
           <section className="feed-settings-section feed-format-section" aria-label="Post format">
@@ -174,13 +204,16 @@ export function FeedSettingsDialog({
           <section className="feed-settings-section feed-schedule-section" aria-label="Cadence">
             <div>
               <div className="section-title">Cadence</div>
-              <div className="meta">{intervalLabel(feed.schedule.interval_seconds)}</div>
+              <div className="meta">
+                {intervalLabel(feed.schedule.interval_seconds)}
+                {cycleOutputsManaged ? " · Managed by cycle settings" : ""}
+              </div>
             </div>
             <form className="feed-schedule-form" onSubmit={handleScheduleSubmit}>
               <label className="feed-format-select-label">
                 Start time
                 <input
-                  disabled={mutating}
+                  disabled={mutating || cycleOutputsManaged}
                   type="datetime-local"
                   value={startsAt}
                   onChange={(event) => {
@@ -192,7 +225,7 @@ export function FeedSettingsDialog({
               <label className="feed-format-select-label">
                 Timezone
                 <input
-                  disabled={mutating}
+                  disabled={mutating || cycleOutputsManaged}
                   value={timezone}
                   onChange={(event) => {
                     setTimezone(event.target.value);
@@ -203,7 +236,7 @@ export function FeedSettingsDialog({
               <label className="feed-format-select-label">
                 Repeat
                 <select
-                  disabled={mutating}
+                  disabled={mutating || cycleOutputsManaged}
                   value={intervalSeconds}
                   onChange={(event) => {
                     setIntervalSeconds(event.target.value);

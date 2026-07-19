@@ -1,4 +1,5 @@
 import type { AddFeedOutputEvent } from "../addFeedMachine";
+import type { FeedCyclesOutputEvent } from "../feedCyclesMachine";
 import type { FeedEventsOutputEvent } from "../feedEventsMachine";
 import type {
   CreateEvidenceFormatRequest,
@@ -171,6 +172,8 @@ export type DashboardContext = {
   pendingRefreshFeedId: string | null;
   pendingDeleteGroupId: string | null;
   pendingDeleteFeedId: string | null;
+  managedFeedCyclesFeedId: string | null;
+  feedCyclesChanged: boolean;
   managedFeedEventsFeedId: string | null;
   feedEventsChanged: boolean;
   postMutation: PostMutation | null;
@@ -223,12 +226,14 @@ type DashboardUserEvent =
   | { type: "JUDGMENT_CREATE_SUBMITTED"; metricId: string; postId: string; value: number; note: string }
   | { type: "ADD_FEED_OPENED" }
   | { type: "ADD_FEED_CLOSED" }
+  | { type: "FEED_CYCLES_OPENED"; feedId: string }
+  | { type: "FEED_CYCLES_CLOSED" }
   | { type: "FEED_EVENTS_OPENED"; feedId: string }
   | { type: "FEED_EVENTS_CLOSED" };
 
 export type DashboardOutputEvent = { type: "UNAUTHORIZED" } | { type: "TOAST_REQUESTED"; message: string };
 
-export type DashboardEvent = DashboardUserEvent | AddFeedOutputEvent | FeedEventsOutputEvent;
+export type DashboardEvent = DashboardUserEvent | AddFeedOutputEvent | FeedCyclesOutputEvent | FeedEventsOutputEvent;
 
 export type UserScopedInput = {
   currentUserId: string;

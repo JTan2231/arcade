@@ -191,6 +191,74 @@ export type PatchDailyFeedEventRequest = Omit<Partial<UpsertDailyFeedEventReques
   description?: string | null;
 };
 
+type CycleConfigurationField = {
+  field_id: string;
+  field_key?: string;
+  field_label?: string;
+  value_type?: "string" | "number";
+  is_array?: boolean;
+};
+
+type CycleConfigurationDistinct = { kind: "none" } | ({ kind: "field" } & CycleConfigurationField);
+
+type CycleConfigurationOrder =
+  | { kind: "seeded_shuffle" }
+  | ({ kind: "field"; direction: "asc" | "desc" } & CycleConfigurationField);
+
+export type CycleConfiguration = {
+  id?: string;
+  key: string;
+  name: string;
+  description?: string;
+  position?: number;
+  filters: DailyFeedRuleFilter[];
+  distinct: CycleConfigurationDistinct;
+  order: CycleConfigurationOrder;
+};
+
+export type UpsertCycleSettingsRequest = {
+  starts_on: string;
+  output_count: number;
+  selection_token?: string;
+  configurations: CycleConfiguration[];
+};
+
+export type CycleSettings = Omit<UpsertCycleSettingsRequest, "selection_token"> & {
+  id: string;
+  group_id: string;
+  feed_id: string;
+  status: "scheduled" | "active" | "ending";
+  effective_starts_on: string;
+  next_cycle_starts_on?: string;
+  ends_before?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type CycleConfigurationSummary = {
+  filters: string[];
+  distinct: string;
+  order: string;
+};
+
+type CycleProvenance = {
+  id: string;
+  name: string;
+  configuration_key: string;
+  starts_on: string;
+  ends_on: string;
+  position: number;
+  position_count: number;
+  summary: CycleConfigurationSummary;
+};
+
+export type DailyFeedCycleSettingsSummary = {
+  id: string;
+  starts_on: string;
+  ends_before?: string;
+  status: "scheduled" | "active" | "ending" | "ended";
+};
+
 export type DailyFeed = {
   id: string;
   group_id: string;
@@ -207,6 +275,7 @@ export type DailyFeed = {
   evidence_format: EvidenceFormat;
   schedule: DailyFeedSchedule;
   filters: DailyFeedRuleFilter[];
+  cycle_settings?: DailyFeedCycleSettingsSummary;
   created_by_user_id?: string;
   created_at: string;
   updated_at: string;
@@ -243,6 +312,7 @@ export type DailyFeedOutput = {
   date: string;
   title: string;
   event?: DailyFeedEventProvenance;
+  cycle?: CycleProvenance;
   items: DailyFeedOutputItem[];
 };
 
@@ -252,6 +322,7 @@ export type DailyFeedOutputSummary = {
   title: string;
   subtitle?: string;
   event?: DailyFeedEventProvenance;
+  cycle?: CycleProvenance;
 };
 
 type PublicFeedAction = {
@@ -303,6 +374,7 @@ export type PublicFeed = {
   schedule: DailyFeedSchedule;
   date: string;
   event?: DailyFeedEventProvenance;
+  cycle?: CycleProvenance;
   items: PublicFeedOutputItem[];
   posts: PublicPost[];
   created_at: string;
@@ -341,6 +413,45 @@ export type DailyFeedPreview = {
 export type DailyFeedEventPreview = DailyFeedPreview & {
   selection_token: string;
   event: DailyFeedEvent;
+};
+
+export type CyclePreview = {
+  selection_token: string;
+  cycle: {
+    starts_on: string;
+    ends_on: string;
+    configuration_key: string;
+    name: string;
+    position_count: number;
+  };
+  counts: {
+    candidate_item_count: number;
+    matching_item_count: number;
+    distinct_value_count?: number;
+    requested_item_count: number;
+    selected_item_count: number;
+  };
+  outputs: DailyFeedOutput[];
+};
+
+export type DailyFeedCycle = {
+  id: string;
+  group_id: string;
+  feed_id: string;
+  configuration_key: string;
+  name: string;
+  starts_on: string;
+  ends_on: string;
+  status: "upcoming" | "active" | "ended";
+  generation: number;
+  position_count: number;
+  summary: CycleConfigurationSummary;
+  items: Array<{
+    position: number;
+    date: string;
+    item: DailyCatalogItem;
+    action: DailyFeedAction;
+  }>;
 };
 
 export type CreateDailyFeedRequest = {

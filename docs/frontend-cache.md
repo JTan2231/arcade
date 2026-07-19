@@ -148,13 +148,13 @@ reader.
 Dependencies are declared on reads whose response includes or depends on another
 resource family. The current dependency relationships are:
 
-| Query | Dependencies |
-| --- | --- |
-| `groupFeeds` | group evidence formats |
-| `feedPosts` | group post tags, group evidence formats |
-| `feedMetric` | feed metrics |
+| Query               | Dependencies                               |
+| ------------------- | ------------------------------------------ |
+| `groupFeeds`        | group evidence formats                     |
+| `feedPosts`         | group post tags, group evidence formats    |
+| `feedMetric`        | feed metrics                               |
 | `metricLeaderboard` | feed posts, feed metrics, metric judgments |
-| `meDailyFeeds` | groups |
+| `meDailyFeeds`      | groups                                     |
 
 When adding dependencies, use the broadest prefix that represents the upstream
 resource family. For example, `feedPosts` depends on the group post-tag prefix,
@@ -204,34 +204,37 @@ it prevents a signed-out screen from reusing public data that may have been made
 stale by authenticated mutations.
 
 Mutations that affect public pages must touch public keys in addition to private
-member keys. Group access, feed enablement, feed events, feed output refreshes,
-posts, post tags, and evidence formats can all alter public route rendering.
+member keys. Group access, feed enablement, feed events, cycle settings, cycle
+refreshes, feed output refreshes, posts, post tags, and evidence formats can all
+alter public route rendering.
 
 ## Current Query Catalog
 
-| Query | Key shape | Notes |
-| --- | --- | --- |
-| `groups` | `["user", uid, "groups"]` | Authenticated group list. |
-| `groupFeeds` | `["user", uid, "group", groupID, "feeds"]` | Depends on evidence formats. |
-| `groupMembers` | `["user", uid, "group", groupID, "members"]` | Owner/admin workspace data. |
-| `groupPostTags` | `["user", uid, "group", groupID, "post-tags", mode]` | `mode` is `"active"` or `"all"`. |
-| `groupEvidenceFormats` | `["user", uid, "group", groupID, "evidence-formats", mode]` | `mode` is `"active"` or `"all"`. |
-| `groupCatalogSources` | `["user", uid, "group", groupID, "catalog-sources"]` | Used by Add Feed. |
-| `feedEvents` | `["user", uid, "group", groupID, "feed", feedID, "events"]` | Owner/admin event definitions and lifecycle state. |
-| `feedToday` | `["user", uid, "group", groupID, "feed", feedID, "today"]` | Current scheduled output. |
-| `feedOutput` | `["user", uid, "group", groupID, "feed", feedID, "output", date]` | Historical or dated output. |
-| `feedOutputSummaries` | `["user", uid, "group", groupID, "feed", feedID, "outputs", selectedDate]` | Date navigation summaries. |
-| `feedPosts` | `["user", uid, "group", groupID, "feed", feedID, "posts", date]` | Depends on post tags and evidence formats. |
-| `feedMetrics` | `["user", uid, "group", groupID, "feed", feedID, "metrics"]` | Feed metric list. |
-| `feedMetric` | `["user", uid, "group", groupID, "feed", feedID, "metric", metricID]` | Depends on feed metrics. |
-| `metricLeaderboard` | `["user", uid, "group", groupID, "feed", feedID, "metric", metricID, "leaderboard"]` | Depends on posts, metrics, and judgments. |
-| `groupInviteLinks` | `["user", uid, "group", groupID, "invite-links"]` | Owner/admin invite-link manager. |
-| `meDailyFeeds` | `["user", uid, "me", "daily-feeds"]` | Used for signed-in public route resolution. |
-| `memberFeedPostRoute` | `["user", uid, "me", "feed-post-route", postID]` | Used for signed-in public post route resolution. |
-| `publicGroup` | `["anon", "public", "group", slug]` | Signed-out-safe public group page. |
-| `publicFeed` | `["anon", "public", "feed", feedID, date]` | `date` can be null for the default public feed route. |
-| `publicFeedOutputSummaries` | `["anon", "public", "feed", feedID, "outputs", selectedDate]` | Public date navigation summaries. |
-| `publicPost` | `["anon", "public", "post", postID]` | Signed-out-safe public post page. |
+| Query                       | Key shape                                                                            | Notes                                                     |
+| --------------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------- |
+| `groups`                    | `["user", uid, "groups"]`                                                            | Authenticated group list.                                 |
+| `groupFeeds`                | `["user", uid, "group", groupID, "feeds"]`                                           | Includes the latest Cycle-run summary, including ended.   |
+| `groupMembers`              | `["user", uid, "group", groupID, "members"]`                                         | Owner/admin workspace data.                               |
+| `groupPostTags`             | `["user", uid, "group", groupID, "post-tags", mode]`                                 | `mode` is `"active"` or `"all"`.                          |
+| `groupEvidenceFormats`      | `["user", uid, "group", groupID, "evidence-formats", mode]`                          | `mode` is `"active"` or `"all"`.                          |
+| `groupCatalogSources`       | `["user", uid, "group", groupID, "catalog-sources"]`                                 | Used by Add Feed.                                         |
+| `feedEvents`                | `["user", uid, "group", groupID, "feed", feedID, "events"]`                          | Owner/admin event definitions and snapshots.              |
+| `cycleSettings`             | `["user", uid, "group", groupID, "feed", feedID, "cycle-settings"]`                  | Owner/admin open-run settings or `null` after a run ends. |
+| `feedCycles`                | `["user", uid, "group", groupID, "feed", feedID, "cycles"]`                          | Materialized cycles and their complete frozen selections. |
+| `feedToday`                 | `["user", uid, "group", groupID, "feed", feedID, "today"]`                           | Current scheduled output.                                 |
+| `feedOutput`                | `["user", uid, "group", groupID, "feed", feedID, "output", date]`                    | Historical or dated output.                               |
+| `feedOutputSummaries`       | `["user", uid, "group", groupID, "feed", feedID, "outputs", selectedDate]`           | Date navigation summaries.                                |
+| `feedPosts`                 | `["user", uid, "group", groupID, "feed", feedID, "posts", date]`                     | Depends on post tags and evidence formats.                |
+| `feedMetrics`               | `["user", uid, "group", groupID, "feed", feedID, "metrics"]`                         | Feed metric list.                                         |
+| `feedMetric`                | `["user", uid, "group", groupID, "feed", feedID, "metric", metricID]`                | Depends on feed metrics.                                  |
+| `metricLeaderboard`         | `["user", uid, "group", groupID, "feed", feedID, "metric", metricID, "leaderboard"]` | Depends on posts, metrics, and judgments.                 |
+| `groupInviteLinks`          | `["user", uid, "group", groupID, "invite-links"]`                                    | Owner/admin invite-link manager.                          |
+| `meDailyFeeds`              | `["user", uid, "me", "daily-feeds"]`                                                 | Used for signed-in public route resolution.               |
+| `memberFeedPostRoute`       | `["user", uid, "me", "feed-post-route", postID]`                                     | Used for signed-in public post route resolution.          |
+| `publicGroup`               | `["anon", "public", "group", slug]`                                                  | Signed-out-safe public group page.                        |
+| `publicFeed`                | `["anon", "public", "feed", feedID, date]`                                           | `date` can be null for the default public feed route.     |
+| `publicFeedOutputSummaries` | `["anon", "public", "feed", feedID, "outputs", selectedDate]`                        | Public date navigation summaries.                         |
+| `publicPost`                | `["anon", "public", "post", postID]`                                                 | Signed-out-safe public post page.                         |
 
 ## Mutation Rules
 
@@ -256,6 +259,23 @@ Current mutation patterns:
   public feed subtree. Full event snapshots, selection tokens, and audit fields
   stay in authenticated owner/admin data; anonymous entries contain only the
   display-safe event summary attached to a public output.
+- Cycle settings: replace and delete touch the selected feed's cycle settings,
+  materialized Cycle list, group feed list, today's output, dated outputs, and
+  output summaries, `meDailyFeeds`, and the anonymous public feed subtree.
+  Preview stays in dialog actor state and does not touch the query cache because
+  it does not persist a Cycle or its items. A settings response may describe a
+  revision that is waiting for the next Cycle boundary while current output
+  continues using its already-resolved revision.
+- Cycle materialization: a normal current or historical output read can create
+  the complete Cycle on the backend. The returned dated output is cached under
+  its normal output key. An already-cached Cycle list is not invalidated by a
+  read and can omit that newly materialized Cycle until its five-minute stale
+  boundary, a reload, or a later Cycle mutation. Upcoming previews are never
+  written into either query.
+- Cycle refresh: touches the cycle list, today's output, every dated output and
+  output summary under the selected feed, and the anonymous public feed subtree.
+  Refresh replaces all items in one Cycle, so invalidating only the selected
+  date would leave the other dates with a mixture of generations.
 - Feed refresh: touches today's output, the returned dated output, and public
   feed data, then writes the refreshed output into the matching member cache
   entries.
@@ -280,6 +300,18 @@ boundary-triggered cache invalidation. The backend chooses the applicable event
 when it resolves each output request, and the frontend observes the change on
 the next uncached or stale read under the existing five-minute cache policy.
 Feed events do not add or change a rollover timer.
+
+Cycle boundaries likewise do not perform a frontend mutation. The backend
+resolves the applicable Cycle and settings revision for every output request;
+the next uncached or stale read observes the new Cycle. Cycle provenance and
+items returned by member and public output reads stay in the same dated cache
+entries as the rest of the output. Full Cycle settings and complete Cycle item
+lists use authenticated cache namespaces. Preview tokens and counts remain only
+in the authenticated dialog actor state. When `ends_before` arrives, the next
+fresh group-feed read reports the latest run as `ended`, while the management
+settings read normalizes its 404 response to `null`. Historical Cycle-list data
+remains available, and saving a later run invalidates the same settings, feed,
+output, and public prefixes as the initial run.
 
 If a mutation changes more than one visible surface, touch all of them. For
 example, changing feed enablement affects the member feed list, member route

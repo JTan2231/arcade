@@ -172,6 +172,10 @@
   .metric-judgment-grid,
   .group-settings-grid,
   .feed-settings-section,
+  .cycle-settings-summary,
+  .cycle-delete-row,
+  .cycle-row,
+  .configuration-editor-header,
   .post-tag-manager-row,
   .group-member-row {
     grid-template-columns: minmax(0, 1fr);
@@ -179,6 +183,19 @@
 
   .filter-between-inputs {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cycle-settings-summary,
+  .cycle-delete-row,
+  .cycle-row,
+  .configuration-editor-header {
+    align-items: start;
+    display: grid;
+  }
+
+  .configuration-editor-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
 
   .row-top {

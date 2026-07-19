@@ -66,6 +66,31 @@
   width: fit-content;
 }
 
+.feed-cycle-provenance {
+  background: var(--color-accent-badge-surface);
+  border: 1px solid var(--color-accent-badge-border);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  grid-column: 1;
+  padding: 9px 11px;
+  width: fit-content;
+}
+
+.feed-cycle-provenance-heading,
+.feed-cycle-provenance-summary {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 9px;
+}
+
+.feed-cycle-provenance-summary .meta:not(:last-child)::after {
+  color: var(--color-icon-muted);
+  content: "·";
+  margin-left: 9px;
+}
+
 .output-item {
   align-items: flex-start;
   display: grid;

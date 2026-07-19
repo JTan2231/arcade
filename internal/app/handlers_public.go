@@ -201,6 +201,7 @@ func (s *Server) getPublicFeed(ctx context.Context, feedID string, requestedDate
 		Schedule:        feed.Schedule,
 		Date:            output.Date,
 		Event:           output.Event,
+		Cycle:           output.Cycle,
 		Items:           publicFeedOutputItems(output.Items),
 		Posts:           posts,
 		CreatedAt:       feed.CreatedAt,
@@ -239,6 +240,9 @@ func (s *Server) getDailyFeedByID(ctx context.Context, feedID string) (DailyFeed
 		return DailyFeed{}, err
 	}
 	if err := s.hydrateDailyFeedFilters(ctx, &feed); err != nil {
+		return DailyFeed{}, err
+	}
+	if err := s.hydrateDailyFeedCycleSettingsSummary(ctx, &feed); err != nil {
 		return DailyFeed{}, err
 	}
 	return feed, nil

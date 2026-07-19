@@ -31,6 +31,7 @@ export type GroupsPanelProps = {
   onChangeFeedFormat: (feedId: string, evidenceFormatId: string) => void;
   onChangeFeedSchedule: (feedId: string, schedule: DailyFeedSchedule) => void;
   onRefreshFeedGeneration: (id: string) => void;
+  onManageFeedCycles: (id: string) => void;
   onManageFeedEvents: (id: string) => void;
   onCopyPublicFeedLink: (id: string) => void;
   onDeleteFeed: (id: string) => void;
@@ -65,6 +66,7 @@ export function GroupsPanel({
   onChangeFeedFormat,
   onChangeFeedSchedule,
   onRefreshFeedGeneration,
+  onManageFeedCycles,
   onManageFeedEvents,
   onCopyPublicFeedLink,
   onDeleteFeed,
@@ -198,6 +200,7 @@ export function GroupsPanel({
                   onChangeFeedFormat={onChangeFeedFormat}
                   onChangeFeedSchedule={onChangeFeedSchedule}
                   onRefreshFeedGeneration={onRefreshFeedGeneration}
+                  onManageFeedCycles={onManageFeedCycles}
                   onManageFeedEvents={onManageFeedEvents}
                   onCopyPublicFeedLink={onCopyPublicFeedLink}
                   onDeleteFeed={onDeleteFeed}

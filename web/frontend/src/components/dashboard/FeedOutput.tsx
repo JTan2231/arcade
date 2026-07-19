@@ -260,6 +260,30 @@ function LoadedFeedOutput({
           </span>
         </section>
       ) : null}
+      {output.cycle !== undefined ? (
+        <section className="feed-cycle-provenance" aria-label="Feed cycle">
+          <div className="feed-cycle-provenance-heading">
+            <span className="title">{output.cycle.name}</span>
+            <span className="meta">
+              Day {output.cycle.position} of {output.cycle.position_count}
+            </span>
+          </div>
+          <div className="meta">
+            {output.cycle.starts_on} through {output.cycle.ends_on}
+          </div>
+          <div className="feed-cycle-provenance-summary">
+            {output.cycle.summary.filters.map((filter, index) => (
+              <span className="meta" key={`${index}-${filter}`}>
+                {filter}
+              </span>
+            ))}
+            {output.cycle.summary.distinct !== "" ? (
+              <span className="meta">{output.cycle.summary.distinct}</span>
+            ) : null}
+            {output.cycle.summary.order !== "" ? <span className="meta">{output.cycle.summary.order}</span> : null}
+          </div>
+        </section>
+      ) : null}
       {items.length ? (
         <div className="stack output-items">
           {items.map((item) => {

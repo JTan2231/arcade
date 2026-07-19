@@ -135,6 +135,7 @@ export function GroupsNavAdapter({
         }
         dashboardRef?.send({ type: "FEED_GENERATION_REFRESHED", feedId });
       }}
+      onManageFeedCycles={(feedId) => dashboardRef?.send({ type: "FEED_CYCLES_OPENED", feedId })}
       onManageFeedEvents={(feedId) => dashboardRef?.send({ type: "FEED_EVENTS_OPENED", feedId })}
       onCopyPublicFeedLink={(feedId) =>
         void copyPublicPath(

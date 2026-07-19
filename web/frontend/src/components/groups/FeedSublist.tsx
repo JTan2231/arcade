@@ -24,6 +24,7 @@ export function FeedSublist({
   onChangeFeedFormat,
   onChangeFeedSchedule,
   onRefreshFeedGeneration,
+  onManageFeedCycles,
   onManageFeedEvents,
   onCopyPublicFeedLink,
   onDeleteFeed,
@@ -49,6 +50,7 @@ export function FeedSublist({
   onChangeFeedFormat: (feedId: string, evidenceFormatId: string) => void;
   onChangeFeedSchedule: (feedId: string, schedule: DailyFeedSchedule) => void;
   onRefreshFeedGeneration: (id: string) => void;
+  onManageFeedCycles: (id: string) => void;
   onManageFeedEvents: (id: string) => void;
   onCopyPublicFeedLink: (id: string) => void;
   onDeleteFeed: (id: string) => void;
@@ -165,6 +167,10 @@ export function FeedSublist({
                 onRefreshGeneration={() => {
                   setSettingsFeedId(null);
                   onRefreshFeedGeneration(feed.id);
+                }}
+                onManageCycles={() => {
+                  setSettingsFeedId(null);
+                  onManageFeedCycles(feed.id);
                 }}
                 onManageEvents={() => {
                   setSettingsFeedId(null);

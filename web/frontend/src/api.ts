@@ -10,7 +10,10 @@ import type {
   CreatePostCardPaletteRequest,
   CreateGroupPostTagRequest,
   CreateGroupRequest,
+  CyclePreview,
+  CycleSettings,
   DailyFeed,
+  DailyFeedCycle,
   DailyFeedEvent,
   DailyFeedEventPreview,
   DailyFeedOutput,
@@ -42,6 +45,7 @@ import type {
   PublicGroup,
   PublicPost,
   SignupRequest,
+  UpsertCycleSettingsRequest,
   UpsertDailyFeedEventRequest,
   User,
 } from "./types";
@@ -326,6 +330,104 @@ export function deleteGroupDailyFeedEvent(
     {
       ...options,
       method: "DELETE",
+    },
+  );
+}
+
+export async function getGroupDailyFeedCycleSettings(
+  groupID: string,
+  feedID: string,
+  options: APIOptions = {},
+): Promise<CycleSettings | null> {
+  try {
+    return await api<CycleSettings>(
+      `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/cycle-settings`,
+      options,
+    );
+  } catch (error) {
+    if (isNotFound(error)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export function previewGroupDailyFeedCycleSettings(
+  groupID: string,
+  feedID: string,
+  payload: UpsertCycleSettingsRequest,
+  options: APIOptions = {},
+): Promise<CyclePreview> {
+  return api<CyclePreview>(
+    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/cycle-settings/preview`,
+    {
+      ...options,
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function replaceGroupDailyFeedCycleSettings(
+  groupID: string,
+  feedID: string,
+  payload: UpsertCycleSettingsRequest,
+  options: APIOptions = {},
+): Promise<CycleSettings> {
+  return api<CycleSettings>(
+    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/cycle-settings`,
+    {
+      ...options,
+      method: "PUT",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function deleteGroupDailyFeedCycleSettings(
+  groupID: string,
+  feedID: string,
+  options: APIOptions = {},
+): Promise<null> {
+  return api<null>(
+    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/cycle-settings`,
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+}
+
+export async function listGroupDailyFeedCycles(
+  groupID: string,
+  feedID: string,
+  options: APIOptions = {},
+): Promise<DailyFeedCycle[]> {
+  try {
+    return await api<DailyFeedCycle[]>(
+      `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/cycles`,
+      options,
+    );
+  } catch (error) {
+    if (isNotFound(error)) {
+      return [];
+    }
+    throw error;
+  }
+}
+
+export function refreshGroupDailyFeedCycle(
+  groupID: string,
+  feedID: string,
+  cycleID: string,
+  options: APIOptions = {},
+): Promise<DailyFeedCycle> {
+  return api<DailyFeedCycle>(
+    `/api/groups/${encodeURIComponent(groupID)}/daily-feeds/${encodeURIComponent(feedID)}/cycles/${encodeURIComponent(cycleID)}/refresh`,
+    {
+      ...options,
+      method: "POST",
+      body: "{}",
     },
   );
 }

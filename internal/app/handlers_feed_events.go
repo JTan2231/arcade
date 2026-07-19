@@ -117,6 +117,10 @@ func (s *Server) handleCreateDailyFeedEvent(w http.ResponseWriter, r *http.Reque
 		handleError(w, err)
 		return
 	}
+	if err := ensureDailyFeedEventDoesNotOverlapCycles(r.Context(), tx, feed.ID, input.StartsOn, input.EndsBefore); err != nil {
+		handleError(w, err)
+		return
+	}
 	if err := s.validatePracticeFeedReady(r.Context(), input.SourceID, input.ItemCount, input.Filters); err != nil {
 		handleError(w, err)
 		return
@@ -173,6 +177,10 @@ func (s *Server) handlePreviewDailyFeedEvent(w http.ResponseWriter, r *http.Requ
 	previewedAt := time.Now()
 	input, err := s.normalizeCreateDailyFeedEvent(r.Context(), feed, req, previewedAt, true)
 	if err != nil {
+		handleError(w, err)
+		return
+	}
+	if err := ensureDailyFeedEventDoesNotOverlapCycles(r.Context(), s.db, feed.ID, input.StartsOn, input.EndsBefore); err != nil {
 		handleError(w, err)
 		return
 	}
@@ -301,6 +309,10 @@ func (s *Server) handlePatchDailyFeedEvent(w http.ResponseWriter, r *http.Reques
 	}
 	if status == dailyFeedEventStatusActive && !today.Before(input.EndsBefore) {
 		handleError(w, badRequest("ends_on must keep the current feed date covered"))
+		return
+	}
+	if err := ensureDailyFeedEventDoesNotOverlapCycles(r.Context(), tx, feed.ID, input.StartsOn, input.EndsBefore); err != nil {
+		handleError(w, err)
 		return
 	}
 	selectionSeed := event.SelectionSeed
@@ -555,6 +567,30 @@ func (s *Server) normalizeDailyFeedEventPatch(ctx context.Context, feed DailyFee
 func activeDailyFeedEventPatchAllowed(req patchDailyFeedEventRequest) bool {
 	return req.EndsOn.Set && !req.Name.Set && !req.Description.Set && !req.StartsOn.Set &&
 		!req.SourceID.Set && !req.ItemCount.Set && !req.Filters.Set && !req.SelectionToken.Set
+}
+
+func ensureDailyFeedEventDoesNotOverlapCycles(ctx context.Context, querier dailyFeedEventQuerier, feedID string, startsOn, endsBefore time.Time) error {
+	var cycleStartsOn time.Time
+	err := querier.QueryRow(ctx, `
+		select min(starts_on)
+		from group_daily_feed_cycle_settings
+		where feed_id = $1
+		having count(*) > 0
+	`, feedID).Scan(&cycleStartsOn)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	overlaps := dailyFeedCycleDateAfter(endsBefore, cycleStartsOn)
+	if endsBefore.Format(dailyFeedDateLayout) == cycleStartsOn.Format(dailyFeedDateLayout) {
+		overlaps = false
+	}
+	if overlaps {
+		return statusError{status: http.StatusConflict, message: "daily feed events must end before the first cycle boundary"}
+	}
+	return nil
 }
 
 func (s *Server) listDailyFeedEvents(ctx context.Context, feed DailyFeed) ([]DailyFeedEvent, error) {

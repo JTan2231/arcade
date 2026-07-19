@@ -627,6 +627,7 @@ function publicFeedToOutput(feed: PublicFeed): DailyFeedOutput {
     date: feed.date,
     title: feed.name,
     ...(feed.event !== undefined ? { event: feed.event } : {}),
+    ...(feed.cycle !== undefined ? { cycle: feed.cycle } : {}),
     items: feed.items.map((item) => publicOutputItemToDailyItem(feed, item)),
   };
 }

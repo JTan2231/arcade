@@ -1,0 +1,789 @@
+name: feed Cycles freeze ordered Configurations and expose safe provenance
+
+vars:
+  owner_email: feed-cycles-api-owner@example.test
+  password: password123
+  selection_token: "11111111111111111111111111111111"
+  revision_token: "22222222222222222222222222222222"
+  event_token: "33333333333333333333333333333333"
+
+before:
+  - request:
+      id: signup_owner
+      client: browser
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Feed Cycles API Owner
+        email: "{{owner_email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Feed Cycles API Dojo
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: create_source
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/catalog-sources
+      json:
+        name: Cycle Problems
+        template: https://example.test/{slug}
+        fields:
+          - key: difficulty
+            label: Difficulty
+            value_type: number
+            is_array: false
+            display_order: 0
+          - key: topic
+            label: Topic
+            value_type: string
+            is_array: false
+            display_order: 1
+        items:
+          - title: Alpha Easy
+            data:
+              slug: alpha-easy
+              difficulty: 900
+              topic: graph
+          - title: Alpha Hard
+            data:
+              slug: alpha-hard
+              difficulty: 1900
+              topic: graph
+          - title: Beta
+            data:
+              slug: beta
+              difficulty: 1200
+              topic: dp
+          - title: Gamma
+            data:
+              slug: gamma
+              difficulty: 1500
+              topic: math
+          - title: Delta
+            data:
+              slug: delta
+              difficulty: 2100
+              topic: strings
+          - title: Missing Topic
+            data:
+              slug: missing-topic
+              difficulty: 1700
+          - title: Array Topic
+            data:
+              slug: array-topic
+              difficulty: 1800
+              topic:
+                - trees
+      expectStatus: 201
+      capture:
+        source_id: $.id
+        difficulty_field_id: $.fields[0].id
+        topic_field_id: $.fields[1].id
+
+  - sql:
+      statement: |
+        update catalog_items
+        set id = case data ->> 'name'
+          when 'Alpha Easy' then '10000000-0000-0000-0000-000000000001'::uuid
+          when 'Alpha Hard' then '10000000-0000-0000-0000-000000000002'::uuid
+          when 'Beta' then '10000000-0000-0000-0000-000000000003'::uuid
+          when 'Gamma' then '10000000-0000-0000-0000-000000000004'::uuid
+          when 'Delta' then '10000000-0000-0000-0000-000000000005'::uuid
+          when 'Missing Topic' then '10000000-0000-0000-0000-000000000006'::uuid
+          when 'Array Topic' then '10000000-0000-0000-0000-000000000007'::uuid
+          else id
+        end
+        where source_id = '{{source_id}}'::uuid
+
+  - request:
+      id: create_feed
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds
+      json:
+        name: Cycle Practice
+        kind: catalog_daily
+        enabled: true
+        source_id: "{{source_id}}"
+        item_count: 1
+        schedule:
+          starts_at: "2020-01-01T00:00:00Z"
+          timezone: UTC
+          interval_seconds: 86400
+      expectStatus: 201
+      capture:
+        feed_id: $.id
+
+  - request:
+      id: create_event_to_backdate
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/events
+      json:
+        name: Historical Warmup
+        starts_on: "{{today}}"
+        ends_on: "{{today}}"
+        item_count: 1
+        filters:
+          - field_id: "{{difficulty_field_id}}"
+            op: eq
+            number_values:
+              - 900
+        selection_token: "{{event_token}}"
+      expectStatus: 201
+      capture:
+        event_id: $.id
+
+  - sql:
+      statement: |
+        update group_daily_feed_events
+        set starts_on = '{{daysAgo:2}}'::date,
+            ends_before = '{{today}}'::date
+        where id = '{{event_id}}'::uuid
+
+steps:
+  - request:
+      id: preview_sorted_cycle
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycle-settings/preview
+      json:
+        starts_on: "{{today}}"
+        output_count: 3
+        selection_token: "{{selection_token}}"
+        configurations:
+          - key: balanced
+            name: Balanced Topics
+            description: Sample topics before sorting by difficulty.
+            filters:
+              - field_id: "{{difficulty_field_id}}"
+                op: between
+                number_values:
+                  - 900
+                  - 2100
+            distinct:
+              kind: field
+              field_id: "{{topic_field_id}}"
+            order:
+              kind: field
+              field_id: "{{difficulty_field_id}}"
+              direction: asc
+          - key: hard
+            name: Hard Rotation
+            filters:
+              - field_id: "{{difficulty_field_id}}"
+                op: gte
+                number_values:
+                  - 1500
+            distinct:
+              kind: none
+            order:
+              kind: seeded_shuffle
+      expectStatus: 200
+      expectJson:
+        selection_token: "{{selection_token}}"
+        cycle:
+          starts_on: "{{today}}"
+          ends_on: "{{daysAhead:2}}"
+          configuration_key: balanced
+          name: Balanced Topics
+          position_count: 3
+        counts:
+          candidate_item_count: 7
+          matching_item_count: 5
+          distinct_value_count: 4
+          requested_item_count: 3
+          selected_item_count: 3
+        outputs:
+          - date: "{{today}}"
+            cycle:
+              name: Balanced Topics
+              position: 1
+              position_count: 3
+          - date: "{{daysAhead:1}}"
+            cycle:
+              position: 2
+          - date: "{{daysAhead:2}}"
+            cycle:
+              position: 3
+      capture:
+        sorted_item_1: $.outputs[0].items[0].item.id
+        sorted_item_2: $.outputs[1].items[0].item.id
+        sorted_item_3: $.outputs[2].items[0].item.id
+        sorted_difficulty_1: $.outputs[0].items[0].item.data.difficulty
+        sorted_difficulty_2: $.outputs[1].items[0].item.data.difficulty
+        sorted_difficulty_3: $.outputs[2].items[0].item.data.difficulty
+
+  - request:
+      id: preview_same_membership_shuffled
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycle-settings/preview
+      json:
+        starts_on: "{{today}}"
+        output_count: 3
+        selection_token: "{{selection_token}}"
+        configurations:
+          - key: balanced
+            name: Balanced Topics
+            filters:
+              - field_id: "{{difficulty_field_id}}"
+                op: between
+                number_values:
+                  - 900
+                  - 2100
+            distinct:
+              kind: field
+              field_id: "{{topic_field_id}}"
+            order:
+              kind: seeded_shuffle
+      expectStatus: 200
+      expectJson:
+        counts:
+          requested_item_count: 3
+          selected_item_count: 3
+      capture:
+        shuffled_item_1: $.outputs[0].items[0].item.id
+        shuffled_item_2: $.outputs[1].items[0].item.id
+        shuffled_item_3: $.outputs[2].items[0].item.id
+
+  - sql:
+      statement: |
+        do $$
+        declare
+          settings_count integer;
+          cycle_count integer;
+          item_count integer;
+          sorted_membership uuid[];
+          shuffled_membership uuid[];
+        begin
+          select array_agg(value order by value)
+          into sorted_membership
+          from unnest(array[
+            '{{sorted_item_1}}'::uuid,
+            '{{sorted_item_2}}'::uuid,
+            '{{sorted_item_3}}'::uuid
+          ]) as selected(value);
+
+          select array_agg(value order by value)
+          into shuffled_membership
+          from unnest(array[
+            '{{shuffled_item_1}}'::uuid,
+            '{{shuffled_item_2}}'::uuid,
+            '{{shuffled_item_3}}'::uuid
+          ]) as selected(value);
+
+          if sorted_membership is distinct from shuffled_membership then
+            raise exception 'field order changed selected membership: % versus %',
+              sorted_membership, shuffled_membership;
+          end if;
+          if {{sorted_difficulty_1}}::numeric > {{sorted_difficulty_2}}::numeric
+             or {{sorted_difficulty_2}}::numeric > {{sorted_difficulty_3}}::numeric then
+            raise exception 'field-ordered preview difficulties are not ascending: %/%/%',
+              {{sorted_difficulty_1}}, {{sorted_difficulty_2}}, {{sorted_difficulty_3}};
+          end if;
+
+          select count(*)::integer into settings_count
+          from group_daily_feed_cycle_settings
+          where feed_id = '{{feed_id}}'::uuid;
+
+          select count(*)::integer into cycle_count
+          from group_daily_feed_cycles
+          where feed_id = '{{feed_id}}'::uuid;
+
+          select count(*)::integer into item_count
+          from group_daily_feed_cycle_items
+          where feed_id = '{{feed_id}}'::uuid;
+
+          if settings_count <> 0 or cycle_count <> 0 or item_count <> 0 then
+            raise exception 'preview persisted settings/cycles/items = %/%/%, want 0/0/0',
+              settings_count, cycle_count, item_count;
+          end if;
+        end $$;
+
+  - request:
+      id: reject_insufficient_preview
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycle-settings/preview
+      json:
+        starts_on: "{{today}}"
+        output_count: 5
+        selection_token: "{{selection_token}}"
+        configurations:
+          - key: impossible
+            name: Not Enough Topics
+            filters: []
+            distinct:
+              kind: field
+              field_id: "{{topic_field_id}}"
+            order:
+              kind: seeded_shuffle
+      expectStatus: 422
+      expectJson:
+        error: cycle configuration can select only 4 of 5 required items
+
+  - request:
+      id: reject_insufficient_save
+      client: browser
+      method: PUT
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycle-settings
+      json:
+        starts_on: "{{today}}"
+        output_count: 5
+        selection_token: "{{selection_token}}"
+        configurations:
+          - key: impossible
+            name: Not Enough Topics
+            filters: []
+            distinct:
+              kind: field
+              field_id: "{{topic_field_id}}"
+            order:
+              kind: seeded_shuffle
+      expectStatus: 422
+      expectJson:
+        error: cycle configuration can select only 4 of 5 required items
+
+  - request:
+      id: save_cycle_settings
+      client: browser
+      method: PUT
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycle-settings
+      json:
+        starts_on: "{{today}}"
+        output_count: 3
+        selection_token: "{{selection_token}}"
+        configurations:
+          - key: balanced
+            name: Balanced Topics
+            description: Sample topics before sorting by difficulty.
+            filters:
+              - field_id: "{{difficulty_field_id}}"
+                op: between
+                number_values:
+                  - 900
+                  - 2100
+            distinct:
+              kind: field
+              field_id: "{{topic_field_id}}"
+            order:
+              kind: field
+              field_id: "{{difficulty_field_id}}"
+              direction: asc
+          - key: hard
+            name: Hard Rotation
+            filters:
+              - field_id: "{{difficulty_field_id}}"
+                op: gte
+                number_values:
+                  - 1500
+            distinct:
+              kind: none
+            order:
+              kind: seeded_shuffle
+      expectStatus: 200
+      expectJson:
+        group_id: "{{group_id}}"
+        feed_id: "{{feed_id}}"
+        starts_on: "{{today}}"
+        output_count: 3
+        status: active
+        effective_starts_on: "{{today}}"
+        next_cycle_starts_on: "{{daysAhead:3}}"
+        configurations:
+          - key: balanced
+            name: Balanced Topics
+            distinct:
+              kind: field
+              field_id: "{{topic_field_id}}"
+            order:
+              kind: field
+              field_id: "{{difficulty_field_id}}"
+              direction: asc
+          - key: hard
+            name: Hard Rotation
+            position: 1
+      capture:
+        settings_id: $.id
+
+  - sql:
+      statement: |
+        do $$
+        declare
+          revision_count integer;
+          configuration_count integer;
+          filter_count integer;
+          cycle_count integer;
+          item_count integer;
+        begin
+          select count(*)::integer into revision_count
+          from group_daily_feed_cycle_setting_revisions
+          where settings_id = '{{settings_id}}'::uuid;
+
+          select count(*)::integer into configuration_count
+          from group_daily_feed_cycle_configurations c
+          join group_daily_feed_cycle_setting_revisions r on r.id = c.revision_id
+          where r.settings_id = '{{settings_id}}'::uuid;
+
+          select count(*)::integer into filter_count
+          from group_daily_feed_cycle_configuration_filters f
+          join group_daily_feed_cycle_configurations c on c.id = f.configuration_id
+          join group_daily_feed_cycle_setting_revisions r on r.id = c.revision_id
+          where r.settings_id = '{{settings_id}}'::uuid;
+
+          select count(*)::integer into cycle_count
+          from group_daily_feed_cycles
+          where feed_id = '{{feed_id}}'::uuid;
+
+          select count(*)::integer into item_count
+          from group_daily_feed_cycle_items
+          where feed_id = '{{feed_id}}'::uuid;
+
+          if revision_count <> 1 or configuration_count <> 2 or filter_count <> 2 then
+            raise exception 'revision/configuration/filter counts = %/%/%, want 1/2/2',
+              revision_count, configuration_count, filter_count;
+          end if;
+          if cycle_count <> 0 or item_count <> 0 then
+            raise exception 'settings save materialized cycles/items = %/%, want 0/0',
+              cycle_count, item_count;
+          end if;
+        end $$;
+
+  - request:
+      id: list_before_materialization
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycles
+      expectStatus: 200
+      expectJson: []
+
+  - request:
+      id: historical_event_output
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{yesterday}}
+      expectStatus: 200
+      expectJson:
+        date: "{{yesterday}}"
+        event:
+          id: "{{event_id}}"
+          name: Historical Warmup
+          starts_on: "{{daysAgo:2}}"
+          ends_on: "{{yesterday}}"
+        items:
+          - item:
+              title: Alpha Easy
+
+  - request:
+      id: reject_event_in_cycle_dates
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/events
+      json:
+        name: Invalid Cycle Event
+        starts_on: "{{today}}"
+        ends_on: "{{daysAhead:1}}"
+        item_count: 1
+        filters: []
+      expectStatus: 409
+
+  - request:
+      id: materialize_current_cycle
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{today}}
+      expectStatus: 200
+      expectJson:
+        date: "{{today}}"
+        cycle:
+          name: Balanced Topics
+          configuration_key: balanced
+          starts_on: "{{today}}"
+          ends_on: "{{daysAhead:2}}"
+          position: 1
+          position_count: 3
+        items:
+          - position: 1
+
+  - sql:
+      statement: |
+        do $$
+        declare
+          persisted_count integer;
+          populated_topic_count integer;
+          scalar_topic_count integer;
+          distinct_topic_count integer;
+          persisted_dates date[];
+          persisted_difficulties numeric[];
+          sorted_difficulties numeric[];
+        begin
+          select
+            count(*)::integer,
+            count(item_data ->> 'topic')::integer,
+            count(*) filter (where jsonb_typeof(item_data -> 'topic') = 'string')::integer,
+            count(distinct item_data ->> 'topic')::integer,
+            array_agg(feed_date order by position),
+            array_agg((item_data ->> 'difficulty')::numeric order by position)
+          into persisted_count, populated_topic_count, scalar_topic_count,
+               distinct_topic_count, persisted_dates, persisted_difficulties
+          from group_daily_feed_cycle_items
+          where feed_id = '{{feed_id}}'::uuid;
+
+          select array_agg(value order by value)
+          into sorted_difficulties
+          from unnest(persisted_difficulties) as values(value);
+
+          if persisted_count <> 3
+             or populated_topic_count <> 3
+             or scalar_topic_count <> 3
+             or distinct_topic_count <> 3 then
+            raise exception 'cycle item/topic counts = %/%/%/%, want 3/3/3/3',
+              persisted_count, populated_topic_count, scalar_topic_count, distinct_topic_count;
+          end if;
+          if persisted_dates is distinct from array[
+            '{{today}}'::date,
+            '{{daysAhead:1}}'::date,
+            '{{daysAhead:2}}'::date
+          ] then
+            raise exception 'cycle dates = %, want today through day 3', persisted_dates;
+          end if;
+          if persisted_difficulties is distinct from sorted_difficulties then
+            raise exception 'cycle difficulties = %, want ascending order', persisted_difficulties;
+          end if;
+        end $$;
+
+  - request:
+      id: list_materialized_cycle
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycles
+      expectStatus: 200
+      expectJson:
+        - group_id: "{{group_id}}"
+          feed_id: "{{feed_id}}"
+          configuration_key: balanced
+          name: Balanced Topics
+          starts_on: "{{today}}"
+          ends_on: "{{daysAhead:2}}"
+          status: active
+          generation: 1
+          position_count: 3
+          items:
+            - position: 1
+              date: "{{today}}"
+            - position: 2
+              date: "{{daysAhead:1}}"
+            - position: 3
+              date: "{{daysAhead:2}}"
+      capture:
+        cycle_id: $[0].id
+
+  - request:
+      id: public_cycle_provenance
+      method: GET
+      path: /api/public/feeds/{{feed_id}}/outputs/{{today}}
+      expectStatus: 200
+      expectJson:
+        id: "{{feed_id}}"
+        date: "{{today}}"
+        cycle:
+          id: "{{cycle_id}}"
+          name: Balanced Topics
+          configuration_key: balanced
+          starts_on: "{{today}}"
+          ends_on: "{{daysAhead:2}}"
+          position: 1
+          position_count: 3
+
+  - request:
+      id: save_next_boundary_revision
+      client: browser
+      method: PUT
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycle-settings
+      json:
+        starts_on: "{{daysAhead:3}}"
+        output_count: 3
+        selection_token: "{{revision_token}}"
+        configurations:
+          - key: revised
+            name: Revised Difficulty
+            filters:
+              - field_id: "{{difficulty_field_id}}"
+                op: gte
+                number_values:
+                  - 1500
+            distinct:
+              kind: none
+            order:
+              kind: field
+              field_id: "{{difficulty_field_id}}"
+              direction: desc
+      expectStatus: 200
+      expectJson:
+        starts_on: "{{today}}"
+        status: active
+        effective_starts_on: "{{daysAhead:3}}"
+        next_cycle_starts_on: "{{daysAhead:3}}"
+        output_count: 3
+        configurations:
+          - key: revised
+            name: Revised Difficulty
+
+  - request:
+      id: preview_next_revision_cycle
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycle-settings/preview
+      json:
+        starts_on: "{{daysAhead:3}}"
+        output_count: 3
+        selection_token: "{{revision_token}}"
+        configurations:
+          - key: revised
+            name: Revised Difficulty
+            filters:
+              - field_id: "{{difficulty_field_id}}"
+                op: gte
+                number_values:
+                  - 1500
+            distinct:
+              kind: none
+            order:
+              kind: field
+              field_id: "{{difficulty_field_id}}"
+              direction: desc
+      expectStatus: 200
+      expectJson:
+        cycle:
+          starts_on: "{{daysAhead:3}}"
+          ends_on: "{{daysAhead:5}}"
+          configuration_key: revised
+          name: Revised Difficulty
+          position_count: 3
+        counts:
+          requested_item_count: 3
+          selected_item_count: 3
+
+  - request:
+      id: current_cycle_unchanged_after_revision
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{today}}
+      expectStatus: 200
+      expectJson:
+        cycle:
+          id: "{{cycle_id}}"
+          name: Balanced Topics
+          configuration_key: balanced
+          starts_on: "{{today}}"
+          ends_on: "{{daysAhead:2}}"
+
+  - sql:
+      statement: |
+        do $$
+        declare
+          revision_count integer;
+          materialized_count integer;
+          materialized_revision_start date;
+        begin
+          select count(*)::integer into revision_count
+          from group_daily_feed_cycle_setting_revisions
+          where settings_id = '{{settings_id}}'::uuid;
+
+          select count(*)::integer, min(r.starts_on)
+          into materialized_count, materialized_revision_start
+          from group_daily_feed_cycles c
+          join group_daily_feed_cycle_setting_revisions r on r.id = c.revision_id
+          where c.feed_id = '{{feed_id}}'::uuid;
+
+          if revision_count <> 2 then
+            raise exception 'revision count = %, want 2', revision_count;
+          end if;
+          if materialized_count <> 1 or materialized_revision_start is distinct from '{{today}}'::date then
+            raise exception 'materialized count/revision start = %/%, want 1/{{today}}',
+              materialized_count, materialized_revision_start;
+          end if;
+        end $$;
+
+  - sql:
+      statement: |
+        drop table if exists scenario_feed_cycles_api_old_items;
+        create table scenario_feed_cycles_api_old_items as
+        select id
+        from group_daily_feed_cycle_items
+        where cycle_id = '{{cycle_id}}'::uuid;
+
+  - request:
+      id: refresh_complete_cycle
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycles/{{cycle_id}}/refresh
+      expectStatus: 200
+      expectJson:
+        id: "{{cycle_id}}"
+        configuration_key: balanced
+        generation: 2
+        position_count: 3
+        items:
+          - position: 1
+            date: "{{today}}"
+          - position: 2
+            date: "{{daysAhead:1}}"
+          - position: 3
+            date: "{{daysAhead:2}}"
+
+  - sql:
+      statement: |
+        do $$
+        declare
+          generation_value integer;
+          current_item_count integer;
+          reused_row_count integer;
+        begin
+          select generation into generation_value
+          from group_daily_feed_cycles
+          where id = '{{cycle_id}}'::uuid;
+
+          select count(*)::integer into current_item_count
+          from group_daily_feed_cycle_items
+          where cycle_id = '{{cycle_id}}'::uuid;
+
+          select count(*)::integer into reused_row_count
+          from group_daily_feed_cycle_items current_item
+          join scenario_feed_cycles_api_old_items old_item on old_item.id = current_item.id
+          where current_item.cycle_id = '{{cycle_id}}'::uuid;
+
+          if generation_value <> 2 or current_item_count <> 3 or reused_row_count <> 0 then
+            raise exception 'generation/items/reused rows = %/%/%, want 2/3/0',
+              generation_value, current_item_count, reused_row_count;
+          end if;
+        end $$;
+
+  - request:
+      id: create_post_in_cycle
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{today}}/posts
+      json:
+        evidence_text: The refreshed Cycle is now answered and frozen.
+      expectStatus: 201
+
+  - request:
+      id: reject_refresh_after_post
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycles/{{cycle_id}}/refresh
+      expectStatus: 409

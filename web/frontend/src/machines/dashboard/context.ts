@@ -39,6 +39,8 @@ export function resetSelectedGroupContext(): Omit<
     pendingToggleFeedId: null,
     pendingRefreshFeedId: null,
     pendingDeleteFeedId: null,
+    managedFeedCyclesFeedId: null,
+    feedCyclesChanged: false,
     managedFeedEventsFeedId: null,
     feedEventsChanged: false,
     postMutation: null,

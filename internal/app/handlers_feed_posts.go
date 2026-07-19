@@ -130,6 +130,11 @@ func (s *Server) handleCreateGroupFeedPost(w http.ResponseWriter, r *http.Reques
 		handleError(w, err)
 		return
 	}
+	observedCycleGeneration, err := dailyFeedCycleGenerationForDate(r.Context(), s.db, feedID, resolvedDate)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
 	if payload.Caption != nil {
 		feed, err := s.getGroupDailyFeed(r.Context(), groupID, feedID)
 		if err != nil {
@@ -159,6 +164,10 @@ func (s *Server) handleCreateGroupFeedPost(w http.ResponseWriter, r *http.Reques
 	}
 	defer tx.Rollback(r.Context())
 	if _, err := lockGroupDailyFeedForWrite(r.Context(), tx, groupID, feedID); err != nil {
+		handleError(w, err)
+		return
+	}
+	if err := ensureDailyFeedCycleMaterializedForPost(r.Context(), tx, feedID, resolvedDate, observedCycleGeneration); err != nil {
 		handleError(w, err)
 		return
 	}
@@ -457,7 +466,16 @@ func (s *Server) authorizeGroupFeedPostTargetForRole(ctx context.Context, userID
 		return time.Time{}, forbidden("active group membership required")
 	}
 
-	return s.dailyFeedOutputDateForFeed(ctx, feed, &requestedDate, time.Now())
+	resolvedDate, err := s.dailyFeedOutputDateForFeed(ctx, feed, &requestedDate, time.Now())
+	if err != nil {
+		return time.Time{}, err
+	}
+	if feed.Kind == dailyFeedKindCatalogDaily {
+		if _, _, err := s.ensureDailyFeedCycleForDate(ctx, feed, resolvedDate); err != nil {
+			return time.Time{}, err
+		}
+	}
+	return resolvedDate, nil
 }
 
 func createGroupDailyFeedInstance(ctx context.Context, tx pgx.Tx, groupID string, feedID string, feedDate time.Time) (string, error) {
@@ -470,6 +488,52 @@ func createGroupDailyFeedInstance(ctx context.Context, tx pgx.Tx, groupID string
 		returning id::text
 	`, groupID, feedID, feedDate).Scan(&instanceID)
 	return instanceID, err
+}
+
+func dailyFeedCycleGenerationForDate(ctx context.Context, querier dailyFeedCycleRowQuerier, feedID string, feedDate time.Time) (*int, error) {
+	var generation int
+	err := querier.QueryRow(ctx, `
+		select c.generation
+		from group_daily_feed_cycles c
+		join group_daily_feed_cycle_items i on i.cycle_id = c.id and i.feed_id = c.feed_id
+		where c.feed_id = $1 and i.feed_date = $2
+	`, feedID, feedDate).Scan(&generation)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &generation, nil
+}
+
+func ensureDailyFeedCycleMaterializedForPost(ctx context.Context, tx pgx.Tx, feedID string, feedDate time.Time, observedGeneration *int) error {
+	var cycleApplies bool
+	if err := tx.QueryRow(ctx, `
+		select exists (
+			select 1
+			from group_daily_feed_cycle_settings
+			where feed_id = $1
+			  and starts_on <= $2
+			  and (ends_before is null or $2 < ends_before)
+		)
+	`, feedID, feedDate).Scan(&cycleApplies); err != nil {
+		return err
+	}
+	if !cycleApplies {
+		if observedGeneration != nil {
+			return statusError{status: http.StatusConflict, message: "daily feed cycle changed while creating the post; retry"}
+		}
+		return nil
+	}
+	currentGeneration, err := dailyFeedCycleGenerationForDate(ctx, tx, feedID, feedDate)
+	if err != nil {
+		return err
+	}
+	if currentGeneration == nil || observedGeneration == nil || *currentGeneration != *observedGeneration {
+		return statusError{status: http.StatusConflict, message: "daily feed cycle changed while creating the post; retry"}
+	}
+	return nil
 }
 
 func (s *Server) listGroupFeedPosts(ctx context.Context, groupID string, feedID string, feedDate time.Time) ([]GroupFeedPost, error) {

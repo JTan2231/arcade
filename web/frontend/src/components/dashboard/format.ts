@@ -14,6 +14,7 @@ export function feedOutputSummary(output: DailyFeedOutput): DailyFeedOutputSumma
       title: outputItemDisplayTitle(output.items[0]!),
       subtitle: output.date,
       ...(output.event !== undefined ? { event: output.event } : {}),
+      ...(output.cycle !== undefined ? { cycle: output.cycle } : {}),
     };
   }
   if (output.items.length > 1) {
@@ -22,6 +23,7 @@ export function feedOutputSummary(output: DailyFeedOutput): DailyFeedOutputSumma
       date: output.date,
       title: output.date,
       ...(output.event !== undefined ? { event: output.event } : {}),
+      ...(output.cycle !== undefined ? { cycle: output.cycle } : {}),
     };
   }
   return {
@@ -30,6 +32,7 @@ export function feedOutputSummary(output: DailyFeedOutput): DailyFeedOutputSumma
     title: firstNonEmpty(output.title, output.date),
     subtitle: output.date,
     ...(output.event !== undefined ? { event: output.event } : {}),
+    ...(output.cycle !== undefined ? { cycle: output.cycle } : {}),
   };
 }
 

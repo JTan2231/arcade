@@ -6,11 +6,13 @@ export function CatalogFiltersEditor({
   disabled,
   fields,
   filters,
+  label = "Filters",
   onChange,
 }: {
   disabled: boolean;
   fields: CatalogSourceField[];
   filters: DraftFilter[];
+  label?: string;
   onChange: (filters: DraftFilter[]) => void;
 }) {
   function addFilter() {
@@ -40,7 +42,7 @@ export function CatalogFiltersEditor({
   }
 
   return (
-    <section className="feed-filters-section" aria-label="Filters">
+    <section className="feed-filters-section" aria-label={label}>
       <div className="section-header-row">
         <div className="title">Filters</div>
         <button className="secondary" type="button" disabled={disabled || fields.length === 0} onClick={addFilter}>

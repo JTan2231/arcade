@@ -1,7 +1,9 @@
 import * as api from "../api";
 import type {
   CatalogSource,
+  CycleSettings,
   DailyFeed,
+  DailyFeedCycle,
   DailyFeedEvent,
   DailyFeedOutput,
   DailyFeedOutputSummary,
@@ -88,6 +90,28 @@ export const queries = {
       ["user", uid, "group", groupID, "feed", feedID, "events"] as const,
     fetch: (_uid: string, groupID: string, feedID: string, options: QueryFetcherOptions): Promise<DailyFeedEvent[]> =>
       api.listGroupDailyFeedEvents(groupID, feedID, options),
+    staleMs: QUERY_TTL_MS,
+    expiresMs: QUERY_TTL_MS,
+  }),
+
+  cycleSettings: defineQuery({
+    key: (uid: string, groupID: string, feedID: string) =>
+      ["user", uid, "group", groupID, "feed", feedID, "cycle-settings"] as const,
+    fetch: (
+      _uid: string,
+      groupID: string,
+      feedID: string,
+      options: QueryFetcherOptions,
+    ): Promise<CycleSettings | null> => api.getGroupDailyFeedCycleSettings(groupID, feedID, options),
+    staleMs: QUERY_TTL_MS,
+    expiresMs: QUERY_TTL_MS,
+  }),
+
+  feedCycles: defineQuery({
+    key: (uid: string, groupID: string, feedID: string) =>
+      ["user", uid, "group", groupID, "feed", feedID, "cycles"] as const,
+    fetch: (_uid: string, groupID: string, feedID: string, options: QueryFetcherOptions): Promise<DailyFeedCycle[]> =>
+      api.listGroupDailyFeedCycles(groupID, feedID, options),
     staleMs: QUERY_TTL_MS,
     expiresMs: QUERY_TTL_MS,
   }),

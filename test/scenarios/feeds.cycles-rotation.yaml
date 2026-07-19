@@ -1,0 +1,558 @@
+name: feed Cycle Configuration rotation restarts at revision boundaries
+
+vars:
+  owner_email: feed-cycles-rotation-owner@example.test
+  password: password123
+  initial_token: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  second_token: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+  third_token: cccccccccccccccccccccccccccccccc
+  new_run_token: dddddddddddddddddddddddddddddddd
+
+before:
+  - request:
+      id: signup_owner
+      client: browser
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Feed Cycles Rotation Owner
+        email: "{{owner_email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Feed Cycles Rotation Dojo
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: create_source
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/catalog-sources
+      json:
+        name: Rotation Problems
+        template: https://example.test/{slug}
+        fields:
+          - key: difficulty
+            label: Difficulty
+            value_type: number
+            is_array: false
+            display_order: 0
+        items:
+          - title: Rotation A
+            data:
+              slug: rotation-a
+              difficulty: 800
+          - title: Rotation B
+            data:
+              slug: rotation-b
+              difficulty: 1000
+          - title: Rotation C
+            data:
+              slug: rotation-c
+              difficulty: 1200
+          - title: Rotation D
+            data:
+              slug: rotation-d
+              difficulty: 1400
+          - title: Rotation E
+            data:
+              slug: rotation-e
+              difficulty: 1600
+      expectStatus: 201
+      capture:
+        source_id: $.id
+        difficulty_field_id: $.fields[0].id
+
+  - request:
+      id: create_feed
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds
+      json:
+        name: Rotation Practice
+        kind: catalog_daily
+        enabled: true
+        source_id: "{{source_id}}"
+        item_count: 1
+        schedule:
+          starts_at: "2020-01-01T00:00:00Z"
+          timezone: UTC
+          interval_seconds: 86400
+      expectStatus: 201
+      capture:
+        feed_id: $.id
+
+  - request:
+      id: save_initial_rotation
+      client: browser
+      method: PUT
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycle-settings
+      json:
+        starts_on: "{{today}}"
+        output_count: 1
+        selection_token: "{{initial_token}}"
+        configurations:
+          - key: rotation-a
+            name: Rotation A
+            filters:
+              - field_id: "{{difficulty_field_id}}"
+                op: eq
+                number_values:
+                  - 800
+            distinct:
+              kind: none
+            order:
+              kind: seeded_shuffle
+          - key: rotation-b
+            name: Rotation B
+            filters:
+              - field_id: "{{difficulty_field_id}}"
+                op: eq
+                number_values:
+                  - 1000
+            distinct:
+              kind: none
+            order:
+              kind: seeded_shuffle
+      expectStatus: 200
+      capture:
+        settings_id: $.id
+
+  - request:
+      id: save_second_rotation
+      client: browser
+      method: PUT
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycle-settings
+      json:
+        starts_on: "{{daysAhead:1}}"
+        output_count: 1
+        selection_token: "{{second_token}}"
+        configurations:
+          - key: rotation-c
+            name: Rotation C
+            filters:
+              - field_id: "{{difficulty_field_id}}"
+                op: eq
+                number_values:
+                  - 1200
+            distinct:
+              kind: none
+            order:
+              kind: seeded_shuffle
+          - key: rotation-d
+            name: Rotation D
+            filters:
+              - field_id: "{{difficulty_field_id}}"
+                op: eq
+                number_values:
+                  - 1400
+            distinct:
+              kind: none
+            order:
+              kind: seeded_shuffle
+      expectStatus: 200
+
+  - sql:
+      statement: |
+        update group_daily_feed_cycle_settings
+        set starts_on = '{{daysAgo:4}}'::date
+        where id = '{{settings_id}}'::uuid;
+
+        update group_daily_feed_cycle_setting_revisions
+        set starts_on = case selection_seed
+          when '{{initial_token}}' then '{{daysAgo:4}}'::date
+          when '{{second_token}}' then '{{daysAgo:2}}'::date
+          else starts_on
+        end
+        where settings_id = '{{settings_id}}'::uuid;
+
+steps:
+  - request:
+      id: first_initial_configuration
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{daysAgo:4}}
+      expectStatus: 200
+      expectJson:
+        date: "{{daysAgo:4}}"
+        cycle:
+          name: Rotation A
+          configuration_key: rotation-a
+          position: 1
+          position_count: 1
+        items:
+          - item:
+              title: Rotation A
+
+  - request:
+      id: second_initial_configuration
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{daysAgo:3}}
+      expectStatus: 200
+      expectJson:
+        date: "{{daysAgo:3}}"
+        cycle:
+          name: Rotation B
+          configuration_key: rotation-b
+        items:
+          - item:
+              title: Rotation B
+
+  - request:
+      id: revision_restarts_with_first_configuration
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{daysAgo:2}}
+      expectStatus: 200
+      expectJson:
+        date: "{{daysAgo:2}}"
+        cycle:
+          name: Rotation C
+          configuration_key: rotation-c
+        items:
+          - item:
+              title: Rotation C
+
+  - request:
+      id: second_revision_configuration
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{yesterday}}
+      expectStatus: 200
+      expectJson:
+        date: "{{yesterday}}"
+        cycle:
+          name: Rotation D
+          configuration_key: rotation-d
+        items:
+          - item:
+              title: Rotation D
+
+  - request:
+      id: second_revision_repeats
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{today}}
+      expectStatus: 200
+      expectJson:
+        date: "{{today}}"
+        cycle:
+          name: Rotation C
+          configuration_key: rotation-c
+        items:
+          - item:
+              title: Rotation C
+
+  - request:
+      id: list_rotated_cycles
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycles
+      expectStatus: 200
+      expectJson:
+        - configuration_key: rotation-c
+          starts_on: "{{today}}"
+          ends_on: "{{today}}"
+          status: active
+        - configuration_key: rotation-d
+          starts_on: "{{yesterday}}"
+          ends_on: "{{yesterday}}"
+          status: ended
+        - configuration_key: rotation-c
+          starts_on: "{{daysAgo:2}}"
+          ends_on: "{{daysAgo:2}}"
+          status: ended
+        - configuration_key: rotation-b
+          starts_on: "{{daysAgo:3}}"
+          ends_on: "{{daysAgo:3}}"
+          status: ended
+        - configuration_key: rotation-a
+          starts_on: "{{daysAgo:4}}"
+          ends_on: "{{daysAgo:4}}"
+          status: ended
+
+  - request:
+      id: schedule_third_revision_at_next_boundary
+      client: browser
+      method: PUT
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycle-settings
+      json:
+        starts_on: "{{daysAhead:1}}"
+        output_count: 1
+        selection_token: "{{third_token}}"
+        configurations:
+          - key: rotation-e
+            name: Rotation E
+            filters:
+              - field_id: "{{difficulty_field_id}}"
+                op: eq
+                number_values:
+                  - 1600
+            distinct:
+              kind: none
+            order:
+              kind: seeded_shuffle
+      expectStatus: 200
+      expectJson:
+        starts_on: "{{daysAgo:4}}"
+        effective_starts_on: "{{daysAhead:1}}"
+        next_cycle_starts_on: "{{daysAhead:1}}"
+        configurations:
+          - key: rotation-e
+            name: Rotation E
+
+  - request:
+      id: preview_future_revision
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycle-settings/preview
+      json:
+        starts_on: "{{daysAhead:1}}"
+        output_count: 1
+        selection_token: "{{third_token}}"
+        configurations:
+          - key: rotation-e
+            name: Rotation E
+            filters:
+              - field_id: "{{difficulty_field_id}}"
+                op: eq
+                number_values:
+                  - 1600
+            distinct:
+              kind: none
+            order:
+              kind: seeded_shuffle
+      expectStatus: 200
+      expectJson:
+        cycle:
+          starts_on: "{{daysAhead:1}}"
+          ends_on: "{{daysAhead:1}}"
+          configuration_key: rotation-e
+          name: Rotation E
+        outputs:
+          - date: "{{daysAhead:1}}"
+            items:
+              - item:
+                  title: Rotation E
+
+  - request:
+      id: current_cycle_remains_frozen
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{today}}
+      expectStatus: 200
+      expectJson:
+        cycle:
+          name: Rotation C
+          configuration_key: rotation-c
+        items:
+          - item:
+              title: Rotation C
+
+  - request:
+      id: reject_future_cycle_output
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/outputs/{{daysAhead:1}}
+      expectStatus: 409
+      expectJson:
+        error: upcoming cycles are available through preview only
+
+  - sql:
+      statement: |
+        do $$
+        declare
+          revision_count integer;
+          cycle_count integer;
+          future_cycle_count integer;
+        begin
+          select count(*)::integer into revision_count
+          from group_daily_feed_cycle_setting_revisions
+          where settings_id = '{{settings_id}}'::uuid;
+
+          select count(*)::integer into cycle_count
+          from group_daily_feed_cycles
+          where feed_id = '{{feed_id}}'::uuid;
+
+          select count(*)::integer into future_cycle_count
+          from group_daily_feed_cycles
+          where feed_id = '{{feed_id}}'::uuid
+            and starts_on >= '{{daysAhead:1}}'::date;
+
+          if revision_count <> 3 or cycle_count <> 5 or future_cycle_count <> 0 then
+            raise exception 'revision/cycle/future cycle counts = %/%/%, want 3/5/0',
+              revision_count, cycle_count, future_cycle_count;
+          end if;
+        end $$;
+
+  - request:
+      id: end_active_cycle_run
+      client: browser
+      method: DELETE
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycle-settings
+      expectStatus: 204
+
+  - request:
+      id: active_cycle_run_finishes_at_next_boundary
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycle-settings
+      expectStatus: 200
+      expectJson:
+        id: "{{settings_id}}"
+        starts_on: "{{daysAgo:4}}"
+        effective_starts_on: "{{daysAgo:2}}"
+        next_cycle_starts_on: "{{daysAhead:1}}"
+        ends_before: "{{daysAhead:1}}"
+        status: ending
+
+  - sql:
+      statement: |
+        update group_daily_feed_cycle_settings
+        set ends_before = '{{today}}'::date
+        where id = '{{settings_id}}'::uuid;
+
+  - request:
+      id: ended_cycle_run_is_absent_from_management
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycle-settings
+      expectStatus: 404
+
+  - request:
+      id: feed_summary_retains_ended_cycle_run
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds
+      expectStatus: 200
+      expectJson:
+        - name: Daily Thread
+        - id: "{{feed_id}}"
+          name: Rotation Practice
+          cycle_settings:
+            id: "{{settings_id}}"
+            starts_on: "{{daysAgo:4}}"
+            ends_before: "{{today}}"
+            status: ended
+
+  - request:
+      id: reject_event_after_ended_cycle_run
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/events
+      json:
+        name: Rejected After End
+        starts_on: "{{today}}"
+        ends_on: "{{today}}"
+        item_count: 1
+        filters: []
+      expectStatus: 409
+      expectJson:
+        error: daily feed events must end before the first cycle boundary
+
+  - request:
+      id: start_new_cycle_run
+      client: browser
+      method: PUT
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycle-settings
+      json:
+        starts_on: "{{daysAhead:1}}"
+        output_count: 1
+        selection_token: "{{new_run_token}}"
+        configurations:
+          - key: restarted-rotation-e
+            name: Restarted Rotation E
+            filters:
+              - field_id: "{{difficulty_field_id}}"
+                op: eq
+                number_values:
+                  - 1600
+            distinct:
+              kind: none
+            order:
+              kind: seeded_shuffle
+      expectStatus: 200
+      expectJson:
+        starts_on: "{{daysAhead:1}}"
+        effective_starts_on: "{{daysAhead:1}}"
+        status: scheduled
+      capture:
+        new_settings_id: $.id
+
+  - sql:
+      statement: |
+        do $$
+        declare
+          settings_count integer;
+          open_settings_count integer;
+          historical_cycle_count integer;
+        begin
+          select count(*)::integer into settings_count
+          from group_daily_feed_cycle_settings
+          where feed_id = '{{feed_id}}'::uuid;
+
+          select count(*)::integer into open_settings_count
+          from group_daily_feed_cycle_settings
+          where feed_id = '{{feed_id}}'::uuid
+            and id = '{{new_settings_id}}'::uuid
+            and ends_before is null;
+
+          select count(*)::integer into historical_cycle_count
+          from group_daily_feed_cycles
+          where settings_id = '{{settings_id}}'::uuid;
+
+          if settings_count <> 2 or open_settings_count <> 1 or historical_cycle_count <> 5 then
+            raise exception 'settings/open settings/historical cycles = %/%/%, want 2/1/5',
+              settings_count, open_settings_count, historical_cycle_count;
+          end if;
+        end $$;
+
+  - request:
+      id: delete_scheduled_cycle_run
+      client: browser
+      method: DELETE
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycle-settings
+      expectStatus: 204
+
+  - request:
+      id: deleted_scheduled_run_is_absent
+      client: browser
+      method: GET
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycle-settings
+      expectStatus: 404
+
+  - sql:
+      statement: |
+        do $$
+        declare
+          settings_count integer;
+          open_settings_count integer;
+          historical_cycle_count integer;
+        begin
+          select count(*)::integer into settings_count
+          from group_daily_feed_cycle_settings
+          where feed_id = '{{feed_id}}'::uuid;
+
+          select count(*)::integer into open_settings_count
+          from group_daily_feed_cycle_settings
+          where feed_id = '{{feed_id}}'::uuid and ends_before is null;
+
+          select count(*)::integer into historical_cycle_count
+          from group_daily_feed_cycles
+          where settings_id = '{{settings_id}}'::uuid;
+
+          if settings_count <> 1 or open_settings_count <> 0 or historical_cycle_count <> 5 then
+            raise exception 'settings/open settings/historical cycles = %/%/%, want 1/0/5',
+              settings_count, open_settings_count, historical_cycle_count;
+          end if;
+        end $$;

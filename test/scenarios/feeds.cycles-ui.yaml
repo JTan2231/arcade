@@ -1,0 +1,326 @@
+name: feed Cycles can be configured previewed and refreshed in the workspace
+
+vars:
+  email: feed-cycles-ui-owner@example.test
+  password: password123
+
+before:
+  - request:
+      id: signup_owner
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Feed Cycles UI Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: login_owner
+      client: browser
+      method: POST
+      path: /api/auth/login
+      json:
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 200
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Feed Cycles UI Dojo
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: create_source
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/catalog-sources
+      json:
+        name: Cycle UI Problems
+        template: https://example.test/{slug}
+        fields:
+          - key: difficulty
+            label: Difficulty
+            value_type: number
+            is_array: false
+            display_order: 0
+          - key: topic
+            label: Topic
+            value_type: string
+            is_array: false
+            display_order: 1
+        items:
+          - title: Cycle UI Alpha
+            data:
+              slug: cycle-ui-alpha
+              difficulty: 800
+              topic: graph
+          - title: Cycle UI Beta
+            data:
+              slug: cycle-ui-beta
+              difficulty: 1000
+              topic: dp
+          - title: Cycle UI Gamma
+            data:
+              slug: cycle-ui-gamma
+              difficulty: 1200
+              topic: math
+          - title: Cycle UI Delta
+            data:
+              slug: cycle-ui-delta
+              difficulty: 1400
+              topic: strings
+      expectStatus: 201
+      capture:
+        source_id: $.id
+
+  - request:
+      id: create_feed
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds
+      json:
+        name: A Cycle UI Practice
+        kind: catalog_daily
+        enabled: true
+        source_id: "{{source_id}}"
+        item_count: 1
+        schedule:
+          starts_at: "2020-01-01T00:00:00Z"
+          timezone: UTC
+          interval_seconds: 86400
+      expectStatus: 201
+      capture:
+        feed_id: $.id
+
+steps:
+  - visit: /
+
+  - within: Feeds
+    click:
+      role: button
+      name: Feed settings for A Cycle UI Practice
+
+  - within: Feeds
+    click:
+      role: button
+      name: Settings
+
+  - within: Cycles
+    click:
+      role: button
+      name: Manage
+
+  - within: Cycle settings summary
+    expectVisible:
+      text: Cycles are not configured
+
+  - within: Cycle settings summary
+    click:
+      role: button
+      name: Configure cycles
+
+  - within: Cycle settings
+    fill:
+      label: Start boundary
+      value: "{{today}}"
+
+  - within: Cycle settings
+    fill:
+      label: Outputs per cycle
+      value: 3
+
+  - within: Cycle settings
+    click:
+      role: button
+      name: Next
+
+  - within: Cycle settings
+    fill:
+      label: Configuration name
+      value: Core Round
+
+  - within: Cycle settings
+    fill:
+      label: Configuration key
+      value: core-round
+
+  - within: Cycle settings
+    select:
+      label: Distinct values
+      option: Topic
+
+  - within: Cycle settings
+    select:
+      label: Order
+      option: Difficulty — Ascending
+
+  - within: Cycle settings
+    click:
+      role: button
+      name: Next
+
+  - holdRequest:
+      id: cycle_preview
+      method: POST
+      path: /api/groups/*/daily-feeds/*/cycle-settings/preview
+      times: 1
+
+  - within: Cycle settings
+    click:
+      role: button
+      name: Preview
+
+  - expectRequest:
+      id: cycle_preview
+
+  - releaseRequest: cycle_preview
+
+  - within: Cycle preview
+    expectVisible:
+      text: 3 of 3 selected
+
+  - within: Cycle preview
+    expectVisible:
+      text: Core Round
+
+  - within: Cycle settings
+    click:
+      role: button
+      name: Save settings
+
+  - expectStatus:
+      text: Cycle settings saved
+
+  - within: Configurations
+    expectVisible:
+      text: Core Round
+
+  - within: Feed cycles
+    click:
+      role: button
+      name: Close
+
+  - within: Feed cycle
+    expectVisible:
+      text: Core Round
+
+  - within: Feed cycle
+    expectVisible:
+      text: Day 1 of 3
+
+  - within: Feeds
+    click:
+      role: button
+      name: Feed settings for A Cycle UI Practice
+
+  - within: Feeds
+    click:
+      role: button
+      name: Settings
+
+  - within: Cycles
+    click:
+      role: button
+      name: Manage
+
+  - within: Generated cycles
+    expectVisible:
+      text: Core Round
+
+  - within: Generated cycles
+    acceptDialog:
+      message: Refresh Core Round? This replaces every problem in the cycle unless posts already exist.
+    click:
+      role: button
+      name: Refresh cycle
+
+  - expectStatus:
+      text: Cycle refreshed
+
+  - within: Generated cycles
+    expectVisible:
+      text: generation 2
+
+  - sql:
+      statement: |
+        update group_daily_feed_cycle_settings
+        set starts_on = '{{daysAgo:3}}'::date,
+            ends_before = '{{today}}'::date
+        where feed_id = '{{feed_id}}'::uuid;
+
+        update group_daily_feed_cycle_setting_revisions
+        set starts_on = '{{daysAgo:3}}'::date
+        where feed_id = '{{feed_id}}'::uuid;
+
+        update group_daily_feed_cycle_items i
+        set feed_date = '{{daysAgo:3}}'::date + (i.position - 1)
+        from group_daily_feed_cycles c
+        where i.cycle_id = c.id
+          and c.feed_id = '{{feed_id}}'::uuid;
+
+        update group_daily_feed_cycles
+        set starts_on = '{{daysAgo:3}}'::date,
+            ends_before = '{{today}}'::date
+        where feed_id = '{{feed_id}}'::uuid;
+
+  - visit: /
+
+  - within: Feeds
+    click:
+      role: button
+      name: Feed settings for A Cycle UI Practice
+
+  - within: Feeds
+    click:
+      role: button
+      name: Settings
+
+  - within: Cycles
+    expectVisible:
+      text: Cycles ended; generated history remains available.
+
+  - within: Feed settings
+    expectHidden:
+      text: Events
+      exact: true
+
+  - within: Current generation
+    expectEnabled:
+      role: button
+      name: Refresh
+
+  - within: Cadence
+    expectEnabled:
+      role: combobox
+      name: Repeat
+
+  - within: Cycles
+    click:
+      role: button
+      name: Manage
+
+  - within: Cycle settings summary
+    expectVisible:
+      text: Cycles have ended
+
+  - within: Cycle settings summary
+    expectEnabled:
+      role: button
+      name: Configure cycles
+
+  - within: Generated cycles
+    expectVisible:
+      text: Core Round
+
+  - within: Generated cycles
+    expectVisible:
+      text: generation 2

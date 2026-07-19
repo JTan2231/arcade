@@ -297,6 +297,33 @@ log path when the harness started the app.
 Tracing starts before scenario phases and is retained only when the scenario
 fails.
 
+## Feed Cycle Coverage
+
+Cycle behavior is split across three focused scenarios:
+
+- `feeds.cycles-api.yaml` verifies deterministic sampling before delivery
+  sorting, scalar distinctness, missing and non-scalar distinct-value exclusion,
+  insufficient-capacity atomicity, preview non-persistence, complete current
+  Cycle materialization, frozen revision behavior, historical event coexistence,
+  Cycle-era event rejection, whole-Cycle refresh, post locking, and member and
+  public provenance.
+- `feeds.cycles-rotation.yaml` uses managed setup SQL to establish revision
+  history without changing the application clock. It verifies ordered
+  Configuration rotation, restart at a revision boundary, past and current
+  materialization, a next-boundary revision, frozen existing Cycles, future
+  preview without future materialization, active-run ending, ended-run feed
+  summaries, permanent Event cutoff, a later non-overlapping run, scheduled-run
+  deletion, and preservation of historical Cycles across both transitions.
+- `feeds.cycles-ui.yaml` exercises the accessible owner workflow from feed
+  settings through configuration, complete-Cycle preview, save, member
+  provenance, and whole-Cycle refresh. It also verifies the ended-run summary,
+  retained generated history, permanent removal of Event management, and
+  restored baseline refresh and cadence controls.
+
+The API scenarios assert both responses and relational persistence. This is
+important for preview and failure cases: a correct error response is not enough
+if it leaves a partial Cycle, item assignment, or settings revision behind.
+
 ## CI Integration
 
 The root `ci.sh` has two testing-related targets:

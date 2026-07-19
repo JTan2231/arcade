@@ -413,6 +413,10 @@ func (s *Server) handlePatchGroupDailyFeed(w http.ResponseWriter, r *http.Reques
 			return
 		}
 		if !dailyFeedSchedulesEqual(currentFeed.Schedule, normalized) {
+			if dailyFeedCycleSettingsAreActive(currentFeed.CycleSettings) {
+				handleError(w, statusError{status: http.StatusConflict, message: "daily feed schedule cannot change while cycle settings are active"})
+				return
+			}
 			normalized.StartsAt = scheduleChangeStartsAt(normalized.Timezone, time.Now())
 			scheduleChanged = true
 		}
@@ -420,6 +424,7 @@ func (s *Server) handlePatchGroupDailyFeed(w http.ResponseWriter, r *http.Reques
 	}
 
 	sourceID := currentFeed.SourceID
+	sourceChanged := false
 	itemCount := currentFeed.ItemCount
 	filters := currentFeed.Filters
 
@@ -431,6 +436,7 @@ func (s *Server) handlePatchGroupDailyFeed(w http.ResponseWriter, r *http.Reques
 	} else {
 		if req.SourceID.Set {
 			value := strings.TrimSpace(req.SourceID.Value)
+			sourceChanged = currentFeed.SourceID == nil || value != strings.TrimSpace(*currentFeed.SourceID)
 			sourceID = &value
 		}
 		if req.ItemCount.Set {
@@ -455,6 +461,10 @@ func (s *Server) handlePatchGroupDailyFeed(w http.ResponseWriter, r *http.Reques
 			return
 		}
 		filters = normalizedFilters
+		if sourceChanged && dailyFeedCycleSettingsAreActive(currentFeed.CycleSettings) {
+			handleError(w, statusError{status: http.StatusConflict, message: "daily feed source cannot change while cycle settings are active"})
+			return
+		}
 
 		if enabled {
 			if err := s.validatePracticeFeedReady(r.Context(), *sourceID, *itemCount, filters); err != nil {
@@ -470,6 +480,46 @@ func (s *Server) handlePatchGroupDailyFeed(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	defer tx.Rollback(r.Context())
+	if _, err := lockGroupDailyFeedForWrite(r.Context(), tx, groupID, currentFeed.ID); err != nil {
+		handleError(w, err)
+		return
+	}
+	if scheduleChanged || sourceChanged {
+		settings, found, err := loadDailyFeedCycleSettingsRow(r.Context(), tx, currentFeed.ID)
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+		if found {
+			currentDate, err := dailyFeedCycleCurrentDate(settings, time.Now())
+			if err != nil {
+				handleError(w, err)
+				return
+			}
+			if settings.EndsBefore == nil || dailyFeedCycleDateBefore(currentDate, *settings.EndsBefore) {
+				message := "daily feed schedule cannot change while cycle settings are active"
+				if sourceChanged {
+					message = "daily feed source cannot change while cycle settings are active"
+				}
+				handleError(w, statusError{status: http.StatusConflict, message: message})
+				return
+			}
+			if scheduleChanged {
+				proposedDate, err := dailyFeedOutputDateAt(schedule, nil, time.Now())
+				if err != nil {
+					handleError(w, err)
+					return
+				}
+				if dailyFeedCycleDateBefore(proposedDate, *settings.EndsBefore) {
+					handleError(w, statusError{
+						status:  http.StatusConflict,
+						message: "daily feed schedule must resume on or after " + settings.EndsBefore.Format(dailyFeedDateLayout),
+					})
+					return
+				}
+			}
+		}
+	}
 
 	replaceFilters := currentFeed.Kind == dailyFeedKindCatalogDaily && req.Filters.Set
 	if replaceFilters {
@@ -713,6 +763,9 @@ func (s *Server) listGroupDailyFeeds(ctx context.Context, groupID string) ([]Dai
 		if err := s.hydrateDailyFeedFilters(ctx, &feed); err != nil {
 			return nil, err
 		}
+		if err := s.hydrateDailyFeedCycleSettingsSummary(ctx, &feed); err != nil {
+			return nil, err
+		}
 		feeds = append(feeds, feed)
 	}
 	return feeds, rows.Err()
@@ -740,6 +793,9 @@ func (s *Server) listMeDailyFeeds(ctx context.Context, userID string) ([]DailyFe
 		if err := s.hydrateDailyFeedFilters(ctx, &feed); err != nil {
 			return nil, err
 		}
+		if err := s.hydrateDailyFeedCycleSettingsSummary(ctx, &feed); err != nil {
+			return nil, err
+		}
 		feeds = append(feeds, feed)
 	}
 	return feeds, rows.Err()
@@ -756,6 +812,9 @@ func (s *Server) getGroupDailyFeed(ctx context.Context, groupID string, feedID s
 		return DailyFeed{}, err
 	}
 	if err := s.hydrateDailyFeedFilters(ctx, &feed); err != nil {
+		return DailyFeed{}, err
+	}
+	if err := s.hydrateDailyFeedCycleSettingsSummary(ctx, &feed); err != nil {
 		return DailyFeed{}, err
 	}
 	return feed, nil
@@ -929,7 +988,20 @@ func (s *Server) generateDailyFeedOutput(ctx context.Context, userID string, gro
 }
 
 func (s *Server) generateDailyFeedOutputForFeed(ctx context.Context, feed DailyFeed, requestedDate *time.Time) (DailyFeedOutput, error) {
-	selection, err := s.selectDailyFeedItems(ctx, feed, requestedDate, true)
+	date, err := s.dailyFeedOutputDateForFeed(ctx, feed, requestedDate, time.Now())
+	if err != nil {
+		return DailyFeedOutput{}, err
+	}
+	if feed.Kind == dailyFeedKindCatalogDaily {
+		cycle, applies, err := s.ensureDailyFeedCycleForDate(ctx, feed, date)
+		if err != nil {
+			return DailyFeedOutput{}, err
+		}
+		if applies {
+			return dailyFeedOutputForCycleDate(feed, cycle, date)
+		}
+	}
+	selection, err := s.selectDailyFeedItemsForResolvedDate(ctx, feed, date, true)
 	if err != nil {
 		return DailyFeedOutput{}, err
 	}
@@ -1069,6 +1141,7 @@ func dailyFeedOutputSummary(output DailyFeedOutput) DailyFeedOutputSummary {
 			Title:    publicFeedOutputTitle(output.Items[0]),
 			Subtitle: &output.Date,
 			Event:    output.Event,
+			Cycle:    output.Cycle,
 		}
 	}
 	if len(output.Items) > 1 {
@@ -1077,6 +1150,7 @@ func dailyFeedOutputSummary(output DailyFeedOutput) DailyFeedOutputSummary {
 			Date:   output.Date,
 			Title:  output.Date,
 			Event:  output.Event,
+			Cycle:  output.Cycle,
 		}
 	}
 	return DailyFeedOutputSummary{
@@ -1085,10 +1159,29 @@ func dailyFeedOutputSummary(output DailyFeedOutput) DailyFeedOutputSummary {
 		Title:    firstNonEmptyString(output.Title, output.Date),
 		Subtitle: &output.Date,
 		Event:    output.Event,
+		Cycle:    output.Cycle,
 	}
 }
 
 func (s *Server) refreshDailyFeedGeneration(ctx context.Context, userID string, groupID string, feedID string) (DailyFeedOutput, error) {
+	feed, err := s.getGroupDailyFeed(ctx, groupID, feedID)
+	if err != nil {
+		return DailyFeedOutput{}, err
+	}
+	if feed.Kind == dailyFeedKindCatalogDaily {
+		date, err := s.dailyFeedOutputDateForFeed(ctx, feed, nil, time.Now())
+		if err != nil {
+			return DailyFeedOutput{}, err
+		}
+		_, applies, err := s.dailyFeedCycleContextForDate(ctx, feed, date)
+		if err != nil {
+			return DailyFeedOutput{}, err
+		}
+		if applies {
+			return DailyFeedOutput{}, statusError{status: http.StatusConflict, message: "refresh the complete current cycle through its cycle refresh endpoint"}
+		}
+	}
+
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return DailyFeedOutput{}, err
@@ -1102,7 +1195,7 @@ func (s *Server) refreshDailyFeedGeneration(ctx context.Context, userID string, 
 	if kind == dailyFeedKindDailyThread {
 		return DailyFeedOutput{}, badRequest("daily thread feeds do not support refresh")
 	}
-	feed, err := s.getGroupDailyFeed(ctx, groupID, feedID)
+	feed, err = s.getGroupDailyFeed(ctx, groupID, feedID)
 	if err != nil {
 		return DailyFeedOutput{}, err
 	}
@@ -1110,6 +1203,11 @@ func (s *Server) refreshDailyFeedGeneration(ctx context.Context, userID string, 
 	date, err := s.dailyFeedOutputDateForFeed(ctx, feed, nil, time.Now())
 	if err != nil {
 		return DailyFeedOutput{}, err
+	}
+	if _, applies, err := s.dailyFeedCycleContextForDate(ctx, feed, date); err != nil {
+		return DailyFeedOutput{}, err
+	} else if applies {
+		return DailyFeedOutput{}, statusError{status: http.StatusConflict, message: "refresh the complete current cycle through its cycle refresh endpoint"}
 	}
 	config, err := s.resolveDailyFeedSelectionConfig(ctx, feed, date)
 	if err != nil {
@@ -1141,6 +1239,10 @@ func (s *Server) selectDailyFeedItems(ctx context.Context, feed DailyFeed, reque
 	if err != nil {
 		return dailyFeedSelection{}, err
 	}
+	return s.selectDailyFeedItemsForResolvedDate(ctx, feed, date, requireFullCount)
+}
+
+func (s *Server) selectDailyFeedItemsForResolvedDate(ctx context.Context, feed DailyFeed, date time.Time, requireFullCount bool) (dailyFeedSelection, error) {
 	config, err := s.resolveDailyFeedSelectionConfig(ctx, feed, date)
 	if err != nil {
 		return dailyFeedSelection{}, err

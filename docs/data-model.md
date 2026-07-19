@@ -47,6 +47,19 @@ erDiagram
     catalog_sources ||--o{ group_daily_feed_events : snapshots
     group_daily_feed_events ||--o{ group_daily_feed_event_filters : filters
     catalog_source_fields ||--o{ group_daily_feed_event_filters : constrains
+    group_daily_feeds ||--o{ group_daily_feed_cycle_settings : configures
+    group_daily_feed_cycle_settings ||--o{ group_daily_feed_cycle_setting_revisions : revises
+    group_daily_feed_cycle_setting_revisions ||--|{ group_daily_feed_cycle_configurations : orders
+    catalog_sources ||--o{ group_daily_feed_cycle_configurations : supplies
+    group_daily_feed_cycle_configurations ||--o{ group_daily_feed_cycle_configuration_filters : filters
+    catalog_source_fields ||--o{ group_daily_feed_cycle_configuration_filters : constrains
+    catalog_source_fields ||--o{ group_daily_feed_cycle_configurations : distincts
+    catalog_source_fields ||--o{ group_daily_feed_cycle_configurations : orders
+    group_daily_feed_cycle_settings ||--o{ group_daily_feed_cycles : materializes
+    group_daily_feed_cycle_setting_revisions ||--o{ group_daily_feed_cycles : governs
+    group_daily_feed_cycle_configurations ||--o{ group_daily_feed_cycles : selects
+    group_daily_feed_cycles ||--|{ group_daily_feed_cycle_items : assigns
+    catalog_items ||--o{ group_daily_feed_cycle_items : snapshots
 
     group_daily_feeds ||--o{ group_daily_feed_metrics : scores
     group_daily_feed_metrics ||--o{ group_daily_feed_metric_judgments : collects
@@ -160,12 +173,70 @@ Event writes, rerolls, and post creation lock their parent feed row before
 checking or establishing that durable state, closing the race between the
 used-date check and the corresponding write.
 
+`group_daily_feed_cycle_settings` stores one bounded Cycle run for a
+`catalog_daily` feed. Its `starts_on` date is the first Cycle-managed scheduled
+output, and its optional half-open `ends_before` boundary records the end of the
+run. Required `schedule_starts_at`, `schedule_timezone`, and
+`schedule_interval_seconds` columns snapshot the feed cadence at creation;
+Cycle boundaries and lifecycle dates continue using that snapshot after the
+feed itself changes. A feed may retain multiple non-overlapping historical
+rows, while a partial unique index permits only one row without `ends_before`.
+The application requires a daily-or-slower feed cadence and a current-or-later
+`starts_on` that aligns with the feed schedule. A historical event whose
+inclusive end is before the first-ever Cycle boundary remains valid. Event
+writes can never reach that boundary or any later date, even after a run ends,
+and new Cycle settings cannot begin until every pre-Cycle event has ended.
+Deleting a scheduled run removes its row; ending an active run sets its next
+Cycle boundary as `ends_before` and preserves its materialized history. Once
+that boundary arrives, a later write may create a new settings row with a civil
+`starts_on` on or after the prior `ends_before` and a new schedule snapshot; it
+does not reuse the ended run.
+
+`group_daily_feed_cycle_setting_revisions` is the immutable history of Cycle
+settings. Each row stores the first Cycle boundary at which it applies, an
+`output_count` from 1 through 50, and the deterministic selection seed. The
+initial revision starts at the settings boundary. A later settings write adds a
+revision effective at the next Cycle boundary instead of altering the active or
+a past Cycle. Configuration rotation restarts at revision-local Cycle number
+zero when that boundary arrives.
+
+`group_daily_feed_cycle_configurations` stores the ordered Configurations for a
+revision. A Configuration has a revision-local stable key, display name and
+optional description, its feed source, an optional scalar distinct field, and
+either seeded-shuffle or ascending/descending scalar-field delivery order.
+Revision-local positions determine the repeating Configuration rotation.
+`group_daily_feed_cycle_configuration_filters` stores the Configuration's
+ordered, typed filter snapshot with the same relational operands used by feed
+and event filters. A missing or non-scalar distinct value makes an item
+ineligible for that Configuration. A missing or non-scalar order value remains
+eligible and sorts after valid scalars, so delivery order does not change
+membership.
+
+`group_daily_feed_cycles` materializes one complete Cycle. It records the
+settings revision and Configuration that governed selection, the zero-based
+settings-wide and revision-local Cycle numbers, half-open feed-date boundary,
+deterministic seed, and generation. Unique `(settings_id, cycle_number)`,
+`(revision_id, revision_cycle_number)`, and `(feed_id, starts_on)` rules prevent
+two stored interpretations of one Cycle. Refresh changes the complete Cycle in
+one transaction, increments `generation`, and records the responsible user and
+time.
+
+`group_daily_feed_cycle_items` freezes exactly one selected item for every
+scheduled output in a materialized Cycle. Position and `feed_date` are unique
+within the Cycle, and the same catalog item cannot appear twice. Each row
+retains the catalog item identity plus its source name, title, data object, and
+rendered action snapshot, so later catalog edits cannot reinterpret an assigned
+output. A preview computes the same complete ordered selection without inserting
+Cycle or item rows. Normal reads materialize complete current or past Cycles,
+while upcoming Cycles remain preview-only.
+
 Catalog daily feed outputs are generated on demand from `group_daily_feeds`,
 `catalog_items`, `catalog_sources`, `catalog_source_fields`, and
 `feed_rule_filters`, or from the applicable event snapshot in place of the
-permanent catalog configuration. Daily thread outputs do not support events and
-return the daily feed shell without generated items. Generated outputs are not
-persisted.
+permanent catalog configuration. On a cycle-managed date, output reads use the
+frozen `group_daily_feed_cycle_items` assignment instead. Daily thread outputs
+do not support events or Cycles and return the daily feed shell without
+generated items. Non-cycle generated outputs are not persisted.
 
 `group_daily_feed_generations` stores explicit reroll state for catalog feed
 dates that have been refreshed by a group owner or admin. No row exists for the
@@ -175,7 +246,9 @@ seed participates in item selection for that feed/date only. For an event date,
 the deterministic selection input includes both the stable event seed and the
 per-date reroll seed; the reroll row remains independent of the event and does
 not replace its snapshot. Refreshes are not allowed once non-deleted posts exist
-for the feed/date.
+for the feed/date. Cycle refresh state is stored on `group_daily_feed_cycles`
+instead: refresh replaces every item in the current Cycle and is rejected once
+any date in that Cycle has a non-deleted post.
 
 `group_daily_feed_instances` materializes a dated `(feed_id, feed_date)` only
 when durable member content exists for that feed instance. The row carries
@@ -263,11 +336,11 @@ schedules. Schedule-based metrics such as `missed_days` and `current_streak`
 generate expected feed dates from `group_daily_feeds.schedule_starts_at`,
 `schedule_timezone`, and `schedule_interval_seconds`; they do not infer expected
 dates from `group_daily_feed_instances`, because instances are only created
-after durable member content exists. Schedule-based metrics ignore feed cycles
-that ended before an active member's `joined_at`; the cycle containing the join
-remains eligible. `current_streak` only credits posts created while that feed
-date's scheduled output was the latest output; retroactive posts to older
-outputs do not extend the streak.
+after durable member content exists. Schedule-based metrics ignore scheduled
+output windows that ended before an active member's `joined_at`; the window
+containing the join remains eligible. `current_streak` only credits posts
+created while that feed date's scheduled output was the latest output;
+retroactive posts to older outputs do not extend the streak.
 
 ## Groups And Divisions
 

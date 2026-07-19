@@ -74,8 +74,8 @@ Routes are grouped by resource in `Server.Routes()`:
   token.
 - Groups: groups and group memberships.
 - Divisions: group-scoped divisions and optional user-rating rules.
-- Dailies: group-owned daily feed definitions, bounded catalog feed events, and
-  deterministic feed outputs.
+- Dailies: group-owned daily feed definitions, bounded catalog feed events,
+  repeating feed cycles, and deterministic feed outputs.
 - Public reads: signed-out-safe group, feed, and post pages backed by
   `/api/public/...` routes and visibility checks.
 - Evidence formats: group-owned post text validation formats, immutable
@@ -99,6 +99,13 @@ The main persisted entities are:
 - `group_daily_feeds`: durable group-owned daily feed definitions.
 - `group_daily_feed_events` and `group_daily_feed_event_filters`: dated,
   snapshotted catalog configuration overlays for catalog daily feeds.
+- `group_daily_feed_cycle_settings`,
+  `group_daily_feed_cycle_setting_revisions`,
+  `group_daily_feed_cycle_configurations`, and
+  `group_daily_feed_cycle_configuration_filters`: Cycle configuration and its
+  immutable history.
+- `group_daily_feed_cycles` and `group_daily_feed_cycle_items`: materialized,
+  repeating, feed-owned catalog selections.
 - `group_evidence_formats` and `group_evidence_format_versions`: group-owned
   post evidence validation formats and immutable constraint versions.
 - `group_daily_feed_instances` and `group_feed_posts`: durable member posts
@@ -111,7 +118,8 @@ The main persisted entities are:
 ## Daily Feeds
 
 Daily feed management and output generation live in
-`internal/app/handlers_daily_feeds.go`.
+`internal/app/handlers_daily_feeds.go`; Cycle management and materialization
+live in `internal/app/handlers_feed_cycles.go`.
 
 The current daily feed model follows these rules:
 
@@ -122,10 +130,11 @@ The current daily feed model follows these rules:
 - Feed kinds are `catalog_daily` and `daily_thread`.
 - New groups receive one enabled `daily_thread` feed by default. There can be
   only one daily thread per group; it can be deleted and created again later.
-- Catalog daily outputs are computed on demand from `catalog_sources`,
-  `catalog_source_fields`, `catalog_items`, `group_daily_feeds`, and
-  `feed_rule_filters`, with an applicable feed event supplying the effective
-  catalog configuration when one exists.
+- Catalog daily outputs without Cycles are computed on demand from
+  `catalog_sources`, `catalog_source_fields`, `catalog_items`,
+  `group_daily_feeds`, and `feed_rule_filters`, with an applicable feed event
+  supplying the effective catalog configuration when one exists. Cycle outputs
+  read the frozen item assigned to the requested scheduled feed date.
 - A feed event belongs to one `catalog_daily` feed and snapshots its complete
   catalog selection configuration: source, item count, normalized typed
   filters, and a stable event selection seed. Events do not alter cadence,
@@ -147,10 +156,79 @@ The current daily feed model follows these rules:
   row. Lifecycle and used-date checks are repeated under that lock so a
   concurrent request cannot reinterpret configuration after durable output
   state has been written.
-- Catalog selection is deterministic by feed, date, source, filters, and
-  catalog item set. An applicable event seed establishes the event-specific
-  sequence. When an owner or admin refreshes the current output, the refreshed
-  feed/date stores a separate generation seed in
+- Cycles are available only to `catalog_daily` feeds. An event whose entire
+  range is strictly before the first-ever Cycle boundary remains valid and
+  readable, but an event cannot be created or extended to that boundary or any
+  later date, including after a Cycle run ends. Cycle settings likewise cannot
+  begin on or before an existing event's final date. Cycles do not alter feed
+  cadence, timezone, enablement, visibility, captions, evidence format,
+  metrics, or posting rules.
+- Cycle settings require a daily-or-slower cadence and a current-or-later
+  `starts_on` boundary that is one of the feed's scheduled output dates. They
+  have an `output_count` from 1 through 50 and a non-empty ordered list of
+  Configurations. A new Cycle run snapshots the feed's schedule start, timezone,
+  and interval. Starting at that boundary, outputs on the snapshotted schedule
+  are partitioned into consecutive Cycles of `output_count` outputs.
+  Configurations repeat in their stored order, with exactly one Configuration
+  governing each Cycle. Boundary calculation, lifecycle status, historical
+  lookup, refresh eligibility, and deletion continue using that snapshot even
+  if the feed cadence changes after the run ends.
+- Each Configuration has a stable key, name, optional description, normalized
+  typed filters, an optional scalar distinct field, and an ordering rule.
+  Configuration keys are unique inside one revision and preserve the identity
+  shown in Cycle provenance.
+- Configuration filters define catalog eligibility. Selection always chooses
+  exactly `output_count` items through deterministic seeded sampling without
+  replacement. When a distinct field is present, candidates with a missing or
+  non-scalar field value are ineligible, values use their canonical typed form,
+  and at most one selected item may have each value. Sampling chooses distinct
+  value groups before choosing one candidate from each group.
+- Configuration ordering never changes which items were selected. After
+  membership is fixed, `seeded_shuffle` keeps the deterministic sampled order;
+  scalar field ordering sorts only the frozen selected set for delivery, places
+  missing or non-scalar order values after valid scalars in either direction,
+  and uses a deterministic tie break. A Cycle is rejected atomically when its
+  filters and distinct rule cannot supply exactly `output_count` items; partial
+  Cycles are never exposed.
+- Saving changed Cycle settings establishes an immutable revision. The initial
+  revision applies at `starts_on`; later revisions apply at the next Cycle
+  boundary. A scheduled revision that has not materialized any Cycle may be
+  atomically replaced at that same boundary. Once referenced by a materialized
+  Cycle, a revision is never rewritten. Configuration rotation restarts with
+  the first Configuration when a revision takes effect.
+- Cycle settings are `scheduled` before their first boundary, `active` after it,
+  and `ending` after an owner or admin requests deletion of active settings.
+  Deleting scheduled settings removes them immediately. Deleting active
+  settings records the next Cycle boundary as `ends_before`; the current Cycle
+  finishes, unmaterialized revisions at or after that boundary are removed, and
+  historical materialized Cycles remain readable. The feed summary then reports
+  that run as `ended`, while the management settings route returns no active
+  settings. A later write may create a new Cycle run whose civil `starts_on` is
+  on or after the prior run's `ends_before`; at most one run may be open for a
+  feed, and the later run snapshots the then-current schedule independently.
+- Preview resolves the draft's first Cycle using its first Configuration and
+  derives its deterministic seed from the selection token, boundary, and
+  Configuration key, and returns the complete ordered selection without storing
+  a Cycle or its items. Reading a current or past Cycle through a normal output
+  route materializes the complete selection once under the parent-feed lock.
+  The stored item identities, order, rendered actions, and display data are then
+  authoritative even when the catalog later changes. Normal output routes
+  reject upcoming Cycle dates; only preview returns their virtual selections.
+- One Cycle item is assigned to each scheduled feed output in the Cycle. The
+  member and public output responses carry display-safe Cycle provenance,
+  including the Configuration identity, Cycle boundary, and the output's
+  one-based position within the Cycle plus summaries of filters, distinctness,
+  and delivery order. Complete Configuration operands, seeds, revision metadata,
+  and preview diagnostics remain owner/admin data.
+- Refreshing a Cycle replaces the complete current-Cycle selection and advances
+  its generation in one transaction; there is no per-date Cycle reroll.
+  Refresh and post creation serialize on the parent feed row. Refresh is
+  rejected after any non-deleted post exists on any output in that Cycle, so a
+  concurrent post cannot be detached from the selection it answered.
+- Non-cycle catalog selection is deterministic by feed, date, source, filters,
+  and catalog item set. An applicable event seed establishes the event-specific
+  sequence. When an owner or admin refreshes a non-cycle current output, the
+  refreshed feed/date stores a separate generation seed in
   `group_daily_feed_generations`, and that seed becomes part of the deterministic
   selection key for that feed/date only. When both exist, the selection key
   composes the feed identity, feed date, event seed, reroll seed, and item
@@ -159,7 +237,9 @@ The current daily feed model follows these rules:
   starts at the moment of the change, while historical output lookups resolve
   the schedule version active for the requested date.
 - Catalog outputs render from source templates. HTTPS renders become links;
-  other renders become text prompts. Outputs are not persisted.
+  other renders become text prompts. Non-cycle output selections are not
+  persisted; Cycle selections are materialized as the ordered items for the
+  complete Cycle.
 - Generated member outputs carry optional event provenance separately from
   optional reroll provenance. Event provenance contains the event identity,
   name, and inclusive date window, allowing current and historical surfaces to
@@ -180,7 +260,15 @@ The current daily feed model follows these rules:
 - Owners and admins can reroll the current catalog output with
   `POST /api/groups/{group_id}/daily-feeds/{feed_id}/today/refresh`. Refreshes
   are rejected for daily thread feeds and for feed dates that already have
-  non-deleted member posts.
+  non-deleted member posts. This route applies only to a feed without a current
+  or scheduled Cycle run; the current Cycle is refreshed through its
+  `/cycles/{cycle_id}/refresh` management route.
+- Feed cadence and catalog source changes are blocked while a Cycle run is
+  scheduled, active, or ending, because either change would reinterpret Cycle
+  boundaries or Configuration fields. Baseline refresh and those feed edits
+  become available again after the run is `ended`. A replacement schedule's
+  current output date must be on or after the ended run's `ends_before`
+  boundary, so it cannot reclaim a frozen Cycle date.
 - Owners and admins manage full event definitions under the selected feed's
   `/events` routes. Active members can read the event summary attached to an
   enabled feed output but cannot read management-only configuration, seeds, or
@@ -201,10 +289,11 @@ The current daily feed model follows these rules:
   their own existing posts, and owners/admins can attach active tags to any
   existing post in the group. Arcade creates no default tags.
 
-The generator uses feed configuration, an optional event snapshot, an optional
-per-date reroll, and current catalog item data. The snapshot preserves the
-selection rules, not a copy of catalog rows or rendered output, so later catalog
-imports can still change which items are eligible for an historical date.
+Non-cycle generation uses feed configuration, an optional event snapshot, an
+optional per-date reroll, and current catalog item data. The event snapshot
+preserves selection rules, not a copy of catalog rows or rendered output, so
+later catalog imports can still change which items are eligible for a
+historical non-cycle date.
 
 Events require no start or end job. They activate and expire through the same
 on-demand feed-date resolution used by normal output reads; no backend
@@ -256,6 +345,9 @@ The browser app source lives in `web/frontend`:
   metric mutations, and judged score saves.
 - `src/machines/addFeedMachine.ts` owns the Add Feed dialog remote workflow:
   source loading, preview, creation, and dialog-scoped errors.
+- `src/machines/feedCyclesMachine.ts` owns the Cycle manager workflow: settings,
+  materialized Cycle and catalog-source loading, complete-Cycle preview,
+  settings replacement/deletion, refresh, and dialog-scoped errors.
 - `src/api.ts` wraps same-origin JSON requests to `/api/*` and preserves the
   backend `{ "error": "message" }` error contract. Endpoint calls originate
   from invoked machine actors.
@@ -292,8 +384,16 @@ The main group surface loads `/api/groups/{group_id}/daily-feeds`,
 `/api/groups/{group_id}/daily-feeds/{feed_id}/today` or
 `/api/groups/{group_id}/daily-feeds/{feed_id}/outputs/{date}`. Owners and
 admins also load and manage `/api/groups/{group_id}/daily-feeds/{feed_id}/events`,
-request archived tag definitions for the tag manager, and can toggle feed
-enabled state through
+`/api/groups/{group_id}/daily-feeds/{feed_id}/cycle-settings`, and
+`/api/groups/{group_id}/daily-feeds/{feed_id}/cycles`. Cycle preview, settings
+replacement, and whole-Cycle refresh use these routes:
+
+- `POST /api/groups/{group_id}/daily-feeds/{feed_id}/cycle-settings/preview`
+- `PUT /api/groups/{group_id}/daily-feeds/{feed_id}/cycle-settings`
+- `POST /api/groups/{group_id}/daily-feeds/{feed_id}/cycles/{cycle_id}/refresh`
+
+Owners and admins also request archived tag definitions for the tag manager and
+can toggle feed enabled state through
 `PATCH /api/groups/{group_id}/daily-feeds/{feed_id}`. Feed settings also patch
 caption availability and the current schedule when owners or admins change
 those settings. The same surface exposes an owner/admin-only Add feed flow
@@ -310,7 +410,5 @@ go run ./cmd/arcade
 ```
 
 ## Local-Build Limitations
-
-The architecture intentionally leaves a few extension points for future work:
 
 - Division membership materialization is not connected.

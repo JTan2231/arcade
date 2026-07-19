@@ -3,7 +3,7 @@ import type { DoneActorEvent, ErrorActorEvent, EventObject } from "xstate";
 
 import { todayDateValue } from "../dates";
 import { errorMessage } from "../errors";
-import type { DailyFeed, EvidenceFormat } from "../types";
+import type { CycleSettings, DailyFeed, DailyFeedCycleSettingsSummary, EvidenceFormat } from "../types";
 import { dashboardActors } from "./dashboard/actors";
 import {
   normalizeEvidenceFormatCreatePayload,
@@ -202,6 +202,7 @@ export const dashboardMachine = dashboardSetup.createMachine({
         context.feeds.some(
           (feed) =>
             feed.id === event.feedId &&
+            !feedUsesCycleOutputs(feed) &&
             (feed.schedule.interval_seconds !== event.schedule.interval_seconds ||
               feed.schedule.timezone !== event.schedule.timezone ||
               feed.schedule.starts_at !== event.schedule.starts_at),
@@ -217,7 +218,9 @@ export const dashboardMachine = dashboardSetup.createMachine({
     FEED_GENERATION_REFRESHED: {
       guard: ({ context, event }) =>
         context.selectedGroupId !== null &&
-        context.feeds.some((feed) => feed.id === event.feedId && feed.kind === "catalog_daily"),
+        context.feeds.some(
+          (feed) => feed.id === event.feedId && feed.kind === "catalog_daily" && !feedUsesCycleOutputs(feed),
+        ),
       target: ".groupSelected.refreshingFeedGeneration",
       actions: assign(({ event }) => ({
         pendingRefreshFeedId: event.feedId,
@@ -263,10 +266,49 @@ export const dashboardMachine = dashboardSetup.createMachine({
         sendToastToParent("Feed created"),
       ],
     },
+    FEED_CYCLES_OPENED: {
+      guard: ({ context, event }) =>
+        selectedGroupCanManage(context) &&
+        context.feeds.some(
+          (feed) =>
+            feed.id === event.feedId &&
+            feed.kind === "catalog_daily" &&
+            (feed.schedule.interval_seconds >= 86400 || feed.cycle_settings !== undefined),
+        ),
+      target: ".groupSelected.feedCycles",
+      actions: assign(({ event }) => ({
+        managedFeedCyclesFeedId: event.feedId,
+        feedCyclesChanged: false,
+      })),
+    },
+    FEED_CYCLES_CLOSED: closeFeedCyclesTransitions(),
+    CYCLE_SETTINGS_SAVED: {
+      actions: [
+        assign(({ context, event }) => ({
+          feeds: setFeedCycleSettings(context.feeds, event.settings),
+          feedCyclesChanged: true,
+        })),
+        sendToastToParent("Cycle settings saved"),
+      ],
+    },
+    CYCLE_SETTINGS_DELETED: {
+      actions: [
+        assign(({ context, event }) => ({
+          feeds: setFeedCycleSettingsSummary(context.feeds, event.cycleSettings, context.managedFeedCyclesFeedId),
+          feedCyclesChanged: true,
+        })),
+        sendCycleSettingsDeletedToastToParent(),
+      ],
+    },
+    CYCLE_REFRESHED: {
+      actions: [assign({ feedCyclesChanged: true }), sendToastToParent("Cycle refreshed")],
+    },
     FEED_EVENTS_OPENED: {
       guard: ({ context, event }) =>
         selectedGroupCanManage(context) &&
-        context.feeds.some((feed) => feed.id === event.feedId && feed.kind === "catalog_daily"),
+        context.feeds.some(
+          (feed) => feed.id === event.feedId && feed.kind === "catalog_daily" && feed.cycle_settings === undefined,
+        ),
       target: ".groupSelected.feedEvents",
       actions: assign(({ event }) => ({
         managedFeedEventsFeedId: event.feedId,
@@ -1738,6 +1780,17 @@ export const dashboardMachine = dashboardSetup.createMachine({
             }),
           },
         },
+        feedCycles: {
+          invoke: {
+            id: "feedCycles",
+            src: "feedCyclesMachine",
+            input: ({ context }) => ({
+              currentUserId: context.currentUserId,
+              groupId: requireSelectedGroupId(context),
+              feed: requireManagedFeedCyclesFeed(context),
+            }),
+          },
+        },
         feedEvents: {
           invoke: {
             id: "feedEvents",
@@ -1765,6 +1818,36 @@ function closeAddFeedTransitions() {
       guard: { type: "hasRestorableGroup" },
     },
   ] as const;
+}
+
+function closeFeedCyclesTransitions() {
+  return [
+    {
+      target: ".groupSelected.feedSelected.loadingDatedOutput",
+      guard: ({ context }: { context: DashboardContext }) =>
+        context.feedCyclesChanged &&
+        context.selectedFeedId !== null &&
+        context.selectedFeedId === context.managedFeedCyclesFeedId,
+      actions: clearFeedCyclesManagement(),
+    },
+    {
+      target: ".groupSelected.feedSelected.ready",
+      guard: { type: "hasRestorableFeed" },
+      actions: clearFeedCyclesManagement(),
+    },
+    {
+      target: ".groupSelected.noFeed",
+      guard: { type: "hasRestorableGroup" },
+      actions: clearFeedCyclesManagement(),
+    },
+  ] as const;
+}
+
+function clearFeedCyclesManagement() {
+  return assign<DashboardContext, { type: "FEED_CYCLES_CLOSED" }, undefined, DashboardEvent, never>({
+    managedFeedCyclesFeedId: null,
+    feedCyclesChanged: false,
+  });
 }
 
 function closeFeedEventsTransitions() {
@@ -2018,6 +2101,24 @@ function sendToggleToastToParent() {
   );
 }
 
+function sendCycleSettingsDeletedToastToParent() {
+  return sendParent<
+    DashboardContext,
+    Extract<DashboardEvent, { type: "CYCLE_SETTINGS_DELETED" }>,
+    undefined,
+    DashboardOutputEvent,
+    DashboardEvent
+  >(({ event }) =>
+    toastRequested(
+      event.cycleSettings?.status === "ending"
+        ? "Cycle settings scheduled to end"
+        : event.cycleSettings?.status === "ended"
+          ? "Cycle settings ended"
+          : "Cycle settings deleted",
+    ),
+  );
+}
+
 function sendFeedEventSavedToastToParent() {
   return sendParent<
     DashboardContext,
@@ -2199,12 +2300,75 @@ function requirePendingDeleteFeedId(context: DashboardContext): string {
   return context.pendingDeleteFeedId;
 }
 
+function requireManagedFeedCyclesFeed(context: DashboardContext): DailyFeed {
+  const feed = context.feeds.find((candidate) => candidate.id === context.managedFeedCyclesFeedId);
+  if (
+    feed === undefined ||
+    feed.kind !== "catalog_daily" ||
+    (feed.schedule.interval_seconds < 86400 && feed.cycle_settings === undefined)
+  ) {
+    throw new Error("Managed feed not found");
+  }
+  return feed;
+}
+
 function requireManagedFeedEventsFeed(context: DashboardContext): DailyFeed {
   const feed = context.feeds.find((candidate) => candidate.id === context.managedFeedEventsFeedId);
   if (feed === undefined || feed.kind !== "catalog_daily") {
     throw new Error("Managed feed not found");
   }
   return feed;
+}
+
+function setFeedCycleSettings(
+  feeds: DailyFeed[],
+  settings: CycleSettings | null,
+  deletedFeedId: string | null = null,
+): DailyFeed[] {
+  const feedId = settings?.feed_id ?? deletedFeedId;
+  if (feedId === null) {
+    return feeds;
+  }
+  return setFeedCycleSettingsSummary(
+    feeds,
+    settings === null
+      ? null
+      : {
+          id: settings.id,
+          starts_on: settings.starts_on,
+          status: settings.status,
+          ...(settings.ends_before !== undefined ? { ends_before: settings.ends_before } : {}),
+        },
+    feedId,
+  );
+}
+
+function setFeedCycleSettingsSummary(
+  feeds: DailyFeed[],
+  cycleSettings: DailyFeedCycleSettingsSummary | null,
+  feedId: string | null,
+): DailyFeed[] {
+  if (feedId === null) {
+    return feeds;
+  }
+  return feeds.map((feed) => {
+    if (feed.id !== feedId) {
+      return feed;
+    }
+    if (cycleSettings === null) {
+      const withoutCycleSettings = { ...feed };
+      delete withoutCycleSettings.cycle_settings;
+      return withoutCycleSettings;
+    }
+    return {
+      ...feed,
+      cycle_settings: cycleSettings,
+    };
+  });
+}
+
+function feedUsesCycleOutputs(feed: DailyFeed): boolean {
+  return feed.cycle_settings !== undefined && feed.cycle_settings.status !== "ended";
 }
 
 function requirePostMutation<TKind extends PostMutation["kind"]>(
