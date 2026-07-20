@@ -523,7 +523,7 @@ func (s *Server) selectDailyFeedCycleItems(ctx context.Context, configuration Da
 		}
 		return dailyFeedCycleSelection{}, statusError{
 			status:  http.StatusUnprocessableEntity,
-			message: fmt.Sprintf("cycle configuration can select only %d of %d required items", capacity, count),
+			message: fmt.Sprintf("cycle configuration %d (%q) can select only %d of %d required items", configuration.Position+1, configuration.Name, capacity, count),
 		}
 	}
 	if configuration.Order.Kind == "field" {

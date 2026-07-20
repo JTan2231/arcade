@@ -333,7 +333,7 @@ steps:
               kind: seeded_shuffle
       expectStatus: 422
       expectJson:
-        error: cycle configuration can select only 4 of 5 required items
+        error: cycle configuration 1 ("Not Enough Topics") can select only 4 of 5 required items
 
   - request:
       id: reject_insufficient_save
@@ -345,6 +345,13 @@ steps:
         output_count: 5
         selection_token: "{{selection_token}}"
         configurations:
+          - key: enough
+            name: Enough Items
+            filters: []
+            distinct:
+              kind: none
+            order:
+              kind: seeded_shuffle
           - key: impossible
             name: Not Enough Topics
             filters: []
@@ -355,7 +362,7 @@ steps:
               kind: seeded_shuffle
       expectStatus: 422
       expectJson:
-        error: cycle configuration can select only 4 of 5 required items
+        error: cycle configuration 2 ("Not Enough Topics") can select only 4 of 5 required items
 
   - request:
       id: save_cycle_settings

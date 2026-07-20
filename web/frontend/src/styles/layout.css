@@ -318,6 +318,7 @@ body:has([aria-modal="true"]) .page-scroll-controls {
 }
 
 .row-action-menu:focus-within,
+.action-row .row-action-menu-open,
 .action-row:hover .row-action-menu {
   opacity: 1;
 }
@@ -345,12 +346,17 @@ body:has([aria-modal="true"]) .page-scroll-controls {
   border-radius: 6px;
   box-shadow: var(--shadow-popover);
   display: grid;
+  inset: auto;
+  margin: 0;
   min-width: 128px;
   padding: 4px;
-  position: absolute;
-  right: 6px;
-  top: calc(100% + 4px);
+  position: fixed;
+  visibility: hidden;
   z-index: 10;
+}
+
+.row-action-menu-panel-positioned {
+  visibility: visible;
 }
 
 .menu-action-button {

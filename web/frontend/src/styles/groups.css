@@ -54,6 +54,10 @@
   opacity: 1;
 }
 
+.groups-panel:has(.row-action-menu-open) .group-tree {
+  opacity: 1;
+}
+
 .group-tree-node {
   display: grid;
   gap: 2px;
