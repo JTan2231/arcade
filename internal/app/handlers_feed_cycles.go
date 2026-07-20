@@ -216,7 +216,7 @@ func (s *Server) normalizeDailyFeedCycleSettings(ctx context.Context, feed Daily
 	if len(req.Configurations) == 0 {
 		return upsertDailyFeedCycleSettingsRequest{}, "", time.Time{}, badRequest("at least one cycle configuration is required")
 	}
-	if ok, err := cycleDateIsScheduled(feed.Schedule, startsOn); err != nil {
+	if ok, err := dailyFeedDateIsScheduled(feed.Schedule, startsOn); err != nil {
 		return upsertDailyFeedCycleSettingsRequest{}, "", time.Time{}, err
 	} else if !ok {
 		return upsertDailyFeedCycleSettingsRequest{}, "", time.Time{}, badRequest("starts_on must be a scheduled feed output date")
@@ -320,7 +320,7 @@ func cycleOrderForField(field CatalogSourceField, direction string) DailyFeedCyc
 	}}
 }
 
-func cycleDateIsScheduled(schedule DailyFeedSchedule, date time.Time) (bool, error) {
+func dailyFeedDateIsScheduled(schedule DailyFeedSchedule, date time.Time) (bool, error) {
 	windows, err := scheduledFeedDateWindows(schedule, date, date)
 	if err != nil {
 		return false, err
@@ -1059,7 +1059,7 @@ func (s *Server) dailyFeedCycleContextForDate(ctx context.Context, feed DailyFee
 		return dailyFeedCycleContext{}, false, nil
 	}
 	schedule := settings.Schedule
-	if ok, err := cycleDateIsScheduled(schedule, date); err != nil {
+	if ok, err := dailyFeedDateIsScheduled(schedule, date); err != nil {
 		return dailyFeedCycleContext{}, false, err
 	} else if !ok {
 		return dailyFeedCycleContext{}, false, badRequest("date is not a scheduled feed output")

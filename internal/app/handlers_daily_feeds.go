@@ -1062,11 +1062,26 @@ func (s *Server) dailyFeedOutputSummaryDates(ctx context.Context, feed DailyFeed
 		if err != nil {
 			return nil, err
 		}
-		selectedOutputDate, err := s.dailyFeedOutputDateForFeed(ctx, feed, &selected, now)
+		selectedSchedule, err := s.effectiveDailyFeedSchedule(ctx, feed, &selected, now)
 		if err != nil {
 			return nil, err
 		}
-		if !selectedOutputDate.Before(feedCreatedDateInSchedule(feed, selectedOutputDate.Location())) && !containsDailyFeedDate(dates, selectedOutputDate) {
+		selectedOutputDate, err := dailyFeedOutputDateAt(selectedSchedule, &selected, now)
+		if err != nil {
+			return nil, err
+		}
+		currentOutputDate, err := dailyFeedOutputDateAt(selectedSchedule, nil, now)
+		if err != nil {
+			return nil, err
+		}
+		isScheduled, err := dailyFeedDateIsScheduled(selectedSchedule, selectedOutputDate)
+		if err != nil {
+			return nil, err
+		}
+		if isScheduled &&
+			!dailyFeedCycleDateAfter(selectedOutputDate, currentOutputDate) &&
+			!selectedOutputDate.Before(feedCreatedDateInSchedule(feed, selectedOutputDate.Location())) &&
+			!containsDailyFeedDate(dates, selectedOutputDate) {
 			dates = append([]time.Time{selectedOutputDate}, dates...)
 		}
 	}
@@ -1085,14 +1100,16 @@ func feedSummaryRangeForScheduleVersion(feed DailyFeed, versions []dailyFeedSche
 		return time.Time{}, time.Time{}, badRequest("schedule timezone is invalid")
 	}
 
-	nowLocal := now.In(location)
-	today := time.Date(nowLocal.Year(), nowLocal.Month(), nowLocal.Day(), 0, 0, 0, 0, location)
-	lookbackFloor := today.AddDate(0, 0, -dailyFeedOutputSummaryLookbackDays*8)
+	currentOutputDate, err := dailyFeedOutputDateAt(version.Schedule, nil, now)
+	if err != nil {
+		return time.Time{}, time.Time{}, err
+	}
+	lookbackFloor := currentOutputDate.AddDate(0, 0, -dailyFeedOutputSummaryLookbackDays*8)
 	versionStartLocal := version.Schedule.StartsAt.In(location)
 	versionStartDate := time.Date(versionStartLocal.Year(), versionStartLocal.Month(), versionStartLocal.Day(), 0, 0, 0, 0, location)
 	from := maxTime(feedCreatedDateInSchedule(feed, location), maxTime(lookbackFloor, versionStartDate))
 
-	to := today
+	to := currentOutputDate
 	if index+1 < len(versions) {
 		nextStartLocal := versions[index+1].Schedule.StartsAt.In(location)
 		nextStartDate := time.Date(nextStartLocal.Year(), nextStartLocal.Month(), nextStartLocal.Day(), 0, 0, 0, 0, location)

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-import { feedDateOptions, formatDateLabel } from "../../dates";
 import type {
   CreateFeedMetricJudgmentRequest,
   DailyFeed,
@@ -322,20 +321,13 @@ function FeedOutputTitleMenu({
   const [menuOpen, setMenuOpen] = useState(false);
   const [summariesByDate, setSummariesByDate] = useState<Record<string, DailyFeedOutputSummary>>({});
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyLoaded, setHistoryLoaded] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const fallbackDateOptions = feedDateOptions(selectedFeedDate, feed.created_at);
-  const summaryDateOptions = Object.values(summariesByDate)
-    .sort((left, right) => right.date.localeCompare(left.date))
-    .map((summary) => ({ value: summary.date, label: formatDateLabel(summary.date) }));
-  const dateOptions = historyLoaded && summaryDateOptions.length > 0 ? summaryDateOptions : fallbackDateOptions;
-  const selectedDateInOptions = dateOptions.some((option) => option.value === selectedFeedDate);
-  const visibleDateOptions = selectedDateInOptions
-    ? dateOptions
-    : [
-        { value: selectedFeedDate, label: formatDateLabel(selectedFeedDate) },
-        ...dateOptions.filter((option) => option.value !== selectedFeedDate),
-      ];
+  const currentOutputSummary = output === null ? null : feedOutputSummary(output);
+  const availableSummaries =
+    currentOutputSummary === null
+      ? summariesByDate
+      : { ...summariesByDate, [currentOutputSummary.date]: currentOutputSummary };
+  const dateOptions = Object.values(availableSummaries).sort((left, right) => right.date.localeCompare(left.date));
   const currentSummary =
     output !== null
       ? feedOutputSummary(output)
@@ -349,19 +341,7 @@ function FeedOutputTitleMenu({
 
   useEffect(() => {
     setSummariesByDate({});
-    setHistoryLoaded(false);
-  }, [feed.id]);
-
-  useEffect(() => {
-    if (output === null) {
-      return;
-    }
-    const summary = feedOutputSummary(output);
-    setSummariesByDate((current) => ({
-      ...current,
-      [summary.date]: summary,
-    }));
-  }, [output]);
+  }, [feed.id, feed.schedule.interval_seconds, feed.schedule.starts_at, feed.schedule.timezone]);
 
   useEffect(() => {
     if (!menuOpen) {
@@ -406,16 +386,13 @@ function FeedOutputTitleMenu({
         if (controller.signal.aborted) {
           return;
         }
-        setSummariesByDate((current) => {
-          const next = { ...current };
-          for (const summary of summaries) {
-            if (summary.feed_id === feed.id) {
-              next[summary.date] = summary;
-            }
+        const next: Record<string, DailyFeedOutputSummary> = {};
+        for (const summary of summaries) {
+          if (summary.feed_id === feed.id) {
+            next[summary.date] = summary;
           }
-          return next;
-        });
-        setHistoryLoaded(true);
+        }
+        setSummariesByDate(next);
         setHistoryLoading(false);
       })
       .catch(() => {
@@ -458,21 +435,20 @@ function FeedOutputTitleMenu({
           aria-label="Feed output choices"
           className="metric-title-menu-panel feed-output-title-menu-panel"
         >
-          {visibleDateOptions.map((option) => {
-            const summary = summariesByDate[option.value] ?? null;
-            const optionTitle = summary?.title ?? option.label;
-            const optionSubtitle = summary?.subtitle;
+          {dateOptions.map((summary) => {
+            const optionTitle = summary.title;
+            const optionSubtitle = summary.subtitle;
             return (
               <button
-                aria-label={`Select ${optionTitle} (${option.value})`}
-                aria-pressed={option.value === currentSummary.date}
+                aria-label={`Select ${optionTitle} (${summary.date})`}
+                aria-pressed={summary.date === currentSummary.date}
                 className="metric-title-menu-option"
-                key={option.value}
+                key={summary.date}
                 type="button"
                 onClick={() => {
                   setMenuOpen(false);
-                  if (option.value !== currentSummary.date) {
-                    onChangeFeedDate(option.value);
+                  if (summary.date !== currentSummary.date) {
+                    onChangeFeedDate(summary.date);
                   }
                 }}
               >

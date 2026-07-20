@@ -352,6 +352,57 @@ func TestDailyFeedOutputDateBeforeFutureStartUsesTodayInScheduleTimezone(t *test
 	}
 }
 
+func TestDailyFeedOutputSummaryDatesStopAtLatestScheduleBoundary(t *testing.T) {
+	location, err := time.LoadLocation("America/Chicago")
+	if err != nil {
+		t.Fatalf("time.LoadLocation returned error: %v", err)
+	}
+
+	server := &Server{}
+	feed := DailyFeed{
+		ID:        "feed-id",
+		CreatedAt: time.Date(2026, 7, 18, 9, 0, 0, 0, location),
+		Schedule: DailyFeedSchedule{
+			StartsAt:        time.Date(2026, 7, 18, 8, 0, 0, 0, location),
+			Timezone:        "America/Chicago",
+			IntervalSeconds: 86400,
+		},
+	}
+
+	tests := []struct {
+		name string
+		now  time.Time
+		want []string
+	}{
+		{
+			name: "before today's boundary",
+			now:  time.Date(2026, 7, 20, 0, 30, 0, 0, location),
+			want: []string{"2026-07-19", "2026-07-18"},
+		},
+		{
+			name: "after today's boundary",
+			now:  time.Date(2026, 7, 20, 8, 1, 0, 0, location),
+			want: []string{"2026-07-20", "2026-07-19", "2026-07-18"},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			dates, err := server.dailyFeedOutputSummaryDates(context.Background(), feed, "2026-07-20", test.now)
+			if err != nil {
+				t.Fatalf("dailyFeedOutputSummaryDates returned error: %v", err)
+			}
+			got := make([]string, 0, len(dates))
+			for _, date := range dates {
+				got = append(got, date.Format(dailyFeedDateLayout))
+			}
+			if !reflect.DeepEqual(got, test.want) {
+				t.Fatalf("dates = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
 func TestNormalizeDailyFeedScheduleRejectsFutureStartDate(t *testing.T) {
 	location, err := time.LoadLocation("America/Chicago")
 	if err != nil {

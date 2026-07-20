@@ -6,7 +6,7 @@ import { queries } from "../cache/queries";
 import { queryCache } from "../cache/queryCache";
 import { useInviteLinks } from "../invites/useInviteLinks";
 import { matchesTopState } from "../machines/stateMatches";
-import { groupPath, publicRouteCacheKey, type AppRoute } from "../routes";
+import { feedPath, groupPath, publicRouteCacheKey, type AppRoute } from "../routes";
 import type { Group, User } from "../types";
 import { GroupDashboardAdapter } from "./GroupDashboardAdapter";
 import { FeedCyclesAdapter } from "./FeedCyclesAdapter";
@@ -270,13 +270,52 @@ export function WorkspaceShell({
       selectedFeedDate !== "" &&
       selectedFeedDate !== workspaceMemberRouteTarget.date
     ) {
-      dashboardRef.send({ type: "FEED_DATE_CHANGED", date: workspaceMemberRouteTarget.date });
+      if (currentUserId === null) {
+        return;
+      }
+      const controller = new AbortController();
+      const requestedDate = workspaceMemberRouteTarget.date;
+      const requestedFeedId = workspaceMemberRouteTarget.feedId;
+      void queryCache
+        .read(
+          queries.feedOutputSummaries,
+          currentUserId,
+          workspaceMemberRouteTarget.groupId,
+          requestedFeedId,
+          requestedDate,
+          { signal: controller.signal },
+        )
+        .then((summaries) => {
+          if (controller.signal.aborted) {
+            return;
+          }
+          if (summaries.some((summary) => summary.date === requestedDate)) {
+            dashboardRef.send({ type: "FEED_DATE_CHANGED", date: requestedDate });
+            return;
+          }
+          onNavigate(feedPath(requestedFeedId), "replace");
+        })
+        .catch((error: unknown) => {
+          if (controller.signal.aborted) {
+            return;
+          }
+          if (isUnauthorized(error)) {
+            onUnauthorized();
+            return;
+          }
+          dashboardRef.send({ type: "FEED_DATE_CHANGED", date: requestedDate });
+        });
+      return () => controller.abort();
     }
+    return undefined;
   }, [
     dashboardRef,
+    currentUserId,
     feeds,
     groups,
     loadingGroups,
+    onNavigate,
+    onUnauthorized,
     publicRoute,
     selectedFeedDate,
     selectedFeedId,

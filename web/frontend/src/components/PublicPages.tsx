@@ -183,12 +183,25 @@ function PublicFeedPage({
   useEffect(() => {
     const controller = new AbortController();
     setState({ status: "loading" });
-    const request =
-      date === null ? readPublicFeed(feedId, null, controller.signal) : readPublicFeed(feedId, date, controller.signal);
+    const request = async (): Promise<PublicFeed | null> => {
+      if (date !== null) {
+        const summaries = await queryCache.read(queries.publicFeedOutputSummaries, feedId, date, {
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted) {
+          return null;
+        }
+        if (!summaries.some((summary) => summary.date === date)) {
+          onNavigate(feedPath(feedId), "replace");
+          return null;
+        }
+      }
+      return readPublicFeed(feedId, date, controller.signal);
+    };
 
-    request
+    void request()
       .then((feed) => {
-        if (!controller.signal.aborted) {
+        if (!controller.signal.aborted && feed !== null) {
           setState({ status: "ready", data: publicFeedToDashboard(feed) });
         }
       })
@@ -200,7 +213,7 @@ function PublicFeedPage({
       });
 
     return () => controller.abort();
-  }, [date, feedId]);
+  }, [date, feedId, onNavigate]);
 
   return (
     <PublicDashboardView

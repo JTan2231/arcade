@@ -1,0 +1,175 @@
+name: keep upcoming cycle dates out of feed navigation
+
+vars:
+  email: output-availability-owner@example.test
+  password: password123
+  selection_token: "44444444444444444444444444444444"
+
+before:
+  - request:
+      id: signup_owner
+      client: browser
+      method: POST
+      path: /api/auth/signup
+      json:
+        display_name: Output Availability Owner
+        email: "{{email}}"
+        password: "{{password}}"
+        remember_me: false
+      expectStatus: 201
+
+  - request:
+      id: create_group
+      client: browser
+      method: POST
+      path: /api/groups
+      json:
+        name: Output Availability Dojo
+        visibility: public
+      expectStatus: 201
+      capture:
+        group_id: $.id
+
+  - request:
+      id: create_source
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/catalog-sources
+      json:
+        name: Output Availability Source
+        template: https://example.test/{slug}
+        items:
+          - title: Available Alpha
+            data:
+              slug: available-alpha
+          - title: Available Beta
+            data:
+              slug: available-beta
+      expectStatus: 201
+      capture:
+        source_id: $.id
+
+  - request:
+      id: create_feed
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds
+      json:
+        name: Output Availability Practice
+        kind: catalog_daily
+        enabled: true
+        source_id: "{{source_id}}"
+        item_count: 1
+        schedule:
+          starts_at: "2020-01-01T00:00:00Z"
+          timezone: UTC
+          interval_seconds: 86400
+      expectStatus: 201
+      capture:
+        feed_id: $.id
+
+  - request:
+      id: preview_cycle
+      client: browser
+      method: POST
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycle-settings/preview
+      json:
+        starts_on: "{{today}}"
+        output_count: 2
+        selection_token: "{{selection_token}}"
+        configurations:
+          - key: available
+            name: Available Round
+            filters: []
+            distinct:
+              kind: none
+            order:
+              kind: seeded_shuffle
+      expectStatus: 200
+      capture:
+        current_title: $.outputs[0].items[0].item.title
+
+  - request:
+      id: save_cycle
+      client: browser
+      method: PUT
+      path: /api/groups/{{group_id}}/daily-feeds/{{feed_id}}/cycle-settings
+      json:
+        starts_on: "{{today}}"
+        output_count: 2
+        selection_token: "{{selection_token}}"
+        configurations:
+          - key: available
+            name: Available Round
+            filters: []
+            distinct:
+              kind: none
+            order:
+              kind: seeded_shuffle
+      expectStatus: 200
+
+steps:
+  - failRequest:
+      method: GET
+      path: /api/groups/*/daily-feeds/*/outputs/{{daysAhead:1}}
+
+  - visit: /f/{{feed_id}}/{{daysAhead:1}}
+
+  - within: Selected feed output
+    expectVisible:
+      text: "{{current_title}}"
+
+  - within: Selected feed output
+    expectHidden:
+      text: upcoming cycles are available through preview only
+
+  - within: Selected feed output
+    click:
+      role: button
+      name: Feed output choices
+
+  - within: Selected feed output
+    expectPressed:
+      role: button
+      name: Select {{current_title}} ({{today}})
+      pressed: true
+
+  - within: Selected feed output
+    expectHidden:
+      text: "{{daysAhead:1}}"
+
+  - request:
+      id: logout_owner
+      client: browser
+      method: POST
+      path: /api/auth/logout
+      expectStatus: 204
+
+  - failRequest:
+      method: GET
+      path: /api/public/feeds/*/outputs/{{daysAhead:1}}
+
+  - visit: /f/{{feed_id}}/{{daysAhead:1}}
+
+  - within: Selected feed output
+    expectVisible:
+      text: "{{current_title}}"
+
+  - within: Selected feed output
+    expectHidden:
+      text: upcoming cycles are available through preview only
+
+  - within: Selected feed output
+    click:
+      role: button
+      name: Feed output choices
+
+  - within: Selected feed output
+    expectPressed:
+      role: button
+      name: Select {{current_title}} ({{today}})
+      pressed: true
+
+  - within: Selected feed output
+    expectHidden:
+      text: "{{daysAhead:1}}"

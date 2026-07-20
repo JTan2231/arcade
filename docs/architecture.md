@@ -214,6 +214,12 @@ The current daily feed model follows these rules:
   The stored item identities, order, rendered actions, and display data are then
   authoritative even when the catalog later changes. Normal output routes
   reject upcoming Cycle dates; only preview returns their virtual selections.
+- Feed output navigation is built only from server-resolved output summaries.
+  Summary ranges stop at the latest elapsed boundary in the applicable schedule,
+  and an explicitly selected upcoming date is not inserted into that range.
+  Member and public dated routes validate against the same summaries and replace
+  an unavailable dated URL with the feed's current route instead of requesting
+  or displaying an upcoming Cycle output.
 - One Cycle item is assigned to each scheduled feed output in the Cycle. The
   member and public output responses carry display-safe Cycle provenance,
   including the Configuration identity, Cycle boundary, and the output's

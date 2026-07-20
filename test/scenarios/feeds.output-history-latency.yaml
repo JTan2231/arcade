@@ -1,4 +1,4 @@
-name: show usable feed output history while summaries are loading
+name: show only confirmed feed output history while summaries are loading
 
 vars:
   email: output-history-owner@example.test
@@ -101,8 +101,15 @@ steps:
       name: Feed output choices
 
   - within: Selected feed output
-    expectVisible:
-      text: "{{yesterday}}"
+    expectPressed:
+      role: button
+      name: Select History Task ({{today}})
+      pressed: true
+
+  - within: Selected feed output
+    expectHidden:
+      role: button
+      name: Select History Task ({{yesterday}})
 
   - within: Selected feed output
     expectHidden:

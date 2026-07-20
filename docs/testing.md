@@ -319,6 +319,12 @@ Cycle behavior is split across three focused scenarios:
   announcement, and whole-Cycle refresh. It also verifies the ended-run
   summary, retained generated history, permanent removal of Event management,
   and restored baseline refresh and cadence controls.
+- `feeds.output-availability.yaml` verifies that upcoming Cycle dates are absent
+  from member and public output navigation, that dated future URLs resolve to
+  the current feed, and that the future-output guard never reaches the UI.
+- `feeds.output-history-latency.yaml` verifies that the loaded current output is
+  usable while summary history is in flight without inventing browser-calendar
+  fallback dates.
 
 The API scenarios assert both responses and relational persistence. This is
 important for preview and failure cases: a correct error response is not enough
