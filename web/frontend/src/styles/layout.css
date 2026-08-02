@@ -346,6 +346,7 @@ body:has([aria-modal="true"]) .page-scroll-controls {
   border-radius: 6px;
   box-shadow: var(--shadow-popover);
   display: grid;
+  height: fit-content;
   inset: auto;
   margin: 0;
   min-width: 128px;
